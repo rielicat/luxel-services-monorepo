@@ -1,0 +1,9 @@
+{
+  "extends": "@luxel/config/tsconfig/library.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*", "test/**/*"]
+}

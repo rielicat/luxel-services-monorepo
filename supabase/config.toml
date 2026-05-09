@@ -1,0 +1,29 @@
+project_id = "luxel"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+# Clerk owns auth — Supabase only verifies JWTs via the configured signing key.
+# Configure in Supabase dashboard: Settings → API → JWT Settings → use Clerk's JWKS.
+enabled = false
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"

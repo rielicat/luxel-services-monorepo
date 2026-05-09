@@ -1,0 +1,182 @@
+{
+  "common": {
+    "loading": "Cargando…",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "continue": "Continuar",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "submit": "Enviar",
+    "yes": "Sí",
+    "no": "No",
+    "currency_clp": "CLP"
+  },
+  "nav": {
+    "home": "Inicio",
+    "calculator": "Cotizar",
+    "account": "Mi cuenta",
+    "calendar": "Calendario",
+    "login": "Ingresar",
+    "logout": "Cerrar sesión",
+    "signup": "Crear cuenta"
+  },
+  "landing": {
+    "hero": {
+      "title": "Aseo profesional, sin complicaciones.",
+      "subtitle": "Cotiza online, agenda en minutos y recibe un servicio impecable de Servicios Luxel.",
+      "cta_primary": "Cotizar mi servicio",
+      "cta_secondary": "Conocer más"
+    },
+    "how": {
+      "title": "Cómo funciona",
+      "subtitle": "De la cotización al servicio en tres pasos.",
+      "steps": {
+        "quote": {
+          "title": "1. Cotiza online",
+          "description": "Ingresa metros cuadrados y dirección. Te mostramos el precio al instante."
+        },
+        "book": {
+          "title": "2. Agenda tu bloque",
+          "description": "Elige día, mañana o tarde, y paga con MercadoPago o tarjeta."
+        },
+        "relax": {
+          "title": "3. Disfruta tu espacio",
+          "description": "Llegamos puntuales, con o sin insumos. Tú eliges la frecuencia."
+        }
+      }
+    },
+    "features": {
+      "title": "Todo lo que necesitas para mantener tu espacio impecable",
+      "subtitle": "Diseñado para clientes exigentes en Chile.",
+      "items": {
+        "calculator": {
+          "title": "Precio claro al instante",
+          "description": "Cotiza por metros cuadrados y ubicación. Sin sorpresas."
+        },
+        "calendar": {
+          "title": "Agenda flexible",
+          "description": "Reserva un servicio único o suscríbete con frecuencia semanal, quincenal o mensual."
+        },
+        "chat": {
+          "title": "Atención por WhatsApp",
+          "description": "Conversa con nosotros desde la web o WhatsApp. Resolvemos tus dudas al toque."
+        },
+        "sparkles": {
+          "title": "Equipos certificados",
+          "description": "Cuadrillas verificadas, con o sin nuestros insumos. Tú eliges."
+        }
+      }
+    },
+    "pricing": {
+      "title": "Precios honestos, calculados al detalle",
+      "subtitle": "Tarifa base + metros cuadrados + distancia. Descuentos por suscripción.",
+      "cta": "Cotizar ahora"
+    },
+    "footer": {
+      "tagline": "Servicios de aseo en la Región Metropolitana."
+    }
+  },
+  "calculator": {
+    "title": "Cotiza tu servicio",
+    "subtitle": "Te entregamos un precio en menos de un minuto.",
+    "fields": {
+      "service_type": "Tipo de aseo",
+      "square_meters": "Metros cuadrados",
+      "address": "Dirección",
+      "commune": "Comuna",
+      "tools": "¿Quién aporta los insumos?",
+      "tools_customer": "Yo aporto los insumos",
+      "tools_company": "Que los lleve Luxel (+ recargo)",
+      "frequency": "Frecuencia",
+      "frequency_one_time": "Una sola vez",
+      "frequency_weekly": "Semanal",
+      "frequency_biweekly": "Quincenal",
+      "frequency_monthly": "Mensual"
+    },
+    "result": {
+      "total": "Total",
+      "per_visit": "por visita",
+      "discount_applied": "Descuento por suscripción",
+      "distance": "Distancia desde nuestra base más cercana",
+      "book_now": "Agendar ahora"
+    }
+  },
+  "account": {
+    "title": "Mi cuenta",
+    "subscription": {
+      "title": "Mi suscripción",
+      "status_label": "Estado",
+      "status_active": "Activa",
+      "status_paused": "Pausada",
+      "status_cancelled": "Cancelada",
+      "next_visit": "Próxima visita",
+      "frequency": "Frecuencia",
+      "amount": "Monto por visita",
+      "pause": "Pausar",
+      "resume": "Reanudar",
+      "cancel": "Cancelar suscripción"
+    },
+    "bookings": {
+      "title": "Mis reservas",
+      "empty": "Aún no tienes reservas."
+    },
+    "profile": {
+      "title": "Mis datos",
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono"
+    }
+  },
+  "calendar": {
+    "title": "Mi calendario",
+    "available_blocks": "Bloques disponibles",
+    "timeblock_manana": "Mañana 08:00–12:00",
+    "timeblock_tarde": "Tarde 14:00–18:00",
+    "no_availability": "No hay disponibilidad para este día.",
+    "select_date": "Selecciona una fecha"
+  },
+  "chat": {
+    "title": "¿Cómo podemos ayudarte?",
+    "placeholder": "Escribe tu mensaje…",
+    "send": "Enviar",
+    "fallback_to_human": "Hablar con una persona por WhatsApp",
+    "bot_greeting": "¡Hola! Soy el asistente de Luxel. ¿En qué te ayudo?"
+  },
+  "errors": {
+    "generic": "Ocurrió un error. Intenta nuevamente.",
+    "out_of_service_area": "Aún no llegamos a esta zona. Estamos creciendo — déjanos tus datos y te avisamos.",
+    "not_found": "Página no encontrada",
+    "unauthorized": "Necesitas iniciar sesión para continuar.",
+    "validation": "Revisa los datos ingresados."
+  },
+  "service": {
+    "regular": {
+      "name": "Aseo regular",
+      "desc": "Mantención semanal o puntual de tu hogar u oficina."
+    },
+    "deep": {
+      "name": "Aseo profundo",
+      "desc": "Limpieza detallada, ideal cada 2–3 meses."
+    },
+    "move_out": {
+      "name": "Aseo de entrega",
+      "desc": "Para entrega o recepción de propiedad."
+    }
+  },
+  "faq": {
+    "section_title": "Preguntas frecuentes",
+    "q": {
+      "coverage": "¿En qué comunas trabajan?",
+      "tools": "¿Llevan los insumos?",
+      "payment": "¿Qué medios de pago aceptan?",
+      "cancel": "¿Puedo cancelar o pausar mi suscripción?"
+    },
+    "a": {
+      "coverage": "Operamos en la Región Metropolitana, con cobertura por radio desde nuestros puntos de operación. Ingresa tu dirección en la cotizadora para confirmarlo al instante.",
+      "tools": "Tú decides: puedes aportar los insumos o solicitar que Luxel los lleve por un recargo fijo.",
+      "payment": "Aceptamos tarjetas y transferencias vía Stripe y MercadoPago.",
+      "cancel": "Sí, puedes pausar o cancelar tu suscripción en cualquier momento desde Mi cuenta."
+    }
+  }
+}

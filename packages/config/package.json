@@ -1,0 +1,25 @@
+{
+  "name": "@luxel/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": ["eslint", "tsconfig", "tailwind"],
+  "exports": {
+    "./eslint/base": "./eslint/base.mjs",
+    "./eslint/next": "./eslint/next.mjs",
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/next.json": "./tsconfig/next.json",
+    "./tsconfig/library.json": "./tsconfig/library.json",
+    "./tailwind/preset": "./tailwind/preset.ts"
+  },
+  "dependencies": {
+    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/js": "^9.11.1",
+    "eslint": "^9.11.1",
+    "eslint-config-next": "^15.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "tailwindcss": "^3.4.13",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript-eslint": "^8.8.0"
+  }
+}
