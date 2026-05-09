@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "Servicios Luxel — cleaning services platform (es-CL).",
   "engines": {
-    "node": ">=20.10.0",
+    "node": ">=22.13.0",
     "pnpm": ">=11.0.0"
   },
   "packageManager": "pnpm@11.0.9",
