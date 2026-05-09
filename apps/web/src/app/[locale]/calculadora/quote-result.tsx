@@ -22,7 +22,9 @@ export function QuoteResult({ result, pending, frequency }: Props) {
   if (pending) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">{tCommon('loading')}</CardContent>
+        <CardContent className="text-muted-foreground p-6 text-sm">
+          {tCommon('loading')}
+        </CardContent>
       </Card>
     );
   }
@@ -30,7 +32,7 @@ export function QuoteResult({ result, pending, frequency }: Props) {
   if (!result) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">
+        <CardContent className="text-muted-foreground p-6 text-sm">
           Completa el formulario para ver tu cotización.
         </CardContent>
       </Card>
@@ -42,7 +44,7 @@ export function QuoteResult({ result, pending, frequency }: Props) {
     return (
       <Card>
         <CardContent className="p-6">
-          <p className="text-sm text-destructive">{tErr(errKey)}</p>
+          <p className="text-destructive text-sm">{tErr(errKey)}</p>
         </CardContent>
       </Card>
     );
@@ -59,18 +61,22 @@ export function QuoteResult({ result, pending, frequency }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium text-muted-foreground">{t('total')}</CardTitle>
+        <CardTitle className="text-muted-foreground text-base font-medium">{t('total')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="text-4xl font-bold tabular-nums">{formatCLP(q.totalClp)}</div>
-        {frequency !== 'one_time' && <p className="-mt-2 text-sm text-muted-foreground">{t('per_visit')}</p>}
+        {frequency !== 'one_time' && (
+          <p className="text-muted-foreground -mt-2 text-sm">{t('per_visit')}</p>
+        )}
 
         <Separator />
 
         <dl className="grid gap-2 text-sm">
           <Row label="Tarifa base" value={formatCLP(q.breakdown.base)} />
           <Row label="Por m²" value={formatCLP(q.breakdown.perM2)} />
-          {q.breakdown.tools > 0 && <Row label="Insumos Luxel" value={formatCLP(q.breakdown.tools)} />}
+          {q.breakdown.tools > 0 && (
+            <Row label="Insumos Luxel" value={formatCLP(q.breakdown.tools)} />
+          )}
           {q.breakdown.distance > 0 && (
             <Row label={t('distance')} value={formatCLP(q.breakdown.distance)} />
           )}
@@ -83,7 +89,7 @@ export function QuoteResult({ result, pending, frequency }: Props) {
           )}
         </dl>
 
-        <p className="text-xs text-muted-foreground">≈ {q.distanceKm} km</p>
+        <p className="text-muted-foreground text-xs">≈ {q.distanceKm} km</p>
 
         <Button asChild className="w-full">
           <Link href={`/agendar?${params.toString()}` as never}>{t('book_now')}</Link>

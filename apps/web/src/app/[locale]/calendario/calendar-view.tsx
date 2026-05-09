@@ -43,14 +43,12 @@ export function CalendarView({ operationPointId }: Props) {
 
       <Card>
         <CardContent className="p-6">
-          {!selected && (
-            <p className="text-sm text-muted-foreground">{t('select_date')}</p>
-          )}
+          {!selected && <p className="text-muted-foreground text-sm">{t('select_date')}</p>}
           {selected && pending && (
-            <p className="text-sm text-muted-foreground">Cargando disponibilidad…</p>
+            <p className="text-muted-foreground text-sm">Cargando disponibilidad…</p>
           )}
           {selected && availability && availability.timeblocks.every((b) => b.available === 0) && (
-            <p className="text-sm text-muted-foreground">{t('no_availability')}</p>
+            <p className="text-muted-foreground text-sm">{t('no_availability')}</p>
           )}
           {availability && availability.timeblocks.some((b) => b.available > 0) && (
             <div className="grid gap-3">
@@ -59,7 +57,7 @@ export function CalendarView({ operationPointId }: Props) {
                 {availability.timeblocks.map((b) => (
                   <div
                     key={b.timeblock}
-                    className="flex items-center justify-between rounded-md border border-border p-3"
+                    className="border-border flex items-center justify-between rounded-md border p-3"
                   >
                     <span>{t(`timeblock_${b.timeblock}` as 'timeblock_manana')}</span>
                     {b.available > 0 ? (

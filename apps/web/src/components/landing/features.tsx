@@ -17,18 +17,16 @@ export function Features() {
     <section id="caracteristicas" className="container py-20">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t('title')}</h2>
-        <p className="mt-4 text-muted-foreground">{t('subtitle')}</p>
+        <p className="text-muted-foreground mt-4">{t('subtitle')}</p>
       </div>
       <div className="mx-auto mt-12 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {ITEMS.map((key) => {
           const Icon = ICONS[key];
           return (
-            <div key={key} className="rounded-lg border border-border bg-card p-6 shadow-sm">
-              <Icon className="h-6 w-6 text-primary" />
+            <div key={key} className="border-border bg-card rounded-lg border p-6 shadow-sm">
+              <Icon className="text-primary h-6 w-6" />
               <h3 className="mt-4 font-semibold">{t(`items.${key}.title`)}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {t(`items.${key}.description`)}
-              </p>
+              <p className="text-muted-foreground mt-2 text-sm">{t(`items.${key}.description`)}</p>
             </div>
           );
         })}

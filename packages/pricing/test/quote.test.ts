@@ -33,10 +33,7 @@ describe('haversineKm', () => {
   });
 
   it('computes Santiago → Valparaíso ≈ 100km', () => {
-    const km = haversineKm(
-      { lat: -33.4489, lng: -70.6693 },
-      { lat: -33.0472, lng: -71.6127 },
-    );
+    const km = haversineKm({ lat: -33.4489, lng: -70.6693 }, { lat: -33.0472, lng: -71.6127 });
     expect(km).toBeGreaterThan(95);
     expect(km).toBeLessThan(110);
   });

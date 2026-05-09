@@ -40,7 +40,7 @@ export default async function LocaleLayout({
   return (
     <ClerkProvider>
       <html lang={locale} className={inter.variable} suppressHydrationWarning>
-        <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
+        <body className="bg-background text-foreground min-h-dvh font-sans antialiased">
           <NextIntlClientProvider messages={messages}>
             <PostHogProvider>
               <Nav />

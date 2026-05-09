@@ -9,7 +9,7 @@ export default function NotFound() {
       <p className="text-muted-foreground">{t('not_found')}</p>
       <Link
         href="/"
-        className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+        className="bg-primary text-primary-foreground inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium"
       >
         Volver al inicio
       </Link>

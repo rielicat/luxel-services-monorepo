@@ -3,7 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "files": ["eslint", "tsconfig", "tailwind"],
+  "files": [
+    "eslint",
+    "tsconfig",
+    "tailwind"
+  ],
   "exports": {
     "./eslint/base": "./eslint/base.mjs",
     "./eslint/next": "./eslint/next.mjs",

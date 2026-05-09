@@ -63,10 +63,7 @@ export async function POST(req: Request) {
         })
         .eq('id', externalRef);
     } else if (externalRef && detail.status === 'refunded') {
-      await supabase
-        .from('bookings')
-        .update({ payment_status: 'refunded' })
-        .eq('id', externalRef);
+      await supabase.from('bookings').update({ payment_status: 'refunded' }).eq('id', externalRef);
     }
   }
 

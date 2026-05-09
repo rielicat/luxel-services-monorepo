@@ -20,16 +20,16 @@ luxel-services-monorepo/
 
 ## Stack
 
-| Concern        | Tool                                       |
-| -------------- | ------------------------------------------ |
-| Hosting (web)  | Vercel                                     |
-| Hosting (edge) | Cloudflare (DNS, Workers)                  |
-| Auth           | Clerk (Supabase JWT template)              |
-| Database       | Supabase (Postgres + RLS + Realtime)       |
-| Payments       | MercadoPago (primary CL) + Stripe          |
-| Messaging      | WhatsApp Business Cloud API                |
-| Monitoring     | Sentry + PostHog                           |
-| Source control | GitHub                                     |
+| Concern        | Tool                                 |
+| -------------- | ------------------------------------ |
+| Hosting (web)  | Vercel                               |
+| Hosting (edge) | Cloudflare (DNS, Workers)            |
+| Auth           | Clerk (Supabase JWT template)        |
+| Database       | Supabase (Postgres + RLS + Realtime) |
+| Payments       | MercadoPago (primary CL) + Stripe    |
+| Messaging      | WhatsApp Business Cloud API          |
+| Monitoring     | Sentry + PostHog                     |
+| Source control | GitHub                               |
 
 ## Getting started
 
@@ -52,14 +52,14 @@ pnpm dev
 
 ## Workspace scripts
 
-| Command           | Description                              |
-| ----------------- | ---------------------------------------- |
-| `pnpm dev`        | Run all apps in dev (Turbo)              |
-| `pnpm build`      | Build all packages and apps              |
-| `pnpm lint`       | Lint everything                          |
-| `pnpm typecheck`  | Typecheck all packages                   |
-| `pnpm test`       | Run all unit/integration tests           |
-| `pnpm format`     | Prettier --write across the monorepo     |
+| Command          | Description                          |
+| ---------------- | ------------------------------------ |
+| `pnpm dev`       | Run all apps in dev (Turbo)          |
+| `pnpm build`     | Build all packages and apps          |
+| `pnpm lint`      | Lint everything                      |
+| `pnpm typecheck` | Typecheck all packages               |
+| `pnpm test`      | Run all unit/integration tests       |
+| `pnpm format`    | Prettier --write across the monorepo |
 
 ## i18n
 

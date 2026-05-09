@@ -15,19 +15,19 @@ export function Hero() {
           <h1 className="text-balance text-5xl font-bold tracking-tight sm:text-6xl">
             {t('title')}
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg text-muted-foreground">
+          <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-pretty text-lg">
             {t('subtitle')}
           </p>
           <div className="mt-10 flex items-center justify-center gap-3">
             <Link
               href="/calculadora"
-              className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow transition hover:opacity-90"
+              className="bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-medium shadow transition hover:opacity-90"
             >
               {t('cta_primary')}
             </Link>
             <a
               href="#caracteristicas"
-              className="inline-flex h-11 items-center justify-center rounded-md border border-border px-6 text-sm font-medium hover:bg-muted"
+              className="border-border hover:bg-muted inline-flex h-11 items-center justify-center rounded-md border px-6 text-sm font-medium"
             >
               {t('cta_secondary')}
             </a>

@@ -30,7 +30,7 @@ export function SubscriptionsList({ subscriptions }: { subscriptions: Subscripti
   if (subscriptions.length === 0) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">
+        <CardContent className="text-muted-foreground p-6 text-sm">
           Aún no tienes suscripciones activas.
         </CardContent>
       </Card>
@@ -46,7 +46,7 @@ export function SubscriptionsList({ subscriptions }: { subscriptions: Subscripti
               <CardTitle className="text-base">
                 {tFreq(`frequency_${s.frequency}` as 'frequency_weekly')} · {s.square_meters} m²
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {formatCLP(s.amount_per_visit_clp)} {t('amount').toLowerCase()}
               </p>
             </div>

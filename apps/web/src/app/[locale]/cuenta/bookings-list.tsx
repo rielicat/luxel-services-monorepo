@@ -37,7 +37,7 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
   if (bookings.length === 0) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">
+        <CardContent className="text-muted-foreground p-6 text-sm">
           Aún no tienes reservas.
         </CardContent>
       </Card>
@@ -57,7 +57,7 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
                   month: 'long',
                 }).format(new Date(b.scheduled_date))}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {t(`timeblock_${b.timeblock}` as 'timeblock_manana')} · {b.square_meters} m²
               </p>
             </div>

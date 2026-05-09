@@ -64,12 +64,12 @@ export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }
                   <Label
                     key={s.id}
                     htmlFor={`svc-${s.slug}`}
-                    className="flex cursor-pointer items-start gap-3 rounded-md border border-input p-3 transition-colors hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-accent/40"
+                    className="border-input hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors"
                   >
                     <RadioGroupItem id={`svc-${s.slug}`} value={s.slug} className="mt-0.5" />
                     <div>
                       <p className="font-medium">{tService(`${s.slug}.name` as 'regular.name')}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
+                      <p className="text-muted-foreground mt-0.5 text-xs">
                         {tService(`${s.slug}.desc` as 'regular.desc')}
                       </p>
                     </div>
@@ -115,14 +115,14 @@ export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }
               >
                 <Label
                   htmlFor="tools-customer"
-                  className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-accent/40"
+                  className="border-input hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-md border p-3"
                 >
                   <RadioGroupItem id="tools-customer" value="customer" />
                   <span>{t('fields.tools_customer')}</span>
                 </Label>
                 <Label
                   htmlFor="tools-company"
-                  className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-accent/40"
+                  className="border-input hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-md border p-3"
                 >
                   <RadioGroupItem id="tools-company" value="company" />
                   <span>{t('fields.tools_company')}</span>
@@ -142,10 +142,12 @@ export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }
                   <Label
                     key={f}
                     htmlFor={`freq-${f}`}
-                    className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-accent/40"
+                    className="border-input hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-md border p-3"
                   >
                     <RadioGroupItem id={`freq-${f}`} value={f} />
-                    <span className="text-sm">{t(`fields.frequency_${f}` as 'fields.frequency_one_time')}</span>
+                    <span className="text-sm">
+                      {t(`fields.frequency_${f}` as 'fields.frequency_one_time')}
+                    </span>
                   </Label>
                 ))}
               </RadioGroup>

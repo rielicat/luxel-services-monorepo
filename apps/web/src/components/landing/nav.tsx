@@ -6,10 +6,10 @@ import { Sparkles } from 'lucide-react';
 export function Nav() {
   const t = useTranslations('nav');
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur">
+    <header className="border-border/40 bg-background/80 sticky top-0 z-40 w-full border-b backdrop-blur">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <Sparkles className="h-5 w-5 text-primary" />
+          <Sparkles className="text-primary h-5 w-5" />
           <span className="text-lg">Servicios Luxel</span>
         </Link>
         <nav className="flex items-center gap-6 text-sm">
@@ -24,9 +24,7 @@ export function Nav() {
           </SignedIn>
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="text-muted-foreground hover:text-foreground">
-                {t('login')}
-              </button>
+              <button className="text-muted-foreground hover:text-foreground">{t('login')}</button>
             </SignInButton>
           </SignedOut>
         </nav>

@@ -84,7 +84,7 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
                 <Label
                   key={s.id}
                   htmlFor={`svc-${s.id}`}
-                  className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/40"
+                  className="border-input has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-md border p-3"
                 >
                   <RadioGroupItem id={`svc-${s.id}`} value={s.id} />
                   <span>{s.slug}</span>
@@ -98,7 +98,12 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
           <CardContent className="grid gap-4 p-6">
             <div className="grid gap-2">
               <Label htmlFor="addressLine">Dirección</Label>
-              <Input id="addressLine" name="addressLine" required placeholder="Av. Providencia 123" />
+              <Input
+                id="addressLine"
+                name="addressLine"
+                required
+                placeholder="Av. Providencia 123"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="commune">Comuna</Label>
@@ -118,11 +123,16 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
             </div>
             <div className="grid gap-2">
               <Label>{tCalc('tools')}</Label>
-              <RadioGroup name="toolsProvidedBy" defaultValue="customer" required className="grid gap-2 sm:grid-cols-2">
-                <Label className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-2 has-[:checked]:border-primary has-[:checked]:bg-accent/40">
+              <RadioGroup
+                name="toolsProvidedBy"
+                defaultValue="customer"
+                required
+                className="grid gap-2 sm:grid-cols-2"
+              >
+                <Label className="border-input has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-md border p-2">
                   <RadioGroupItem value="customer" /> {tCalc('tools_customer')}
                 </Label>
-                <Label className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-2 has-[:checked]:border-primary has-[:checked]:bg-accent/40">
+                <Label className="border-input has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-md border p-2">
                   <RadioGroupItem value="company" /> {tCalc('tools_company')}
                 </Label>
               </RadioGroup>
@@ -138,15 +148,20 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
             <CardTitle className="text-base">{t('select_date')}</CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <Calendar mode="single" selected={date} onSelect={setDate} disabled={{ before: new Date() }} />
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              disabled={{ before: new Date() }}
+            />
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6">
-            {!date && <p className="text-sm text-muted-foreground">{t('select_date')}</p>}
+            {!date && <p className="text-muted-foreground text-sm">{t('select_date')}</p>}
             {date && !availability && (
-              <p className="text-sm text-muted-foreground">Cargando disponibilidad…</p>
+              <p className="text-muted-foreground text-sm">Cargando disponibilidad…</p>
             )}
             {date && availability && (
               <div className="grid gap-3">
@@ -159,9 +174,7 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
                       disabled={b.available === 0}
                       onClick={() => setTimeblock(b.timeblock)}
                       className={`flex items-center justify-between rounded-md border p-3 text-left transition-colors ${
-                        timeblock === b.timeblock
-                          ? 'border-primary bg-accent/40'
-                          : 'border-border'
+                        timeblock === b.timeblock ? 'border-primary bg-accent/40' : 'border-border'
                       } ${b.available === 0 ? 'opacity-50' : 'hover:bg-muted/50'}`}
                     >
                       <span>{t(`timeblock_${b.timeblock}` as 'timeblock_manana')}</span>
@@ -183,11 +196,16 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
             <CardTitle className="text-base">Pago</CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup name="paymentProvider" defaultValue="mercadopago" required className="grid gap-2 sm:grid-cols-2">
-              <Label className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/40">
+            <RadioGroup
+              name="paymentProvider"
+              defaultValue="mercadopago"
+              required
+              className="grid gap-2 sm:grid-cols-2"
+            >
+              <Label className="border-input has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-md border p-3">
                 <RadioGroupItem value="mercadopago" /> MercadoPago
               </Label>
-              <Label className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 has-[:checked]:border-primary has-[:checked]:bg-accent/40">
+              <Label className="border-input has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-md border p-3">
                 <RadioGroupItem value="stripe" /> Tarjeta (Stripe)
               </Label>
             </RadioGroup>
@@ -198,7 +216,7 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
           {pending ? 'Procesando…' : 'Confirmar y pagar'}
         </Button>
 
-        {submitError && <p className="text-sm text-destructive">{submitError}</p>}
+        {submitError && <p className="text-destructive text-sm">{submitError}</p>}
       </div>
     </form>
   );

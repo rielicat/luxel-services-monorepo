@@ -6,9 +6,9 @@ export function PricingTeaser() {
   const t = useTranslations('landing.pricing');
   return (
     <section className="container py-20">
-      <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-gradient-to-br from-accent/40 via-card to-card p-10 text-center shadow-sm">
+      <div className="border-border from-accent/40 via-card to-card mx-auto max-w-3xl rounded-2xl border bg-gradient-to-br p-10 text-center shadow-sm">
         <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t('title')}</h2>
-        <p className="mx-auto mt-4 max-w-xl text-muted-foreground">{t('subtitle')}</p>
+        <p className="text-muted-foreground mx-auto mt-4 max-w-xl">{t('subtitle')}</p>
         <Button asChild size="lg" className="mt-8">
           <Link href="/calculadora">{t('cta')}</Link>
         </Button>

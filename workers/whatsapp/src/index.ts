@@ -64,8 +64,7 @@ async function verifySignature(
   );
   const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
   const expected =
-    'sha256=' +
-    [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    'sha256=' + [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
 
   if (signatureHeader.length !== expected.length) return false;
   let diff = 0;
@@ -157,9 +156,7 @@ export default {
 
       // Acknowledge to Meta within 5s; persist in the background.
       ctx.waitUntil(
-        persistInbound(env, payload).catch((err) =>
-          console.error('whatsapp.persist_failed', err),
-        ),
+        persistInbound(env, payload).catch((err) => console.error('whatsapp.persist_failed', err)),
       );
 
       return new Response('ok', { status: 200 });

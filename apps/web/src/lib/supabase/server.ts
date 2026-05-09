@@ -22,9 +22,7 @@ export async function createSupabaseServerClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       global: {
-        headers: supabaseAccessToken
-          ? { Authorization: `Bearer ${supabaseAccessToken}` }
-          : {},
+        headers: supabaseAccessToken ? { Authorization: `Bearer ${supabaseAccessToken}` } : {},
       },
       cookies: {
         getAll: () => cookieStore.getAll(),

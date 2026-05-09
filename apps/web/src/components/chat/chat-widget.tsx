@@ -65,9 +65,7 @@ export function ChatWidget() {
       };
       if (data.ok && data.reply) {
         const reply = data.reply;
-        const replyText = reply.i18nKey
-          ? safeT(tFaq, reply.i18nKey)
-          : (reply.text ?? '…');
+        const replyText = reply.i18nKey ? safeT(tFaq, reply.i18nKey) : (reply.text ?? '…');
         setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'bot', text: replyText }]);
       }
     } catch {
@@ -86,18 +84,18 @@ export function ChatWidget() {
         type="button"
         aria-label="Abrir chat"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105"
+        className="bg-primary text-primary-foreground fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition hover:scale-105"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>
 
       <div
         className={cn(
-          'fixed bottom-24 right-5 z-50 flex h-[480px] w-[360px] origin-bottom-right flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl transition-all',
+          'border-border bg-card fixed bottom-24 right-5 z-50 flex h-[480px] w-[360px] origin-bottom-right flex-col overflow-hidden rounded-xl border shadow-2xl transition-all',
           open ? 'scale-100 opacity-100' : 'pointer-events-none scale-95 opacity-0',
         )}
       >
-        <header className="border-b border-border p-4">
+        <header className="border-border border-b p-4">
           <h3 className="font-semibold">{t('title')}</h3>
         </header>
 
@@ -107,9 +105,7 @@ export function ChatWidget() {
               key={m.id}
               className={cn(
                 'max-w-[80%] rounded-lg px-3 py-2 text-sm',
-                m.role === 'user'
-                  ? 'ml-auto bg-primary text-primary-foreground'
-                  : 'bg-muted',
+                m.role === 'user' ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted',
               )}
             >
               {m.text}
@@ -120,11 +116,11 @@ export function ChatWidget() {
           )}
         </div>
 
-        <div className="border-t border-border p-3">
+        <div className="border-border border-t p-3">
           <button
             type="button"
             onClick={() => send('Hablar con persona', true)}
-            className="mb-2 w-full rounded-md border border-input p-2 text-xs hover:bg-muted"
+            className="border-input hover:bg-muted mb-2 w-full rounded-md border p-2 text-xs"
           >
             {t('fallback_to_human')}
           </button>
