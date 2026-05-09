@@ -1,6 +1,12 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { auth } from '@clerk/nextjs/server';
 import { cookies } from 'next/headers';
+
+interface CookieToSet {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+}
 
 /**
  * Server-side Supabase client authenticated with a Clerk-signed JWT.
@@ -26,7 +32,7 @@ export async function createSupabaseServerClient() {
       },
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
+        setAll: (cookiesToSet: CookieToSet[]) => {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options),

@@ -12,5 +12,3 @@ if (dsn) {
     integrations: [Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false })],
   });
 }
-
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

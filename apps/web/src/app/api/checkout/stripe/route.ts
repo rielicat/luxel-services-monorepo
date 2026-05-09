@@ -24,7 +24,9 @@ export async function GET(req: Request) {
     .eq('id', bookingId)
     .single();
 
-  if (!booking || booking.customers?.clerk_user_id !== userId) {
+  // Supabase types FK joins as arrays; bookings → customers is many-to-one so [0] is the row.
+  const customer = Array.isArray(booking?.customers) ? booking.customers[0] : booking?.customers;
+  if (!booking || customer?.clerk_user_id !== userId) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
 
@@ -34,7 +36,7 @@ export async function GET(req: Request) {
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['card'],
-    customer_email: booking.customers?.email,
+    customer_email: customer.email,
     line_items: [
       {
         price_data: {

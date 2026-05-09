@@ -45,7 +45,8 @@ export async function getDayAvailability(
   const capacity = crewCount ?? 0;
   const bookedByBlock: Record<Timeblock, number> = { manana: 0, tarde: 0 };
   for (const b of bookings ?? []) {
-    if (b.timeblock === 'manana' || b.timeblock === 'tarde') bookedByBlock[b.timeblock]++;
+    const tb = b.timeblock as Timeblock | string;
+    if (tb === 'manana' || tb === 'tarde') bookedByBlock[tb]++;
   }
 
   return {

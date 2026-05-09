@@ -18,7 +18,8 @@ export async function GET(req: Request) {
     .eq('id', bookingId)
     .single();
 
-  if (!booking || booking.customers?.clerk_user_id !== userId) {
+  const customer = Array.isArray(booking?.customers) ? booking.customers[0] : booking?.customers;
+  if (!booking || customer?.clerk_user_id !== userId) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
 
@@ -36,7 +37,7 @@ export async function GET(req: Request) {
           currency_id: 'CLP',
         },
       ],
-      payer: { email: booking.customers?.email },
+      payer: { email: customer.email },
       external_reference: booking.id,
       back_urls: {
         success: `${origin}/es/cuenta?paid=1`,
