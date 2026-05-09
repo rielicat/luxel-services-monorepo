@@ -1,4 +1,17 @@
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "workers/*"
+  - 'apps/*'
+  - 'packages/*'
+  - 'workers/*'
+
+# pnpm 11+: explicit allow-list for postinstall/build scripts.
+# Each of these legitimately needs its build step (native binary download or codegen).
+allowBuilds:
+  '@clerk/shared': true
+  '@sentry/cli': true
+  core-js: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+  supabase: true
+  unrs-resolver: true
+  workerd: true
