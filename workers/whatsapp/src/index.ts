@@ -21,7 +21,9 @@ export interface Env {
   WHATSAPP_ACCESS_TOKEN: string;
   WHATSAPP_PHONE_NUMBER_ID: string;
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  // sb_secret_* opaque token (post-2025 rotation). Workers only — never exposed to clients.
+  // Worker secrets are set via `wrangler secret put SUPABASE_SECRET_KEY`.
+  SUPABASE_SECRET_KEY: string;
 }
 
 interface InboundMessage {
@@ -75,7 +77,7 @@ async function verifySignature(
 }
 
 async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promise<void> {
-  const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY, {
     auth: { persistSession: false },
   });
 

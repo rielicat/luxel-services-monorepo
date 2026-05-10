@@ -9,7 +9,7 @@ compatibility_flags = ["nodejs_compat"]
 #   WHATSAPP_ACCESS_TOKEN     (long-lived system user token)
 #   WHATSAPP_PHONE_NUMBER_ID  (numeric phone number id from Meta)
 #   SUPABASE_URL
-#   SUPABASE_SERVICE_ROLE_KEY
+#   SUPABASE_SECRET_KEY       (sb_secret_* — replaces the legacy service_role key)
 
 [observability]
 enabled = true

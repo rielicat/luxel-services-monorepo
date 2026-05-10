@@ -23,39 +23,37 @@ export async function createSupabaseServerClient() {
     template: process.env.CLERK_JWT_TEMPLATE_NAME ?? 'supabase',
   });
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: supabaseAccessToken ? { Authorization: `Bearer ${supabaseAccessToken}` } : {},
-      },
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet: CookieToSet[]) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            // Called from a Server Component — safe to ignore; middleware will refresh.
-          }
-        },
+  // Prefer the new sb_publishable_* key, fall back to the legacy anon key during rotation.
+  const publishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, publishableKey!, {
+    global: {
+      headers: supabaseAccessToken ? { Authorization: `Bearer ${supabaseAccessToken}` } : {},
+    },
+    cookies: {
+      getAll: () => cookieStore.getAll(),
+      setAll: (cookiesToSet: CookieToSet[]) => {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        } catch {
+          // Called from a Server Component — safe to ignore; middleware will refresh.
+        }
       },
     },
-  );
+  });
 }
 
 /**
- * Service-role client for trusted server contexts (webhooks, cron, admin tasks only).
+ * Secret-key client for trusted server contexts (webhooks, cron, admin tasks only).
  * Bypasses RLS — never expose to the browser.
+ *
+ * Prefers the new sb_secret_* key; falls back to the legacy SUPABASE_SERVICE_ROLE_KEY
+ * during the rotation window so old deployments don't break.
  */
 export function createSupabaseServiceRoleClient() {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: { getAll: () => [], setAll: () => {} },
-    },
-  );
+  const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, secretKey!, {
+    cookies: { getAll: () => [], setAll: () => {} },
+  });
 }
