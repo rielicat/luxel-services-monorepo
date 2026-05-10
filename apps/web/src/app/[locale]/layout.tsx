@@ -38,9 +38,9 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <ClerkProvider>
-      <html lang={locale} className={inter.variable} suppressHydrationWarning>
-        <body className="bg-background text-foreground min-h-dvh font-sans antialiased">
+    <html lang={locale} className={inter.variable} suppressHydrationWarning>
+      <body className="bg-background text-foreground min-h-dvh font-sans antialiased">
+        <ClerkProvider>
           <NextIntlClientProvider messages={messages}>
             <PostHogProvider>
               <Nav />
@@ -49,8 +49,8 @@ export default async function LocaleLayout({
               <ChatWidget />
             </PostHogProvider>
           </NextIntlClientProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

@@ -20,17 +20,17 @@ on conflict (slug) do update set
   base_rate_clp = excluded.base_rate_clp,
   per_m2_rate_clp = excluded.per_m2_rate_clp;
 
--- Operation point: Santiago Centro + two crews
+-- Operation point: Santiago Centro + two operators
 with op as (
   insert into public.operation_points (name, slug, lat, lng, service_radius_km, active)
   values ('Santiago Centro', 'santiago-centro', -33.4489, -70.6693, 25, true)
   on conflict (slug) do update set name = excluded.name
   returning id
 )
-insert into public.crews (operation_point_id, name)
-select op.id, c.name
+insert into public.operators (operation_point_id, name)
+select op.id, o.name
 from op
-cross join (values ('Cuadrilla 1'), ('Cuadrilla 2')) as c(name)
+cross join (values ('Operador 1'), ('Operador 2')) as o(name)
 on conflict do nothing;
 
 -- FAQ entries

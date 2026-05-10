@@ -26,17 +26,18 @@ create policy "operation_points_public_read"
   on public.operation_points for select
   using (active = true);
 
--- ───── crews ──────────────────────────────────────────────────
-create table public.crews (
+-- ───── operators ──────────────────────────────────────────────
+-- Individual cleaning operators (no crew concept — each operator is booked solo).
+create table public.operators (
   id uuid primary key default gen_random_uuid(),
   operation_point_id uuid not null references public.operation_points(id) on delete cascade,
   name text not null,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
-create index on public.crews(operation_point_id);
-alter table public.crews enable row level security;
--- Crews are admin-managed; no public SELECT policy → only service role can read.
+create index on public.operators(operation_point_id);
+alter table public.operators enable row level security;
+-- Operators are admin-managed; no public SELECT policy → only service role can read.
 
 -- ───── service_types ──────────────────────────────────────────
 create table public.service_types (
@@ -150,7 +151,7 @@ create table public.bookings (
   address_id uuid not null references public.addresses(id),
   service_type_id uuid not null references public.service_types(id),
   operation_point_id uuid not null references public.operation_points(id),
-  crew_id uuid references public.crews(id),
+  operator_id uuid references public.operators(id),
   subscription_id uuid references public.subscriptions(id),
   scheduled_date date not null,
   timeblock text not null check (timeblock in ('manana', 'tarde')),

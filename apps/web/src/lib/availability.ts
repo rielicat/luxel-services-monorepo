@@ -19,7 +19,7 @@ const TIMEBLOCKS: Timeblock[] = ['manana', 'tarde'];
 
 /**
  * Compute available timeblocks for a given date and operation point.
- * Capacity = active crews at that operation point.
+ * Capacity = active operators at that operation point.
  * Booked   = bookings on (date, timeblock, op_point) not in cancelled state.
  */
 export async function getDayAvailability(
@@ -28,9 +28,9 @@ export async function getDayAvailability(
 ): Promise<DayAvailability> {
   const supabase = createSupabaseServiceRoleClient();
 
-  const [{ count: crewCount }, { data: bookings }] = await Promise.all([
+  const [{ count: operatorCount }, { data: bookings }] = await Promise.all([
     supabase
-      .from('crews')
+      .from('operators')
       .select('*', { count: 'exact', head: true })
       .eq('operation_point_id', operationPointId)
       .eq('active', true),
@@ -42,7 +42,7 @@ export async function getDayAvailability(
       .neq('status', 'cancelled'),
   ]);
 
-  const capacity = crewCount ?? 0;
+  const capacity = operatorCount ?? 0;
   const bookedByBlock: Record<Timeblock, number> = { manana: 0, tarde: 0 };
   for (const b of bookings ?? []) {
     const tb = b.timeblock as Timeblock | string;
