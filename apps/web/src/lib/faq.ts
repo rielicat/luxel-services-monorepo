@@ -1,5 +1,5 @@
 import 'server-only';
-import { createSupabaseServiceRoleClient } from './supabase/server';
+import { createSupabasePublicClient } from './supabase/server';
 import { unstable_cache } from 'next/cache';
 
 export interface FaqEntry {
@@ -37,7 +37,7 @@ function normalize(s: string): string {
 
 export const getFaqEntries = unstable_cache(
   async (): Promise<FaqEntry[]> => {
-    const supabase = createSupabaseServiceRoleClient();
+    const supabase = createSupabasePublicClient();
     const { data } = await supabase
       .from('faq_entries')
       .select('id, question_key, answer_key, keywords, priority')

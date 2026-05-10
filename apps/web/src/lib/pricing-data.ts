@@ -2,15 +2,16 @@ import 'server-only';
 import { unstable_cache } from 'next/cache';
 import type { PricingConfig } from '@luxel/pricing';
 import type { OperationPoint, ServiceType } from '@luxel/shared';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { createSupabasePublicClient } from '@/lib/supabase/server';
 
 /**
  * Loads pricing config + service types + operation points from Supabase.
- * Cached for 5 minutes — admin changes will appear within that window.
+ * Public-read tables — uses the publishable key, no service role needed.
+ * Cached for 5 minutes; admin changes appear within that window.
  */
 export const getPricingData = unstable_cache(
   async () => {
-    const supabase = createSupabaseServiceRoleClient();
+    const supabase = createSupabasePublicClient();
 
     const [{ data: services }, { data: ops }, { data: configRows }] = await Promise.all([
       supabase.from('service_types').select('*').eq('active', true).order('base_rate_clp'),
