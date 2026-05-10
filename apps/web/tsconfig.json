@@ -13,7 +13,6 @@
     ".next/types/**/*.ts",
     "instrumentation.ts",
     "instrumentation-client.ts",
-    "middleware.ts",
     "next.config.mjs"
   ],
   "exclude": ["node_modules", ".next"]

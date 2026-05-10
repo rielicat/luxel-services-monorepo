@@ -7,9 +7,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  experimental: {
-    typedRoutes: true,
-  },
+  // typedRoutes graduated out of experimental in Next 15.
+  typedRoutes: true,
   transpilePackages: ['@luxel/shared', '@luxel/pricing'],
   images: {
     remotePatterns: [
