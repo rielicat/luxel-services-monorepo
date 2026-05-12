@@ -1,11 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 import { CalculatorForm } from './calculator-form';
 import { getPricingData } from '@/lib/pricing-data';
-import { getComunasSantiago } from '@/lib/comunas';
 
 export default async function CalculadoraPage() {
   const t = await getTranslations('calculator');
-  const [{ serviceTypes }, comunas] = await Promise.all([getPricingData(), getComunasSantiago()]);
+  const { serviceTypes } = await getPricingData();
 
   return (
     <main className="container py-12">
@@ -14,7 +13,7 @@ export default async function CalculadoraPage() {
         <p className="text-muted-foreground mt-3">{t('subtitle')}</p>
       </header>
       <div className="mx-auto mt-10 max-w-5xl">
-        <CalculatorForm serviceTypes={serviceTypes} comunas={comunas} />
+        <CalculatorForm serviceTypes={serviceTypes} />
       </div>
     </main>
   );

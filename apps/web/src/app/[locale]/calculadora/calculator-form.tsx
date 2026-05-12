@@ -3,36 +3,30 @@
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
+import { AddressAutocomplete } from '@/components/address-autocomplete';
 import { QuoteResult } from './quote-result';
 import { getQuoteAction, type QuoteActionResult } from './actions';
 import type { ServiceType } from '@luxel/shared';
-import type { Comuna } from '@/lib/comunas';
+import type { GeocodeSuggestion } from '@/app/api/geocode/route';
 
 type Frequency = 'one_time' | 'weekly' | 'biweekly' | 'monthly';
 type Tools = 'customer' | 'company';
 
 const FREQUENCIES: Frequency[] = ['one_time', 'weekly', 'biweekly', 'monthly'];
 
-export function CalculatorForm({
-  serviceTypes,
-  comunas,
-}: {
-  serviceTypes: ServiceType[];
-  comunas: Comuna[];
-}) {
+export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }) {
   const t = useTranslations('calculator');
   const tService = useTranslations('service');
   const [pending, startTransition] = useTransition();
 
   const [serviceTypeSlug, setServiceTypeSlug] = useState(serviceTypes[0]?.slug ?? 'regular');
   const [squareMeters, setSquareMeters] = useState(60);
-  const [address, setAddress] = useState('');
-  const [commune, setCommune] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState<GeocodeSuggestion | null>(null);
+  const [addressLabel, setAddressLabel] = useState('');
   const [toolsProvidedBy, setToolsProvidedBy] = useState<Tools>('customer');
   const [frequency, setFrequency] = useState<Frequency>('one_time');
   const [result, setResult] = useState<QuoteActionResult | null>(null);
@@ -44,8 +38,9 @@ export function CalculatorForm({
       const r = await getQuoteAction({
         serviceTypeSlug,
         squareMeters,
-        address,
-        commune,
+        address: addressLabel,
+        lat: selectedLocation?.lat,
+        lng: selectedLocation?.lng,
         toolsProvidedBy,
         frequency,
       });
@@ -102,38 +97,17 @@ export function CalculatorForm({
               />
             </div>
 
-            {/* Address + Commune */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="address">{t('fields.address')}</Label>
-                <Input
-                  id="address"
-                  required
-                  placeholder="Av. Providencia 123"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="commune">{t('fields.commune')}</Label>
-                <select
-                  id="commune"
-                  required
-                  value={commune}
-                  onChange={(e) => setCommune(e.target.value)}
-                  className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="" disabled>
-                    Selecciona tu comuna
-                  </option>
-                  {comunas.map((c) => (
-                    <option key={c.codigo} value={c.nombre}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            {/* Address autocomplete */}
+            <AddressAutocomplete
+              label={t('fields.address')}
+              placeholder="General Jofré 70"
+              required
+              onSelect={(s) => {
+                setSelectedLocation(s);
+                setAddressLabel(s.shortName + (s.commune ? `, ${s.commune}` : ''));
+              }}
+              onClear={() => setSelectedLocation(null)}
+            />
 
             {/* Tools */}
             <div className="grid gap-3">

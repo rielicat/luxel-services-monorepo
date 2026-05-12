@@ -28,13 +28,19 @@ export interface QuoteActionInput {
   serviceTypeSlug: string;
   squareMeters: number;
   address: string;
-  commune: string;
+  /** Pre-resolved coordinates from autocomplete — skips geocoding when present. */
+  lat?: number;
+  lng?: number;
   toolsProvidedBy: 'customer' | 'company';
   frequency: 'one_time' | 'weekly' | 'biweekly' | 'monthly';
 }
 
 export async function getQuoteAction(input: QuoteActionInput): Promise<QuoteActionResult> {
-  const geocoded = await geocodeAddress(input.address, input.commune || undefined);
+  const geocoded =
+    input.lat != null && input.lng != null
+      ? { lat: input.lat, lng: input.lng, displayName: input.address }
+      : await geocodeAddress(input.address);
+
   if (!geocoded) return { ok: false, error: 'geocode_failed' };
 
   const parsed = QuoteRequestSchema.safeParse({
