@@ -100,7 +100,6 @@ export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }
             {/* Address autocomplete */}
             <AddressAutocomplete
               label={t('fields.address')}
-              placeholder="General Jofré 70"
               required
               onSelect={(s) => {
                 setSelectedLocation(s);

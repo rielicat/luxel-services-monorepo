@@ -80,7 +80,7 @@ export function AddressAutocomplete({ label, placeholder, required, onSelect, on
         id="address"
         required={required}
         autoComplete="off"
-        placeholder={placeholder}
+        placeholder={placeholder ?? 'Escribe tu calle y número…'}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}

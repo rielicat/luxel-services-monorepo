@@ -16,6 +16,8 @@ export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
+  // API routes are not locale-aware — skip intl middleware
+  if (req.nextUrl.pathname.startsWith('/api/')) return;
   return intlMiddleware(req);
 });
 
