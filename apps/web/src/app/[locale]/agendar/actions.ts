@@ -46,7 +46,7 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
   const input = parsed.data;
 
   // Geocode address.
-  const geocoded = await geocodeAddress(`${input.addressLine}, ${input.commune}`);
+  const geocoded = await geocodeAddress(input.addressLine, input.commune);
   if (!geocoded) return { ok: false, error: 'geocode_failed' };
 
   const { pricingConfig, serviceTypes, operationPoints } = await getPricingData();

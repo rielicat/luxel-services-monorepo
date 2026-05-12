@@ -34,10 +34,7 @@ export interface QuoteActionInput {
 }
 
 export async function getQuoteAction(input: QuoteActionInput): Promise<QuoteActionResult> {
-  const geocodeQuery = input.commune
-    ? `${input.address}, ${input.commune}, Región Metropolitana`
-    : input.address;
-  const geocoded = await geocodeAddress(geocodeQuery);
+  const geocoded = await geocodeAddress(input.address, input.commune || undefined);
   if (!geocoded) return { ok: false, error: 'geocode_failed' };
 
   const parsed = QuoteRequestSchema.safeParse({
