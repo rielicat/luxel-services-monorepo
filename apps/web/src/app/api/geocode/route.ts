@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
 const USER_AGENT = 'ServiciosLuxel/1.0 (contacto@serviciosluxel.cl)';
