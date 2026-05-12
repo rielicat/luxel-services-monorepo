@@ -28,12 +28,16 @@ export interface QuoteActionInput {
   serviceTypeSlug: string;
   squareMeters: number;
   address: string;
+  commune: string;
   toolsProvidedBy: 'customer' | 'company';
   frequency: 'one_time' | 'weekly' | 'biweekly' | 'monthly';
 }
 
 export async function getQuoteAction(input: QuoteActionInput): Promise<QuoteActionResult> {
-  const geocoded = await geocodeAddress(input.address);
+  const geocodeQuery = input.commune
+    ? `${input.address}, ${input.commune}, Región Metropolitana`
+    : input.address;
+  const geocoded = await geocodeAddress(geocodeQuery);
   if (!geocoded) return { ok: false, error: 'geocode_failed' };
 
   const parsed = QuoteRequestSchema.safeParse({

@@ -11,13 +11,20 @@ import { Slider } from '@/components/ui/slider';
 import { QuoteResult } from './quote-result';
 import { getQuoteAction, type QuoteActionResult } from './actions';
 import type { ServiceType } from '@luxel/shared';
+import type { Comuna } from '@/lib/comunas';
 
 type Frequency = 'one_time' | 'weekly' | 'biweekly' | 'monthly';
 type Tools = 'customer' | 'company';
 
 const FREQUENCIES: Frequency[] = ['one_time', 'weekly', 'biweekly', 'monthly'];
 
-export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }) {
+export function CalculatorForm({
+  serviceTypes,
+  comunas,
+}: {
+  serviceTypes: ServiceType[];
+  comunas: Comuna[];
+}) {
   const t = useTranslations('calculator');
   const tService = useTranslations('service');
   const [pending, startTransition] = useTransition();
@@ -25,6 +32,7 @@ export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }
   const [serviceTypeSlug, setServiceTypeSlug] = useState(serviceTypes[0]?.slug ?? 'regular');
   const [squareMeters, setSquareMeters] = useState(60);
   const [address, setAddress] = useState('');
+  const [commune, setCommune] = useState('');
   const [toolsProvidedBy, setToolsProvidedBy] = useState<Tools>('customer');
   const [frequency, setFrequency] = useState<Frequency>('one_time');
   const [result, setResult] = useState<QuoteActionResult | null>(null);
@@ -37,6 +45,7 @@ export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }
         serviceTypeSlug,
         squareMeters,
         address,
+        commune,
         toolsProvidedBy,
         frequency,
       });
@@ -93,16 +102,37 @@ export function CalculatorForm({ serviceTypes }: { serviceTypes: ServiceType[] }
               />
             </div>
 
-            {/* Address */}
-            <div className="grid gap-2">
-              <Label htmlFor="address">{t('fields.address')}</Label>
-              <Input
-                id="address"
-                required
-                placeholder="Av. Providencia 123, Providencia"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
+            {/* Address + Commune */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="address">{t('fields.address')}</Label>
+                <Input
+                  id="address"
+                  required
+                  placeholder="Av. Providencia 123"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="commune">{t('fields.commune')}</Label>
+                <select
+                  id="commune"
+                  required
+                  value={commune}
+                  onChange={(e) => setCommune(e.target.value)}
+                  className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    Selecciona tu comuna
+                  </option>
+                  {comunas.map((c) => (
+                    <option key={c.codigo} value={c.nombre}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Tools */}
