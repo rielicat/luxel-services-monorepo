@@ -45,8 +45,12 @@ jobs:
         run: pnpm build
         env:
           # Build-time stubs so Next.js compiles without real credentials.
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_stub
-          CLERK_SECRET_KEY: sk_test_stub
+          # The Clerk key must be VALID FORMAT (Clerk validates it during
+          # prerender of Clerk-wrapped pages, e.g. the admin app's /_not-found).
+          # Decodes to "example.clerk.accounts.dev$" — format-valid, not a real account.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+          CLERK_SECRET_KEY: sk_test_stubstubstubstubstubstubstubstub
           NEXT_PUBLIC_SUPABASE_URL: https://stub.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_stub
+          SUPABASE_SERVICE_ROLE_KEY: sb_secret_stub
           NEXT_PUBLIC_POSTHOG_KEY: phc_stub
