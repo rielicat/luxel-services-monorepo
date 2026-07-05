@@ -21,7 +21,7 @@ export default async function CalendarioPage() {
 
   return (
     <main className="container max-w-5xl py-12">
-      <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight">{t('title')}</h1>
       <p className="text-muted-foreground mt-2 text-sm">{defaultPoint.name}</p>
       <div className="mt-8">
         <CalendarView operationPointId={defaultPoint.id} />

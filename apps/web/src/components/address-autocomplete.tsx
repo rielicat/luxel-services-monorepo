@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
+import { Loader2, MapPin, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { GeocodeSuggestion } from '@/app/api/geocode/route';
@@ -14,25 +16,41 @@ interface Props {
 }
 
 export function AddressAutocomplete({ label, placeholder, required, onSelect, onClear }: Props) {
+  const t = useTranslations('calculator');
   const [value, setValue] = useState('');
   const [suggestions, setSuggestions] = useState<GeocodeSuggestion[]>([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  // Guards against a slow earlier request overwriting a newer one.
+  const queryRef = useRef('');
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.trim().length < 3) {
       setSuggestions([]);
       setOpen(false);
+      setLoading(false);
       return;
     }
-    const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
-    if (!res.ok) return;
-    const data: GeocodeSuggestion[] = await res.json();
-    setSuggestions(data);
-    setOpen(data.length > 0);
-    setActiveIndex(-1);
+    queryRef.current = q;
+    setLoading(true);
+    setOpen(true);
+    try {
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+      if (queryRef.current !== q) return; // a newer query superseded this one
+      if (!res.ok) {
+        setSuggestions([]);
+        return;
+      }
+      const data: GeocodeSuggestion[] = await res.json();
+      if (queryRef.current !== q) return;
+      setSuggestions(data);
+      setActiveIndex(-1);
+    } finally {
+      if (queryRef.current === q) setLoading(false);
+    }
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +64,7 @@ export function AddressAutocomplete({ label, placeholder, required, onSelect, on
     setValue(s.shortName + (s.commune ? `, ${s.commune}` : ''));
     setOpen(false);
     setSuggestions([]);
+    queryRef.current = '';
     onSelect(s);
   };
 
@@ -73,38 +92,66 @@ export function AddressAutocomplete({ label, placeholder, required, onSelect, on
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const showDropdown = open && value.trim().length >= 3;
+
   return (
     <div ref={containerRef} className="relative grid gap-2">
       <Label htmlFor="address">{label}</Label>
-      <Input
-        id="address"
-        required={required}
-        autoComplete="off"
-        placeholder={placeholder ?? 'Escribe tu calle y número…'}
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        aria-autocomplete="list"
-        aria-expanded={open}
-        aria-haspopup="listbox"
-      />
-      {open && (
+      <div className="relative">
+        <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+        <Input
+          id="address"
+          required={required}
+          autoComplete="off"
+          placeholder={placeholder ?? 'Escribe tu calle y número…'}
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => value.trim().length >= 3 && setOpen(true)}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={showDropdown}
+          aria-busy={loading}
+          aria-controls="address-listbox"
+          aria-activedescendant={activeIndex >= 0 ? `address-opt-${activeIndex}` : undefined}
+          className="pl-9 pr-9"
+        />
+        {loading && (
+          <Loader2 className="text-primary absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin" />
+        )}
+      </div>
+
+      {showDropdown && (
         <ul
           role="listbox"
-          className="bg-background border-border absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border shadow-md"
+          id="address-listbox"
+          className="bg-popover border-border shadow-card animate-fade-in absolute top-full z-50 mt-1.5 w-full overflow-hidden rounded-xl border"
         >
+          {loading && suggestions.length === 0 && (
+            <li className="text-muted-foreground flex items-center gap-2 px-3.5 py-3 text-sm">
+              <Loader2 className="h-4 w-4 animate-spin" /> {t('address_searching')}
+            </li>
+          )}
+          {!loading && suggestions.length === 0 && (
+            <li className="text-muted-foreground px-3.5 py-3 text-sm">{t('address_no_results')}</li>
+          )}
           {suggestions.map((s, i) => (
             <li
               key={s.placeId}
+              id={`address-opt-${i}`}
               role="option"
               aria-selected={i === activeIndex}
               onMouseDown={() => handleSelect(s)}
-              className={`cursor-pointer px-3 py-2 text-sm ${
-                i === activeIndex ? 'bg-accent' : 'hover:bg-muted'
+              onMouseEnter={() => setActiveIndex(i)}
+              className={`flex cursor-pointer items-start gap-2.5 px-3.5 py-2.5 text-sm transition-colors ${
+                i === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
               }`}
             >
-              <span className="font-medium">{s.shortName}</span>
-              {s.commune && <span className="text-muted-foreground ml-1.5">— {s.commune}</span>}
+              <MapPin className="text-secondary mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <span className="font-medium">{s.shortName}</span>
+                {s.commune && <span className="text-muted-foreground ml-1.5">— {s.commune}</span>}
+              </span>
             </li>
           ))}
         </ul>

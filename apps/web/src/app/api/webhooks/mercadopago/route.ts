@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getMercadoPago } from '@/lib/payments/mercadopago';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { capture } from '@/lib/analytics/server';
+import { EVENTS } from '@/lib/analytics/events';
 
 export const runtime = 'nodejs';
 
@@ -54,14 +56,23 @@ export async function POST(req: Request) {
     const detail = await payment.get({ id: String(paymentId) });
     const externalRef = detail.external_reference; // booking id
     if (externalRef && detail.status === 'approved') {
-      await supabase
+      const { data: updated } = await supabase
         .from('bookings')
         .update({
           payment_status: 'paid',
           status: 'confirmed',
           provider_payment_id: String(paymentId),
         })
-        .eq('id', externalRef);
+        .eq('id', externalRef)
+        .select('total_price_clp, customers(clerk_user_id)')
+        .maybeSingle();
+
+      const cust = Array.isArray(updated?.customers) ? updated.customers[0] : updated?.customers;
+      capture(EVENTS.PAYMENT_SUCCEEDED, cust?.clerk_user_id ?? String(externalRef), {
+        booking_id: externalRef,
+        amount_clp: updated?.total_price_clp,
+        payment_provider: 'mercadopago',
+      });
     } else if (externalRef && detail.status === 'refunded') {
       await supabase.from('bookings').update({ payment_status: 'refunded' }).eq('id', externalRef);
     }

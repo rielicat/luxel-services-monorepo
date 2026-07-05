@@ -9,6 +9,8 @@ import { getPricingData } from '@/lib/pricing-data';
 import { geocodeAddress } from '@/lib/geocode';
 import { getDayAvailability } from '@/lib/availability';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { capture } from '@/lib/analytics/server';
+import { EVENTS } from '@/lib/analytics/events';
 
 const Schema = z.object({
   serviceTypeId: z.string().uuid(),
@@ -112,6 +114,22 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
     .select('id')
     .single();
   if (bookErr || !booking) return { ok: false, error: 'generic' };
+
+  capture(EVENTS.BOOKING_CREATED, customer.clerk_user_id, {
+    booking_id: booking.id,
+    amount_clp: priced.totalClp,
+    service_slug: serviceType.slug,
+    frequency: input.frequency,
+    square_meters: input.squareMeters,
+    tools_provided_by: input.toolsProvidedBy,
+    payment_provider: input.paymentProvider,
+    commune: input.commune,
+  });
+  capture(EVENTS.CHECKOUT_STARTED, customer.clerk_user_id, {
+    booking_id: booking.id,
+    amount_clp: priced.totalClp,
+    payment_provider: input.paymentProvider,
+  });
 
   revalidatePath('/cuenta', 'page');
 

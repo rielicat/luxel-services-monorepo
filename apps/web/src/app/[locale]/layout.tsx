@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Manrope, Fraunces } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -9,9 +9,21 @@ import { PostHogProvider } from '@/lib/posthog/provider';
 import { Nav } from '@/components/landing/nav';
 import { Footer } from '@/components/landing/footer';
 import { ChatWidget } from '@/components/chat/chat-widget';
+import { PostHogPageview } from '@/components/analytics/track-view';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const manrope = Manrope({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  variable: '--font-display',
+});
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+});
 
 export const metadata: Metadata = {
   title: { default: 'Servicios Luxel', template: '%s · Servicios Luxel' },
@@ -38,11 +50,16 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={inter.variable} suppressHydrationWarning>
+    <html
+      lang={locale}
+      className={`${inter.variable} ${manrope.variable} ${fraunces.variable}`}
+      suppressHydrationWarning
+    >
       <body className="bg-background text-foreground min-h-dvh font-sans antialiased">
         <ClerkProvider>
           <NextIntlClientProvider messages={messages}>
             <PostHogProvider>
+              <PostHogPageview />
               <Nav />
               <div className="min-h-[calc(100dvh-128px)]">{children}</div>
               <Footer />

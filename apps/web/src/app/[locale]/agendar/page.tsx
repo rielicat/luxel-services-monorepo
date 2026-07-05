@@ -29,7 +29,7 @@ export default async function AgendarPage({ searchParams }: Props) {
 
   return (
     <main className="container max-w-5xl py-12">
-      <h1 className="text-3xl font-bold tracking-tight">Agendar servicio</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight">Agendar servicio</h1>
       <p className="text-muted-foreground mt-2 text-sm">
         Confirma los detalles, elige tu fecha y procede al pago.
       </p>

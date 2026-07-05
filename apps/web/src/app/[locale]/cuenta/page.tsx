@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { getOrCreateCustomer } from '@/lib/customer';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { Separator } from '@/components/ui/separator';
+import { TrackView } from '@/components/analytics/track-view';
 import { ProfileForm } from './profile-form';
 import { SubscriptionsList } from './subscriptions-list';
 import { BookingsList } from './bookings-list';
@@ -30,7 +31,8 @@ export default async function CuentaPage() {
 
   return (
     <main className="container max-w-4xl py-12">
-      <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+      <TrackView event="account_viewed" />
+      <h1 className="font-display text-3xl font-bold tracking-tight">{t('title')}</h1>
 
       <section className="mt-10">
         <h2 className="text-xl font-semibold">{t('profile.title')}</h2>

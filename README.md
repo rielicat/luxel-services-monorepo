@@ -1,13 +1,28 @@
 # Servicios Luxel — Monorepo
 
-Cleaning services platform for the Chilean market (es-CL).
+Cleaning services platform for the Chilean market (es-CL). Instant square-meter
+pricing, online booking + subscriptions, and **Lux** — an AI concierge (Claude)
+that quotes, checks coverage/availability, and hands off to a human on WhatsApp.
+
+## Strategy & design docs
+
+The founding strategy, brand system, AI design, and analytics plan live in
+[`docs/`](docs/):
+
+| Doc                                  | What's inside                                                               |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| [`docs/GOAL.md`](docs/GOAL.md)       | North-star goal, user journey, unit economics, roadmap, KPIs                |
+| [`docs/BRAND.md`](docs/BRAND.md)     | Brand identity, "Fresh Teal + Lime" design system, asset-generation prompts |
+| [`docs/AI.md`](docs/AI.md)           | The "Lux" concierge — architecture, tools, guardrails, prompt design        |
+| [`docs/METRICS.md`](docs/METRICS.md) | Event taxonomy, funnels, cohorts, instrumentation map                       |
 
 ## Layout
 
 ```
 luxel-services-monorepo/
 ├── apps/
-│   └── web/                  # Next.js 15 (App Router) → Vercel
+│   ├── web/                  # Next.js 15 customer app (App Router) → Vercel
+│   └── admin/                # Next.js 15 operator app (metrics/leads/telemetry) → Vercel
 ├── workers/
 │   └── whatsapp/             # Cloudflare Worker — WhatsApp Cloud API webhook
 ├── packages/
@@ -20,16 +35,17 @@ luxel-services-monorepo/
 
 ## Stack
 
-| Concern        | Tool                                 |
-| -------------- | ------------------------------------ |
-| Hosting (web)  | Vercel                               |
-| Hosting (edge) | Cloudflare (DNS, Workers)            |
-| Auth           | Clerk (Supabase JWT template)        |
-| Database       | Supabase (Postgres + RLS + Realtime) |
-| Payments       | MercadoPago (primary CL) + Stripe    |
-| Messaging      | WhatsApp Business Cloud API          |
-| Monitoring     | Sentry + PostHog                     |
-| Source control | GitHub                               |
+| Concern        | Tool                                                                  |
+| -------------- | --------------------------------------------------------------------- |
+| Hosting (web)  | Vercel                                                                |
+| Hosting (edge) | Cloudflare (DNS, Workers)                                             |
+| Auth           | Clerk (Supabase JWT template)                                         |
+| Database       | Supabase (Postgres + RLS + Realtime)                                  |
+| Payments       | MercadoPago (primary CL) + Stripe                                     |
+| AI concierge   | Anthropic Claude (`claude-opus-4-8`)                                  |
+| Messaging      | WhatsApp Business Cloud API                                           |
+| Monitoring     | In-house event store + `/admin` dashboard (Sentry + PostHog optional) |
+| Source control | GitHub                                                                |
 
 ## Getting started
 
@@ -68,6 +84,25 @@ The only locale today is `es` (es-CL). All user-facing strings live in
 Never hardcode strings in components — even one-off labels go in the catalog
 under a namespace (`landing.*`, `account.*`, etc.) so adding `en` later is a
 single-file addition.
+
+## In-house monitoring (owned data)
+
+**Capture lives in `apps/web`; the dashboard is a separate app (`apps/admin`).**
+
+The customer app captures every meaningful action into **our own Supabase**
+(`analytics_events`) via `track()` (client, `sendBeacon` → `/api/events`) and
+`capture()` (server) — so traffic, funnel, and revenue metrics don't depend on
+PostHog or survive-ad-blocker concerns. Unconverted contact intent (out-of-area,
+chat→human) is captured as `leads`. PostHog remains an optional external mirror.
+
+The **operator app** [`apps/admin`](apps/admin) (a distinct Next.js site, port
+3001, not shipped in the customer bundle) reads that data with the Supabase
+service role and Clerk auth. Pages: **Panel** (KPIs, conversion funnel, traffic
+chart), **Leads** (inbox with status management), **Sesiones** (session records +
+per-session journey), **Telemetría** (raw filterable event explorer). Heavy
+aggregation runs in SQL (`admin_traffic` / `admin_event_counts` /
+`admin_daily_events` / `admin_sessions`). Access is gated by `LUXEL_ADMIN_EMAILS`
+(empty = locked). Run it with `pnpm --filter @luxel/admin dev`.
 
 ## External setup (one-time, owned by the operator)
 

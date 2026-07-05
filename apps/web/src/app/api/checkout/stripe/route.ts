@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getStripe } from '@/lib/payments/stripe';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { devMockPaymentsEnabled, completeMockPayment } from '@/lib/payments/dev-mock';
 
 /**
  * Creates a Stripe Checkout session for a booking and redirects.
@@ -31,6 +32,13 @@ export async function GET(req: Request) {
   }
 
   const origin = url.origin;
+
+  // Dev-only: simulate a successful payment when no real Stripe key is configured.
+  if (devMockPaymentsEnabled('stripe')) {
+    await completeMockPayment(supabase, booking.id, 'stripe');
+    return NextResponse.redirect(new URL('/es/cuenta?paid=1&mock=1', origin));
+  }
+
   const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({

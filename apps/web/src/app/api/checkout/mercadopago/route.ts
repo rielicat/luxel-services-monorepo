@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getMercadoPago } from '@/lib/payments/mercadopago';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { devMockPaymentsEnabled, completeMockPayment } from '@/lib/payments/dev-mock';
 
 export async function GET(req: Request) {
   const { userId } = await auth();
@@ -24,6 +25,13 @@ export async function GET(req: Request) {
   }
 
   const origin = url.origin;
+
+  // Dev-only: simulate a successful payment when no real MercadoPago token is set.
+  if (devMockPaymentsEnabled('mercadopago')) {
+    await completeMockPayment(supabase, booking.id, 'mercadopago');
+    return NextResponse.redirect(new URL('/es/cuenta?paid=1&mock=1', origin));
+  }
+
   const { preference } = getMercadoPago();
 
   const created = await preference.create({

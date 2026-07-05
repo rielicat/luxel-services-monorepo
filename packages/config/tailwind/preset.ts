@@ -7,8 +7,8 @@ const preset = {
   theme: {
     container: {
       center: true,
-      padding: '1rem',
-      screens: { '2xl': '1280px' },
+      padding: '1.25rem',
+      screens: { '2xl': '1200px' },
     },
     extend: {
       colors: {
@@ -18,9 +18,21 @@ const preset = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        lime: {
+          DEFAULT: 'hsl(var(--lime))',
+          foreground: 'hsl(var(--lime-foreground))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
@@ -29,6 +41,14 @@ const preset = {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -39,21 +59,57 @@ const preset = {
         ring: 'hsl(var(--ring))',
       },
       borderRadius: {
+        xl: 'calc(var(--radius) + 4px)',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'var(--font-sans)', 'ui-sans-serif', 'sans-serif'],
+        serif: ['var(--font-serif)', 'ui-serif', 'Georgia', 'serif'],
+      },
+      boxShadow: {
+        soft: '0 1px 2px 0 hsl(178 40% 12% / 0.04), 0 4px 16px -4px hsl(178 40% 12% / 0.08)',
+        card: '0 1px 3px 0 hsl(178 40% 12% / 0.06), 0 12px 32px -12px hsl(178 40% 12% / 0.12)',
+        lift: '0 2px 6px -2px hsl(178 40% 12% / 0.10), 0 20px 44px -16px hsl(178 40% 12% / 0.18)',
+        glow: '0 0 0 1px hsl(var(--primary) / 0.08), 0 18px 48px -18px hsl(var(--primary) / 0.35)',
+      },
+      transitionTimingFunction: {
+        lux: 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       keyframes: {
         'fade-in': {
-          from: { opacity: '0', transform: 'translateY(8px)' },
+          from: { opacity: '0', transform: 'translateY(10px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in-up': {
+          from: { opacity: '0', transform: 'translateY(24px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'scale-in': {
+          from: { opacity: '0', transform: 'scale(0.96)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+        'bounce-dot': {
+          '0%, 80%, 100%': { transform: 'scale(0.6)', opacity: '0.4' },
+          '40%': { transform: 'scale(1)', opacity: '1' },
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
         },
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-out forwards',
+        'fade-in-up': 'fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'scale-in': 'scale-in 0.2s ease-out forwards',
+        'bounce-dot': 'bounce-dot 1.2s ease-in-out infinite',
+        shimmer: 'shimmer 1.6s infinite',
+        float: 'float 6s ease-in-out infinite',
       },
     },
   },

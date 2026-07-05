@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "@clerk/nextjs": "^6.0.0",
     "@luxel/pricing": "workspace:*",
     "@luxel/shared": "workspace:*",

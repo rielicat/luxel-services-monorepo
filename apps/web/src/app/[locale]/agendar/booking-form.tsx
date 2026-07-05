@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import type { ServiceType } from '@luxel/shared';
 import { fetchAvailabilityAction, type DayAvailabilityDTO } from '../calendario/actions';
 import { createBookingAction } from './actions';
+import { track } from '@/lib/analytics/client';
+import { EVENTS } from '@/lib/analytics/events';
 
 interface Props {
   serviceTypes: ServiceType[];
@@ -33,6 +35,14 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
   const [availability, setAvailability] = useState<DayAvailabilityDTO | null>(null);
   const [pending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    track(EVENTS.BOOKING_STARTED, {
+      service_type_id: initial.serviceTypeId,
+      frequency: initial.frequency,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!date) return;

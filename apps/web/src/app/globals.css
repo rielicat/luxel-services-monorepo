@@ -2,64 +2,181 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────
+   Servicios Luxel — design tokens ("Fresh Teal + Lime")
+   Colors are stored as HSL channels so Tailwind can compose them
+   with alpha (hsl(var(--x) / <alpha>)). See docs/BRAND.md.
+   ───────────────────────────────────────────────────────────── */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --background: 160 44% 99%;
+    --foreground: 178 52% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 178 52% 11%;
 
-    --primary: 199 89% 48%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 178 52% 11%;
+
+    /* Teal-700 — primary brand */
+    --primary: 175 78% 26%;
     --primary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Teal-500 — secondary brand */
+    --secondary: 173 71% 39%;
+    --secondary-foreground: 0 0% 100%;
 
-    --accent: 199 92% 92%;
-    --accent-foreground: 199 89% 28%;
+    /* Lime — high-energy accent (CTAs, highlights) */
+    --lime: 71 92% 63%;
+    --lime-foreground: 138 55% 20%;
 
+    --muted: 165 30% 96%;
+    --muted-foreground: 178 13% 40%;
+
+    /* Soft teal wash for subtle surfaces */
+    --accent: 172 55% 93%;
+    --accent-foreground: 175 78% 22%;
+
+    --success: 158 64% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 48%;
+    --warning-foreground: 40 60% 12%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 199 89% 48%;
+    --border: 168 28% 89%;
+    --input: 168 28% 89%;
+    --ring: 175 78% 30%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    --background: 185 47% 6%;
+    --foreground: 160 30% 96%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 187 42% 8%;
+    --card-foreground: 160 30% 96%;
 
-    --primary: 199 89% 48%;
-    --primary-foreground: 0 0% 100%;
+    --popover: 187 42% 8%;
+    --popover-foreground: 160 30% 96%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --primary: 172 76% 44%;
+    --primary-foreground: 185 60% 7%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --secondary: 173 60% 34%;
+    --secondary-foreground: 160 40% 96%;
 
-    --destructive: 0 63% 41%;
+    --lime: 71 88% 60%;
+    --lime-foreground: 140 60% 10%;
+
+    --muted: 186 30% 14%;
+    --muted-foreground: 170 15% 62%;
+
+    --accent: 186 34% 16%;
+    --accent-foreground: 160 40% 92%;
+
+    --success: 158 60% 44%;
+    --success-foreground: 185 60% 7%;
+    --warning: 38 90% 55%;
+    --warning-foreground: 40 60% 10%;
+    --destructive: 0 63% 47%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 199 89% 48%;
+    --border: 186 28% 17%;
+    --input: 186 28% 19%;
+    --ring: 172 76% 44%;
   }
 
   * {
     @apply border-border;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings:
       'rlig' 1,
-      'calt' 1;
+      'calt' 1,
+      'ss01' 1;
+  }
+
+  /* Serif display headings — editorial, luxe feel. */
+  .font-serif {
+    font-feature-settings: 'ss01' 1;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: hsl(var(--lime) / 0.5);
+    color: hsl(var(--lime-foreground));
+  }
+}
+
+@layer utilities {
+  /* Brand gradient text — for hero accent words */
+  .text-gradient-brand {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--primary)),
+      hsl(var(--secondary)) 60%,
+      hsl(158 64% 45%)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Ambient radial glow used behind hero / section headers */
+  .bg-brand-glow {
+    background-image: radial-gradient(
+      55% 45% at 50% 0%,
+      hsl(var(--secondary) / 0.18) 0%,
+      transparent 70%
+    );
+  }
+
+  /* Subtle dotted grid backdrop (placeholder for hero imagery) */
+  .bg-dot-grid {
+    background-image: radial-gradient(hsl(var(--primary) / 0.09) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Layered ambient aurora for premium hero / section backdrops */
+  .bg-aurora {
+    background-image:
+      radial-gradient(40% 40% at 15% 10%, hsl(var(--secondary) / 0.14) 0%, transparent 70%),
+      radial-gradient(45% 45% at 85% 0%, hsl(var(--lime) / 0.16) 0%, transparent 70%),
+      radial-gradient(50% 50% at 50% 100%, hsl(var(--primary) / 0.08) 0%, transparent 70%);
+  }
+
+  /* Frosted glass surface */
+  .glass {
+    background: hsl(var(--card) / 0.6);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  }
+
+  /* Hairline luxe divider */
+  .rule-lux {
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--primary) / 0.25) 20%,
+      hsl(var(--primary) / 0.25) 80%,
+      transparent
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in-up,
+    .animate-fade-in,
+    .animate-float {
+      animation: none !important;
+    }
   }
 }

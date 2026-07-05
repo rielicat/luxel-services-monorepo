@@ -19,14 +19,26 @@
     "calendar": "Calendario",
     "login": "Ingresar",
     "logout": "Cerrar sesión",
-    "signup": "Crear cuenta"
+    "signup": "Crear cuenta",
+    "how": "Cómo funciona",
+    "features": "Servicios",
+    "faq": "Preguntas"
   },
   "landing": {
     "hero": {
+      "eyebrow": "Aseo profesional en la Región Metropolitana",
       "title": "Aseo profesional, sin complicaciones.",
-      "subtitle": "Cotiza online, agenda en minutos y recibe un servicio impecable de Servicios Luxel.",
+      "title_lead": "Tu espacio impecable,",
+      "title_accent": "sin complicaciones.",
+      "subtitle": "Cotiza online en segundos, agenda tu bloque y recibe un servicio de aseo profesional. Con o sin insumos, una vez o por suscripción.",
       "cta_primary": "Cotizar mi servicio",
-      "cta_secondary": "Conocer más"
+      "cta_secondary": "Cómo funciona",
+      "trust": {
+        "instant": "Precio al instante",
+        "operators": "Operadores verificados",
+        "flexible": "Agenda flexible",
+        "secure": "Pago seguro"
+      }
     },
     "how": {
       "title": "Cómo funciona",
@@ -80,6 +92,10 @@
   "calculator": {
     "title": "Cotiza tu servicio",
     "subtitle": "Te entregamos un precio en menos de un minuto.",
+    "realtime_hint": "Precio en tiempo real",
+    "from_prefix": "desde",
+    "address_searching": "Buscando direcciones…",
+    "address_no_results": "Sin resultados. Prueba con calle, número y comuna.",
     "fields": {
       "service_type": "Tipo de aseo",
       "square_meters": "Metros cuadrados",
@@ -97,10 +113,31 @@
     "result": {
       "total": "Total",
       "per_visit": "por visita",
+      "estimated": "Precio estimado",
+      "exact": "Precio final",
+      "add_address": "Ingresa tu dirección para incluir la distancia y agendar.",
+      "monthly": "Suscripción mensual",
+      "per_month": "al mes",
+      "save_prefix": "Ahorras",
+      "vs_one_time": "vs. servicio único",
+      "updating": "Actualizando…",
+      "empty": "Ajusta los detalles y verás tu precio al instante.",
+      "base": "Tarifa base",
+      "per_m2_label": "Metros cuadrados",
+      "tools_label": "Insumos Luxel",
       "discount_applied": "Descuento por suscripción",
-      "distance": "Distancia desde nuestra base más cercana",
+      "distance": "Distancia desde nuestra base",
       "book_now": "Agendar ahora"
     }
+  },
+  "lead": {
+    "out_of_area_title": "Aún no llegamos a tu zona",
+    "out_of_area_subtitle": "Déjanos tu correo y te avisamos apenas ampliemos la cobertura.",
+    "email": "Correo",
+    "phone": "Teléfono (opcional)",
+    "submit": "Avísenme",
+    "sending": "Enviando…",
+    "success": "¡Listo! Te avisaremos cuando lleguemos a tu zona."
   },
   "account": {
     "title": "Mi cuenta",
@@ -138,10 +175,21 @@
   },
   "chat": {
     "title": "¿Cómo podemos ayudarte?",
+    "assistant_name": "Lux",
+    "subtitle": "Asistente IA · responde al instante",
     "placeholder": "Escribe tu mensaje…",
     "send": "Enviar",
-    "fallback_to_human": "Hablar con una persona por WhatsApp",
-    "bot_greeting": "¡Hola! Soy el asistente de Luxel. ¿En qué te ayudo?"
+    "fallback_to_human": "Hablar con una persona",
+    "bot_greeting": "¡Hola! Soy Lux, el asistente de Servicios Luxel. Puedo cotizar tu aseo, revisar cobertura y disponibilidad. ¿Qué necesitas?",
+    "typing": "Escribiendo…",
+    "working": "Consultando…",
+    "book_cta": "Agendar ahora",
+    "quote_cta": "Cotizar en detalle",
+    "disclaimer": "Precios calculados en tiempo real. Confirma al agendar.",
+    "quick_1": "¿Cuánto cuesta un aseo?",
+    "quick_2": "¿Atienden en mi comuna?",
+    "quick_3": "¿Cómo funciona la suscripción?",
+    "per_visit": "por visita"
   },
   "errors": {
     "generic": "Ocurrió un error. Intenta nuevamente.",

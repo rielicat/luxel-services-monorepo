@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "/opt/homebrew/bin/npx",
+      "runtimeArgs": ["--yes", "pnpm@11.0.9", "--filter", "@luxel/web", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "/opt/homebrew/bin/npx",
+      "runtimeArgs": ["--yes", "pnpm@11.0.9", "--filter", "@luxel/admin", "run", "dev"],
+      "port": 3001
+    }
+  ]
+}
