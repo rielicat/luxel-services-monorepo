@@ -55,7 +55,7 @@ export function SubscriptionsList({ subscriptions }: { subscriptions: Subscripti
           <p className="text-muted-foreground mx-auto max-w-sm text-sm">{t('empty_desc')}</p>
         </div>
         <Button asChild variant="lime">
-          <Link href="/agendar?frequency=weekly">{t('empty_cta')}</Link>
+          <Link href="/book?frequency=weekly">{t('empty_cta')}</Link>
         </Button>
       </Card>
     );

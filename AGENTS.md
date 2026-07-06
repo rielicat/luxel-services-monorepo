@@ -77,6 +77,10 @@ supabase/       SQL migrations + seed + local config
 - **i18n — no hardcoded user-facing strings.** All copy lives in the single
   catalog `packages/shared/src/i18n/es-CL.json` and is rendered via `next-intl`.
   Locale prefix is `'never'` (clean URLs). Add a key rather than inlining text.
+- **Routes are English.** URL path segments are always English, kebab-case —
+  `/calculator`, `/book`, `/calendar`, `/account`, `/account/profile`,
+  `/sign-in`, `/sign-up` — even though every user-facing string is es-CL. Never
+  introduce a Spanish path segment; the UI stays Spanish, the URL stays English.
 - **Comments** — only explain the non-obvious _why_ (rationale, gotchas,
   invariants). Don't restate what the code says or narrate steps. Match the
   surrounding file's density.

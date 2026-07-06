@@ -31,7 +31,7 @@ export default async function PerfilPage() {
       <section className="bg-aurora border-border/50 border-b">
         <div className="container max-w-3xl py-10 sm:py-12">
           <Link
-            href="/cuenta"
+            href="/account"
             className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />

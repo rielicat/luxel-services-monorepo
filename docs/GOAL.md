@@ -60,12 +60,12 @@ Each stage lists the **on-site surface** (the route/component that exists in
 | Stage              | Surface                                                                                                     | Job-to-be-done                                                         | Primary metric                            |
 | ------------------ | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------- |
 | **1. Awareness**   | Landing `/[locale]` (`hero`, `how-it-works`, `features`, `pricing-teaser`, `faq`) + future comuna SEO pages | "Understand what Luxel does and whether it covers my zone and budget." | Landing → `quote_started` rate            |
-| **2. Quote**       | `/calculadora` (service type, m² slider, address autocomplete w/ Nominatim + Chile DPA comunas)             | "Get a real price for _my_ home in under a minute."                    | `quote_calculated` rate; out-of-area rate |
-| **3. Book**        | `/agendar` (date + `mañana`/`tarde` block, capacity-checked, choose provider)                               | "Lock a day and time I trust will be honored."                         | Quote → `booking_created` rate            |
+| **2. Quote**       | `/calculator` (service type, m² slider, address autocomplete w/ Nominatim + Chile DPA comunas)              | "Get a real price for _my_ home in under a minute."                    | `quote_calculated` rate; out-of-area rate |
+| **3. Book**        | `/book` (date + `mañana`/`tarde` block, capacity-checked, choose provider)                                  | "Lock a day and time I trust will be honored."                         | Quote → `booking_created` rate            |
 | **4. Pay**         | Checkout redirect (`/api/checkout/{stripe,mercadopago}`)                                                    | "Pay securely and get confirmation."                                   | Booking → `payment_succeeded` rate        |
 | **5. Service**     | Operator fulfills; booking `pending → confirmed → in_progress → completed`                                  | "Have the cleaning happen, on time, to standard."                      | On-time rate; completion rate             |
 | **6. Rating**      | _(Phase 2)_ post-service review prompt                                                                      | "Tell Luxel how it went; build trust for the next buyer."              | Review submission rate; avg rating        |
-| **7. Resubscribe** | `/cuenta` (bookings, subscriptions, profile)                                                                | "Keep it going without re-entering everything."                        | Subscription attach rate; re-book rate    |
+| **7. Resubscribe** | `/account` (bookings, subscriptions, profile)                                                               | "Keep it going without re-entering everything."                        | Subscription attach rate; re-book rate    |
 
 ### Concierge overlay ("Lux")
 
@@ -107,7 +107,7 @@ Retention levers, in priority order:
    the convenience is the retainer.
 2. **On-time, high-quality service** — the pre-condition for everything. A missed
    or poor visit churns a subscriber instantly.
-3. **Frictionless self-serve management** — pause/cancel/resume from `/cuenta`
+3. **Frictionless self-serve management** — pause/cancel/resume from `/account`
    (`setSubscriptionStatusAction`). Pausing is a _retention feature_: a customer
    who can pause for a month abroad does not cancel.
 4. **WhatsApp re-engagement** — reminders, "¿reactivamos tu suscripción?" nudges
@@ -203,7 +203,7 @@ judged on _activated subscribers_, not raw signups.
    run through it and pull dormant customers back to `booking_created`.
 3. **SEO comuna landing pages _(Phase 1.5)_** — "Aseo en Providencia", "Limpieza
    post-obra en Ñuñoa" pages, one per covered comuna, feeding organic traffic
-   straight into `/calculadora` with the comuna pre-filled. Cheap, compounding,
+   straight into `/calculator` with the comuna pre-filled. Cheap, compounding,
    and defensible because it maps to real coverage radii.
 4. **Ratings → trust loop _(Phase 2)_** — reviews raise conversion for the _next_
    visitor, which raises volume, which produces more reviews. This is the
@@ -257,18 +257,18 @@ subscriptions within 12 months).
 
 ### Input metrics
 
-| Metric                       | Definition                                           | Instrumented from         |
-| ---------------------------- | ---------------------------------------------------- | ------------------------- |
-| **Landing → quote rate**     | sessions that reach `quote_started`                  | client (calculadora)      |
-| **Quote → book rate**        | `quote_calculated` → `booking_created`               | server actions            |
-| **Book → pay rate**          | `booking_created` → `payment_succeeded`              | payment webhooks (server) |
-| **Out-of-area rate**         | `quote_out_of_area` / `quote_started`                | server (quote action)     |
-| **Activation rate**          | first `payment_succeeded` per new customer           | server (webhooks)         |
-| **Subscription attach rate** | bookings with a `subscription_id` / all bookings     | server                    |
-| **CAC**                      | paid spend / activated customers                     | ads + PostHog             |
-| **NPS / avg rating**         | post-service survey _(Phase 2)_                      | reviews                   |
-| **On-time rate**             | visits started within the promised block _(Phase 2)_ | operator app              |
-| **Churn**                    | subscriptions → `cancelled` / active base            | server (`/cuenta` action) |
+| Metric                       | Definition                                           | Instrumented from          |
+| ---------------------------- | ---------------------------------------------------- | -------------------------- |
+| **Landing → quote rate**     | sessions that reach `quote_started`                  | client (calculadora)       |
+| **Quote → book rate**        | `quote_calculated` → `booking_created`               | server actions             |
+| **Book → pay rate**          | `booking_created` → `payment_succeeded`              | payment webhooks (server)  |
+| **Out-of-area rate**         | `quote_out_of_area` / `quote_started`                | server (quote action)      |
+| **Activation rate**          | first `payment_succeeded` per new customer           | server (webhooks)          |
+| **Subscription attach rate** | bookings with a `subscription_id` / all bookings     | server                     |
+| **CAC**                      | paid spend / activated customers                     | ads + PostHog              |
+| **NPS / avg rating**         | post-service survey _(Phase 2)_                      | reviews                    |
+| **On-time rate**             | visits started within the promised block _(Phase 2)_ | operator app               |
+| **Churn**                    | subscriptions → `cancelled` / active base            | server (`/account` action) |
 
 ### Dashboards to build (PostHog)
 

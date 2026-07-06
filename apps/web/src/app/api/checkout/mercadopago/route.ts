@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   // Dev-only: simulate a successful payment when no real MercadoPago token is set.
   if (devMockPaymentsEnabled('mercadopago')) {
     await completeMockPayment(supabase, booking.id, 'mercadopago');
-    return NextResponse.redirect(new URL('/es/cuenta?paid=1&mock=1', origin));
+    return NextResponse.redirect(new URL('/es/account?paid=1&mock=1', origin));
   }
 
   const { preference } = getMercadoPago();
@@ -48,9 +48,9 @@ export async function GET(req: Request) {
       payer: { email: customer.email },
       external_reference: booking.id,
       back_urls: {
-        success: `${origin}/es/cuenta?paid=1`,
-        failure: `${origin}/es/cuenta?cancelled=1`,
-        pending: `${origin}/es/cuenta?pending=1`,
+        success: `${origin}/es/account?paid=1`,
+        failure: `${origin}/es/account?cancelled=1`,
+        pending: `${origin}/es/account?pending=1`,
       },
       auto_return: 'approved',
       notification_url: `${origin}/api/webhooks/mercadopago`,

@@ -272,7 +272,7 @@ function WidgetCard({
         <div className="mt-3 flex gap-2">
           <Button asChild variant="lime" size="sm" className="flex-1">
             <Link
-              href="/agendar"
+              href="/book"
               onClick={() => tryCapture('cta_clicked', { source: 'chat_quote', cta: 'agendar' })}
             >
               <CalendarCheck className="h-4 w-4" /> {t('book_cta')}
@@ -280,7 +280,7 @@ function WidgetCard({
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link
-              href="/calculadora"
+              href="/calculator"
               onClick={() =>
                 tryCapture('cta_clicked', { source: 'chat_quote', cta: 'calculadora' })
               }
@@ -315,7 +315,7 @@ function WidgetCard({
         </div>
         <Button asChild variant="lime" size="sm" className="mt-3 w-full">
           <Link
-            href="/agendar"
+            href="/book"
             onClick={() =>
               tryCapture('cta_clicked', { source: 'chat_availability', cta: 'agendar' })
             }

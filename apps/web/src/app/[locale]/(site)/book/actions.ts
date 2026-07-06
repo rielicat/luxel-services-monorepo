@@ -133,7 +133,7 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
     payment_provider: input.paymentProvider,
   });
 
-  revalidatePath('/cuenta', 'page');
+  revalidatePath('/account', 'page');
 
   // Hand off to checkout.
   const checkoutPath =

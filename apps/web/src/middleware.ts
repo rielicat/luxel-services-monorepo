@@ -6,9 +6,9 @@ const intlMiddleware = createIntlMiddleware(routing);
 
 // URLs are locale-prefix-free (see i18n/routing.ts). Match user-facing paths directly.
 const isProtectedRoute = createRouteMatcher([
-  '/cuenta(.*)',
-  '/calendario(.*)',
-  '/agendar(.*)',
+  '/account(.*)',
+  '/calendar(.*)',
+  '/book(.*)',
   '/api/protected(.*)',
 ]);
 

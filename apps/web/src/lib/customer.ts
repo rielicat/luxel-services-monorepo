@@ -55,7 +55,7 @@ export interface AccountContext {
 }
 
 /**
- * Resolves the signed-in user's account context for the /cuenta pages. Returns
+ * Resolves the signed-in user's account context for the /account pages. Returns
  * null when not signed in (callers redirect to sign-in). The profile always
  * resolves — from the Supabase customer row, or from Clerk when Supabase is
  * unseeded/unreachable — so the account never bounces the user home.

@@ -41,13 +41,13 @@ export function Nav() {
           <ClerkLoaded>
             <SignedIn>
               <Link
-                href="/calculadora"
+                href="/calculator"
                 className="text-muted-foreground hover:text-foreground hidden px-1 font-medium transition-colors sm:block"
               >
                 {t('calculator')}
               </Link>
               <Button asChild variant="lime" size="sm">
-                <Link href="/cuenta">{t('plan')}</Link>
+                <Link href="/account">{t('plan')}</Link>
               </Button>
               <UserMenu />
             </SignedIn>
@@ -56,7 +56,7 @@ export function Nav() {
                 <Link href="/sign-in">{t('login')}</Link>
               </Button>
               <Button asChild variant="lime" size="sm">
-                <Link href="/calculadora">{t('calculator')}</Link>
+                <Link href="/calculator">{t('calculator')}</Link>
               </Button>
             </SignedOut>
           </ClerkLoaded>

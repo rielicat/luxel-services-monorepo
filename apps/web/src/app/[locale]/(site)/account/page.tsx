@@ -76,7 +76,7 @@ export default async function CuentaPage() {
             <p className="text-muted-foreground max-w-xl text-sm sm:text-base">{t('subtitle')}</p>
           </div>
           <Button asChild variant="lime" className="w-fit">
-            <Link href="/calculadora">{t('new_quote')}</Link>
+            <Link href="/calculator">{t('new_quote')}</Link>
           </Button>
         </div>
       </section>

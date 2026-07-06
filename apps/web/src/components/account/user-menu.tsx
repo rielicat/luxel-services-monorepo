@@ -80,10 +80,10 @@ export function UserMenu() {
             {email && <p className="text-muted-foreground truncate text-xs">{email}</p>}
           </div>
           <nav className="p-1.5">
-            <MenuLink href="/cuenta" icon={LayoutDashboard} onNavigate={() => setOpen(false)}>
+            <MenuLink href="/account" icon={LayoutDashboard} onNavigate={() => setOpen(false)}>
               {t('plan')}
             </MenuLink>
-            <MenuLink href="/cuenta/perfil" icon={UserRound} onNavigate={() => setOpen(false)}>
+            <MenuLink href="/account/profile" icon={UserRound} onNavigate={() => setOpen(false)}>
               {t('account')}
             </MenuLink>
           </nav>

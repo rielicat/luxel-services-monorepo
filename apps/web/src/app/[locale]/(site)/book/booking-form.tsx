@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { ServiceType } from '@luxel/shared';
-import { fetchAvailabilityAction, type DayAvailabilityDTO } from '../calendario/actions';
+import { fetchAvailabilityAction, type DayAvailabilityDTO } from '../calendar/actions';
 import { createBookingAction } from './actions';
 import { track } from '@/lib/analytics/client';
 import { EVENTS } from '@/lib/analytics/events';

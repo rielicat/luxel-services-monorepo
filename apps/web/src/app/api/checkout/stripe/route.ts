@@ -36,7 +36,7 @@ export async function GET(req: Request) {
   // Dev-only: simulate a successful payment when no real Stripe key is configured.
   if (devMockPaymentsEnabled('stripe')) {
     await completeMockPayment(supabase, booking.id, 'stripe');
-    return NextResponse.redirect(new URL('/es/cuenta?paid=1&mock=1', origin));
+    return NextResponse.redirect(new URL('/es/account?paid=1&mock=1', origin));
   }
 
   const stripe = getStripe();
@@ -56,8 +56,8 @@ export async function GET(req: Request) {
       },
     ],
     metadata: { bookingId: booking.id },
-    success_url: `${origin}/es/cuenta?paid=1`,
-    cancel_url: `${origin}/es/cuenta?cancelled=1`,
+    success_url: `${origin}/es/account?paid=1`,
+    cancel_url: `${origin}/es/account?cancelled=1`,
   });
 
   await supabase

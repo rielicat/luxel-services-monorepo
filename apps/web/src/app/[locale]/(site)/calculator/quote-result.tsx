@@ -74,7 +74,7 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
   if (cta.commune) bookParams.set('commune', cta.commune);
   if (cta.lat != null) bookParams.set('lat', String(cta.lat));
   if (cta.lng != null) bookParams.set('lng', String(cta.lng));
-  const bookHref = `/agendar?${bookParams.toString()}`;
+  const bookHref = `/book?${bookParams.toString()}`;
 
   return (
     <Card className="border-primary/15 shadow-glow relative overflow-hidden">

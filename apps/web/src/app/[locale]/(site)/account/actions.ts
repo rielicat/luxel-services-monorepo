@@ -34,8 +34,8 @@ export async function updateProfileAction(formData: FormData) {
     .eq('id', customer.id);
   if (error) return { ok: false, error: 'generic' as const };
 
-  revalidatePath('/cuenta', 'page');
-  revalidatePath('/cuenta/perfil', 'page');
+  revalidatePath('/account', 'page');
+  revalidatePath('/account/profile', 'page');
   return { ok: true };
 }
 
@@ -63,6 +63,6 @@ export async function setSubscriptionStatusAction(
     .eq('customer_id', customer.id);
   if (error) return { ok: false, error: 'generic' as const };
 
-  revalidatePath('/cuenta', 'page');
+  revalidatePath('/account', 'page');
   return { ok: true };
 }

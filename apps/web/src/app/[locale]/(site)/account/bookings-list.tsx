@@ -46,7 +46,7 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
         </span>
         <p className="text-muted-foreground max-w-sm text-sm">{tb('empty')}</p>
         <Button asChild variant="outline">
-          <Link href="/agendar">{tb('empty_cta')}</Link>
+          <Link href="/book">{tb('empty_cta')}</Link>
         </Button>
       </Card>
     );

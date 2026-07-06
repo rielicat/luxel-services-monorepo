@@ -20,7 +20,7 @@ interface Props {
 export default async function AgendarPage({ searchParams }: Props) {
   // Gate on auth only — tolerate a missing customer row (created lazily on
   // submit) so a signed-in user is never bounced home, losing the quote/plan
-  // intent in the query string. Mirrors /cuenta's resilient behaviour.
+  // intent in the query string. Mirrors /account's resilient behaviour.
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
 

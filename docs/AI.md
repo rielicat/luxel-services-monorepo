@@ -23,7 +23,7 @@ site uses — so it never invents a price or promises a zone we don't cover.
 | **Natural-language quoting** | "¿Cuánto sale limpiar 55 m² en Ñuñoa?" → calls `get_quote`, returns the itemized total. Never guesses. |
 | **Coverage checks**          | "¿Llegan a Maipú?" → calls `check_coverage` against active operation points. Honest yes/no.            |
 | **Service recommendation**   | "Me estoy cambiando de depto" → `recommend_service` suggests `move_out`.                               |
-| **Booking assistance**       | "¿Tienen jueves en la mañana?" → `check_availability`; guides to `/agendar`.                           |
+| **Booking assistance**       | "¿Tienen jueves en la mañana?" → `check_availability`; guides to `/book`.                              |
 | **Post-booking support**     | Answers FAQs (payment, pause/cancel) via `answer_faq`.                                                 |
 | **Human handoff**            | Anything it shouldn't or can't do → `escalate_to_human` (WhatsApp).                                    |
 
@@ -76,7 +76,7 @@ can never disagree.
 | `answer_faq`         | Retrieve the canonical answer to a known question.                                                       | free-text `question`                                                                          | matched FAQ answer (i18n key / text)                                                                                                        | `getFaqEntries()` + `matchFaq()`                                   |
 | `escalate_to_human`  | Hand off to a person over WhatsApp.                                                                      | optional `reason`, `contact`                                                                  | handoff acknowledgment; writes a handoff `messages` row                                                                                     | existing handoff path in `/api/chat`                               |
 
-**Booking itself stays a deliberate user action** in `/agendar`
+**Booking itself stays a deliberate user action** in `/book`
 (`createBookingAction`, which re-derives the price server-side and never trusts a
 client total). Lux _guides_ to booking; it does not silently spend the customer's
 money. This is a safety choice, not a limitation.
@@ -135,7 +135,7 @@ Región Metropolitana (Chile). Hablas en español chileno, de tú, cálido y cla
 Qué haces:
 - Ayudas a cotizar, revisar cobertura, recomendar el tipo de aseo, ver
   disponibilidad y resolver dudas frecuentes.
-- Guías a la persona a agendar en /agendar; nunca reservas ni cobras tú.
+- Guías a la persona a agendar en /book; nunca reservas ni cobras tú.
 
 Reglas que NO puedes romper:
 - NUNCA inventas precios. Para cualquier precio, usa la herramienta get_quote
