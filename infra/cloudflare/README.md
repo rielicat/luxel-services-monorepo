@@ -33,7 +33,8 @@ pnpm install
 
 ## 1. Point Pulumi state at R2 (one-time)
 
-Create a private R2 bucket (e.g. `luxel-pulumi-state`) in the dashboard, then:
+Create a private R2 bucket named `luxel-pulumi-state` in the dashboard, then
+(the endpoint is pre-filled with this account's id):
 
 ```bash
 export AWS_ACCESS_KEY_ID=<R2 access key id>
@@ -42,25 +43,32 @@ export AWS_REGION=auto
 export PULUMI_CONFIG_PASSPHRASE=<pick a strong passphrase>   # encrypts secrets in state
 
 cd infra/cloudflare
-pulumi login "s3://luxel-pulumi-state?endpoint=<ACCOUNT_ID>.r2.cloudflarestorage.com&s3ForcePathStyle=true"
+pulumi login "s3://luxel-pulumi-state?endpoint=a592f6c9ed79454bf7c8ab489ece9036.r2.cloudflarestorage.com&s3ForcePathStyle=true"
 pulumi stack select prod || pulumi stack init prod
 ```
 
 Keep `AWS_*`, `PULUMI_CONFIG_PASSPHRASE`, and `CLOUDFLARE_API_TOKEN` in your shell
 (or a `.envrc` / secrets manager) for every command below.
 
+> The R2 token you use for `AWS_*` is **R2-scoped only**. The Pulumi Cloudflare
+> provider needs a **separate** `CLOUDFLARE_API_TOKEN` with `Zone:DNS:Edit`,
+> `Zone:Zone:Read`, `Zone:Email Routing Rules:Edit`, and
+> `Account:Email Routing Addresses:Edit`.
+
 ---
 
-## 2. Fill in the identifiers + current state
+## 2. Fill in the zone id + current state
+
+`accountId` is already set in `Pulumi.prod.yaml`; you only need the zone id.
 
 ```bash
-export CLOUDFLARE_API_TOKEN=<pulumi token from above>
+export CLOUDFLARE_API_TOKEN=<Cloudflare provider token (DNS + Email Routing scopes)>
 
-pulumi config set accountId <cloudflare account id>
-pulumi config set zoneId    <serviciosluxel.cl zone id>
+pulumi config set zoneId <serviciosluxel.cl zone id>
 
-# Read the live zone so you can mirror email routing exactly:
-CF_ZONE_ID=<zone id> CF_ACCOUNT_ID=<account id> pnpm --filter @luxel/infra-cloudflare export
+# Read the live zone so you can mirror email routing exactly (also prints the zone id):
+CF_ZONE_ID=<zone id> CF_ACCOUNT_ID=a592f6c9ed79454bf7c8ab489ece9036 \
+  pnpm --filter @luxel/infra-cloudflare export
 ```
 
 Copy the `rules` / `destinations` / `catchAll` the export prints into the

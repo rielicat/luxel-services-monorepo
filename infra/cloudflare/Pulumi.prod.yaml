@@ -8,8 +8,8 @@
 # Both are shown by `pnpm --filter @luxel/infra-cloudflare export` (or the
 # Cloudflare dashboard). They are identifiers, not credentials.
 config:
-  luxel-cloudflare:accountId: REPLACE_WITH_ACCOUNT_ID
-  luxel-cloudflare:zoneId: REPLACE_WITH_ZONE_ID
+  luxel-cloudflare:accountId: a592f6c9ed79454bf7c8ab489ece9036
+  luxel-cloudflare:zoneId: REPLACE_WITH_ZONE_ID # `pnpm export` prints it, or Cloudflare dashboard → zone → API panel
   luxel-cloudflare:zoneName: serviciosluxel.cl
 
   # Apex A records → Vercel anycast IPs (DNS-only; Vercel terminates TLS).
