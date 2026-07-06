@@ -23,6 +23,18 @@ export async function vc(path) {
   return body;
 }
 
+export async function vcPost(path, body) {
+  const res = await fetch(`${BASE}${teamQ(path)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok)
+    throw new Error(`Vercel POST ${path} → ${res.status} ${JSON.stringify(out.error || out)}`);
+  return out;
+}
+
 /** All projects across every page (Vercel paginates via pagination.next timestamp). */
 export async function vcProjects() {
   const out = [];
