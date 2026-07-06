@@ -72,8 +72,8 @@ CF_ZONE_ID=<zone id> CF_ACCOUNT_ID=a592f6c9ed79454bf7c8ab489ece9036 \
 ```
 
 Copy the `rules` / `destinations` / `catchAll` the export prints into the
-`emailRouting` block of `Pulumi.prod.yaml`, and confirm `apexIps` / `wwwTarget`
-match. The config must equal live state, or the apply will reconcile the diff.
+`emailRouting` block of `Pulumi.prod.yaml`, and confirm `vercelTarget` matches.
+The config must equal live state, or the apply will reconcile the diff.
 
 ---
 

@@ -13,6 +13,10 @@ import * as path from 'path';
  * After adoption, run without the flag: `importId` returns undefined, the `import`
  * option drops off, and resources are managed normally. New resources (e.g. the
  * _dmarc record) have no entry here, so they are created as usual.
+ *
+ * NB: this module is intentionally NOT named `imports.ts` — Pulumi's ts-node
+ * resolves `./imports` to the sibling `imports.json` (the `.json` extension wins
+ * over `.ts` at require time), which silently shadows the module.
  */
 let map: Record<string, string> = {};
 try {

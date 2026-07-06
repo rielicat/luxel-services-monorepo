@@ -28,8 +28,8 @@ const imports = {};
 
 const records = await cfAll(`/zones/${ZONE_ID}/dns_records`);
 for (const r of records) {
-  if (r.type === 'A' && r.name === ZONE_NAME) {
-    imports[`apex-a-${r.content.replace(/\./g, '-')}`] = `${ZONE_ID}/${r.id}`;
+  if (r.type === 'CNAME' && r.name === ZONE_NAME) {
+    imports['apex'] = `${ZONE_ID}/${r.id}`;
   } else if (r.type === 'CNAME' && r.name === `www.${ZONE_NAME}`) {
     imports['www'] = `${ZONE_ID}/${r.id}`;
   } else if (r.type === 'TXT' && r.name === `_dmarc.${ZONE_NAME}`) {

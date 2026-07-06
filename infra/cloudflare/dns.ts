@@ -1,38 +1,32 @@
 import * as cloudflare from '@pulumi/cloudflare';
-import { zoneId, zoneName, apexIps, wwwTarget, dmarcPolicy } from './config';
-import { importId } from './imports';
+import { zoneId, zoneName, vercelTarget, dmarcPolicy } from './config';
+import { importId } from './adopt';
 
-/** Apex A record name derived from the IP so code and importer agree. */
-const apexName = (ip: string) => `apex-a-${ip.replace(/\./g, '-')}`;
-
-// Apex (serviciosluxel.cl) → Vercel. DNS-only: Vercel terminates TLS, so these
-// must NOT be proxied. TTL 1 = automatic.
-export const apexRecords = apexIps.map(
-  (ip) =>
-    new cloudflare.DnsRecord(
-      apexName(ip),
-      {
-        zoneId,
-        name: zoneName,
-        type: 'A',
-        content: ip,
-        ttl: 1,
-        proxied: false,
-        comment: 'Vercel apex — managed by Pulumi',
-      },
-      { import: importId(apexName(ip)) },
-    ),
+// Apex + www → Vercel via CNAME. Cloudflare flattens the apex CNAME to A records
+// at the edge, so `dig` shows A records even though the stored record is a CNAME.
+// DNS-only (not proxied): Vercel terminates TLS.
+export const apexRecord = new cloudflare.DnsRecord(
+  'apex',
+  {
+    zoneId,
+    name: zoneName,
+    type: 'CNAME',
+    content: vercelTarget,
+    ttl: 600,
+    proxied: false,
+    comment: 'Vercel apex (flattened) — managed by Pulumi',
+  },
+  { import: importId('apex') },
 );
 
-// www → Vercel (per-project CNAME target). DNS-only.
 export const wwwRecord = new cloudflare.DnsRecord(
   'www',
   {
     zoneId,
     name: `www.${zoneName}`,
     type: 'CNAME',
-    content: wwwTarget,
-    ttl: 1,
+    content: vercelTarget,
+    ttl: 600,
     proxied: false,
     comment: 'Vercel www — managed by Pulumi',
   },
@@ -54,5 +48,6 @@ export const dmarcRecord = new cloudflare.DnsRecord(
   { import: importId('dmarc') },
 );
 
-// NOTE: MX, SPF and the DKIM (cf2024-1) TXT records are managed automatically by
-// Cloudflare Email Routing — intentionally not declared here to avoid conflicts.
+// NOTE: not managed here (owned elsewhere, left untouched):
+//   - MX, SPF, DKIM (cf2024-1) — auto-managed by Email Routing.
+//   - _vercel TXT verification records — managed by Vercel domain verification.

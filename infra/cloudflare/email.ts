@@ -1,6 +1,6 @@
 import * as cloudflare from '@pulumi/cloudflare';
 import { accountId, zoneId, emailRouting, slug } from './config';
-import { importId } from './imports';
+import { importId } from './adopt';
 
 // Enabling Email Routing (and its auto-managed MX/SPF/DKIM records). Adopted via
 // import — never recreated.

@@ -25,8 +25,8 @@ export interface EmailRoutingConfig {
 export const accountId = c.require('accountId');
 export const zoneId = c.require('zoneId');
 export const zoneName = c.get('zoneName') ?? 'serviciosluxel.cl';
-export const apexIps = c.requireObject<string[]>('apexIps');
-export const wwwTarget = c.require('wwwTarget');
+// Vercel CNAME target for both apex (flattened) and www.
+export const vercelTarget = c.require('vercelTarget');
 export const dmarcPolicy = c.get('dmarcPolicy') ?? 'none';
 export const emailRouting = c.requireObject<EmailRoutingConfig>('emailRouting');
 
