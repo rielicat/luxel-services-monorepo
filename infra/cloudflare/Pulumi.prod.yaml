@@ -23,14 +23,14 @@ config:
   # (see `pnpm export`) before the first apply, or Pulumi will reconcile them.
   luxel-cloudflare:emailRouting:
     enabled: true
-    # Verified forwarding destinations (account-level). Each must already be
-    # verified in Cloudflare, or verification email is (re)sent on create.
-    destinations: []
+    # Verified forwarding destinations (account-level). A newly added address gets
+    # a Cloudflare verification email; forwarding only delivers once confirmed.
+    destinations:
+      - catrielguillen@gmail.com
     # Address-level forwards: { address, forwardTo, name?, enabled? }.
-    # Example:
-    #   - address: admin@serviciosluxel.cl
-    #     forwardTo: you@gmail.com
-    rules: []
+    rules:
+      - address: catriel@serviciosluxel.cl
+        forwardTo: catrielguillen@gmail.com
     # What happens to every other address at the domain.
     catchAll:
       enabled: true
