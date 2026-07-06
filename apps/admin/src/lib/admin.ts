@@ -1,6 +1,10 @@
 import 'server-only';
 import { currentUser, clerkClient } from '@clerk/nextjs/server';
 
+// NOTE: LUXEL_ADMIN_ORG_ID/SLUG are read at request time, but Vercel snapshots
+// env vars at build time — after changing them (in the Vercel IaC), the admin
+// project must be redeployed to pick up the new value.
+
 /**
  * Operator access is gated on Clerk **organization membership** — staff are
  * added to the Luxel org in the Clerk dashboard, so the whitelist lives in Clerk
