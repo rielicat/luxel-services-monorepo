@@ -56,6 +56,21 @@ Vercel auto-deploys the admin project on the next push to `main` (it's
 git-linked). To deploy immediately, trigger a deployment from the Vercel
 dashboard or `vercel --prod` once, or push any commit.
 
+After the one-time run above, **commit the seeded `Pulumi.prod.yaml`** (it now
+holds `web.name`, `teamId`, and the encrypted `adminSharedEnv`) so CI can apply
+it.
+
+## CI (after bootstrap)
+
+`.github/workflows/infra-vercel.yml` keeps this stack applied:
+
+- **PR** touching `infra/vercel/**` → `pulumi preview` (commented on the PR).
+- **Push to `main`** touching `infra/vercel/**` (or manual dispatch) → `pulumi up`.
+
+Add repo secret **`VERCEL_API_TOKEN`** (the `R2_*` / `PULUMI_CONFIG_PASSPHRASE`
+secrets are already set for the Cloudflare workflow). The admin env stays in sync
+with the values committed in `adminSharedEnv`; re-seed + commit to rotate them.
+
 ## What is / isn't managed
 
 | Managed                                  | Not managed                                    |

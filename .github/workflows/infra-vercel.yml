@@ -1,0 +1,100 @@
+name: Infra (Vercel)
+
+# PR touching infra/vercel → `pulumi preview`. Push to main (or manual dispatch)
+# → `pulumi up` against the vercel `prod` stack (R2 state).
+#
+# One-time bootstrap is done LOCALLY (see infra/vercel/README.md): stack init,
+# seed config (web.name/teamId + adminSharedEnv copied from the web project),
+# adopt the web project + create admin, then commit the encrypted config. After
+# that, this workflow keeps the stack applied on every change.
+on:
+  push:
+    branches: [main]
+    paths: ['infra/vercel/**']
+  pull_request:
+    paths: ['infra/vercel/**']
+  workflow_dispatch:
+
+concurrency:
+  group: infra-vercel-prod
+  cancel-in-progress: false
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  AWS_REGION: auto
+  PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+  VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
+  PULUMI_SKIP_UPDATE_CHECK: 'true'
+  CLOUD_URL: 's3://luxel-pulumi-state?endpoint=a592f6c9ed79454bf7c8ab489ece9036.r2.cloudflarestorage.com&s3ForcePathStyle=true'
+
+jobs:
+  # Skip everything (green) until the Vercel stack is bootstrapped and the token
+  # secret exists — avoids red runs before the one-time local bootstrap.
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.c.outputs.ready }}
+    steps:
+      - id: c
+        env:
+          TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::VERCEL_API_TOKEN not set — bootstrap the Vercel stack and add the secret (infra/vercel/README.md). Skipping."
+          fi
+
+  preview:
+    needs: guard
+    if: needs.guard.outputs.ready == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          standalone: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @luxel/infra-vercel typecheck
+      - uses: pulumi/actions@v6
+        with:
+          command: preview
+          stack-name: prod
+          work-dir: infra/vercel
+          cloud-url: ${{ env.CLOUD_URL }}
+          comment-on-pr: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    needs: guard
+    if: needs.guard.outputs.ready == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          standalone: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @luxel/infra-vercel typecheck
+      - uses: pulumi/actions@v6
+        with:
+          command: up
+          stack-name: prod
+          work-dir: infra/vercel
+          cloud-url: ${{ env.CLOUD_URL }}
