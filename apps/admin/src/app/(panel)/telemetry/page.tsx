@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Activity } from 'lucide-react';
+import { Activity, Download } from 'lucide-react';
 import { getEvents, getEventNames } from '@/lib/stats';
 import { fmtDateTime } from '@/lib/utils';
 import { Card } from '@/components/ui';
@@ -7,35 +7,70 @@ import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+const DAY_OPTIONS = [7, 30, 90];
+
 export default async function TelemetryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string }>;
+  searchParams: Promise<{ event?: string; days?: string }>;
 }) {
-  const { event } = await searchParams;
-  const [events, names] = await Promise.all([getEvents(event, 150), getEventNames()]);
+  const sp = await searchParams;
+  const event = sp.event;
+  const days = DAY_OPTIONS.includes(Number(sp.days)) ? Number(sp.days) : 30;
+
+  const [events, names] = await Promise.all([getEvents(event, 200, days), getEventNames(days)]);
+
+  const href = (next: { event?: string; days?: number }) => {
+    const q = new URLSearchParams();
+    if (next.event) q.set('event', next.event);
+    if (next.days && next.days !== 30) q.set('days', String(next.days));
+    const s = q.toString();
+    return `/telemetry${s ? `?${s}` : ''}`;
+  };
+  const exportHref = `/telemetry/export?days=${days}${event ? `&event=${encodeURIComponent(event)}` : ''}`;
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <Activity className="text-primary h-5 w-5" /> Telemetría
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Registro de eventos en tiempo real (owned store).
-        </p>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display flex items-center gap-2 text-2xl font-extrabold tracking-tight">
+            <Activity className="text-primary h-5 w-5" /> Telemetría
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Registro de eventos (owned store) · últimos {days} días
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="border-border inline-flex rounded-lg border p-0.5">
+            {DAY_OPTIONS.map((n) => (
+              <Link
+                key={n}
+                href={href({ event, days: n })}
+                className={cn(
+                  'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                  n === days
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {n}d
+              </Link>
+            ))}
+          </div>
+          <a
+            href={exportHref}
+            className="border-border hover:bg-accent inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" /> Exportar CSV
+          </a>
+        </div>
       </div>
 
       {/* Filter chips */}
       <div className="mb-4 flex flex-wrap gap-2">
-        <FilterChip href="/telemetry" active={!event} label="Todos" />
+        <FilterChip href={href({ days })} active={!event} label="Todos" />
         {names.map((n) => (
-          <FilterChip
-            key={n}
-            href={`/telemetry?event=${encodeURIComponent(n)}`}
-            active={event === n}
-            label={n}
-          />
+          <FilterChip key={n} href={href({ event: n, days })} active={event === n} label={n} />
         ))}
       </div>
 
@@ -85,7 +120,7 @@ export default async function TelemetryPage({
               {!events.length && (
                 <tr>
                   <td colSpan={6} className="text-muted-foreground px-4 py-10 text-center">
-                    Sin eventos.
+                    Sin eventos en este rango.
                   </td>
                 </tr>
               )}

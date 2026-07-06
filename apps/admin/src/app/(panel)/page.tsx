@@ -1,13 +1,31 @@
-import { Wallet, CheckCircle2, Users, Activity, TrendingUp, MapPin } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Wallet,
+  CheckCircle2,
+  Users,
+  Activity,
+  TrendingUp,
+  MapPin,
+  AlertTriangle,
+} from 'lucide-react';
 import { getDashboard } from '@/lib/stats';
 import { formatCLP, fmtDate } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { Card, SectionTitle, Pill } from '@/components/ui';
 import { BarChart } from '@/components/bar-chart';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage() {
-  const d = await getDashboard(30);
+const DAY_OPTIONS = [7, 30, 90];
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ days?: string }>;
+}) {
+  const { days: daysParam } = await searchParams;
+  const days = DAY_OPTIONS.includes(Number(daysParam)) ? Number(daysParam) : 30;
+  const d = await getDashboard(days);
 
   const chartData = d.daily.map((x) => ({
     label: new Intl.DateTimeFormat('es-CL', {
@@ -32,14 +50,31 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight">
             Panel de operación
           </h1>
           <p className="text-muted-foreground text-sm">Últimos {d.days} días</p>
         </div>
+        <DayRange active={days} basePath="/" />
       </div>
+
+      {d.error && (
+        <div className="border-destructive/30 bg-destructive/10 text-destructive mb-6 flex items-start gap-3 rounded-xl border p-4 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-semibold">No se pudo leer la base de datos.</p>
+            <p className="text-destructive/90 mt-0.5">
+              Suele deberse a que las migraciones de Supabase no están aplicadas en este entorno o a
+              que faltan las variables{' '}
+              <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code> /{' '}
+              <code className="font-mono text-xs">SUPABASE_SECRET_KEY</code>. Detalle:{' '}
+              <span className="font-mono text-xs">{d.error}</span>
+            </p>
+          </div>
+        </div>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
@@ -179,6 +214,27 @@ export default async function DashboardPage() {
           </div>
         </Card>
       </section>
+    </div>
+  );
+}
+
+export function DayRange({ active, basePath }: { active: number; basePath: string }) {
+  return (
+    <div className="border-border inline-flex rounded-lg border p-0.5">
+      {DAY_OPTIONS.map((n) => (
+        <Link
+          key={n}
+          href={`${basePath}?days=${n}`}
+          className={cn(
+            'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+            n === active
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {n}d
+        </Link>
+      ))}
     </div>
   );
 }

@@ -17,6 +17,23 @@ export interface DashboardData {
   topCommunes: { commune: string; count: number }[];
   leads: { total: number; new: number };
   recentBookings: BookingRow[];
+  /** Non-null when the DB couldn't be read (misconfigured env / unmigrated) — so
+   *  the panel can distinguish "connection broken" from "no data yet". */
+  error: string | null;
+}
+
+export interface OperatorRow {
+  id: string;
+  name: string;
+  active: boolean;
+  operation_point_id: string;
+  operation_point: string | null;
+  created_at: string;
+}
+
+export interface OperationPointRow {
+  id: string;
+  name: string;
 }
 
 export interface BookingRow {
@@ -73,8 +90,26 @@ export interface EventRow {
 
 const since = (days: number) => new Date(Date.now() - days * 86400_000).toISOString();
 
+const EMPTY_DASHBOARD = (days: number, error: string | null): DashboardData => ({
+  days,
+  traffic: { pageviews: 0, visitors: 0, sessions: 0, events: 0 },
+  funnel: { quoteStarted: 0, quoteCalculated: 0, outOfArea: 0, bookingsCreated: 0, paid: 0 },
+  revenue: { totalClp: 0, paidCount: 0, avgClp: 0 },
+  daily: [],
+  eventCounts: [],
+  topCommunes: [],
+  leads: { total: 0, new: 0 },
+  recentBookings: [],
+  error,
+});
+
 export async function getDashboard(days = 30): Promise<DashboardData> {
-  const supabase = createServiceClient();
+  let supabase;
+  try {
+    supabase = createServiceClient();
+  } catch (e) {
+    return EMPTY_DASHBOARD(days, e instanceof Error ? e.message : 'supabase_env_missing');
+  }
   const from = since(days);
 
   const [traffic, eventCounts, daily, bookingsRes, leadsRes] = await Promise.all([
@@ -90,6 +125,15 @@ export async function getDashboard(days = 30): Promise<DashboardData> {
       .limit(500),
     supabase.from('leads').select('status').limit(1000),
   ]);
+
+  // A read error here means the DB is unreachable / unmigrated / misconfigured —
+  // surface it so the panel shows a clear banner instead of silent zeros.
+  const dbError =
+    traffic.error?.message ??
+    eventCounts.error?.message ??
+    daily.error?.message ??
+    bookingsRes.error?.message ??
+    null;
 
   const trafficRow = (traffic.data?.[0] ?? {}) as Record<string, number>;
   const evc = (eventCounts.data ?? []) as { event: string; count: number }[];
@@ -160,6 +204,7 @@ export async function getDashboard(days = 30): Promise<DashboardData> {
       email: flatEmail(b.customers),
       commune: flatCommune(b.addresses),
     })),
+    error: dbError,
   };
 }
 
@@ -192,11 +237,12 @@ export async function getSessionEvents(sessionId: string): Promise<EventRow[]> {
   return (data ?? []) as EventRow[];
 }
 
-export async function getEvents(eventFilter?: string, limit = 100): Promise<EventRow[]> {
+export async function getEvents(eventFilter?: string, limit = 100, days = 30): Promise<EventRow[]> {
   const supabase = createServiceClient();
   let q = supabase
     .from('analytics_events')
     .select('id, event, path, anon_id, session_id, source, properties, country, created_at')
+    .gte('created_at', since(days))
     .order('created_at', { ascending: false })
     .limit(limit);
   if (eventFilter) q = q.eq('event', eventFilter);
@@ -204,8 +250,59 @@ export async function getEvents(eventFilter?: string, limit = 100): Promise<Even
   return (data ?? []) as EventRow[];
 }
 
-export async function getEventNames(): Promise<string[]> {
+/** Larger pull for CSV export (bounded so a runaway export can't OOM). */
+export async function getEventsForExport(
+  eventFilter?: string,
+  days = 30,
+  limit = 10000,
+): Promise<EventRow[]> {
   const supabase = createServiceClient();
-  const { data } = await supabase.rpc('admin_event_counts', { p_days: 90 });
+  let q = supabase
+    .from('analytics_events')
+    .select('id, event, path, anon_id, session_id, source, properties, country, created_at')
+    .gte('created_at', since(days))
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (eventFilter) q = q.eq('event', eventFilter);
+  const { data } = await q;
+  return (data ?? []) as EventRow[];
+}
+
+export async function getEventNames(days = 90): Promise<string[]> {
+  const supabase = createServiceClient();
+  const { data } = await supabase.rpc('admin_event_counts', { p_days: days });
   return ((data ?? []) as { event: string }[]).map((e) => e.event);
+}
+
+type OperatorRaw = {
+  id: string;
+  name: string;
+  active: boolean;
+  operation_point_id: string;
+  created_at: string;
+  operation_points: { name: string } | { name: string }[] | null;
+};
+
+export async function getOperators(): Promise<OperatorRow[]> {
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from('operators')
+    .select('id, name, active, operation_point_id, created_at, operation_points(name)')
+    .order('created_at', { ascending: false });
+  return ((data ?? []) as OperatorRaw[]).map((o) => ({
+    id: o.id,
+    name: o.name,
+    active: o.active,
+    operation_point_id: o.operation_point_id,
+    operation_point: Array.isArray(o.operation_points)
+      ? (o.operation_points[0]?.name ?? null)
+      : (o.operation_points?.name ?? null),
+    created_at: o.created_at,
+  }));
+}
+
+export async function getOperationPoints(): Promise<OperationPointRow[]> {
+  const supabase = createServiceClient();
+  const { data } = await supabase.from('operation_points').select('id, name').order('name');
+  return (data ?? []) as OperationPointRow[];
 }
