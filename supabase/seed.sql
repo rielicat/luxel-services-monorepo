@@ -14,8 +14,7 @@ on conflict (id) do update set
 -- Service types
 insert into public.service_types (slug, name_key, description_key, base_rate_clp, per_m2_rate_clp) values
   ('regular',  'service.regular.name',  'service.regular.desc',  15000, 250),
-  ('deep',     'service.deep.name',     'service.deep.desc',     30000, 450),
-  ('move_out', 'service.move_out.name', 'service.move_out.desc', 40000, 600)
+  ('deep',     'service.deep.name',     'service.deep.desc',     30000, 450)
 on conflict (slug) do update set
   base_rate_clp = excluded.base_rate_clp,
   per_m2_rate_clp = excluded.per_m2_rate_clp;

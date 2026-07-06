@@ -96,6 +96,23 @@
     "from_prefix": "desde",
     "address_searching": "Buscando direcciones…",
     "address_no_results": "Sin resultados. Prueba con calle, número y comuna.",
+    "steps": {
+      "service": "¿Qué necesitas?",
+      "size": "¿Qué tamaño?",
+      "address": "¿Dónde?",
+      "tools": "¿Y los insumos?",
+      "frequency": "¿Cada cuánto?"
+    },
+    "size_hint": "Desliza o elige un tamaño típico",
+    "presets": {
+      "studio": "Studio",
+      "apartment": "Depto",
+      "house": "Casa",
+      "office": "Oficina"
+    },
+    "popular": "Popular",
+    "one_time_hint": "Sin compromiso",
+    "sub_hint": "Suscríbete y ahorra",
     "fields": {
       "service_type": "Tipo de aseo",
       "square_meters": "Metros cuadrados",
@@ -173,6 +190,27 @@
     "no_availability": "No hay disponibilidad para este día.",
     "select_date": "Selecciona una fecha"
   },
+  "booking": {
+    "title": "Agendar tu servicio",
+    "subtitle": "Trajimos tu cotización. Elige cómo agendarla y confirma.",
+    "type_title": "¿Cómo quieres agendarlo?",
+    "individual": "Servicio individual",
+    "individual_desc": "Una sola visita, sin compromiso.",
+    "plan": "Plan recurrente",
+    "plan_desc": "Ahorra con visitas periódicas.",
+    "plan_frequency": "Frecuencia del plan",
+    "details_title": "Detalles del servicio",
+    "address_line": "Dirección",
+    "date_title": "Elige la fecha",
+    "loading_availability": "Buscando disponibilidad…",
+    "payment_title": "Método de pago",
+    "submit": "Confirmar y pagar",
+    "submitting": "Procesando…",
+    "slots": "cupos",
+    "no_slots": "Sin cupos",
+    "per_month_est": "≈ {amount} al mes",
+    "no_ops": "No hay puntos de operación configurados."
+  },
   "chat": {
     "title": "¿Cómo podemos ayudarte?",
     "assistant_name": "Lux",
@@ -206,10 +244,6 @@
     "deep": {
       "name": "Aseo profundo",
       "desc": "Limpieza detallada, ideal cada 2–3 meses."
-    },
-    "move_out": {
-      "name": "Aseo de entrega",
-      "desc": "Para entrega o recepción de propiedad."
     }
   },
   "faq": {

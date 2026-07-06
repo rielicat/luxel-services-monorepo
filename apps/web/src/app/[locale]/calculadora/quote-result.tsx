@@ -18,7 +18,16 @@ interface Props {
   pending: boolean;
   error: 'out_of_area' | 'generic' | null;
   config: PricingConfig;
-  cta: { serviceTypeId?: string; squareMeters: number };
+  cta: {
+    serviceTypeId?: string;
+    serviceTypeSlug?: string;
+    squareMeters: number;
+    toolsProvidedBy?: 'customer' | 'company';
+    addressLine?: string;
+    commune?: string;
+    lat?: number;
+    lng?: number;
+  };
 }
 
 export function QuoteResult({ view, frequency, pending, error, config, cta }: Props) {
@@ -55,9 +64,17 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
   const isSub = frequency !== 'one_time';
   const monthly = monthlyClp(view.perVisitClp, frequency);
   const pct = discountPct(frequency, config);
-  const bookHref =
-    `/agendar?frequency=${frequency}&squareMeters=${cta.squareMeters}` +
-    (cta.serviceTypeId ? `&serviceTypeId=${cta.serviceTypeId}` : '');
+
+  // Carry every selection into the booking so the customer never re-enters it.
+  const bookParams = new URLSearchParams({ frequency, squareMeters: String(cta.squareMeters) });
+  if (cta.serviceTypeId) bookParams.set('serviceTypeId', cta.serviceTypeId);
+  if (cta.serviceTypeSlug) bookParams.set('serviceTypeSlug', cta.serviceTypeSlug);
+  if (cta.toolsProvidedBy) bookParams.set('toolsProvidedBy', cta.toolsProvidedBy);
+  if (cta.addressLine) bookParams.set('addressLine', cta.addressLine);
+  if (cta.commune) bookParams.set('commune', cta.commune);
+  if (cta.lat != null) bookParams.set('lat', String(cta.lat));
+  if (cta.lng != null) bookParams.set('lng', String(cta.lng));
+  const bookHref = `/agendar?${bookParams.toString()}`;
 
   return (
     <Card className="border-primary/15 shadow-glow relative overflow-hidden">

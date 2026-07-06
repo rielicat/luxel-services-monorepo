@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { Loader2, MapPin, Search } from 'lucide-react';
+import { MapPin, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { GeocodeSuggestion } from '@/app/api/geocode/route';
@@ -117,7 +117,10 @@ export function AddressAutocomplete({ label, placeholder, required, onSelect, on
           className="pl-9 pr-9"
         />
         {loading && (
-          <Loader2 className="text-primary absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin" />
+          <span
+            aria-hidden
+            className="border-primary/25 border-t-primary absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2"
+          />
         )}
       </div>
 
@@ -125,12 +128,32 @@ export function AddressAutocomplete({ label, placeholder, required, onSelect, on
         <ul
           role="listbox"
           id="address-listbox"
-          className="bg-popover border-border shadow-card animate-fade-in absolute top-full z-50 mt-1.5 w-full overflow-hidden rounded-xl border"
+          className="bg-popover/95 border-border shadow-card animate-fade-in-up absolute top-full z-50 mt-1.5 w-full overflow-hidden rounded-xl border backdrop-blur-sm [animation-duration:180ms]"
         >
           {loading && suggestions.length === 0 && (
-            <li className="text-muted-foreground flex items-center gap-2 px-3.5 py-3 text-sm">
-              <Loader2 className="h-4 w-4 animate-spin" /> {t('address_searching')}
-            </li>
+            <>
+              <li className="sr-only" aria-live="polite">
+                {t('address_searching')}
+              </li>
+              {[0, 1, 2].map((i) => (
+                <li key={i} aria-hidden className="flex items-center gap-3 px-3.5 py-2.5">
+                  <span
+                    className="bg-muted h-4 w-4 shrink-0 animate-pulse rounded-full"
+                    style={{ animationDelay: `${i * 120}ms` }}
+                  />
+                  <span className="grid flex-1 gap-1.5">
+                    <span
+                      className="bg-muted h-3 animate-pulse rounded"
+                      style={{ width: `${70 - i * 12}%`, animationDelay: `${i * 120}ms` }}
+                    />
+                    <span
+                      className="bg-muted/60 h-2 animate-pulse rounded"
+                      style={{ width: `${40 - i * 6}%`, animationDelay: `${i * 120 + 60}ms` }}
+                    />
+                  </span>
+                </li>
+              ))}
+            </>
           )}
           {!loading && suggestions.length === 0 && (
             <li className="text-muted-foreground px-3.5 py-3 text-sm">{t('address_no_results')}</li>

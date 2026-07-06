@@ -13,7 +13,8 @@ import { capture } from '@/lib/analytics/server';
 import { EVENTS } from '@/lib/analytics/events';
 
 const Schema = z.object({
-  serviceTypeId: z.string().uuid(),
+  // id or slug — fallback pricing data identifies service types by slug.
+  serviceTypeId: z.string().min(1),
   squareMeters: z.coerce.number().int().positive().max(2000),
   addressLine: z.string().min(3).max(200),
   commune: z.string().min(2).max(80),

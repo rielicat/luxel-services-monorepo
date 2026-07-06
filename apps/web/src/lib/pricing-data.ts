@@ -26,14 +26,6 @@ const DEFAULT_SERVICE_TYPES: ServiceType[] = [
     baseRateClp: 30000,
     perM2RateClp: 450,
   },
-  {
-    id: 'move_out',
-    slug: 'move_out',
-    nameKey: 'service.move_out.name',
-    descriptionKey: 'service.move_out.desc',
-    baseRateClp: 40000,
-    perM2RateClp: 600,
-  },
 ];
 
 const DEFAULT_OPERATION_POINTS: OperationPoint[] = [
