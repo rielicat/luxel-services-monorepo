@@ -2,7 +2,16 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarCheck, Repeat, User, Truck, Check } from 'lucide-react';
+import {
+  CalendarCheck,
+  Repeat,
+  User,
+  Truck,
+  Check,
+  Wallet,
+  CreditCard,
+  Landmark,
+} from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -311,14 +320,29 @@ export function BookingForm({ serviceTypes, operationPointId, initial }: Props) 
               name="paymentProvider"
               defaultValue="mercadopago"
               required
-              className="grid gap-2 sm:grid-cols-2"
+              className="grid gap-2.5"
             >
-              <Label className="border-input has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-xl border p-3">
-                <RadioGroupItem value="mercadopago" /> MercadoPago
-              </Label>
-              <Label className="border-input has-[:checked]:border-primary has-[:checked]:bg-accent/40 flex cursor-pointer items-center gap-2 rounded-xl border p-3">
-                <RadioGroupItem value="stripe" /> Tarjeta (Stripe)
-              </Label>
+              <PaymentCard
+                value="mercadopago"
+                icon={Wallet}
+                tint="#009EE3"
+                name={t('payment_mercadopago')}
+                desc={t('payment_mercadopago_desc')}
+              />
+              <PaymentCard
+                value="transbank"
+                icon={Landmark}
+                tint="#E4322B"
+                name={t('payment_transbank')}
+                desc={t('payment_transbank_desc')}
+              />
+              <PaymentCard
+                value="stripe"
+                icon={CreditCard}
+                tint="#635BFF"
+                name={t('payment_stripe')}
+                desc={t('payment_stripe_desc')}
+              />
             </RadioGroup>
           </CardContent>
         </Card>
@@ -401,6 +425,37 @@ function ToolCard({
         <Icon className="h-4 w-4" />
       </span>
       <span className="font-medium">{label}</span>
+    </Label>
+  );
+}
+
+function PaymentCard({
+  value,
+  icon: Icon,
+  tint,
+  name,
+  desc,
+}: {
+  value: string;
+  icon: typeof Wallet;
+  tint: string;
+  name: string;
+  desc: string;
+}) {
+  return (
+    <Label className="border-input has-[:checked]:border-primary has-[:checked]:bg-accent/40 has-[:checked]:shadow-soft flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3.5 transition-all">
+      <RadioGroupItem value={value} className="peer sr-only" />
+      <span
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
+        style={{ backgroundColor: tint }}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold leading-tight">{name}</span>
+        <span className="text-muted-foreground block text-xs leading-tight">{desc}</span>
+      </span>
+      <Check className="text-primary ml-auto hidden h-4 w-4 shrink-0 peer-data-[state=checked]:block" />
     </Label>
   );
 }

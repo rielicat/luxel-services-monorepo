@@ -5,7 +5,7 @@ import { EVENTS } from '@/lib/analytics/events';
 import { ensureSubscriptionForBooking } from '@/lib/subscriptions';
 
 type ServiceClient = ReturnType<typeof createSupabaseServiceRoleClient>;
-type Provider = 'stripe' | 'mercadopago';
+type Provider = 'stripe' | 'mercadopago' | 'transbank';
 
 /**
  * Dev-only payment simulation. Lets the quote → book → pay → account journey be
@@ -22,7 +22,9 @@ export function devMockPaymentsEnabled(provider: Provider): boolean {
   const hasRealKey =
     provider === 'stripe'
       ? Boolean(process.env.STRIPE_SECRET_KEY)
-      : Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN);
+      : provider === 'mercadopago'
+        ? Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN)
+        : Boolean(process.env.TRANSBANK_API_KEY);
   return !hasRealKey;
 }
 

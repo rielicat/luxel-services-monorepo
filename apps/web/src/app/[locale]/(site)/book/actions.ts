@@ -22,7 +22,7 @@ const Schema = z.object({
   frequency: z.enum(['one_time', 'weekly', 'biweekly', 'monthly']),
   scheduledDate: z.string().date(),
   timeblock: z.enum(['manana', 'tarde']),
-  paymentProvider: z.enum(['stripe', 'mercadopago']),
+  paymentProvider: z.enum(['stripe', 'mercadopago', 'transbank']),
   notes: z.string().max(500).optional(),
 });
 
@@ -135,10 +135,6 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
 
   revalidatePath('/account', 'page');
 
-  // Hand off to checkout.
-  const checkoutPath =
-    input.paymentProvider === 'stripe'
-      ? `/api/checkout/stripe?bookingId=${booking.id}`
-      : `/api/checkout/mercadopago?bookingId=${booking.id}`;
-  redirect(checkoutPath);
+  // Hand off to checkout — the provider maps 1:1 to its /api/checkout/<provider> route.
+  redirect(`/api/checkout/${input.paymentProvider}?bookingId=${booking.id}`);
 }
