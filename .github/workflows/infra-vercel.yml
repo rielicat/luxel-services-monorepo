@@ -36,16 +36,22 @@ jobs:
     outputs:
       ready: ${{ steps.c.outputs.ready }}
     steps:
+      - uses: actions/checkout@v4
       - id: c
         env:
           TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
         run: |
-          if [ -n "$TOKEN" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
+          if [ -z "$TOKEN" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::VERCEL_API_TOKEN not set — bootstrap the Vercel stack and add the secret (infra/vercel/README.md). Skipping."
+            echo "::notice::VERCEL_API_TOKEN not set — add it and bootstrap the Vercel stack (infra/vercel/README.md). Skipping."
+            exit 0
           fi
+          if grep -q 'REPLACE_WITH' infra/vercel/Pulumi.prod.yaml; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Vercel stack not bootstrapped yet (web.name is a placeholder). Run the one-time local bootstrap (infra/vercel/README.md), commit, then CI applies. Skipping."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
   preview:
     needs: guard
