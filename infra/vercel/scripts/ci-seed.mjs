@@ -8,7 +8,7 @@
 // GitHub secret ADMIN_<KEY>.
 
 import { execFileSync } from 'child_process';
-import { vc, vcProjects } from './vercel-api.mjs';
+import { vcProjects } from './vercel-api.mjs';
 
 const SHARED_KEYS = [
   'NEXT_PUBLIC_SUPABASE_URL',
@@ -35,43 +35,17 @@ if (!web) {
 pset(['--path', 'web.name', web.name]);
 if (process.env.VERCEL_TEAM_ID) pset(['teamId', process.env.VERCEL_TEAM_ID]);
 
-// The list endpoint returns metadata only; the decrypted value comes from the
-// single-env GET (for non-'sensitive' vars). Prefer an explicit ADMIN_<KEY>
-// fallback secret when provided.
-const list = (await vc(`/v9/projects/${web.id}/env`)).envs || [];
+// The web project's env vars are all Vercel-"sensitive" (write-only — never
+// returned by the API), so the admin values come from ADMIN_<KEY> repo secrets.
 const stillMissing = [];
 for (const key of SHARED_KEYS) {
-  let value = process.env[`ADMIN_${key}`];
-  if (!value) {
-    const meta = list
-      .filter((e) => e.key === key)
-      .sort((a, b) => (a.target?.includes('production') ? -1 : 1))[0];
-    if (meta?.id) {
-      let full = {};
-      try {
-        full = await vc(`/v9/projects/${web.id}/env/${meta.id}?decrypt=true`);
-      } catch (e) {
-        console.error(`  [diag] ${key} single-GET error: ${e.message}`);
-      }
-      if (typeof full.value === 'string' && full.value) value = full.value;
-      else
-        console.error(
-          `  [diag] ${key} type=${meta.type} target=${JSON.stringify(meta.target)} fields=[${Object.keys(full).join(',')}] valueType=${typeof full.value} len=${(full.value || '').length}`,
-        );
-    }
-  }
+  const value = process.env[`ADMIN_${key}`];
   if (value) pset(['--secret', '--path', `adminSharedEnv.${key}`, value]);
-  else stillMissing.push(key);
+  else stillMissing.push(`ADMIN_${key}`);
 }
 
 if (stillMissing.length) {
-  console.error(
-    `Could not source these admin secrets from the web project: ${stillMissing.join(', ')}.`,
-  );
-  console.error(`(web project env keys seen: ${list.map((e) => e.key).join(', ') || '(none)'})`);
-  console.error(
-    'For any that are Vercel-"sensitive" (unreadable via API), add a repo secret ADMIN_<KEY>, e.g. ADMIN_CLERK_SECRET_KEY, then re-run.',
-  );
+  console.error(`Missing repo secrets: ${stillMissing.join(', ')}.`);
   process.exit(1);
 }
 

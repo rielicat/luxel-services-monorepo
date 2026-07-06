@@ -23,7 +23,9 @@ env:
   PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
   VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
   VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+  ADMIN_NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.ADMIN_NEXT_PUBLIC_SUPABASE_URL }}
   ADMIN_SUPABASE_SECRET_KEY: ${{ secrets.ADMIN_SUPABASE_SECRET_KEY }}
+  ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
   ADMIN_CLERK_SECRET_KEY: ${{ secrets.ADMIN_CLERK_SECRET_KEY }}
   PULUMI_SKIP_UPDATE_CHECK: 'true'
   CLOUD_URL: 's3://luxel-pulumi-state?endpoint=a592f6c9ed79454bf7c8ab489ece9036.r2.cloudflarestorage.com&s3ForcePathStyle=true'
@@ -38,12 +40,22 @@ jobs:
       - id: c
         env:
           TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
+          A1: ${{ secrets.ADMIN_NEXT_PUBLIC_SUPABASE_URL }}
+          A2: ${{ secrets.ADMIN_SUPABASE_SECRET_KEY }}
+          A3: ${{ secrets.ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          A4: ${{ secrets.ADMIN_CLERK_SECRET_KEY }}
         run: |
-          if [ -n "$TOKEN" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
+          missing=""
+          [ -z "$TOKEN" ] && missing="$missing VERCEL_API_TOKEN"
+          [ -z "$A1" ] && missing="$missing ADMIN_NEXT_PUBLIC_SUPABASE_URL"
+          [ -z "$A2" ] && missing="$missing ADMIN_SUPABASE_SECRET_KEY"
+          [ -z "$A3" ] && missing="$missing ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
+          [ -z "$A4" ] && missing="$missing ADMIN_CLERK_SECRET_KEY"
+          if [ -n "$missing" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::VERCEL_API_TOKEN not set — add it as a repo secret. Skipping."
+            echo "::notice::Waiting on repo secrets:$missing — add them, then this runs on push. Skipping."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
   vercel:

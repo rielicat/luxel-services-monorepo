@@ -19,16 +19,22 @@ State reuses the same Cloudflare **R2** backend as `infra/cloudflare`. The
 `.github/workflows/infra-vercel.yml` does everything on **push to `main`** (and
 on manual dispatch); PRs get a `pulumi preview`. On each run CI:
 
-1. seeds the stack config from the live web project (`web.name`, `teamId`, and
-   the admin shared secrets copied from the web project's env — `scripts/ci-seed.mjs`);
+1. seeds the stack config: `web.name` + `teamId` discovered from the live web
+   project, and the admin env from `ADMIN_*` repo secrets (`scripts/ci-seed.mjs`);
 2. on the first run, adopts the web project + domains and creates the admin
    project (`LUXEL_VC_ADOPT=1`); on later runs, applies changes;
 3. triggers a production deploy of admin (`scripts/deploy-admin.mjs`).
 
-**Required repo secret:** `VERCEL_API_TOKEN` (the `R2_*` / `PULUMI_CONFIG_PASSPHRASE`
-secrets are already set). Optional: `VERCEL_TEAM_ID` (if the projects live under a
-Team) and `ADMIN_SUPABASE_SECRET_KEY` / `ADMIN_CLERK_SECRET_KEY` (only if those web
-env vars are Vercel-'sensitive' and thus not API-readable). No local run needed.
+**Required repo secrets** (the `R2_*` / `PULUMI_CONFIG_PASSPHRASE` ones are
+already set):
+
+- `VERCEL_API_TOKEN` — a Vercel token (+ `VERCEL_TEAM_ID` if the projects are on a Team).
+- The admin app's env — the web project's vars are all Vercel-**sensitive**
+  (write-only, never returned by the API), so they can't be copied; provide them:
+  `ADMIN_NEXT_PUBLIC_SUPABASE_URL`, `ADMIN_SUPABASE_SECRET_KEY`,
+  `ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `ADMIN_CLERK_SECRET_KEY`.
+
+The workflow **skips (green)** until all of the above exist. No local run needed.
 
 Afterwards, point the panel domain at Vercel in the Cloudflare stack:
 `pulumi config set panelTarget cname.vercel-dns.com` (commit → CI applies).
