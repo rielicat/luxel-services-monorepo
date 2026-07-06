@@ -1,0 +1,79 @@
+name: Infra (Cloudflare)
+
+# PR touching infra → `pulumi preview` (plan, commented on the PR).
+# Push to main touching infra (or manual dispatch) → `pulumi up` (apply).
+# State lives in the R2 bucket luxel-pulumi-state; the Worker is not managed here.
+on:
+  push:
+    branches: [main]
+    paths: ['infra/cloudflare/**']
+  pull_request:
+    paths: ['infra/cloudflare/**']
+  workflow_dispatch:
+
+# Never let two applies (or an apply and a preview) touch the stack at once.
+concurrency:
+  group: infra-cloudflare-prod
+  cancel-in-progress: false
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  AWS_REGION: auto
+  PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  PULUMI_SKIP_UPDATE_CHECK: 'true'
+  CLOUD_URL: 's3://luxel-pulumi-state?endpoint=a592f6c9ed79454bf7c8ab489ece9036.r2.cloudflarestorage.com&s3ForcePathStyle=true'
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          standalone: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @luxel/infra-cloudflare typecheck
+      - uses: pulumi/actions@v6
+        with:
+          command: preview
+          stack-name: prod
+          work-dir: infra/cloudflare
+          cloud-url: ${{ env.CLOUD_URL }}
+          comment-on-pr: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    # push to main + manual dispatch. `production` environment lets you add
+    # required reviewers later without touching this file.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          standalone: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @luxel/infra-cloudflare typecheck
+      - uses: pulumi/actions@v6
+        with:
+          command: up
+          stack-name: prod
+          work-dir: infra/cloudflare
+          cloud-url: ${{ env.CLOUD_URL }}
