@@ -260,6 +260,7 @@ export function CalculatorForm({
               value="customer"
               icon={User}
               label={t('fields.tools_customer')}
+              sub={t('fields.tools_customer_hint')}
               selected={toolsProvidedBy === 'customer'}
             />
             <ChoiceCard
@@ -267,6 +268,8 @@ export function CalculatorForm({
               value="company"
               icon={Truck}
               label={t('fields.tools_company')}
+              sub={t('fields.tools_company_hint')}
+              price={`+${formatCLP(config.toolsSurchargeClp)}`}
               selected={toolsProvidedBy === 'company'}
             />
           </RadioGroup>
@@ -393,12 +396,16 @@ function ChoiceCard({
   value,
   icon: Icon,
   label,
+  sub,
+  price,
   selected,
 }: {
   id: string;
   value: string;
   icon: LucideIcon;
   label: string;
+  sub?: string;
+  price?: string;
   selected: boolean;
 }) {
   return (
@@ -420,8 +427,22 @@ function ChoiceCard({
       >
         <Icon className="h-4 w-4" />
       </span>
-      <span className="text-sm font-medium">{label}</span>
-      {selected && <Check className="text-primary ml-auto h-4 w-4" />}
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium leading-tight">{label}</span>
+        {sub && <span className="text-muted-foreground block text-xs leading-tight">{sub}</span>}
+      </span>
+      {price ? (
+        <span
+          className={cn(
+            'shrink-0 text-sm font-semibold tabular-nums',
+            selected ? 'text-primary' : 'text-foreground',
+          )}
+        >
+          {price}
+        </span>
+      ) : (
+        selected && <Check className="text-primary ml-auto h-4 w-4 shrink-0" />
+      )}
     </Label>
   );
 }

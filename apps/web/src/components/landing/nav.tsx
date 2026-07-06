@@ -29,13 +29,13 @@ export function Nav() {
         <div className="flex items-center gap-2 text-sm sm:gap-3">
           <SignedIn>
             <Link
-              href="/cuenta"
+              href="/calculadora"
               className="text-muted-foreground hover:text-foreground hidden px-1 font-medium transition-colors sm:block"
             >
-              {t('account')}
+              {t('calculator')}
             </Link>
             <Button asChild variant="lime" size="sm">
-              <Link href="/calculadora">{t('calculator')}</Link>
+              <Link href="/cuenta">{t('account')}</Link>
             </Button>
             <UserButton afterSignOutUrl="/" />
           </SignedIn>

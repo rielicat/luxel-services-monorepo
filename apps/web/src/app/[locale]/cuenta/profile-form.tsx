@@ -49,9 +49,9 @@ export function ProfileForm({
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending} className="w-fit">
-          Guardar
+          {t('save')}
         </Button>
-        {saved && <span className="text-sm text-emerald-600">Guardado.</span>}
+        {saved && <span className="text-sm text-emerald-600">{t('saved')}</span>}
       </div>
     </form>
   );

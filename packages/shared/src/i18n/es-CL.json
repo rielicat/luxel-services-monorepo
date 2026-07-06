@@ -120,7 +120,9 @@
       "commune": "Comuna",
       "tools": "¿Quién aporta los insumos?",
       "tools_customer": "Yo aporto los insumos",
-      "tools_company": "Que los lleve Luxel (+ recargo)",
+      "tools_customer_hint": "Sin costo adicional",
+      "tools_company": "Necesito los insumos",
+      "tools_company_hint": "Los lleva Luxel",
       "frequency": "Frecuencia",
       "frequency_one_time": "Una sola vez",
       "frequency_weekly": "Semanal",
@@ -158,29 +160,59 @@
   },
   "account": {
     "title": "Mi cuenta",
+    "greeting": "Hola, {name}",
+    "greeting_generic": "Hola",
+    "subtitle": "Gestiona tu perfil, tus planes y tus reservas desde un solo lugar.",
+    "nav_subscription": "Mi plan",
+    "nav_bookings": "Reservas",
+    "nav_profile": "Mis datos",
+    "new_quote": "Nueva cotización",
     "subscription": {
-      "title": "Mi suscripción",
+      "title": "Mi plan",
+      "subtitle": "Controla tu suscripción: pausa, reanuda o cancela cuando quieras.",
       "status_label": "Estado",
       "status_active": "Activa",
       "status_paused": "Pausada",
       "status_cancelled": "Cancelada",
       "next_visit": "Próxima visita",
       "frequency": "Frecuencia",
-      "amount": "Monto por visita",
+      "amount": "por visita",
+      "monthly_estimate": "≈ {amount} al mes",
       "pause": "Pausar",
       "resume": "Reanudar",
-      "cancel": "Cancelar suscripción"
+      "cancel": "Cancelar",
+      "cancel_confirm": "¿Seguro que quieres cancelar tu plan? Puedes crear uno nuevo cuando quieras.",
+      "empty_title": "Aún no tienes un plan activo",
+      "empty_desc": "Crea un plan recurrente y ahorra en cada visita. Tú eliges la frecuencia.",
+      "empty_cta": "Crear un plan"
     },
     "bookings": {
       "title": "Mis reservas",
-      "empty": "Aún no tienes reservas."
+      "subtitle": "Tus últimos servicios agendados.",
+      "empty": "Aún no tienes reservas.",
+      "empty_cta": "Agendar un servicio"
     },
     "profile": {
       "title": "Mis datos",
+      "subtitle": "Actualiza tu nombre y teléfono de contacto.",
       "name": "Nombre",
       "email": "Correo",
-      "phone": "Teléfono"
+      "phone": "Teléfono",
+      "save": "Guardar cambios",
+      "saved": "Cambios guardados."
     }
+  },
+  "auth": {
+    "sign_in_title": "Bienvenido de vuelta",
+    "sign_in_subtitle": "Ingresa para gestionar tus servicios, plan y reservas.",
+    "sign_up_title": "Crea tu cuenta",
+    "sign_up_subtitle": "Cotiza, agenda y controla todo desde un solo lugar.",
+    "panel_headline": "Tu espacio impecable, sin complicaciones.",
+    "panel_subtitle": "Aseo profesional en la Región Metropolitana, con o sin insumos, una vez o por suscripción.",
+    "point_instant": "Precio al instante",
+    "point_verified": "Operadores verificados",
+    "point_flexible": "Agenda flexible",
+    "point_secure": "Pago seguro"
   },
   "calendar": {
     "title": "Mi calendario",

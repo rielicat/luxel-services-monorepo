@@ -1,6 +1,9 @@
 import { useTranslations } from 'next-intl';
+import { CalendarDays } from 'lucide-react';
+import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { formatCLP } from '@/lib/utils';
 
 interface Booking {
@@ -33,13 +36,18 @@ const STATUS_VARIANT: Record<
 
 export function BookingsList({ bookings }: { bookings: Booking[] }) {
   const t = useTranslations('calendar');
+  const tb = useTranslations('account.bookings');
 
   if (bookings.length === 0) {
     return (
-      <Card>
-        <CardContent className="text-muted-foreground p-6 text-sm">
-          Aún no tienes reservas.
-        </CardContent>
+      <Card className="shadow-soft flex flex-col items-center gap-4 border-dashed p-10 text-center">
+        <span className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-2xl">
+          <CalendarDays className="h-6 w-6" />
+        </span>
+        <p className="text-muted-foreground max-w-sm text-sm">{tb('empty')}</p>
+        <Button asChild variant="outline">
+          <Link href="/calculadora">{tb('empty_cta')}</Link>
+        </Button>
       </Card>
     );
   }
@@ -47,7 +55,7 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
   return (
     <div className="grid gap-3">
       {bookings.map((b) => (
-        <Card key={b.id}>
+        <Card key={b.id} className="shadow-soft">
           <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
             <div>
               <p className="font-medium">

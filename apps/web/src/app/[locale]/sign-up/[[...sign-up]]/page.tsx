@@ -1,18 +1,10 @@
 import { SignUp } from '@clerk/nextjs';
+import { AuthShell, authAppearance } from '@/components/auth/auth-shell';
 
 export default function SignUpPage() {
   return (
-    <main className="container flex min-h-[calc(100dvh-8rem)] items-center justify-center py-12">
-      <SignUp
-        appearance={{
-          variables: {
-            colorPrimary: 'hsl(175 78% 26%)',
-            borderRadius: '0.75rem',
-            fontFamily: 'var(--font-sans)',
-          },
-          elements: { card: 'shadow-card' },
-        }}
-      />
-    </main>
+    <AuthShell mode="sign-up">
+      <SignUp appearance={authAppearance} />
+    </AuthShell>
   );
 }
