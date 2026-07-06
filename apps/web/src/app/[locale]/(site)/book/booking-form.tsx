@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import {
-  CalendarCheck,
-  Repeat,
   Home,
   Sparkles,
   Ruler,
@@ -12,22 +10,24 @@ import {
   Package,
   User,
   Truck,
+  Repeat,
   CalendarDays,
   Wallet,
   CreditCard,
   Landmark,
   Check,
+  ChevronDown,
   ClipboardList,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
+import { AddressAutocomplete } from '@/components/address-autocomplete';
 import { cn, formatCLP } from '@/lib/utils';
 import type { ServiceType } from '@luxel/shared';
 import type { PricingConfig } from '@luxel/pricing';
@@ -37,8 +37,7 @@ import { createBookingAction } from './actions';
 import { track } from '@/lib/analytics/client';
 import { EVENTS } from '@/lib/analytics/events';
 
-type PlanFrequency = 'weekly' | 'biweekly' | 'monthly';
-const PLAN_FREQS: PlanFrequency[] = ['weekly', 'biweekly', 'monthly'];
+const FREQUENCIES: Frequency[] = ['one_time', 'weekly', 'biweekly', 'monthly'];
 const SERVICE_ICONS: Record<string, LucideIcon> = { regular: Home, deep: Sparkles };
 const SIZE_PRESETS: { key: string; m2: number }[] = [
   { key: 'studio', m2: 30 },
@@ -53,7 +52,7 @@ interface Props {
   config: PricingConfig;
   initial: {
     serviceTypeId?: string;
-    frequency?: 'one_time' | 'weekly' | 'biweekly' | 'monthly';
+    frequency?: Frequency;
     squareMeters?: number;
     toolsProvidedBy?: 'customer' | 'company';
     addressLine?: string;
@@ -69,15 +68,7 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
   const tService = useTranslations('service');
   const tErr = useTranslations('errors');
 
-  const initFreq = initial.frequency ?? 'one_time';
-  const [bookingType, setBookingType] = useState<'individual' | 'plan'>(
-    initFreq === 'one_time' ? 'individual' : 'plan',
-  );
-  const [planFrequency, setPlanFrequency] = useState<PlanFrequency>(
-    initFreq !== 'one_time' ? initFreq : 'weekly',
-  );
-  const effectiveFrequency: Frequency = bookingType === 'individual' ? 'one_time' : planFrequency;
-
+  const [frequency, setFrequency] = useState<Frequency>(initial.frequency ?? 'one_time');
   const [serviceTypeId, setServiceTypeId] = useState(
     initial.serviceTypeId ?? serviceTypes[0]?.id ?? '',
   );
@@ -87,10 +78,15 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
   const [toolsProvidedBy, setToolsProvidedBy] = useState<'customer' | 'company'>(
     initial.toolsProvidedBy ?? 'customer',
   );
-
   const [date, setDate] = useState<Date | undefined>();
   const [timeblock, setTimeblock] = useState<'manana' | 'tarde' | null>(null);
   const [availability, setAvailability] = useState<DayAvailabilityDTO | null>(null);
+  const [paymentProvider, setPaymentProvider] = useState('mercadopago');
+
+  // Accordion: one step open at a time. Coming from a quote (address prefilled)
+  // everything up to the date is already filled, so jump straight there.
+  const [activeStep, setActiveStep] = useState(() => (initial.addressLine ? 6 : 1));
+
   const [pending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -115,21 +111,29 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
     fetchAvailabilityAction(iso, operationPointId).then(setAvailability);
   }, [date, operationPointId]);
 
-  const canSubmit = Boolean(date && timeblock && addressLine.trim() && commune.trim());
+  const addressDone = Boolean(addressLine.trim() && commune.trim());
+  const whenDone = Boolean(date && timeblock);
+  const canSubmit = addressDone && whenDone;
+
+  const freqLabel = (f: Frequency) => tCalc(`frequency_${f}` as 'frequency_weekly');
+  const serviceName = selectedService
+    ? tService(`${selectedService.slug}.name` as 'regular.name')
+    : t('summary_pending');
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitError(null);
     if (!date || !timeblock) return;
-    const fd = new FormData(e.currentTarget);
+    const fd = new FormData();
     fd.set('scheduledDate', date.toISOString().slice(0, 10));
     fd.set('timeblock', timeblock);
-    fd.set('frequency', effectiveFrequency);
+    fd.set('frequency', frequency);
     fd.set('serviceTypeId', serviceTypeId);
     fd.set('toolsProvidedBy', toolsProvidedBy);
     fd.set('squareMeters', String(squareMeters));
     fd.set('addressLine', addressLine);
     fd.set('commune', commune);
+    fd.set('paymentProvider', paymentProvider);
     startTransition(async () => {
       const r = await createBookingAction(fd);
       if (r && !r.ok) {
@@ -146,66 +150,26 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
     });
   };
 
+  const stepProps = (n: number, done: boolean, summary: string) => ({
+    n,
+    done,
+    summary,
+    active: activeStep === n,
+    onEdit: () => setActiveStep(n),
+    onContinue: () => setActiveStep(n + 1),
+    editLabel: t('edit'),
+    continueLabel: t('continue'),
+  });
+
   return (
     <form onSubmit={onSubmit} className="grid items-start gap-8 lg:grid-cols-[1fr_360px]">
-      <div className="grid gap-4">
-        {/* Step 1 — individual vs plan */}
-        <StepCard n={1} icon={CalendarCheck} title={t('type_title')}>
-          <div className="grid gap-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <TypeCard
-                active={bookingType === 'individual'}
-                onClick={() => setBookingType('individual')}
-                icon={CalendarCheck}
-                title={t('individual')}
-                desc={t('individual_desc')}
-              />
-              <TypeCard
-                active={bookingType === 'plan'}
-                onClick={() => setBookingType('plan')}
-                icon={Repeat}
-                title={t('plan')}
-                desc={t('plan_desc')}
-              />
-            </div>
-            {bookingType === 'plan' && (
-              <div className="animate-fade-in-up grid gap-2">
-                <Label className="text-muted-foreground text-xs">{t('plan_frequency')}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {PLAN_FREQS.map((f) => {
-                    const pct = discountPct(f, config);
-                    const active = planFrequency === f;
-                    return (
-                      <button
-                        type="button"
-                        key={f}
-                        onClick={() => setPlanFrequency(f)}
-                        className={cn(
-                          'flex flex-col items-center gap-1 rounded-xl border-2 p-2.5 text-sm font-medium transition-all',
-                          active
-                            ? 'border-primary bg-accent/50 shadow-soft'
-                            : 'border-input text-muted-foreground hover:border-primary/40',
-                        )}
-                      >
-                        <span className={cn(active && 'text-foreground')}>
-                          {tCalc(`frequency_${f}` as 'frequency_weekly')}
-                        </span>
-                        {pct > 0 && (
-                          <span className="bg-lime text-lime-foreground rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-                            −{pct}%
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </StepCard>
-
-        {/* Step 2 — service */}
-        <StepCard n={2} icon={Sparkles} title={t('step_service')}>
+      <div className="grid gap-3">
+        {/* Step 1 — service */}
+        <AccordionStep
+          {...stepProps(1, Boolean(selectedService), serviceName)}
+          icon={Sparkles}
+          title={t('step_service')}
+        >
           <RadioGroup
             value={serviceTypeId}
             onValueChange={setServiceTypeId}
@@ -249,10 +213,14 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
               );
             })}
           </RadioGroup>
-        </StepCard>
+        </AccordionStep>
 
-        {/* Step 3 — size */}
-        <StepCard n={3} icon={Ruler} title={t('step_size')}>
+        {/* Step 2 — size */}
+        <AccordionStep
+          {...stepProps(2, true, `${squareMeters} m²`)}
+          icon={Ruler}
+          title={t('step_size')}
+        >
           <div className="grid gap-4">
             <div className="flex items-end justify-between">
               <span className="text-muted-foreground text-xs">{tc('size_hint')}</span>
@@ -286,38 +254,46 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
               ))}
             </div>
           </div>
-        </StepCard>
+        </AccordionStep>
 
-        {/* Step 4 — address */}
-        <StepCard n={4} icon={MapPin} title={t('step_address')}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="addressLine">{t('address_line')}</Label>
-              <Input
-                id="addressLine"
-                name="addressLine"
-                required
-                value={addressLine}
-                onChange={(e) => setAddressLine(e.target.value)}
-                placeholder="Av. Providencia 123"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="commune">{tCalc('commune')}</Label>
-              <Input
-                id="commune"
-                name="commune"
-                required
-                value={commune}
-                onChange={(e) => setCommune(e.target.value)}
-                placeholder="Providencia"
-              />
-            </div>
-          </div>
-        </StepCard>
+        {/* Step 3 — address (search) */}
+        <AccordionStep
+          {...stepProps(
+            3,
+            addressDone,
+            addressDone ? `${addressLine}, ${commune}` : t('summary_pending'),
+          )}
+          icon={MapPin}
+          title={t('step_address')}
+          canContinue={addressDone}
+        >
+          <AddressAutocomplete
+            label={t('address_line')}
+            required
+            defaultValue={
+              addressLine ? `${addressLine}${commune ? `, ${commune}` : ''}` : undefined
+            }
+            onSelect={(s) => {
+              setAddressLine(s.shortName);
+              setCommune(s.commune ?? '');
+            }}
+            onClear={() => {
+              setAddressLine('');
+              setCommune('');
+            }}
+          />
+        </AccordionStep>
 
-        {/* Step 5 — tools */}
-        <StepCard n={5} icon={Package} title={t('step_tools')}>
+        {/* Step 4 — tools */}
+        <AccordionStep
+          {...stepProps(
+            4,
+            true,
+            toolsProvidedBy === 'company' ? tCalc('tools_company') : tCalc('tools_customer'),
+          )}
+          icon={Package}
+          title={t('step_tools')}
+        >
           <RadioGroup
             value={toolsProvidedBy}
             onValueChange={(v) => setToolsProvidedBy(v as 'customer' | 'company')}
@@ -339,10 +315,70 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
               active={toolsProvidedBy === 'company'}
             />
           </RadioGroup>
-        </StepCard>
+        </AccordionStep>
 
-        {/* Step 6 — date + timeblock */}
-        <StepCard n={6} icon={CalendarDays} title={t('step_when')}>
+        {/* Step 5 — frequency */}
+        <AccordionStep
+          {...stepProps(5, true, freqLabel(frequency))}
+          icon={Repeat}
+          title={t('step_frequency')}
+        >
+          <RadioGroup
+            value={frequency}
+            onValueChange={(v) => setFrequency(v as Frequency)}
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            {FREQUENCIES.map((f) => {
+              const pct = discountPct(f, config);
+              const selected = frequency === f;
+              const popular = f === 'weekly';
+              return (
+                <Label
+                  key={f}
+                  htmlFor={`freq-${f}`}
+                  className={cn(
+                    'relative flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border-2 p-3 text-center transition-all',
+                    selected
+                      ? 'border-primary bg-accent/50 shadow-soft'
+                      : 'border-input hover:border-primary/40 hover:bg-accent/30',
+                  )}
+                >
+                  <RadioGroupItem id={`freq-${f}`} value={f} className="sr-only" />
+                  {popular && (
+                    <Badge
+                      variant="lime"
+                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px]"
+                    >
+                      {tc('popular')}
+                    </Badge>
+                  )}
+                  <span className="text-sm font-semibold">{freqLabel(f)}</span>
+                  {pct > 0 ? (
+                    <span className="bg-lime text-lime-foreground rounded-full px-2 py-0.5 text-[10px] font-bold">
+                      −{pct}%
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-[10px]">{tc('one_time_hint')}</span>
+                  )}
+                </Label>
+              );
+            })}
+          </RadioGroup>
+        </AccordionStep>
+
+        {/* Step 6 — date + time */}
+        <AccordionStep
+          {...stepProps(
+            6,
+            whenDone,
+            whenDone && date
+              ? `${formatDate(date)} · ${tCal(`timeblock_${timeblock}` as 'timeblock_manana')}`
+              : t('summary_pending'),
+          )}
+          icon={CalendarDays}
+          title={t('step_when')}
+          canContinue={whenDone}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border p-1">
               <Calendar
@@ -391,14 +427,18 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
                 })}
             </div>
           </div>
-        </StepCard>
+        </AccordionStep>
 
         {/* Step 7 — payment */}
-        <StepCard n={7} icon={Wallet} title={t('payment_title')}>
+        <AccordionStep
+          {...stepProps(7, true, t(`payment_${paymentProvider}` as 'payment_mercadopago'))}
+          icon={Wallet}
+          title={t('payment_title')}
+          isLast
+        >
           <RadioGroup
-            name="paymentProvider"
-            defaultValue="mercadopago"
-            required
+            value={paymentProvider}
+            onValueChange={setPaymentProvider}
             className="grid gap-2.5"
           >
             <PaymentCard
@@ -423,7 +463,7 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
               desc={t('payment_stripe_desc')}
             />
           </RadioGroup>
-        </StepCard>
+        </AccordionStep>
       </div>
 
       {/* Sticky summary */}
@@ -436,23 +476,9 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
             </div>
 
             <dl className="grid gap-2.5 text-sm">
-              <SummaryRow
-                label={tCalc('service_type')}
-                value={
-                  selectedService
-                    ? tService(`${selectedService.slug}.name` as 'regular.name')
-                    : t('summary_pending')
-                }
-              />
+              <SummaryRow label={tCalc('service_type')} value={serviceName} />
               <SummaryRow label={tCalc('square_meters')} value={`${squareMeters} m²`} />
-              <SummaryRow
-                label={t('summary_modality')}
-                value={
-                  bookingType === 'individual'
-                    ? t('individual')
-                    : `${t('plan')} · ${tCalc(`frequency_${planFrequency}` as 'frequency_weekly')}`
-                }
-              />
+              <SummaryRow label={t('step_frequency')} value={freqLabel(frequency)} />
               <SummaryRow
                 label={tCalc('tools')}
                 value={
@@ -461,16 +487,12 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
               />
               <SummaryRow
                 label={t('summary_where')}
-                value={
-                  addressLine.trim()
-                    ? `${addressLine}${commune ? `, ${commune}` : ''}`
-                    : t('summary_pending')
-                }
+                value={addressDone ? `${addressLine}, ${commune}` : t('summary_pending')}
               />
               <SummaryRow
                 label={t('summary_when')}
                 value={
-                  date && timeblock
+                  whenDone && date
                     ? `${formatDate(date)} · ${tCal(`timeblock_${timeblock}` as 'timeblock_manana')}`
                     : t('summary_pending')
                 }
@@ -502,25 +524,66 @@ function formatDate(d: Date): string {
   }).format(d);
 }
 
-function StepCard({
+function AccordionStep({
   n,
   icon: Icon,
   title,
+  active,
+  done,
+  summary,
+  onEdit,
+  onContinue,
+  editLabel,
+  continueLabel,
+  canContinue = true,
+  isLast,
   children,
 }: {
   n: number;
   icon: LucideIcon;
   title: string;
+  active: boolean;
+  done: boolean;
+  summary: string;
+  onEdit: () => void;
+  onContinue: () => void;
+  editLabel: string;
+  continueLabel: string;
+  canContinue?: boolean;
+  isLast?: boolean;
   children: React.ReactNode;
 }) {
+  if (!active) {
+    return (
+      <button
+        type="button"
+        onClick={onEdit}
+        className="border-border/60 bg-card shadow-soft hover:border-primary/40 group flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-colors"
+      >
+        <span
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+            done ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary',
+          )}
+        >
+          {done ? <Check className="h-4 w-4" /> : n}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="text-muted-foreground block text-xs font-medium">{title}</span>
+          <span className="block truncate text-sm font-semibold">{summary}</span>
+        </span>
+        <span className="text-primary text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
+          {editLabel}
+        </span>
+        <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
+      </button>
+    );
+  }
   return (
-    <Card
-      className="shadow-soft animate-fade-in-up border-border/60"
-      style={{ animationDelay: `${n * 55}ms` }}
-    >
+    <Card className="shadow-soft border-primary/30 ring-primary/10 ring-2">
       <CardContent className="grid gap-4 p-5 sm:p-6">
         <div className="flex items-center gap-3">
-          <span className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold">
+          <span className="bg-primary text-primary-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold">
             {n}
           </span>
           <div className="flex items-center gap-2">
@@ -529,6 +592,13 @@ function StepCard({
           </div>
         </div>
         {children}
+        {!isLast && (
+          <div className="flex justify-end">
+            <Button type="button" size="sm" onClick={onContinue} disabled={!canContinue}>
+              {continueLabel}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -540,46 +610,6 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       <dt className="text-muted-foreground shrink-0">{label}</dt>
       <dd className="text-right font-medium">{value}</dd>
     </div>
-  );
-}
-
-function TypeCard({
-  active,
-  onClick,
-  icon: Icon,
-  title,
-  desc,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: LucideIcon;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'flex items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition-all',
-        active
-          ? 'border-primary bg-accent/50 shadow-soft'
-          : 'border-input hover:border-primary/40 hover:bg-accent/30',
-      )}
-    >
-      <span
-        className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
-          active ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary',
-        )}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="grid gap-0.5">
-        <span className="text-sm font-semibold">{title}</span>
-        <span className="text-muted-foreground text-xs leading-snug">{desc}</span>
-      </span>
-    </button>
   );
 }
 

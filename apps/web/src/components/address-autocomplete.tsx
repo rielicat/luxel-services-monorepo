@@ -11,13 +11,21 @@ interface Props {
   label: string;
   placeholder?: string;
   required?: boolean;
+  defaultValue?: string;
   onSelect: (s: GeocodeSuggestion) => void;
   onClear: () => void;
 }
 
-export function AddressAutocomplete({ label, placeholder, required, onSelect, onClear }: Props) {
+export function AddressAutocomplete({
+  label,
+  placeholder,
+  required,
+  defaultValue,
+  onSelect,
+  onClear,
+}: Props) {
   const t = useTranslations('calculator');
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(defaultValue ?? '');
   const [suggestions, setSuggestions] = useState<GeocodeSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
