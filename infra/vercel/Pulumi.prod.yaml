@@ -1,11 +1,7 @@
-# Non-secret stack config. Auth is via the VERCEL_API_TOKEN env var; the admin
-# shared secrets are stored as encrypted Pulumi secret config (see below).
-#
-# Before the first apply:
-#   pulumi config set web.name <live web project name>   # `pnpm export` prints it
-#   pulumi config set teamId <team_xxx>                   # omit/blank for a personal account
-#   # seed the four admin shared secrets (mirrored from the web project):
-#   pnpm --filter @luxel/infra-vercel export              # prints the `pulumi config set --secret` lines
+# Non-secret stack config. Auth is via the VERCEL_API_TOKEN env var.
+# `web.name` (and `teamId` if the projects are on a Team) are set automatically
+# in CI by scripts/discover-web.mjs; the admin app's shared secrets are set once
+# in the Vercel dashboard, not here.
 config:
   luxel-vercel:gitRepo: rielicat/luxel-services-monorepo
   luxel-vercel:productionBranch: main
@@ -17,7 +13,3 @@ config:
     name: luxel-admin
     rootDirectory: apps/admin
     domain: panel.serviciosluxel.cl
-  # luxel-vercel:adminSharedEnv is a SECRET object — NOT stored here in plaintext.
-  # Set the four keys with `pulumi config set --secret --path`:
-  #   adminSharedEnv.NEXT_PUBLIC_SUPABASE_URL, adminSharedEnv.SUPABASE_SECRET_KEY,
-  #   adminSharedEnv.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, adminSharedEnv.CLERK_SECRET_KEY

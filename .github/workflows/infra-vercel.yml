@@ -1,9 +1,13 @@
 name: Infra (Vercel)
 
-# Fully CI-driven. On push to main (or manual dispatch) touching infra/vercel,
-# CI seeds the stack config from the live web project, adopts the web project +
-# creates/deploys the admin project on the first run, and applies changes on
+# Provisions the Vercel projects as code. On push to main (or manual dispatch)
+# touching infra/vercel, CI adopts the web project + creates the admin project
+# (with its domain + non-secret config) on the first run, and applies changes on
 # every run after. PRs get a `pulumi preview`. State is in the R2 backend.
+#
+# This does NOT deploy app code — Vercel's Git integration deploys web + admin on
+# push. The admin app's shared secrets (Supabase/Clerk) are set once in the
+# Vercel dashboard, like the web project's.
 on:
   push:
     branches: [main]
@@ -23,15 +27,10 @@ env:
   PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
   VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
   VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
-  ADMIN_NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.ADMIN_NEXT_PUBLIC_SUPABASE_URL }}
-  ADMIN_SUPABASE_SECRET_KEY: ${{ secrets.ADMIN_SUPABASE_SECRET_KEY }}
-  ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-  ADMIN_CLERK_SECRET_KEY: ${{ secrets.ADMIN_CLERK_SECRET_KEY }}
   PULUMI_SKIP_UPDATE_CHECK: 'true'
   CLOUD_URL: 's3://luxel-pulumi-state?endpoint=a592f6c9ed79454bf7c8ab489ece9036.r2.cloudflarestorage.com&s3ForcePathStyle=true'
 
 jobs:
-  # Skip (green) until the VERCEL_API_TOKEN secret exists.
   guard:
     runs-on: ubuntu-latest
     outputs:
@@ -40,22 +39,12 @@ jobs:
       - id: c
         env:
           TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
-          A1: ${{ secrets.ADMIN_NEXT_PUBLIC_SUPABASE_URL }}
-          A2: ${{ secrets.ADMIN_SUPABASE_SECRET_KEY }}
-          A3: ${{ secrets.ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          A4: ${{ secrets.ADMIN_CLERK_SECRET_KEY }}
         run: |
-          missing=""
-          [ -z "$TOKEN" ] && missing="$missing VERCEL_API_TOKEN"
-          [ -z "$A1" ] && missing="$missing ADMIN_NEXT_PUBLIC_SUPABASE_URL"
-          [ -z "$A2" ] && missing="$missing ADMIN_SUPABASE_SECRET_KEY"
-          [ -z "$A3" ] && missing="$missing ADMIN_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
-          [ -z "$A4" ] && missing="$missing ADMIN_CLERK_SECRET_KEY"
-          if [ -n "$missing" ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Waiting on repo secrets:$missing — add them, then this runs on push. Skipping."
-          else
+          if [ -n "$TOKEN" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::VERCEL_API_TOKEN not set — add it as a repo secret. Skipping."
           fi
 
   vercel:
@@ -65,7 +54,6 @@ jobs:
     environment: production
     permissions:
       contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -81,15 +69,15 @@ jobs:
         run: |
           curl -fsSL https://get.pulumi.com | sh
           echo "$HOME/.pulumi/bin" >> "$GITHUB_PATH"
-      - name: Preview or apply (bootstrap on first run)
+      - name: Preview or apply
         working-directory: infra/vercel
         run: |
           set -euo pipefail
           pulumi login "$CLOUD_URL"
           pulumi stack select prod 2>/dev/null || pulumi stack init prod
-          node scripts/ci-seed.mjs
+          node scripts/discover-web.mjs
 
-          # First run: web project not yet in state → adopt via import.
+          # First run: web project not yet in state → adopt it via import.
           if pulumi stack --show-urns 2>/dev/null | grep -q 'Project::web'; then
             ADOPT=0
           else
@@ -101,5 +89,4 @@ jobs:
             LUXEL_VC_ADOPT=$ADOPT pulumi preview
           else
             LUXEL_VC_ADOPT=$ADOPT pulumi up --yes --skip-preview
-            node scripts/deploy-admin.mjs
           fi

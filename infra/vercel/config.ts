@@ -21,16 +21,6 @@ export const productionBranch = c.get('productionBranch') ?? 'main';
 export const web = c.requireObject<WebCfg>('web');
 export const admin = c.requireObject<AdminCfg>('admin');
 
-/**
- * Shared secrets the admin app needs, mirrored from the web project (Supabase +
- * Clerk). Stored as encrypted Pulumi secret config — set via
- * `pulumi config set --secret vercel:adminSharedEnv ...` or seeded by
- * scripts/export-vercel.mjs. Keys expected:
- *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY,
- *   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY
- */
-export const adminSharedEnv = c.requireSecretObject<Record<string, string>>('adminSharedEnv');
-
 export function slug(s: string): string {
   return s
     .toLowerCase()
