@@ -126,6 +126,14 @@ as its own Vercel project, set `OPENAI_API_KEY`.
 - Broken pnpm shim → always the pinned-pnpm invocation above.
 - Supabase local image pulls can 403 from `public.ecr.aws`; mirror from Docker Hub.
 - Clerk **keyless** mode breaks next-intl routing (404s) — use real keys.
+- **Local auth — don't get stuck on the external Clerk portal.** Protected routes
+  redirect to Clerk's hosted account portal (`*.accounts.dev`), which hangs/loops
+  against a local server. When developing locally, **fake/bypass Clerk**: sign in
+  with a Clerk **test user** (`you+clerk_test@example.com`, any password, OTP
+  `424242`) and set `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` +
+  `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` so auth stays on `localhost` (uses the
+  in-app `<SignIn/>` pages, not the external hostname). For pages that don't need
+  a real user, stub the auth check in dev.
 - Admin access is gated by **Clerk organization membership** (`LUXEL_ADMIN_ORG_SLUG`);
   staff are added to the org in Clerk. Locked by default (unset slug = nobody).
 - Cloudflare IaC adoption is **import-based** and can touch live DNS/email — run

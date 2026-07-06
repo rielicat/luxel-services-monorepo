@@ -116,11 +116,12 @@ export function AddressAutocomplete({ label, placeholder, required, onSelect, on
           aria-activedescendant={activeIndex >= 0 ? `address-opt-${activeIndex}` : undefined}
           className="pl-9 pr-9"
         />
+        {/* Spin lives on an inner element so it can't clash with the wrapper's
+            centering translate (which the spin transform would otherwise wipe out). */}
         {loading && (
-          <span
-            aria-hidden
-            className="border-primary/25 border-t-primary absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2"
-          />
+          <span aria-hidden className="absolute right-3 top-1/2 -translate-y-1/2">
+            <span className="border-primary/25 border-t-primary block h-4 w-4 animate-spin rounded-full border-2" />
+          </span>
         )}
       </div>
 
@@ -128,7 +129,7 @@ export function AddressAutocomplete({ label, placeholder, required, onSelect, on
         <ul
           role="listbox"
           id="address-listbox"
-          className="bg-popover/95 border-border shadow-card animate-fade-in-up absolute top-full z-50 mt-1.5 w-full overflow-hidden rounded-xl border backdrop-blur-sm [animation-duration:180ms]"
+          className="bg-popover border-border shadow-card animate-fade-in-up absolute top-full z-50 mt-1.5 w-full overflow-hidden rounded-xl border [animation-duration:180ms]"
         >
           {loading && suggestions.length === 0 && (
             <>

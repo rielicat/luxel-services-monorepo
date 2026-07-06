@@ -236,7 +236,7 @@ export function CalculatorForm({
         </StepCard>
 
         {/* Step 3 — address */}
-        <StepCard n={3} icon={MapPin} title={t('steps.address')}>
+        <StepCard n={3} icon={MapPin} title={t('steps.address')} raise>
           <AddressAutocomplete
             label={t('fields.address')}
             required
@@ -357,15 +357,19 @@ function StepCard({
   icon: Icon,
   title,
   children,
+  raise,
 }: {
   n: number;
   icon: LucideIcon;
   title: string;
   children: React.ReactNode;
+  /** Lift this card's stacking context so an overflowing popover (address
+   *  suggestions) paints above the following step cards. */
+  raise?: boolean;
 }) {
   return (
     <Card
-      className="shadow-soft animate-fade-in-up border-border/60"
+      className={cn('shadow-soft animate-fade-in-up border-border/60', raise && 'relative z-30')}
       style={{ animationDelay: `${n * 60}ms` }}
     >
       <CardContent className="grid gap-4 p-5 sm:p-6">
