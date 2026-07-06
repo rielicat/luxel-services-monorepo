@@ -24,8 +24,9 @@ const TARGETS = ['production', 'preview'];
 const PLAIN_ENV: Record<string, string> = {
   NEXT_PUBLIC_CLERK_SIGN_IN_URL: '/sign-in',
   NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: '/',
-  // Operators = members of this Clerk organization (create it with this slug).
-  LUXEL_ADMIN_ORG_SLUG: 'servicios-luxel',
+  // Operators = members of this Clerk organization. Slug of the live org (a
+  // cleaner LUXEL_ADMIN_ORG_ID can replace this — see apps/admin/src/lib/admin.ts).
+  LUXEL_ADMIN_ORG_SLUG: 'servicios-luxel-1783354109102489708',
 };
 
 export const adminEnv = Object.entries(PLAIN_ENV).map(

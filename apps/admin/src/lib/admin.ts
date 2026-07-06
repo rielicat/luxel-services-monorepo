@@ -6,10 +6,15 @@ import { currentUser, clerkClient } from '@clerk/nextjs/server';
  * added to the Luxel org in the Clerk dashboard, so the whitelist lives in Clerk
  * (invite/remove people there), not in an env allow-list.
  *
- *   LUXEL_ADMIN_ORG_SLUG  slug of the Clerk org whose members are operators
+ * Identify the org by EITHER (ID is the most robust — unaffected by slug settings):
+ *   LUXEL_ADMIN_ORG_ID    org_… id of the Clerk org whose members are operators
+ *   LUXEL_ADMIN_ORG_SLUG  its slug (alternative to the id)
  *
- * Locked by default: if LUXEL_ADMIN_ORG_SLUG is unset, nobody is admin.
+ * Locked by default: if neither is set, nobody is admin.
  */
+export function adminOrgId(): string {
+  return (process.env.LUXEL_ADMIN_ORG_ID ?? '').trim();
+}
 export function adminOrgSlug(): string {
   return (process.env.LUXEL_ADMIN_ORG_SLUG ?? '').trim();
 }
@@ -20,8 +25,9 @@ export function adminOrgSlug(): string {
  * organization" being set in the session.
  */
 export async function requireAdmin(): Promise<{ email: string; role: string } | null> {
-  const slug = adminOrgSlug();
-  if (!slug) return null;
+  const orgId = adminOrgId();
+  const orgSlug = adminOrgSlug();
+  if (!orgId && !orgSlug) return null;
 
   const user = await currentUser();
   if (!user) return null;
@@ -31,7 +37,9 @@ export async function requireAdmin(): Promise<{ email: string; role: string } | 
     userId: user.id,
     limit: 100,
   });
-  const membership = memberships.data.find((m) => m.organization.slug === slug);
+  const membership = memberships.data.find(
+    (m) => (orgId && m.organization.id === orgId) || (orgSlug && m.organization.slug === orgSlug),
+  );
   if (!membership) return null;
 
   const email =
