@@ -3,6 +3,7 @@ import { getMercadoPago } from '@/lib/payments/mercadopago';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { capture } from '@/lib/analytics/server';
 import { EVENTS } from '@/lib/analytics/events';
+import { ensureSubscriptionForBooking } from '@/lib/subscriptions';
 
 export const runtime = 'nodejs';
 
@@ -53,7 +54,19 @@ export async function POST(req: Request) {
 
   if (eventType === 'payment') {
     const { payment } = getMercadoPago();
-    const detail = await payment.get({ id: String(paymentId) });
+    let detail;
+    try {
+      detail = await payment.get({ id: String(paymentId) });
+    } catch {
+      // The dedup row is already committed; roll it back so MercadoPago's retry
+      // isn't poisoned into a no-op by our own idempotency ledger.
+      await supabase
+        .from('payment_events')
+        .delete()
+        .eq('provider', 'mercadopago')
+        .eq('event_id', String(paymentId));
+      return NextResponse.json({ ok: false }, { status: 500 });
+    }
     const externalRef = detail.external_reference; // booking id
     if (externalRef && detail.status === 'approved') {
       const { data: updated } = await supabase
@@ -73,6 +86,8 @@ export async function POST(req: Request) {
         amount_clp: updated?.total_price_clp,
         payment_provider: 'mercadopago',
       });
+
+      await ensureSubscriptionForBooking(supabase, String(externalRef));
     } else if (externalRef && detail.status === 'refunded') {
       await supabase.from('bookings').update({ payment_status: 'refunded' }).eq('id', externalRef);
     }

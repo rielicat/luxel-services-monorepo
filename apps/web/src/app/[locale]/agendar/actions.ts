@@ -107,6 +107,7 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
       timeblock: input.timeblock,
       square_meters: input.squareMeters,
       tools_provided_by: input.toolsProvidedBy,
+      frequency: input.frequency,
       total_price_clp: priced.totalClp,
       payment_provider: input.paymentProvider,
       payment_status: 'unpaid',

@@ -4,6 +4,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { getTranslations } from 'next-intl/server';
 import { CalendarClock, CalendarDays, UserRound } from 'lucide-react';
 import { getOrCreateCustomer } from '@/lib/customer';
+import { backfillSubscriptionsForCustomer } from '@/lib/subscriptions';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,8 @@ export default async function CuentaPage() {
   if (customer) {
     profile = { email: customer.email, full_name: customer.full_name, phone: customer.phone };
     const supabase = createSupabaseServiceRoleClient();
+    // Reconcile any paid plan whose subscription didn't get written at payment time.
+    await backfillSubscriptionsForCustomer(supabase, customer.id);
     const [subs, bks] = await Promise.all([
       supabase
         .from('subscriptions')

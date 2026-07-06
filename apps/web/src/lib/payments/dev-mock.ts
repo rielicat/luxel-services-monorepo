@@ -2,6 +2,7 @@ import 'server-only';
 import type { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { capture } from '@/lib/analytics/server';
 import { EVENTS } from '@/lib/analytics/events';
+import { ensureSubscriptionForBooking } from '@/lib/subscriptions';
 
 type ServiceClient = ReturnType<typeof createSupabaseServiceRoleClient>;
 type Provider = 'stripe' | 'mercadopago';
@@ -53,4 +54,6 @@ export async function completeMockPayment(
     payment_provider: provider,
     mock: true,
   });
+
+  await ensureSubscriptionForBooking(supabase, bookingId);
 }

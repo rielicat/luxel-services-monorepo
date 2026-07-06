@@ -4,6 +4,7 @@ import { getStripe } from '@/lib/payments/stripe';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { capture } from '@/lib/analytics/server';
 import { EVENTS } from '@/lib/analytics/events';
+import { ensureSubscriptionForBooking } from '@/lib/subscriptions';
 
 export const runtime = 'nodejs';
 
@@ -60,6 +61,8 @@ export async function POST(req: Request) {
         amount_clp: updated?.total_price_clp,
         payment_provider: 'stripe',
       });
+
+      await ensureSubscriptionForBooking(supabase, bookingId);
     }
   }
 
