@@ -47,8 +47,17 @@ for (const key of SHARED_KEYS) {
       .filter((e) => e.key === key)
       .sort((a, b) => (a.target?.includes('production') ? -1 : 1))[0];
     if (meta?.id) {
-      const full = await vc(`/v9/projects/${web.id}/env/${meta.id}`).catch(() => ({}));
+      let full = {};
+      try {
+        full = await vc(`/v9/projects/${web.id}/env/${meta.id}?decrypt=true`);
+      } catch (e) {
+        console.error(`  [diag] ${key} single-GET error: ${e.message}`);
+      }
       if (typeof full.value === 'string' && full.value) value = full.value;
+      else
+        console.error(
+          `  [diag] ${key} type=${meta.type} target=${JSON.stringify(meta.target)} fields=[${Object.keys(full).join(',')}] valueType=${typeof full.value} len=${(full.value || '').length}`,
+        );
     }
   }
   if (value) pset(['--secret', '--path', `adminSharedEnv.${key}`, value]);
