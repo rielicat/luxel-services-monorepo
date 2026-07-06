@@ -22,12 +22,11 @@ export const authAppearance = {
     cardBox: 'w-full shadow-none border-0',
     card: 'w-full bg-transparent shadow-none border-0 p-0',
     header: 'hidden',
-    // Remove Clerk's own sign-in/sign-up switch (we render our own) and the
-    // "Secured by Clerk" badge — but NOT the whole footer, so the "Use another
-    // method" fallback on password/code screens stays reachable. The dev-mode
-    // warning is handled separately by unsafe_disableDevelopmentModeWarnings.
-    footerAction: 'hidden',
-    footerItem: 'hidden',
+    // Hide Clerk's whole footer: removes the "Secured by Clerk" badge (there is
+    // no stable badge-only element key on the dev/free tier) plus Clerk's own
+    // switch link — we render our own Spanish switch below. The dev-mode warning
+    // is suppressed separately via unsafe_disableDevelopmentModeWarnings.
+    footer: 'hidden',
     formButtonPrimary: 'shadow-soft',
   },
 } as const;
@@ -53,20 +52,27 @@ export async function AuthShell({
   return (
     <main className="grid min-h-dvh lg:grid-cols-2">
       {/* Brand panel */}
-      <aside className="bg-primary relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
+      <aside
+        className="relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between lg:p-12"
+        style={{
+          background:
+            'linear-gradient(145deg, hsl(174 74% 19%) 0%, hsl(176 82% 13%) 48%, hsl(178 88% 8%) 100%)',
+        }}
+      >
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
+            // Glows kept to the right/bottom so the logo + copy sit on the darker
+            // top-left for strong contrast.
             backgroundImage:
-              'radial-gradient(45% 45% at 12% 8%, hsl(var(--secondary) / 0.45) 0%, transparent 70%),' +
-              'radial-gradient(40% 40% at 90% 4%, hsl(var(--lime) / 0.28) 0%, transparent 70%),' +
-              'radial-gradient(60% 60% at 80% 100%, hsl(175 84% 11% / 0.6) 0%, transparent 70%)',
+              'radial-gradient(45% 40% at 92% 6%, hsl(var(--lime) / 0.16) 0%, transparent 70%),' +
+              'radial-gradient(50% 45% at 100% 100%, hsl(var(--secondary) / 0.24) 0%, transparent 72%)',
           }}
         />
         <Link
           href="/"
-          className="relative w-fit rounded-xl bg-white/10 px-3 py-2 backdrop-blur transition-opacity hover:opacity-90"
+          className="relative w-fit rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15 backdrop-blur transition-opacity hover:opacity-90"
         >
           <LuxelLogo />
         </Link>
