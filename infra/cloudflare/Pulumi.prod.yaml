@@ -15,9 +15,8 @@ config:
   # Vercel terminates TLS. Update if the Vercel project's DNS target changes.
   luxel-cloudflare:vercelTarget: ae0aca0ff9e30f31.vercel-dns-017.com
 
-  # CNAME target for panel.serviciosluxel.cl (admin app). Empty = record not
-  # created; set to the Vercel target once the admin project exists.
-  luxel-cloudflare:panelTarget: ''
+  # CNAME target for panel.serviciosluxel.cl (admin app on Vercel).
+  luxel-cloudflare:panelTarget: cname.vercel-dns.com
   # DMARC policy for _dmarc TXT. Start at "none" (monitor only — never rejects
   # mail); tighten to "quarantine"/"reject" once you've confirmed alignment.
   luxel-cloudflare:dmarcPolicy: none
