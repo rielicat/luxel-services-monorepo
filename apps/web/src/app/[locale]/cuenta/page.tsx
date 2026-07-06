@@ -1,17 +1,18 @@
 import type { ComponentType } from 'react';
 import { redirect } from 'next/navigation';
-import { auth, currentUser } from '@clerk/nextjs/server';
 import { getTranslations } from 'next-intl/server';
 import { CalendarClock, CalendarDays, UserRound } from 'lucide-react';
-import { getOrCreateCustomer } from '@/lib/customer';
+import { getAccountContext } from '@/lib/customer';
 import { backfillSubscriptionsForCustomer } from '@/lib/subscriptions';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { TrackView } from '@/components/analytics/track-view';
-import { ProfileForm } from './profile-form';
 import { SubscriptionsList } from './subscriptions-list';
 import { BookingsList } from './bookings-list';
+
+// Auth-gated + reads per-request auth()/DB; never statically prerender or cache.
+export const dynamic = 'force-dynamic';
 
 type Subscription = {
   id: string;
@@ -31,49 +32,36 @@ type Booking = {
 };
 
 export default async function CuentaPage() {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
+  const ctx = await getAccountContext();
+  if (!ctx) redirect('/sign-in');
 
   const t = await getTranslations('account');
 
-  // The account page must survive an unseeded/unreachable Supabase: fall back to
-  // the Clerk profile and empty lists rather than bouncing the user home.
-  const customer = await getOrCreateCustomer();
-
-  let profile = { email: '', full_name: null as string | null, phone: null as string | null };
   let subscriptions: Subscription[] = [];
   let bookings: Booking[] = [];
 
-  if (customer) {
-    profile = { email: customer.email, full_name: customer.full_name, phone: customer.phone };
+  if (ctx.customer) {
     const supabase = createSupabaseServiceRoleClient();
     // Reconcile any paid plan whose subscription didn't get written at payment time.
-    await backfillSubscriptionsForCustomer(supabase, customer.id);
+    await backfillSubscriptionsForCustomer(supabase, ctx.customer.id);
     const [subs, bks] = await Promise.all([
       supabase
         .from('subscriptions')
         .select('id, frequency, status, amount_per_visit_clp, square_meters')
-        .eq('customer_id', customer.id)
+        .eq('customer_id', ctx.customer.id)
         .order('created_at', { ascending: false }),
       supabase
         .from('bookings')
         .select('id, scheduled_date, timeblock, status, total_price_clp, square_meters')
-        .eq('customer_id', customer.id)
+        .eq('customer_id', ctx.customer.id)
         .order('scheduled_date', { ascending: false })
         .limit(20),
     ]);
     subscriptions = subs.data ?? [];
     bookings = bks.data ?? [];
-  } else {
-    const user = await currentUser();
-    profile = {
-      email: user?.emailAddresses[0]?.emailAddress ?? '',
-      full_name: [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || null,
-      phone: user?.phoneNumbers[0]?.phoneNumber ?? null,
-    };
   }
 
-  const firstName = profile.full_name?.split(' ')[0];
+  const firstName = ctx.profile.full_name?.split(' ')[0];
 
   return (
     <main className="pb-16">
@@ -87,9 +75,14 @@ export default async function CuentaPage() {
             </h1>
             <p className="text-muted-foreground max-w-xl text-sm sm:text-base">{t('subtitle')}</p>
           </div>
-          <Button asChild variant="lime" className="w-fit">
-            <Link href="/calculadora">{t('new_quote')}</Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button asChild variant="outline" className="w-fit">
+              <Link href="/cuenta/perfil">{t('edit_profile')}</Link>
+            </Button>
+            <Button asChild variant="lime" className="w-fit">
+              <Link href="/calculadora">{t('new_quote')}</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -113,12 +106,11 @@ export default async function CuentaPage() {
         </section>
 
         <section>
-          <SectionHeader
-            icon={UserRound}
+          <ProfileLinkCard
             title={t('profile.title')}
             subtitle={t('profile.subtitle')}
+            cta={t('edit_profile')}
           />
-          <ProfileForm initial={profile} />
         </section>
       </div>
     </main>
@@ -144,5 +136,31 @@ function SectionHeader({
         <p className="text-muted-foreground text-sm">{subtitle}</p>
       </div>
     </div>
+  );
+}
+
+function ProfileLinkCard({
+  title,
+  subtitle,
+  cta,
+}: {
+  title: string;
+  subtitle: string;
+  cta: string;
+}) {
+  return (
+    <Link
+      href="/cuenta/perfil"
+      className="border-border bg-card shadow-soft hover:border-primary/40 flex items-center gap-4 rounded-2xl border p-5 transition-colors"
+    >
+      <span className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+        <UserRound className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="text-lg font-semibold leading-tight">{title}</h2>
+        <p className="text-muted-foreground text-sm">{subtitle}</p>
+      </div>
+      <span className="text-primary text-sm font-medium">{cta}</span>
+    </Link>
   );
 }

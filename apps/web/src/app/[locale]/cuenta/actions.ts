@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
+import { getOrCreateCustomer } from '@/lib/customer';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
 const ProfileSchema = z.object({
@@ -11,8 +12,11 @@ const ProfileSchema = z.object({
 });
 
 export async function updateProfileAction(formData: FormData) {
-  const { userId } = await auth();
-  if (!userId) return { ok: false, error: 'unauthorized' as const };
+  // Resolve (and lazily create) the customer row first. A fallback profile shown
+  // when Supabase has no row would otherwise UPDATE zero rows and falsely report
+  // success; a null here means we genuinely couldn't persist.
+  const customer = await getOrCreateCustomer();
+  if (!customer) return { ok: false, error: 'unauthorized' as const };
 
   const parsed = ProfileSchema.safeParse({
     full_name: (formData.get('full_name') as string | null) || undefined,
@@ -27,10 +31,11 @@ export async function updateProfileAction(formData: FormData) {
       full_name: parsed.data.full_name ?? null,
       phone: parsed.data.phone ?? null,
     })
-    .eq('clerk_user_id', userId);
+    .eq('id', customer.id);
   if (error) return { ok: false, error: 'generic' as const };
 
   revalidatePath('/cuenta', 'page');
+  revalidatePath('/cuenta/perfil', 'page');
   return { ok: true };
 }
 

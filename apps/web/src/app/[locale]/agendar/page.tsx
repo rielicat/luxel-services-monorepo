@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
 import { getTranslations } from 'next-intl/server';
-import { getOrCreateCustomer } from '@/lib/customer';
 import { getPricingData } from '@/lib/pricing-data';
 import { BookingForm } from './booking-form';
 
@@ -18,8 +18,11 @@ interface Props {
 }
 
 export default async function AgendarPage({ searchParams }: Props) {
-  const customer = await getOrCreateCustomer();
-  if (!customer) redirect('/');
+  // Gate on auth only — tolerate a missing customer row (created lazily on
+  // submit) so a signed-in user is never bounced home, losing the quote/plan
+  // intent in the query string. Mirrors /cuenta's resilient behaviour.
+  const { userId } = await auth();
+  if (!userId) redirect('/sign-in');
 
   const t = await getTranslations('booking');
   const params = await searchParams;

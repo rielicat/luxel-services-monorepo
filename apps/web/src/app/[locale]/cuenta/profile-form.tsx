@@ -15,16 +15,20 @@ export function ProfileForm({
   const t = useTranslations('account.profile');
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   return (
     <form
       className="grid gap-4 sm:max-w-md"
       action={(fd) =>
         startTransition(async () => {
+          setFailed(false);
           const r = await updateProfileAction(fd);
           if (r.ok) {
             setSaved(true);
             setTimeout(() => setSaved(false), 2000);
+          } else {
+            setFailed(true);
           }
         })
       }
@@ -52,6 +56,7 @@ export function ProfileForm({
           {t('save')}
         </Button>
         {saved && <span className="text-sm text-emerald-600">{t('saved')}</span>}
+        {failed && <span className="text-destructive text-sm">{t('error')}</span>}
       </div>
     </form>
   );

@@ -42,3 +42,43 @@ export async function getOrCreateCustomer(): Promise<CustomerRow | null> {
     .single();
   return (created ?? null) as CustomerRow | null;
 }
+
+export interface AccountProfile {
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+}
+
+export interface AccountContext {
+  customer: CustomerRow | null;
+  profile: AccountProfile;
+}
+
+/**
+ * Resolves the signed-in user's account context for the /cuenta pages. Returns
+ * null when not signed in (callers redirect to sign-in). The profile always
+ * resolves — from the Supabase customer row, or from Clerk when Supabase is
+ * unseeded/unreachable — so the account never bounces the user home.
+ */
+export async function getAccountContext(): Promise<AccountContext | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  const customer = await getOrCreateCustomer();
+  if (customer) {
+    return {
+      customer,
+      profile: { email: customer.email, full_name: customer.full_name, phone: customer.phone },
+    };
+  }
+
+  const user = await currentUser();
+  return {
+    customer: null,
+    profile: {
+      email: user?.emailAddresses[0]?.emailAddress ?? '',
+      full_name: [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || null,
+      phone: user?.phoneNumbers[0]?.phoneNumber ?? null,
+    },
+  };
+}

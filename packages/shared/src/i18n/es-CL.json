@@ -16,6 +16,7 @@
     "home": "Inicio",
     "calculator": "Cotizar",
     "account": "Mi cuenta",
+    "profile": "Mis datos",
     "calendar": "Calendario",
     "login": "Ingresar",
     "logout": "Cerrar sesión",
@@ -167,6 +168,8 @@
     "nav_bookings": "Reservas",
     "nav_profile": "Mis datos",
     "new_quote": "Nueva cotización",
+    "edit_profile": "Editar perfil",
+    "back_to_account": "Volver a mi cuenta",
     "subscription": {
       "title": "Mi plan",
       "subtitle": "Controla tu suscripción: pausa, reanuda o cancela cuando quieras.",
@@ -199,7 +202,8 @@
       "email": "Correo",
       "phone": "Teléfono",
       "save": "Guardar cambios",
-      "saved": "Cambios guardados."
+      "saved": "Cambios guardados.",
+      "error": "No pudimos guardar. Intenta de nuevo."
     }
   },
   "auth": {

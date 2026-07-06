@@ -1,8 +1,9 @@
 import { useTranslations } from 'next-intl';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut } from '@clerk/nextjs';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { LuxelLogo } from '@/components/brand/logo';
+import { UserMenu } from '@/components/account/user-menu';
 
 export function Nav() {
   const t = useTranslations('nav');
@@ -37,7 +38,7 @@ export function Nav() {
             <Button asChild variant="lime" size="sm">
               <Link href="/cuenta">{t('account')}</Link>
             </Button>
-            <UserButton afterSignOutUrl="/" />
+            <UserMenu />
           </SignedIn>
           <SignedOut>
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
