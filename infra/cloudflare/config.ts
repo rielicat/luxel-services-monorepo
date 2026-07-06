@@ -27,6 +27,9 @@ export const zoneId = c.require('zoneId');
 export const zoneName = c.get('zoneName') ?? 'serviciosluxel.cl';
 // Vercel CNAME target for both apex (flattened) and www.
 export const vercelTarget = c.require('vercelTarget');
+// CNAME target for panel.serviciosluxel.cl (admin app on Vercel). Empty = the
+// record is not created (set once the admin Vercel project exists).
+export const panelTarget = c.get('panelTarget') ?? '';
 export const dmarcPolicy = c.get('dmarcPolicy') ?? 'none';
 export const emailRouting = c.requireObject<EmailRoutingConfig>('emailRouting');
 

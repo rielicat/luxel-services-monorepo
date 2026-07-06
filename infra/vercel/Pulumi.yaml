@@ -1,0 +1,9 @@
+name: luxel-vercel
+runtime:
+  name: nodejs
+  options:
+    packagemanager: pnpm
+description: >-
+  IaC for the Vercel projects — the customer web app (adopted) and the operator
+  admin app (created + deployed), with their custom domains. Uses the
+  @pulumiverse/vercel provider. Auth via the VERCEL_API_TOKEN env var.

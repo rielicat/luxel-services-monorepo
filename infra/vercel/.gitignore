@@ -1,0 +1,5 @@
+# Pulumi
+bin/
+# One-time adoption map generated from the live account (resource ids).
+imports.json
+.pulumi/

@@ -1,5 +1,5 @@
 import * as cloudflare from '@pulumi/cloudflare';
-import { zoneId, zoneName, vercelTarget, dmarcPolicy } from './config';
+import { zoneId, zoneName, vercelTarget, panelTarget, dmarcPolicy } from './config';
 import { importId } from './adopt';
 
 // Apex + www → Vercel via CNAME. Cloudflare flattens the apex CNAME to A records
@@ -47,6 +47,24 @@ export const dmarcRecord = new cloudflare.DnsRecord(
   },
   { import: importId('dmarc') },
 );
+
+// panel.serviciosluxel.cl → Vercel (admin app). Only created once `panelTarget`
+// is set (after the admin Vercel project exists — see infra/vercel).
+export const panelRecord = panelTarget
+  ? new cloudflare.DnsRecord(
+      'panel',
+      {
+        zoneId,
+        name: `panel.${zoneName}`,
+        type: 'CNAME',
+        content: panelTarget,
+        ttl: 1,
+        proxied: false,
+        comment: 'Admin panel → Vercel — managed by Pulumi',
+      },
+      { import: importId('panel') },
+    )
+  : undefined;
 
 // NOTE: not managed here (owned elsewhere, left untouched):
 //   - MX, SPF, DKIM (cf2024-1) — auto-managed by Email Routing.

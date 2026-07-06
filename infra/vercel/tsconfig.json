@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Standalone CommonJS config for Pulumi's ts-node runtime (see infra/cloudflare).
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "outDir": "bin"
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules", "bin", "scripts"]
+}

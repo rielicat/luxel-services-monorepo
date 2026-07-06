@@ -1,0 +1,22 @@
+{
+  "name": "@luxel/infra-vercel",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pulumi (TypeScript) IaC for Vercel: the web + admin projects and their domains.",
+  "main": "index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "preview": "pulumi preview",
+    "up": "pulumi up",
+    "export": "node scripts/export-vercel.mjs",
+    "import": "node scripts/gen-imports.mjs"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.201.0",
+    "@pulumiverse/vercel": "^5.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "typescript": "^5.6.2"
+  }
+}
