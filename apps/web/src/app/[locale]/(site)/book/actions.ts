@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { OutOfServiceAreaError, quote } from '@luxel/pricing';
 import { getOrCreateCustomer } from '@/lib/customer';
 import { getPricingData } from '@/lib/pricing-data';
+import { availablePaymentProviders } from '@/lib/payments/providers';
 import { geocodeAddress } from '@/lib/geocode';
 import { getDayAvailability } from '@/lib/availability';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
@@ -47,6 +48,11 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
   const parsed = Schema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { ok: false, error: 'validation' };
   const input = parsed.data;
+
+  // Never create a booking for a provider whose checkout isn't configured here.
+  if (!availablePaymentProviders().includes(input.paymentProvider)) {
+    return { ok: false, error: 'validation' };
+  }
 
   // Geocode address.
   const geocoded = await geocodeAddress(input.addressLine, input.commune);

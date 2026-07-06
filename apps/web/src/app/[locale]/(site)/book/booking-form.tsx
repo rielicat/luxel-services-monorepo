@@ -46,10 +46,35 @@ const SIZE_PRESETS: { key: string; m2: number }[] = [
   { key: 'office', m2: 200 },
 ];
 
+const PAYMENT_META: Record<
+  string,
+  { icon: LucideIcon; tint: string; nameKey: string; descKey: string }
+> = {
+  mercadopago: {
+    icon: Wallet,
+    tint: '#009EE3',
+    nameKey: 'payment_mercadopago',
+    descKey: 'payment_mercadopago_desc',
+  },
+  transbank: {
+    icon: Landmark,
+    tint: '#E4322B',
+    nameKey: 'payment_transbank',
+    descKey: 'payment_transbank_desc',
+  },
+  stripe: {
+    icon: CreditCard,
+    tint: '#635BFF',
+    nameKey: 'payment_stripe',
+    descKey: 'payment_stripe_desc',
+  },
+};
+
 interface Props {
   serviceTypes: ServiceType[];
   operationPointId: string;
   config: PricingConfig;
+  paymentProviders: string[];
   initial: {
     serviceTypeId?: string;
     frequency?: Frequency;
@@ -60,7 +85,13 @@ interface Props {
   };
 }
 
-export function BookingForm({ serviceTypes, operationPointId, config, initial }: Props) {
+export function BookingForm({
+  serviceTypes,
+  operationPointId,
+  config,
+  paymentProviders,
+  initial,
+}: Props) {
   const t = useTranslations('booking');
   const tc = useTranslations('calculator');
   const tCalc = useTranslations('calculator.fields');
@@ -81,7 +112,7 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
   const [date, setDate] = useState<Date | undefined>();
   const [timeblock, setTimeblock] = useState<'manana' | 'tarde' | null>(null);
   const [availability, setAvailability] = useState<DayAvailabilityDTO | null>(null);
-  const [paymentProvider, setPaymentProvider] = useState('mercadopago');
+  const [paymentProvider, setPaymentProvider] = useState(paymentProviders[0] ?? '');
 
   // Accordion: one step open at a time. Coming from a quote (address prefilled)
   // everything up to the date is already filled, so jump straight there.
@@ -113,7 +144,7 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
 
   const addressDone = Boolean(addressLine.trim() && commune.trim());
   const whenDone = Boolean(date && timeblock);
-  const canSubmit = addressDone && whenDone;
+  const canSubmit = addressDone && whenDone && Boolean(paymentProvider);
 
   const freqLabel = (f: Frequency) => tCalc(`frequency_${f}` as 'frequency_weekly');
   const serviceName = selectedService
@@ -429,40 +460,43 @@ export function BookingForm({ serviceTypes, operationPointId, config, initial }:
           </div>
         </AccordionStep>
 
-        {/* Step 7 — payment */}
+        {/* Step 7 — payment (only providers whose credentials are configured) */}
         <AccordionStep
-          {...stepProps(7, true, t(`payment_${paymentProvider}` as 'payment_mercadopago'))}
+          {...stepProps(
+            7,
+            Boolean(paymentProvider),
+            paymentProvider
+              ? t(`payment_${paymentProvider}` as 'payment_mercadopago')
+              : t('summary_pending'),
+          )}
           icon={Wallet}
           title={t('payment_title')}
           isLast
         >
-          <RadioGroup
-            value={paymentProvider}
-            onValueChange={setPaymentProvider}
-            className="grid gap-2.5"
-          >
-            <PaymentCard
-              value="mercadopago"
-              icon={Wallet}
-              tint="#009EE3"
-              name={t('payment_mercadopago')}
-              desc={t('payment_mercadopago_desc')}
-            />
-            <PaymentCard
-              value="transbank"
-              icon={Landmark}
-              tint="#E4322B"
-              name={t('payment_transbank')}
-              desc={t('payment_transbank_desc')}
-            />
-            <PaymentCard
-              value="stripe"
-              icon={CreditCard}
-              tint="#635BFF"
-              name={t('payment_stripe')}
-              desc={t('payment_stripe_desc')}
-            />
-          </RadioGroup>
+          {paymentProviders.length ? (
+            <RadioGroup
+              value={paymentProvider}
+              onValueChange={setPaymentProvider}
+              className="grid gap-2.5"
+            >
+              {paymentProviders.map((p) => {
+                const m = PAYMENT_META[p];
+                if (!m) return null;
+                return (
+                  <PaymentCard
+                    key={p}
+                    value={p}
+                    icon={m.icon}
+                    tint={m.tint}
+                    name={t(m.nameKey as 'payment_mercadopago')}
+                    desc={t(m.descKey as 'payment_mercadopago_desc')}
+                  />
+                );
+              })}
+            </RadioGroup>
+          ) : (
+            <p className="text-muted-foreground text-sm">{t('payment_none')}</p>
+          )}
         </AccordionStep>
       </div>
 

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { getTranslations } from 'next-intl/server';
 import { getPricingData } from '@/lib/pricing-data';
+import { availablePaymentProviders } from '@/lib/payments/providers';
 import { BookingForm } from './booking-form';
 
 interface Props {
@@ -59,6 +60,7 @@ export default async function AgendarPage({ searchParams }: Props) {
           serviceTypes={serviceTypes}
           operationPointId={operationPointId}
           config={pricingConfig}
+          paymentProviders={availablePaymentProviders()}
           initial={{
             serviceTypeId: resolved?.id,
             frequency: params.frequency,
