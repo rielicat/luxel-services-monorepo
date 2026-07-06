@@ -60,10 +60,11 @@ Do **not** set `LUXEL_DEV_MOCK_PAYMENTS` in production.
 `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`,
 `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`,
 `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/`,
-`LUXEL_ADMIN_DOMAINS=serviciosluxel.cl`.
+`LUXEL_ADMIN_ORG_SLUG=servicios-luxel`.
 
-Operator access is by **verified email domain** — staff sign in with
-`@serviciosluxel.cl` addresses. No per-person allow-list to maintain.
+Operator access is by **Clerk organization membership** — create a Clerk org
+with that slug and add staff as members (manage the whitelist in Clerk's
+dashboard). Enable Organizations in the Clerk instance first.
 
 ## CI
 

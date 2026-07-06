@@ -39,7 +39,7 @@ so its build succeeds, then push to deploy:
 `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
 `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`.
 (The non-secret `NEXT_PUBLIC_CLERK_SIGN_IN_URL`, `…FALLBACK_REDIRECT_URL`, and
-`LUXEL_ADMIN_DOMAINS` are managed here in code.)
+`LUXEL_ADMIN_ORG_SLUG` are managed here in code.)
 
 Then point the panel domain at Vercel in the Cloudflare stack:
 `pulumi config set panelTarget cname.vercel-dns.com` (commit → CI applies).

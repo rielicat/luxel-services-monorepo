@@ -126,8 +126,8 @@ as its own Vercel project, set `ANTHROPIC_API_KEY`.
 - Broken pnpm shim → always the pinned-pnpm invocation above.
 - Supabase local image pulls can 403 from `public.ecr.aws`; mirror from Docker Hub.
 - Clerk **keyless** mode breaks next-intl routing (404s) — use real keys.
-- Admin access is gated by **email domain** (`@serviciosluxel.cl`), configured
-  via `LUXEL_ADMIN_DOMAINS` (+ optional `LUXEL_ADMIN_EMAILS`); locked by default.
+- Admin access is gated by **Clerk organization membership** (`LUXEL_ADMIN_ORG_SLUG`);
+  staff are added to the org in Clerk. Locked by default (unset slug = nobody).
 - Cloudflare IaC adoption is **import-based** and can touch live DNS/email — run
   `gen-imports` then `LUXEL_CF_ADOPT=1 pulumi up`, and confirm `pulumi preview`
   shows no changes. Never blind-apply.

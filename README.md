@@ -103,8 +103,9 @@ service role and Clerk auth. Pages: **Panel** (KPIs, conversion funnel, traffic
 chart), **Leads** (inbox with status management), **Sesiones** (session records +
 per-session journey), **Telemetría** (raw filterable event explorer). Heavy
 aggregation runs in SQL (`admin_traffic` / `admin_event_counts` /
-`admin_daily_events` / `admin_sessions`). Access is gated by `LUXEL_ADMIN_EMAILS`
-(empty = locked). Run it with `pnpm --filter @luxel/admin dev`.
+`admin_daily_events` / `admin_sessions`). Access is gated by Clerk organization
+membership (`LUXEL_ADMIN_ORG_SLUG`; unset = locked). Run it with
+`pnpm --filter @luxel/admin dev`.
 
 ## External setup (one-time, owned by the operator)
 
