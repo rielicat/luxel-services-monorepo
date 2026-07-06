@@ -115,7 +115,26 @@ pnpm --filter @luxel/infra-cloudflare typecheck
 ```
 
 Edit `Pulumi.prod.yaml` (records, email rules, DMARC policy) → `preview` → `up`.
-`pulumi preview` on every PR is a good CI gate (needs the token as a secret).
+
+---
+
+## CI / auto-apply
+
+`.github/workflows/infra.yml` runs this stack automatically:
+
+- **Pull request** touching `infra/cloudflare/**` → `pulumi preview`, plan
+  commented on the PR.
+- **Push to `main`** touching `infra/cloudflare/**` (or a manual
+  **Run workflow**) → `pulumi up` against the `prod` stack.
+
+So the day-to-day flow is just: edit `Pulumi.prod.yaml` → open a PR (review the
+preview) → merge, and CI applies it. A concurrency group serializes runs, and
+the `deploy` job uses a `production` GitHub Environment — add required reviewers
+there to gate applies behind an approval.
+
+Required repo secrets: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+`PULUMI_CONFIG_PASSPHRASE`, `CLOUDFLARE_API_TOKEN`. **Rotating any of these
+(e.g. after exposure) means updating both Cloudflare and the GitHub secret.**
 
 ---
 
