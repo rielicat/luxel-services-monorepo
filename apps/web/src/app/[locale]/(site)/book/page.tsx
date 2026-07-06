@@ -26,7 +26,7 @@ export default async function AgendarPage({ searchParams }: Props) {
 
   const t = await getTranslations('booking');
   const params = await searchParams;
-  const { serviceTypes, operationPoints } = await getPricingData();
+  const { serviceTypes, operationPoints, pricingConfig } = await getPricingData();
   const operationPointId = params.operationPointId ?? operationPoints[0]?.id;
   if (!operationPointId) {
     return (
@@ -42,13 +42,23 @@ export default async function AgendarPage({ searchParams }: Props) {
     serviceTypes.find((s) => s.slug === params.serviceTypeSlug);
 
   return (
-    <main className="container max-w-5xl py-12">
-      <h1 className="font-display text-3xl font-bold tracking-tight">{t('title')}</h1>
-      <p className="text-muted-foreground mt-2 text-sm">{t('subtitle')}</p>
-      <div className="mt-8">
+    <main className="pb-16">
+      <section className="bg-aurora border-border/50 border-b">
+        <div className="container max-w-6xl py-10 sm:py-12">
+          <p className="text-secondary text-sm font-semibold">{t('eyebrow')}</p>
+          <h1 className="font-display mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
+            {t('title')}
+          </h1>
+          <p className="text-muted-foreground mt-2 max-w-xl text-sm sm:text-base">
+            {t('subtitle')}
+          </p>
+        </div>
+      </section>
+      <div className="container max-w-6xl pt-8">
         <BookingForm
           serviceTypes={serviceTypes}
           operationPointId={operationPointId}
+          config={pricingConfig}
           initial={{
             serviceTypeId: resolved?.id,
             frequency: params.frequency,
