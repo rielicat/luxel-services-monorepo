@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import type Anthropic from '@anthropic-ai/sdk';
+import type OpenAI from 'openai';
 import { auth } from '@clerk/nextjs/server';
-import { getAnthropic, AI_MODEL } from '@/lib/ai/client';
+import { getOpenAI, AI_MODEL } from '@/lib/ai/client';
 import { buildSystemPrompt } from '@/lib/ai/system-prompt';
 import { buildTools, runTool, type ToolContext } from '@/lib/ai/tools';
 import { getPricingData } from '@/lib/pricing-data';
@@ -63,10 +63,10 @@ export async function POST(req: Request) {
     capture(EVENTS.CHAT_MESSAGE_SENT, distinctId, { session_id: sessionId });
   }
 
-  const anthropic = getAnthropic();
+  const openai = getOpenAI();
 
   // Graceful degradation when the AI key isn't configured.
-  if (!anthropic) {
+  if (!openai) {
     const reply =
       'El asistente con IA no está disponible en este momento. Puedes cotizar al instante en la sección Cotizar del sitio, o escribirnos por WhatsApp y te ayudamos.';
     await persistAssistant(supabase, customerId, sessionId, reply, 'ai_unavailable');
@@ -83,10 +83,12 @@ export async function POST(req: Request) {
   const tools = buildTools(serviceTypes.map((s) => s.slug));
   const ctx: ToolContext = { whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER };
 
-  const convo: Anthropic.MessageParam[] = messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+  // System prompt + tools form a stable prefix → OpenAI prompt caching kicks in
+  // automatically for the input tokens, cutting cost on multi-turn sessions.
+  const convo: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: 'system', content: system },
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
+  ];
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -98,37 +100,88 @@ export async function POST(req: Request) {
       let handoff = false;
 
       try {
+        let completed = false;
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-          const llm = anthropic.messages.stream({
+          const llm = await openai.chat.completions.create({
             model: AI_MODEL,
-            max_tokens: 1024,
-            system,
-            tools,
+            max_completion_tokens: 1024,
             messages: convo,
+            tools,
+            stream: true,
           });
 
-          llm.on('text', (delta) => {
-            fullText += delta;
-            send({ type: 'text', value: delta });
-          });
+          let content = '';
+          // Tool-call deltas arrive fragmented; accumulate by their stream index.
+          const calls = new Map<number, { id: string; name: string; args: string }>();
+          let finishReason: string | null = null;
 
-          const message = await llm.finalMessage();
-          convo.push({ role: 'assistant', content: message.content });
+          for await (const chunk of llm) {
+            const choice = chunk.choices[0];
+            if (!choice) continue;
+            if (choice.delta?.content) {
+              content += choice.delta.content;
+              send({ type: 'text', value: choice.delta.content });
+            }
+            for (const tc of choice.delta?.tool_calls ?? []) {
+              const acc = calls.get(tc.index) ?? { id: '', name: '', args: '' };
+              if (tc.id) acc.id = tc.id;
+              if (tc.function?.name) acc.name += tc.function.name;
+              if (tc.function?.arguments) acc.args += tc.function.arguments;
+              calls.set(tc.index, acc);
+            }
+            if (choice.finish_reason) finishReason = choice.finish_reason;
+          }
+          fullText += content;
 
-          const toolUses = message.content.filter(
-            (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
-          );
-
-          if (message.stop_reason !== 'tool_use' || toolUses.length === 0) {
+          const toolCalls = [...calls.values()].filter((c) => c.id && c.name);
+          if (finishReason !== 'tool_calls' || toolCalls.length === 0) {
+            completed = true;
             break;
           }
 
-          const toolResults: Anthropic.ToolResultBlockParam[] = [];
-          for (const tu of toolUses) {
-            send({ type: 'tool', name: tu.name, status: 'running' });
-            capture(EVENTS.AI_TOOL_CALLED, distinctId, { tool: tu.name, session_id: sessionId });
+          // Parse each call's args ONCE, so what we execute and what we echo back
+          // into history always agree and are valid JSON. `ok:false` = the model
+          // produced malformed JSON → don't run the tool with empty args.
+          const parsed = toolCalls.map((c) => {
+            try {
+              return {
+                c,
+                args: (c.args ? JSON.parse(c.args) : {}) as Record<string, unknown>,
+                ok: true,
+              };
+            } catch (e) {
+              if (process.env.NODE_ENV !== 'production')
+                console.error('tool args parse failed', c.name, e);
+              return { c, args: {} as Record<string, unknown>, ok: false };
+            }
+          });
 
-            const result = await runTool(tu.name, (tu.input ?? {}) as Record<string, unknown>, ctx);
+          convo.push({
+            role: 'assistant',
+            content: content || null,
+            tool_calls: parsed.map(({ c, args }) => ({
+              id: c.id,
+              type: 'function' as const,
+              function: { name: c.name, arguments: JSON.stringify(args) },
+            })),
+          });
+
+          for (const { c, args, ok } of parsed) {
+            send({ type: 'tool', name: c.name, status: 'running' });
+            capture(EVENTS.AI_TOOL_CALLED, distinctId, { tool: c.name, session_id: sessionId });
+
+            if (!ok) {
+              send({ type: 'tool', name: c.name, status: 'done' });
+              convo.push({
+                role: 'tool',
+                tool_call_id: c.id,
+                content:
+                  'Error interno: los argumentos no eran válidos. Vuelve a llamar la herramienta con los datos completos en el formato correcto.',
+              });
+              continue;
+            }
+
+            const result = await runTool(c.name, args, ctx);
             if (result.widget) send({ type: 'widget', ...result.widget });
             if (result.handoff) {
               handoff = true;
@@ -141,15 +194,28 @@ export async function POST(req: Request) {
                 metadata: { via: 'lux_concierge' },
               });
             }
-            send({ type: 'tool', name: tu.name, status: 'done' });
+            send({ type: 'tool', name: c.name, status: 'done' });
 
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: tu.id,
-              content: result.content,
-            });
+            convo.push({ role: 'tool', tool_call_id: c.id, content: result.content });
           }
-          convo.push({ role: 'user', content: toolResults });
+        }
+
+        // Rounds exhausted while still calling tools → force a final text answer
+        // (no tools) so the user always gets a closing reply from the tool results.
+        if (!completed) {
+          const final = await openai.chat.completions.create({
+            model: AI_MODEL,
+            max_completion_tokens: 1024,
+            messages: convo,
+            stream: true,
+          });
+          for await (const chunk of final) {
+            const delta = chunk.choices[0]?.delta?.content;
+            if (delta) {
+              fullText += delta;
+              send({ type: 'text', value: delta });
+            }
+          }
         }
 
         send({ type: 'done', handoff });

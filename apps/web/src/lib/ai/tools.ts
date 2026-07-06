@@ -1,5 +1,5 @@
 import 'server-only';
-import type Anthropic from '@anthropic-ai/sdk';
+import type OpenAI from 'openai';
 import { OutOfServiceAreaError, quote, findNearestActivePoint } from '@luxel/pricing';
 import { getPricingData } from '@/lib/pricing-data';
 import { geocodeAddress } from '@/lib/geocode';
@@ -37,86 +37,98 @@ export interface ToolContext {
   whatsappNumber?: string | null;
 }
 
-/** Tool schemas — service-type enum is injected per request from live data. */
-export function buildTools(serviceSlugs: string[]): Anthropic.Tool[] {
-  const slugEnum = serviceSlugs.length ? serviceSlugs : ['regular', 'deep', 'move_out'];
+/** Tool schemas (OpenAI function tools) — service-type enum injected per request. */
+export function buildTools(serviceSlugs: string[]): OpenAI.Chat.Completions.ChatCompletionTool[] {
+  const slugEnum = serviceSlugs.length ? serviceSlugs : ['regular', 'deep'];
   return [
     {
-      name: 'check_coverage',
-      description:
-        'Verifica si Servicios Luxel cubre una dirección. Llama esta función cuando el usuario pregunta si atienden en una comuna o dirección específica, antes de cotizar.',
-      input_schema: {
-        type: 'object',
-        properties: {
-          address: { type: 'string', description: 'Calle y número, ej: "Av. Providencia 123".' },
-          commune: { type: 'string', description: 'Comuna, ej: "Providencia".' },
+      type: 'function',
+      function: {
+        name: 'check_coverage',
+        description:
+          'Verifica si Servicios Luxel cubre una dirección. Llama esta función cuando el usuario pregunta si atienden en una comuna o dirección específica, antes de cotizar.',
+        parameters: {
+          type: 'object',
+          properties: {
+            address: { type: 'string', description: 'Calle y número, ej: "Av. Providencia 123".' },
+            commune: { type: 'string', description: 'Comuna, ej: "Providencia".' },
+          },
+          required: ['address'],
+          additionalProperties: false,
         },
-        required: ['address'],
-        additionalProperties: false,
       },
     },
     {
-      name: 'get_quote',
-      description:
-        'Calcula el precio exacto de un servicio. SIEMPRE usa esta función para dar un precio; NUNCA inventes ni estimes montos. Requiere tipo de aseo, metros cuadrados y dirección.',
-      input_schema: {
-        type: 'object',
-        properties: {
-          service_type_slug: { type: 'string', enum: slugEnum, description: 'Tipo de aseo.' },
-          square_meters: {
-            type: 'integer',
-            description: 'Metros cuadrados del espacio (20–2000).',
+      type: 'function',
+      function: {
+        name: 'get_quote',
+        description:
+          'Calcula el precio exacto de un servicio. SIEMPRE usa esta función para dar un precio; NUNCA inventes ni estimes montos. Requiere tipo de aseo, tamaño del espacio y dirección.',
+        parameters: {
+          type: 'object',
+          properties: {
+            service_type_slug: { type: 'string', enum: slugEnum, description: 'Tipo de aseo.' },
+            square_meters: {
+              type: 'integer',
+              description: 'Tamaño del espacio en metros cuadrados (20–2000).',
+            },
+            address: { type: 'string', description: 'Calle y número.' },
+            commune: { type: 'string', description: 'Comuna.' },
+            tools_provided_by: {
+              type: 'string',
+              enum: ['customer', 'company'],
+              description:
+                '"customer" = el cliente aporta insumos; "company" = los lleva Luxel (recargo).',
+            },
+            frequency: {
+              type: 'string',
+              enum: ['one_time', 'weekly', 'biweekly', 'monthly'],
+              description: 'Frecuencia del servicio; suscripciones tienen descuento.',
+            },
           },
-          address: { type: 'string', description: 'Calle y número.' },
-          commune: { type: 'string', description: 'Comuna.' },
-          tools_provided_by: {
-            type: 'string',
-            enum: ['customer', 'company'],
-            description:
-              '"customer" = el cliente aporta insumos; "company" = los lleva Luxel (recargo).',
-          },
-          frequency: {
-            type: 'string',
-            enum: ['one_time', 'weekly', 'biweekly', 'monthly'],
-            description: 'Frecuencia del servicio; suscripciones tienen descuento.',
-          },
+          required: [
+            'service_type_slug',
+            'square_meters',
+            'address',
+            'tools_provided_by',
+            'frequency',
+          ],
+          additionalProperties: false,
         },
-        required: [
-          'service_type_slug',
-          'square_meters',
-          'address',
-          'tools_provided_by',
-          'frequency',
-        ],
-        additionalProperties: false,
       },
     },
     {
-      name: 'check_availability',
-      description:
-        'Consulta los bloques (mañana/tarde) disponibles para una fecha y dirección. Úsala cuando el usuario quiere saber si hay cupo un día específico.',
-      input_schema: {
-        type: 'object',
-        properties: {
-          date: { type: 'string', description: 'Fecha en formato YYYY-MM-DD.' },
-          address: { type: 'string', description: 'Calle y número.' },
-          commune: { type: 'string', description: 'Comuna.' },
+      type: 'function',
+      function: {
+        name: 'check_availability',
+        description:
+          'Consulta los bloques (mañana/tarde) disponibles para una fecha y dirección. Úsala cuando el usuario quiere saber si hay cupo un día específico.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: { type: 'string', description: 'Fecha en formato YYYY-MM-DD.' },
+            address: { type: 'string', description: 'Calle y número.' },
+            commune: { type: 'string', description: 'Comuna.' },
+          },
+          required: ['date', 'address'],
+          additionalProperties: false,
         },
-        required: ['date', 'address'],
-        additionalProperties: false,
       },
     },
     {
-      name: 'escalate_to_human',
-      description:
-        'Deriva la conversación a una persona de Servicios Luxel por WhatsApp. Úsala cuando el usuario lo pide, cuando el caso excede lo que puedes resolver, o ante un reclamo.',
-      input_schema: {
-        type: 'object',
-        properties: {
-          reason: { type: 'string', description: 'Motivo breve de la derivación.' },
+      type: 'function',
+      function: {
+        name: 'escalate_to_human',
+        description:
+          'Deriva la conversación a una persona de Servicios Luxel por WhatsApp. Úsala cuando el usuario lo pide, cuando el caso excede lo que puedes resolver, o ante un reclamo.',
+        parameters: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string', description: 'Motivo breve de la derivación.' },
+          },
+          required: [],
+          additionalProperties: false,
         },
-        required: [],
-        additionalProperties: false,
       },
     },
   ];

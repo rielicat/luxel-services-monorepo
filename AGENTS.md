@@ -10,7 +10,7 @@ is the practical "how to work here" for agents.
 pnpm + Turborepo monorepo of Next.js 15 (App Router) apps plus a Cloudflare
 Worker, shared packages, Supabase, and Pulumi IaC. The core user journey is:
 land → get an instant quote (per-visit + monthly subscription) → book. An AI
-concierge ("Lux", Anthropic Claude) assists throughout.
+concierge ("Lux", OpenAI) assists throughout.
 
 ## ⚠️ Toolchain: use the pinned pnpm
 
@@ -69,7 +69,7 @@ supabase/       SQL migrations + seed + local config
 | Auth                  | Clerk (with a `supabase` JWT template)                                  |
 | Database              | Supabase (Postgres + RLS)                                               |
 | Payments              | MercadoPago (primary, CLP) + Stripe                                     |
-| AI concierge          | Anthropic Claude — model id `claude-opus-4-8`                           |
+| AI concierge          | OpenAI — `gpt-4o-mini` (cost-optimized; `OPENAI_MODEL` override)        |
 | Analytics             | In-house (`analytics_events` + `leads` tables); PostHog/Sentry optional |
 
 ## Conventions
@@ -119,7 +119,7 @@ Full checklist and required env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 Known production follow-ups (need operator credentials): set Clerk **production**
 keys (prod currently runs dev keys), seed the prod Supabase, deploy `apps/admin`
-as its own Vercel project, set `ANTHROPIC_API_KEY`.
+as its own Vercel project, set `OPENAI_API_KEY`.
 
 ## Gotchas (learned the hard way)
 

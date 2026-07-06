@@ -6,7 +6,6 @@ import { clp } from './tools';
 const SERVICE_LABELS: Record<string, string> = {
   regular: 'Aseo regular — mantención semanal o puntual de hogar u oficina.',
   deep: 'Aseo profundo — limpieza detallada, ideal cada 2–3 meses.',
-  move_out: 'Aseo de entrega — para entrega o recepción de una propiedad.',
 };
 
 export function buildSystemPrompt(args: {
@@ -50,7 +49,7 @@ Ayudar a la persona a: (1) entender los servicios, (2) saber si hay cobertura en
 ${catalog}
 
 # Cómo se calcula el precio (referencial — el monto real lo entrega get_quote)
-- Precio = tarifa base + (valor por m² × m²) + distancia (${clp(pricingConfig.distancePerKmClp)}/km desde el punto de operación más cercano) + recargo de insumos (${clp(pricingConfig.toolsSurchargeClp)} si Luxel los aporta) − descuento por suscripción.
+- Precio = tarifa base + (valor por m² × m²) + movilización (${clp(pricingConfig.distancePerKmClp)}/km desde el punto de operación más cercano) + recargo de insumos (${clp(pricingConfig.toolsSurchargeClp)} si Luxel los aporta) − descuento por suscripción.
 - Descuentos por suscripción: semanal ${d.weekly}%, quincenal ${d.biweekly}%, mensual ${d.monthly}%.
 - Insumos: el cliente puede aportarlos (sin costo) o pedir que Luxel los lleve (recargo).
 

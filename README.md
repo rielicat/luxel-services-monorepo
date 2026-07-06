@@ -1,7 +1,7 @@
 # Servicios Luxel — Monorepo
 
 Cleaning services platform for the Chilean market (es-CL). Instant square-meter
-pricing, online booking + subscriptions, and **Lux** — an AI concierge (Claude)
+pricing, online booking + subscriptions, and **Lux** — an AI concierge (OpenAI)
 that quotes, checks coverage/availability, and hands off to a human on WhatsApp.
 
 ## Strategy & design docs
@@ -44,7 +44,7 @@ luxel-services-monorepo/
 | Auth           | Clerk (Supabase JWT template)                                         |
 | Database       | Supabase (Postgres + RLS + Realtime)                                  |
 | Payments       | MercadoPago (primary CL) + Stripe                                     |
-| AI concierge   | Anthropic Claude (`claude-opus-4-8`)                                  |
+| AI concierge   | OpenAI (`gpt-4o-mini`, cost-optimized; `OPENAI_MODEL` override)       |
 | Messaging      | WhatsApp Business Cloud API                                           |
 | Monitoring     | In-house event store + `/admin` dashboard (Sentry + PostHog optional) |
 | Source control | GitHub                                                                |

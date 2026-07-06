@@ -28,7 +28,8 @@ These are external accounts — the code can't provision them:
    webhook URLs to `https://serviciosluxel.cl/api/webhooks/{mercadopago,stripe}`.
 4. **WhatsApp Cloud API** — via Meta Business; deploy the worker and set its secrets
    with `wrangler secret put`.
-5. **Anthropic** — an API key for the "Lux" concierge (`ANTHROPIC_API_KEY`).
+5. **OpenAI** — an API key for the "Lux" concierge (`OPENAI_API_KEY`; model
+   defaults to the cost-optimized `gpt-4o-mini`, override with `OPENAI_MODEL`).
 6. **PostHog / Sentry** — optional (in-house analytics works without PostHog).
 7. **DNS** — point the domains at Vercel.
 
@@ -51,7 +52,7 @@ These are external accounts — the code can't provision them:
 `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`,
 `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`,
 `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`, `NEXT_PUBLIC_WHATSAPP_NUMBER`,
-`ANTHROPIC_API_KEY`, `LUXEL_ANALYTICS_SALT`, Sentry/PostHog vars.
+`OPENAI_API_KEY`, `LUXEL_ANALYTICS_SALT`, Sentry/PostHog vars.
 Do **not** set `LUXEL_DEV_MOCK_PAYMENTS` in production.
 
 ### `apps/admin` env (see `apps/admin/.env.example`)

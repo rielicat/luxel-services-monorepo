@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.110.0",
     "@clerk/nextjs": "^6.0.0",
     "@luxel/pricing": "workspace:*",
     "@luxel/shared": "workspace:*",
@@ -30,6 +29,7 @@
     "mercadopago": "^2.0.15",
     "next": "^15.0.0",
     "next-intl": "^3.21.0",
+    "openai": "^6.45.0",
     "posthog-js": "^1.165.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",

@@ -1,16 +1,17 @@
 import 'server-only';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
 /**
- * Model for the "Lux" concierge. Defaults to Claude Opus 4.8; an operator can
- * point LUXEL_AI_MODEL at a cheaper tier (e.g. claude-haiku-4-5) for volume.
+ * Model for the "Lux" concierge. Cost-optimized default: `gpt-4o-mini` — cheap,
+ * low-latency, and more than capable for this tightly-scripted, tool-driven
+ * concierge. Point OPENAI_MODEL at a stronger tier if you ever need it.
  */
-export const AI_MODEL = process.env.LUXEL_AI_MODEL ?? 'claude-opus-4-8';
+export const AI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
 
-let client: Anthropic | null = null;
+let client: OpenAI | null = null;
 
-export function getAnthropic(): Anthropic | null {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  if (!client) client = new Anthropic();
+export function getOpenAI(): OpenAI | null {
+  if (!process.env.OPENAI_API_KEY) return null;
+  if (!client) client = new OpenAI();
   return client;
 }

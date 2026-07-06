@@ -115,7 +115,7 @@
     "sub_hint": "Suscríbete y ahorra",
     "fields": {
       "service_type": "Tipo de aseo",
-      "square_meters": "Metros cuadrados",
+      "square_meters": "Tamaño del espacio",
       "address": "Dirección",
       "commune": "Comuna",
       "tools": "¿Quién aporta los insumos?",
@@ -140,10 +140,10 @@
       "updating": "Actualizando…",
       "empty": "Ajusta los detalles y verás tu precio al instante.",
       "base": "Tarifa base",
-      "per_m2_label": "Metros cuadrados",
+      "per_m2_label": "Superficie",
       "tools_label": "Insumos Luxel",
       "discount_applied": "Descuento por suscripción",
-      "distance": "Distancia desde nuestra base",
+      "distance": "Movilización",
       "book_now": "Agendar ahora"
     }
   },
