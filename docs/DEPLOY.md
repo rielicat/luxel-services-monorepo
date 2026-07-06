@@ -9,6 +9,8 @@ project** (a Vercel project has one root directory):
 | Operator panel (`@luxel/admin`) | `apps/admin`   | `panel.serviciosluxel.cl` (internal)         |
 
 The Cloudflare Worker (`workers/whatsapp`) deploys separately via `wrangler deploy`.
+The Cloudflare **zone** (DNS + Email Routing) is managed as code with Pulumi in
+[`infra/cloudflare`](../infra/cloudflare/README.md) — state in Cloudflare R2.
 
 ## One-time production infrastructure (owned by the operator)
 

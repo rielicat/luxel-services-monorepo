@@ -29,6 +29,8 @@ luxel-services-monorepo/
 │   ├── shared/               # i18n catalogs, Zod schemas, shared types
 │   ├── pricing/              # Pure pricing engine (unit-tested)
 │   └── config/               # ESLint/TS/Tailwind presets
+├── infra/
+│   └── cloudflare/           # Pulumi (TS) IaC — DNS + Email Routing, R2 state
 ├── supabase/                 # SQL migrations + seed + local config
 └── .github/workflows/        # CI
 ```

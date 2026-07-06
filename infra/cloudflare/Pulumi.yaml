@@ -1,0 +1,9 @@
+name: luxel-cloudflare
+runtime:
+  name: nodejs
+  options:
+    packagemanager: pnpm
+description: >-
+  Infrastructure-as-code for the Cloudflare zone serviciosluxel.cl — DNS records
+  (Vercel apex/www, DMARC) and Email Routing (settings, destinations, rules,
+  catch-all). The Worker stays on `wrangler` (workers/whatsapp).

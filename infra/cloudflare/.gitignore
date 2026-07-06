@@ -1,0 +1,10 @@
+# Pulumi
+bin/
+Pulumi.*.yaml.bak
+
+# One-time adoption map generated from the live account (contains resource ids).
+imports.json
+
+# State never lives on disk (remote R2 backend), but ignore just in case.
+.pulumi/
+*.tfstate

@@ -1,0 +1,46 @@
+# Stack config for the `prod` stack. Non-secret values live here; the Cloudflare
+# API token and R2 state credentials are supplied via environment variables (see
+# README). Set the two identifiers below before the first `pulumi up`:
+#
+#   pulumi config set accountId <your Cloudflare account id>
+#   pulumi config set zoneId    <the serviciosluxel.cl zone id>
+#
+# Both are shown by `pnpm --filter @luxel/infra-cloudflare export` (or the
+# Cloudflare dashboard). They are identifiers, not credentials.
+config:
+  luxel-cloudflare:accountId: REPLACE_WITH_ACCOUNT_ID
+  luxel-cloudflare:zoneId: REPLACE_WITH_ZONE_ID
+  luxel-cloudflare:zoneName: serviciosluxel.cl
+
+  # Apex A records → Vercel anycast IPs (DNS-only; Vercel terminates TLS).
+  # Update if Vercel rotates its edge IPs.
+  luxel-cloudflare:apexIps:
+    - 64.29.17.65
+    - 216.198.79.65
+
+  # www → Vercel target (per-project CNAME).
+  luxel-cloudflare:wwwTarget: ae0aca0ff9e30f31.vercel-dns-017.com
+
+  # DMARC policy for _dmarc TXT. Start at "none" (monitor only — never rejects
+  # mail); tighten to "quarantine"/"reject" once you've confirmed alignment.
+  luxel-cloudflare:dmarcPolicy: none
+
+  # Email Routing. MX / SPF / DKIM are managed automatically by Cloudflare once
+  # routing is enabled — do NOT add them as DNS records here (they'd conflict).
+  # Fill `rules`/`destinations`/`catchAll` to EXACTLY match your live setup
+  # (see `pnpm export`) before the first apply, or Pulumi will reconcile them.
+  luxel-cloudflare:emailRouting:
+    enabled: true
+    # Verified forwarding destinations (account-level). Each must already be
+    # verified in Cloudflare, or verification email is (re)sent on create.
+    destinations: []
+    # Address-level forwards: { address, forwardTo, name?, enabled? }.
+    # Example:
+    #   - address: admin@serviciosluxel.cl
+    #     forwardTo: you@gmail.com
+    rules: []
+    # What happens to every other address at the domain.
+    catchAll:
+      enabled: true
+      action: drop # "drop" | "forward"
+      forwardTo: [] # required only when action == "forward"

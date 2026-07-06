@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Standalone (not extending the ESM base): Pulumi's node runtime executes the
+  // program via ts-node with CommonJS, so this project uses module=commonjs /
+  // moduleResolution=node rather than the repo's ESNext/Bundler settings.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "outDir": "bin"
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules", "bin", "scripts"]
+}
