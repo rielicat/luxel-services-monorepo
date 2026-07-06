@@ -35,25 +35,34 @@ if (!web) {
 pset(['--path', 'web.name', web.name]);
 if (process.env.VERCEL_TEAM_ID) pset(['teamId', process.env.VERCEL_TEAM_ID]);
 
-const { envs } = await vc(`/v9/projects/${web.id}/env?decrypt=true`);
+// The list endpoint returns metadata only; the decrypted value comes from the
+// single-env GET (for non-'sensitive' vars). Prefer an explicit ADMIN_<KEY>
+// fallback secret when provided.
+const list = (await vc(`/v9/projects/${web.id}/env`)).envs || [];
 const stillMissing = [];
 for (const key of SHARED_KEYS) {
-  const hit = (envs || [])
-    .filter((e) => e.key === key)
-    .sort((a, b) => (a.target?.includes('production') ? -1 : 1))[0];
-  const value =
-    hit && typeof hit.value === 'string' && hit.value !== ''
-      ? hit.value
-      : process.env[`ADMIN_${key}`];
+  let value = process.env[`ADMIN_${key}`];
+  if (!value) {
+    const meta = list
+      .filter((e) => e.key === key)
+      .sort((a, b) => (a.target?.includes('production') ? -1 : 1))[0];
+    if (meta?.id) {
+      const full = await vc(`/v9/projects/${web.id}/env/${meta.id}`).catch(() => ({}));
+      if (typeof full.value === 'string' && full.value) value = full.value;
+    }
+  }
   if (value) pset(['--secret', '--path', `adminSharedEnv.${key}`, value]);
   else stillMissing.push(key);
 }
 
 if (stillMissing.length) {
   console.error(
-    `Could not source these admin secrets from the web project (Vercel-sensitive) and no ADMIN_<KEY> fallback secret set: ${stillMissing.join(', ')}.`,
+    `Could not source these admin secrets from the web project: ${stillMissing.join(', ')}.`,
   );
-  console.error('Add them as repo secrets named ADMIN_' + stillMissing[0] + ' etc., then re-run.');
+  console.error(`(web project env keys seen: ${list.map((e) => e.key).join(', ') || '(none)'})`);
+  console.error(
+    'For any that are Vercel-"sensitive" (unreadable via API), add a repo secret ADMIN_<KEY>, e.g. ADMIN_CLERK_SECRET_KEY, then re-run.',
+  );
   process.exit(1);
 }
 
