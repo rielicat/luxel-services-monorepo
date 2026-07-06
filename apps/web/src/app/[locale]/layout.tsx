@@ -6,9 +6,6 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { PostHogProvider } from '@/lib/posthog/provider';
-import { Nav } from '@/components/landing/nav';
-import { Footer } from '@/components/landing/footer';
-import { ChatWidget } from '@/components/chat/chat-widget';
 import { PostHogPageview } from '@/components/analytics/track-view';
 import '../globals.css';
 
@@ -60,10 +57,7 @@ export default async function LocaleLayout({
           <NextIntlClientProvider messages={messages}>
             <PostHogProvider>
               <PostHogPageview />
-              <Nav />
-              <div className="min-h-[calc(100dvh-128px)]">{children}</div>
-              <Footer />
-              <ChatWidget />
+              {children}
             </PostHogProvider>
           </NextIntlClientProvider>
         </ClerkProvider>

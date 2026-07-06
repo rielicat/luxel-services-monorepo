@@ -15,8 +15,8 @@
   "nav": {
     "home": "Inicio",
     "calculator": "Cotizar",
+    "plan": "Mi Plan",
     "account": "Mi cuenta",
-    "profile": "Mis datos",
     "calendar": "Calendario",
     "login": "Ingresar",
     "logout": "Cerrar sesión",
@@ -196,9 +196,10 @@
       "empty_cta": "Agendar un servicio"
     },
     "profile": {
-      "title": "Mis datos",
+      "title": "Mi cuenta",
       "subtitle": "Actualiza tu nombre y teléfono de contacto.",
       "name": "Nombre",
+      "name_placeholder": "Tu nombre",
       "email": "Correo",
       "phone": "Teléfono",
       "save": "Guardar cambios",
@@ -216,7 +217,11 @@
     "point_instant": "Precio al instante",
     "point_verified": "Operadores verificados",
     "point_flexible": "Agenda flexible",
-    "point_secure": "Pago seguro"
+    "point_secure": "Pago seguro",
+    "switch_to_sign_up_prompt": "¿No tienes cuenta?",
+    "switch_to_sign_up_cta": "Crear cuenta",
+    "switch_to_sign_in_prompt": "¿Ya tienes cuenta?",
+    "switch_to_sign_in_cta": "Ingresar"
   },
   "calendar": {
     "title": "Mi calendario",

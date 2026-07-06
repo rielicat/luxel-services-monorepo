@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl';
-import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { SignedIn, SignedOut, ClerkLoading, ClerkLoaded } from '@clerk/nextjs';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { LuxelLogo } from '@/components/brand/logo';
@@ -28,26 +28,38 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-2 text-sm sm:gap-3">
-          <SignedIn>
-            <Link
-              href="/calculadora"
-              className="text-muted-foreground hover:text-foreground hidden px-1 font-medium transition-colors sm:block"
-            >
-              {t('calculator')}
-            </Link>
-            <Button asChild variant="lime" size="sm">
-              <Link href="/cuenta">{t('account')}</Link>
-            </Button>
-            <UserMenu />
-          </SignedIn>
-          <SignedOut>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/sign-in">{t('login')}</Link>
-            </Button>
-            <Button asChild variant="lime" size="sm">
-              <Link href="/calculadora">{t('calculator')}</Link>
-            </Button>
-          </SignedOut>
+          {/* Reserve the cluster's space while Clerk boots so it doesn't jump —
+              incl. the sm+ secondary link that the SignedIn/SignedOut clusters show. */}
+          <ClerkLoading>
+            <span
+              aria-hidden
+              className="bg-muted hidden h-9 w-16 animate-pulse rounded-md sm:block"
+            />
+            <span aria-hidden className="bg-muted h-9 w-20 animate-pulse rounded-lg" />
+            <span aria-hidden className="bg-muted h-9 w-9 animate-pulse rounded-full" />
+          </ClerkLoading>
+          <ClerkLoaded>
+            <SignedIn>
+              <Link
+                href="/calculadora"
+                className="text-muted-foreground hover:text-foreground hidden px-1 font-medium transition-colors sm:block"
+              >
+                {t('calculator')}
+              </Link>
+              <Button asChild variant="lime" size="sm">
+                <Link href="/cuenta">{t('plan')}</Link>
+              </Button>
+              <UserMenu />
+            </SignedIn>
+            <SignedOut>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Link href="/sign-in">{t('login')}</Link>
+              </Button>
+              <Button asChild variant="lime" size="sm">
+                <Link href="/calculadora">{t('calculator')}</Link>
+              </Button>
+            </SignedOut>
+          </ClerkLoaded>
         </div>
       </div>
     </header>

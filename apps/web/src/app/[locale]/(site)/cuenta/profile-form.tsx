@@ -19,7 +19,7 @@ export function ProfileForm({
 
   return (
     <form
-      className="grid gap-4 sm:max-w-md"
+      className="grid gap-5 p-6"
       action={(fd) =>
         startTransition(async () => {
           setFailed(false);
@@ -33,23 +33,26 @@ export function ProfileForm({
         })
       }
     >
-      <div className="grid gap-2">
-        <Label htmlFor="email">{t('email')}</Label>
-        <Input id="email" value={initial.email} disabled />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="full_name">{t('name')}</Label>
-        <Input id="full_name" name="full_name" defaultValue={initial.full_name ?? ''} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="phone">{t('phone')}</Label>
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          placeholder="+56 9 ..."
-          defaultValue={initial.phone ?? ''}
-        />
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor="full_name">{t('name')}</Label>
+          <Input
+            id="full_name"
+            name="full_name"
+            defaultValue={initial.full_name ?? ''}
+            placeholder={t('name_placeholder')}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="phone">{t('phone')}</Label>
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            placeholder="+56 9 ..."
+            defaultValue={initial.phone ?? ''}
+          />
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending} className="w-fit">

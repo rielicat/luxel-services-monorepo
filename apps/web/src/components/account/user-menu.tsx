@@ -81,10 +81,10 @@ export function UserMenu() {
           </div>
           <nav className="p-1.5">
             <MenuLink href="/cuenta" icon={LayoutDashboard} onNavigate={() => setOpen(false)}>
-              {t('account')}
+              {t('plan')}
             </MenuLink>
             <MenuLink href="/cuenta/perfil" icon={UserRound} onNavigate={() => setOpen(false)}>
-              {t('profile')}
+              {t('account')}
             </MenuLink>
           </nav>
           <div className="border-border/60 border-t p-1.5">

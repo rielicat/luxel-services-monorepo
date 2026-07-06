@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { CalendarClock, CalendarDays, UserRound } from 'lucide-react';
+import { CalendarClock, CalendarDays } from 'lucide-react';
 import { getAccountContext } from '@/lib/customer';
 import { backfillSubscriptionsForCustomer } from '@/lib/subscriptions';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
@@ -75,14 +75,9 @@ export default async function CuentaPage() {
             </h1>
             <p className="text-muted-foreground max-w-xl text-sm sm:text-base">{t('subtitle')}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button asChild variant="outline" className="w-fit">
-              <Link href="/cuenta/perfil">{t('edit_profile')}</Link>
-            </Button>
-            <Button asChild variant="lime" className="w-fit">
-              <Link href="/calculadora">{t('new_quote')}</Link>
-            </Button>
-          </div>
+          <Button asChild variant="lime" className="w-fit">
+            <Link href="/calculadora">{t('new_quote')}</Link>
+          </Button>
         </div>
       </section>
 
@@ -103,14 +98,6 @@ export default async function CuentaPage() {
             subtitle={t('bookings.subtitle')}
           />
           <BookingsList bookings={bookings} />
-        </section>
-
-        <section>
-          <ProfileLinkCard
-            title={t('profile.title')}
-            subtitle={t('profile.subtitle')}
-            cta={t('edit_profile')}
-          />
         </section>
       </div>
     </main>
@@ -136,31 +123,5 @@ function SectionHeader({
         <p className="text-muted-foreground text-sm">{subtitle}</p>
       </div>
     </div>
-  );
-}
-
-function ProfileLinkCard({
-  title,
-  subtitle,
-  cta,
-}: {
-  title: string;
-  subtitle: string;
-  cta: string;
-}) {
-  return (
-    <Link
-      href="/cuenta/perfil"
-      className="border-border bg-card shadow-soft hover:border-primary/40 flex items-center gap-4 rounded-2xl border p-5 transition-colors"
-    >
-      <span className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
-        <UserRound className="h-5 w-5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <h2 className="text-lg font-semibold leading-tight">{title}</h2>
-        <p className="text-muted-foreground text-sm">{subtitle}</p>
-      </div>
-      <span className="text-primary text-sm font-medium">{cta}</span>
-    </Link>
   );
 }

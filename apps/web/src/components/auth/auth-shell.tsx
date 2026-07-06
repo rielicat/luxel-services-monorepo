@@ -8,6 +8,10 @@ import { LuxelLogo } from '@/components/brand/logo';
 /** Clerk appearance shared by the sign-in and sign-up widgets. The surrounding
  *  shell frames the card, so the widget itself renders borderless/transparent. */
 export const authAppearance = {
+  layout: {
+    // Never surface Clerk's own chrome — we render our own headings + switch link.
+    unsafe_disableDevelopmentModeWarnings: true,
+  },
   variables: {
     colorPrimary: 'hsl(175 78% 26%)',
     borderRadius: '0.75rem',
@@ -18,7 +22,12 @@ export const authAppearance = {
     cardBox: 'w-full shadow-none border-0',
     card: 'w-full bg-transparent shadow-none border-0 p-0',
     header: 'hidden',
-    footer: 'bg-transparent',
+    // Remove Clerk's own sign-in/sign-up switch (we render our own) and the
+    // "Secured by Clerk" badge — but NOT the whole footer, so the "Use another
+    // method" fallback on password/code screens stays reachable. The dev-mode
+    // warning is handled separately by unsafe_disableDevelopmentModeWarnings.
+    footerAction: 'hidden',
+    footerItem: 'hidden',
     formButtonPrimary: 'shadow-soft',
   },
 } as const;
@@ -42,7 +51,7 @@ export async function AuthShell({
   const subtitle = mode === 'sign-in' ? t('sign_in_subtitle') : t('sign_up_subtitle');
 
   return (
-    <main className="grid min-h-[calc(100dvh-128px)] lg:grid-cols-2">
+    <main className="grid min-h-dvh lg:grid-cols-2">
       {/* Brand panel */}
       <aside className="bg-primary relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div
@@ -95,6 +104,16 @@ export async function AuthShell({
             <p className="text-muted-foreground text-sm">{subtitle}</p>
           </div>
           {children}
+
+          <p className="text-muted-foreground mt-6 text-center text-sm">
+            {mode === 'sign-in' ? t('switch_to_sign_up_prompt') : t('switch_to_sign_in_prompt')}{' '}
+            <Link
+              href={mode === 'sign-in' ? '/sign-up' : '/sign-in'}
+              className="text-primary font-semibold hover:underline"
+            >
+              {mode === 'sign-in' ? t('switch_to_sign_up_cta') : t('switch_to_sign_in_cta')}
+            </Link>
+          </p>
         </div>
       </section>
     </main>
