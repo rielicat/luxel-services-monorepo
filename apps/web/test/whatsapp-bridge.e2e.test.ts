@@ -175,7 +175,8 @@ afterEach(async () => {
   if (!LIVE) return;
   await drain();
   await admin.from('messages').delete().like('session_id', 'test-e2e-%');
-  if (createdWamids.length) await admin.from('messages').delete().in('whatsapp_message_id', createdWamids);
+  if (createdWamids.length)
+    await admin.from('messages').delete().in('whatsapp_message_id', createdWamids);
   createdWamids.length = 0;
   metaSends = [];
   metaShouldFail = false;
@@ -220,7 +221,14 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
     const replyId = `wamid.reply-${nodeCrypto.randomBytes(5).toString('hex')}`;
     createdWamids.push(replyId);
     await worker.fetch(
-      signedWebhook(inbound({ from: OPERATOR_DIGITS, id: replyId, text: 'Hola, con gusto te ayudo', contextId: wamid })),
+      signedWebhook(
+        inbound({
+          from: OPERATOR_DIGITS,
+          id: replyId,
+          text: 'Hola, con gusto te ayudo',
+          contextId: wamid,
+        }),
+      ),
       workerEnv,
       ctx,
     );
@@ -240,7 +248,9 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
     // The widget's poll surfaces exactly that reply.
     const poll = await pollGET(new Request(`http://localhost/api/chat/poll?sessionId=${sid}`));
     const pollJson = await poll.json();
-    expect(pollJson.messages.map((m: { body: string }) => m.body)).toContain('Hola, con gusto te ayudo');
+    expect(pollJson.messages.map((m: { body: string }) => m.body)).toContain(
+      'Hola, con gusto te ayudo',
+    );
   });
 
   it('blocks /api/chat/human when the session never reached a handoff', async () => {
@@ -266,7 +276,11 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
       ctx,
     );
     await drain();
-    const { data: routed } = await admin.from('messages').select('*').eq('whatsapp_message_id', replyId).maybeSingle();
+    const { data: routed } = await admin
+      .from('messages')
+      .select('*')
+      .eq('whatsapp_message_id', replyId)
+      .maybeSingle();
     expect(routed!.session_id).toBe(sid);
     expect((routed!.metadata as { from_operator?: boolean }).from_operator).toBe(true);
   });
@@ -282,7 +296,11 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
       ctx,
     );
     await drain();
-    const { data: stored } = await admin.from('messages').select('*').eq('whatsapp_message_id', replyId).maybeSingle();
+    const { data: stored } = await admin
+      .from('messages')
+      .select('*')
+      .eq('whatsapp_message_id', replyId)
+      .maybeSingle();
     // Falls through to a plain inbound — never attributed to either session.
     expect(stored!.direction).toBe('in');
     expect(stored!.session_id).toBeNull();
@@ -296,7 +314,9 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
     createdWamids.push(replyId);
     const deliver = () =>
       worker.fetch(
-        signedWebhook(inbound({ from: OPERATOR_DIGITS, id: replyId, text: 'una vez', contextId: anchor })),
+        signedWebhook(
+          inbound({ from: OPERATOR_DIGITS, id: replyId, text: 'una vez', contextId: anchor }),
+        ),
         workerEnv,
         ctx,
       );
@@ -364,7 +384,11 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
       ctx,
     );
     await drain();
-    const { data: stored } = await admin.from('messages').select('*').eq('whatsapp_message_id', replyId).maybeSingle();
+    const { data: stored } = await admin
+      .from('messages')
+      .select('*')
+      .eq('whatsapp_message_id', replyId)
+      .maybeSingle();
     expect(stored!.direction).toBe('in');
     expect(stored!.session_id).toBeNull();
   });
@@ -406,7 +430,11 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
       ctx,
     );
     await drain();
-    const { data: routed } = await admin.from('messages').select('*').eq('whatsapp_message_id', replyId).maybeSingle();
+    const { data: routed } = await admin
+      .from('messages')
+      .select('*')
+      .eq('whatsapp_message_id', replyId)
+      .maybeSingle();
     expect(routed!.session_id).toBe(sid);
     expect((routed!.metadata as { from_operator?: boolean }).from_operator).toBe(true);
     expect(routed!.body).toContain('[mensaje de voz]');
@@ -414,14 +442,16 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
 
   // Regression: quoting one's OWN prior bridged reply used to miss the exact match
   // (it required to_operator=true) and fall through to the ambiguous fallback.
-  it('resolves a reply that quotes the operator\'s own earlier reply, even with another thread active', async () => {
+  it("resolves a reply that quotes the operator's own earlier reply, even with another thread active", async () => {
     const sid = `test-e2e-quote-${nodeCrypto.randomUUID()}`;
     const anchor = await seedAnchor(sid);
     // First operator reply (creates a from_operator row) quoting the anchor.
     const firstReply = `wamid.first-${nodeCrypto.randomBytes(5).toString('hex')}`;
     createdWamids.push(firstReply);
     await worker.fetch(
-      signedWebhook(inbound({ from: OPERATOR_DIGITS, id: firstReply, text: 'primera', contextId: anchor })),
+      signedWebhook(
+        inbound({ from: OPERATOR_DIGITS, id: firstReply, text: 'primera', contextId: anchor }),
+      ),
       workerEnv,
       ctx,
     );
@@ -432,12 +462,18 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
     const followUp = `wamid.follow-${nodeCrypto.randomBytes(5).toString('hex')}`;
     createdWamids.push(followUp);
     await worker.fetch(
-      signedWebhook(inbound({ from: OPERATOR_DIGITS, id: followUp, text: 'segunda', contextId: firstReply })),
+      signedWebhook(
+        inbound({ from: OPERATOR_DIGITS, id: followUp, text: 'segunda', contextId: firstReply }),
+      ),
       workerEnv,
       ctx,
     );
     await drain();
-    const { data: routed } = await admin.from('messages').select('*').eq('whatsapp_message_id', followUp).maybeSingle();
+    const { data: routed } = await admin
+      .from('messages')
+      .select('*')
+      .eq('whatsapp_message_id', followUp)
+      .maybeSingle();
     expect(routed!.session_id).toBe(sid);
     expect((routed!.metadata as { from_operator?: boolean }).from_operator).toBe(true);
   });
