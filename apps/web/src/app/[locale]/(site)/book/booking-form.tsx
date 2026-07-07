@@ -114,9 +114,21 @@ export function BookingForm({
   const [availability, setAvailability] = useState<DayAvailabilityDTO | null>(null);
   const [paymentProvider, setPaymentProvider] = useState(paymentProviders[0] ?? '');
 
-  // Accordion: one step open at a time. Coming from a quote (address prefilled)
-  // everything up to the date is already filled, so jump straight there.
-  const [activeStep, setActiveStep] = useState(() => (initial.addressLine ? 6 : 1));
+  // Accordion: every not-yet-completed step starts expanded; the carried-over
+  // ones (service/size/address/insumos/frequency from the quote) start collapsed
+  // to a summary you can click to re-open. Address opens only if it wasn't carried.
+  const [expanded, setExpanded] = useState<Set<number>>(() => {
+    const open = new Set<number>([6, 7]); // date + payment always need doing
+    if (!initial.addressLine) open.add(3);
+    return open;
+  });
+  const toggle = (n: number) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(n)) next.delete(n);
+      else next.add(n);
+      return next;
+    });
 
   const [pending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -185,11 +197,8 @@ export function BookingForm({
     n,
     done,
     summary,
-    active: activeStep === n,
-    onEdit: () => setActiveStep(n),
-    onContinue: () => setActiveStep(n + 1),
-    editLabel: t('edit'),
-    continueLabel: t('continue'),
+    expanded: expanded.has(n),
+    onToggle: () => toggle(n),
   });
 
   return (
@@ -296,7 +305,6 @@ export function BookingForm({
           )}
           icon={MapPin}
           title={t('step_address')}
-          canContinue={addressDone}
         >
           <AddressAutocomplete
             label={t('address_line')}
@@ -408,7 +416,6 @@ export function BookingForm({
           )}
           icon={CalendarDays}
           title={t('step_when')}
-          canContinue={whenDone}
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border p-1">
@@ -471,7 +478,6 @@ export function BookingForm({
           )}
           icon={Wallet}
           title={t('payment_title')}
-          isLast
         >
           {paymentProviders.length ? (
             <RadioGroup
@@ -562,37 +568,33 @@ function AccordionStep({
   n,
   icon: Icon,
   title,
-  active,
+  expanded,
   done,
   summary,
-  onEdit,
-  onContinue,
-  editLabel,
-  continueLabel,
-  canContinue = true,
-  isLast,
+  onToggle,
   children,
 }: {
   n: number;
   icon: LucideIcon;
   title: string;
-  active: boolean;
+  expanded: boolean;
   done: boolean;
   summary: string;
-  onEdit: () => void;
-  onContinue: () => void;
-  editLabel: string;
-  continueLabel: string;
-  canContinue?: boolean;
-  isLast?: boolean;
+  onToggle: () => void;
   children: React.ReactNode;
 }) {
-  if (!active) {
-    return (
+  return (
+    <Card
+      className={cn(
+        'shadow-soft overflow-hidden',
+        expanded ? 'border-primary/30 ring-primary/10 ring-2' : 'border-border/60',
+      )}
+    >
       <button
         type="button"
-        onClick={onEdit}
-        className="border-border/60 bg-card shadow-soft hover:border-primary/40 group flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-colors"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="hover:bg-muted/30 flex w-full items-center gap-3 p-4 text-left transition-colors"
       >
         <span
           className={cn(
@@ -603,37 +605,22 @@ function AccordionStep({
           {done ? <Check className="h-4 w-4" /> : n}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="text-muted-foreground block text-xs font-medium">{title}</span>
-          <span className="block truncate text-sm font-semibold">{summary}</span>
-        </span>
-        <span className="text-primary text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
-          {editLabel}
-        </span>
-        <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
-      </button>
-    );
-  }
-  return (
-    <Card className="shadow-soft border-primary/30 ring-primary/10 ring-2">
-      <CardContent className="grid gap-4 p-5 sm:p-6">
-        <div className="flex items-center gap-3">
-          <span className="bg-primary text-primary-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold">
-            {n}
+          <span className="flex items-center gap-2">
+            <Icon className="text-secondary h-4 w-4 shrink-0" />
+            <span className="font-display text-sm font-semibold sm:text-base">{title}</span>
           </span>
-          <div className="flex items-center gap-2">
-            <Icon className="text-secondary h-4 w-4" />
-            <h3 className="font-display text-base font-semibold">{title}</h3>
-          </div>
-        </div>
-        {children}
-        {!isLast && (
-          <div className="flex justify-end">
-            <Button type="button" size="sm" onClick={onContinue} disabled={!canContinue}>
-              {continueLabel}
-            </Button>
-          </div>
-        )}
-      </CardContent>
+          {!expanded && (
+            <span className="text-muted-foreground mt-0.5 block truncate text-sm">{summary}</span>
+          )}
+        </span>
+        <ChevronDown
+          className={cn(
+            'text-muted-foreground h-4 w-4 shrink-0 transition-transform',
+            expanded && 'rotate-180',
+          )}
+        />
+      </button>
+      {expanded && <div className="grid gap-4 px-4 pb-5 sm:px-6 sm:pb-6">{children}</div>}
     </Card>
   );
 }
