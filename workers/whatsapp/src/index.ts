@@ -26,6 +26,9 @@ export interface Env {
   SUPABASE_SECRET_KEY: string;
   // Operator/team number (E.164) whose replies bridge back into the web chat.
   LUXEL_OPERATOR_WHATSAPP?: string;
+  // Shared secret the Next.js app presents to POST /send (forward a chat message
+  // to the operator). Set via `wrangler secret put INTERNAL_SEND_TOKEN`.
+  INTERNAL_SEND_TOKEN?: string;
 }
 
 interface InboundMessage {
@@ -178,9 +181,66 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
   }
 }
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/** Sends a text to the operator via the WhatsApp Cloud API; returns the wamid. */
+async function sendToOperator(env: Env, text: string): Promise<string | null> {
+  const to = env.LUXEL_OPERATOR_WHATSAPP?.replace(/[^\d]/g, '');
+  if (!to || !env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) return null;
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to,
+          type: 'text',
+          text: { body: text.slice(0, 4000), preview_url: false },
+        }),
+      },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as { messages?: { id: string }[] };
+    return json.messages?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Internal route the Next.js app calls to forward a chat message to the operator.
+ *  Authenticated by a shared secret so the endpoint can't be abused directly. */
+async function handleSend(req: Request, env: Env): Promise<Response> {
+  const token = req.headers.get('x-luxel-internal-token');
+  if (!env.INTERNAL_SEND_TOKEN || !token || !timingSafeEqual(token, env.INTERNAL_SEND_TOKEN)) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+  let body: { text?: string };
+  try {
+    body = (await req.json()) as { text?: string };
+  } catch {
+    return Response.json({ error: 'bad_json' }, { status: 400 });
+  }
+  const text = (body.text ?? '').trim();
+  if (!text) return Response.json({ error: 'empty' }, { status: 400 });
+
+  const wamid = await sendToOperator(env, text);
+  return Response.json({ wamid });
+}
+
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
+    if (url.pathname === '/send' && req.method === 'POST') return handleSend(req, env);
     if (url.pathname !== '/webhook') return new Response('Not found', { status: 404 });
 
     if (req.method === 'GET') {

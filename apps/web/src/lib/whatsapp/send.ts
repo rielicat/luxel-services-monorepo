@@ -1,43 +1,35 @@
 import 'server-only';
 
-const GRAPH = 'https://graph.facebook.com/v21.0';
+/**
+ * Forwarding to WhatsApp goes through the Cloudflare worker (which owns the
+ * WhatsApp Cloud API credentials and the operator number) — the web app only
+ * needs the worker's /send URL and a shared token, so no WhatsApp secrets live
+ * here. Inbound (Meta webhook) is likewise the worker's job.
+ */
 
-/** True when the WhatsApp Cloud API + an operator number are configured. */
+/** True when the worker send bridge is configured. */
 export function whatsappBridgeConfigured(): boolean {
-  return Boolean(
-    process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID && operatorNumber(),
-  );
-}
-
-/** The Luxel operator/team WhatsApp number (digits only) that receives handoffs. */
-export function operatorNumber(): string | null {
-  const n = process.env.LUXEL_OPERATOR_WHATSAPP?.replace(/[^\d]/g, '');
-  return n && n.length >= 8 ? n : null;
+  return Boolean(process.env.WHATSAPP_WORKER_SEND_URL && process.env.INTERNAL_SEND_TOKEN);
 }
 
 /**
- * Sends a text via the WhatsApp Cloud API. Returns the provider message id
- * (wamid) so the operator's reply can be routed back by reply-context. Never
- * throws — a failed forward degrades to a persisted message + "te responderemos".
+ * Asks the worker to forward `text` to the operator's WhatsApp. Returns the
+ * provider message id (wamid) so the operator's reply can be routed back by
+ * reply-context. Never throws.
  */
-export async function sendWhatsAppText(to: string, body: string): Promise<string | null> {
-  const token = process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  if (!token || !phoneId) return null;
+export async function sendWhatsAppViaWorker(text: string): Promise<string | null> {
+  const url = process.env.WHATSAPP_WORKER_SEND_URL;
+  const token = process.env.INTERNAL_SEND_TOKEN;
+  if (!url || !token) return null;
   try {
-    const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
+    const res = await fetch(url, {
       method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: to.replace(/[^\d]/g, ''),
-        type: 'text',
-        text: { body: body.slice(0, 4000), preview_url: false },
-      }),
+      headers: { 'content-type': 'application/json', 'x-luxel-internal-token': token },
+      body: JSON.stringify({ text: text.slice(0, 4000) }),
     });
     if (!res.ok) return null;
-    const json = (await res.json()) as { messages?: { id: string }[] };
-    return json.messages?.[0]?.id ?? null;
+    const json = (await res.json()) as { wamid?: string | null };
+    return json.wamid ?? null;
   } catch {
     return null;
   }

@@ -4,7 +4,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { capture } from '@/lib/analytics/server';
 import { EVENTS } from '@/lib/analytics/events';
 import { workingHoursStatus } from '@/lib/working-hours';
-import { whatsappBridgeConfigured, operatorNumber, sendWhatsAppText } from '@/lib/whatsapp/send';
+import { whatsappBridgeConfigured, sendWhatsAppViaWorker } from '@/lib/whatsapp/send';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,8 +67,7 @@ export async function POST(req: Request) {
   const hours = workingHoursStatus();
 
   let forwarded = false;
-  const to = operatorNumber();
-  if (whatsappBridgeConfigured() && to) {
+  if (whatsappBridgeConfigured()) {
     // Per-session forward cap (bounds operator-phone spam / Meta cost without
     // external rate-limit infra): at most 8 WhatsApp forwards per rolling minute.
     const since = new Date(Date.now() - 60_000).toISOString();
@@ -92,7 +91,7 @@ export async function POST(req: Request) {
     const text =
       `🟢 Luxel · chat web — ${who}\nSesión: ${sessionId}\n\n${message}\n\n` +
       `↩️ Responde a este mensaje para contestarle en el chat.`;
-    const wamid = await sendWhatsAppText(to, text);
+    const wamid = await sendWhatsAppViaWorker(text);
     if (wamid) {
       forwarded = true;
       // Anchor for reply-context routing: the operator's reply carries this id.
