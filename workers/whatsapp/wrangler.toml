@@ -10,9 +10,19 @@ compatibility_flags = ["nodejs_compat"]
 #   WHATSAPP_PHONE_NUMBER_ID  (numeric phone number id from Meta)
 #   SUPABASE_URL
 #   SUPABASE_SECRET_KEY       (sb_secret_* — replaces the legacy service_role key)
+#   LUXEL_OPERATOR_WHATSAPP   (operator E.164 — receives handoffs, replies bridge back)
+#   INTERNAL_SEND_TOKEN       (shared with the web app; authenticates POST /send)
 
 [observability]
 enabled = true
 
 [vars]
 ENVIRONMENT = "production"
+
+# Backstops POST /send against a leaked INTERNAL_SEND_TOKEN. namespace_id is any
+# unique integer within the account; period must be 10 or 60.
+[[unsafe.bindings]]
+name = "SEND_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }

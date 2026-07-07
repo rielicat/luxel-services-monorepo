@@ -14,6 +14,10 @@ const Body = z.object({
   message: z.string().min(1).max(2000),
 });
 
+// Per-session cap on this public endpoint. Enforced atomically in Postgres
+// (claim_chat_slot) so concurrent bursts can't slip past a check-then-write race.
+const MAX_MESSAGES_PER_MINUTE = 12;
+
 /**
  * A message the user sends while in "human mode" (after the concierge handed off).
  * Persists it, and forwards it to the operator's WhatsApp when configured — the
@@ -54,39 +58,33 @@ export async function POST(req: Request) {
     customerName = c?.full_name ?? null;
   }
 
-  await supabase.from('messages').insert({
-    customer_id: customerId,
-    session_id: sessionId,
-    direction: 'in',
-    channel: 'web',
-    body: message,
-    metadata: { kind: 'human' },
-  });
-  capture(EVENTS.CHAT_MESSAGE_SENT, userId ?? sessionId, { session_id: sessionId, mode: 'human' });
-
   const hours = workingHoursStatus();
+
+  // Atomic per-session cap. This also writes the user's message row, so a request
+  // that trips the cap persists nothing and can't be used to amplify DB writes or
+  // WhatsApp forwards. Counts attempts, so a later send failure still spends a slot.
+  const { data: allowed, error: slotErr } = await supabase.rpc('claim_chat_slot', {
+    p_session_id: sessionId,
+    p_customer_id: customerId,
+    p_body: message,
+    p_max: MAX_MESSAGES_PER_MINUTE,
+    p_window_seconds: 60,
+  });
+  if (slotErr) return Response.json({ ok: false, error: 'store' }, { status: 500 });
+  if (allowed === false) {
+    return Response.json({
+      ok: true,
+      open: hours.open,
+      forwarded: false,
+      rate_limited: true,
+      openHour: hours.openHour,
+      closeHour: hours.closeHour,
+    });
+  }
+  capture(EVENTS.CHAT_MESSAGE_SENT, userId ?? sessionId, { session_id: sessionId, mode: 'human' });
 
   let forwarded = false;
   if (whatsappBridgeConfigured()) {
-    // Per-session forward cap (bounds operator-phone spam / Meta cost without
-    // external rate-limit infra): at most 8 WhatsApp forwards per rolling minute.
-    const since = new Date(Date.now() - 60_000).toISOString();
-    const { count } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('session_id', sessionId)
-      .eq('metadata->>to_operator', 'true')
-      .gt('created_at', since);
-    if ((count ?? 0) >= 8) {
-      return Response.json({
-        ok: true,
-        open: hours.open,
-        forwarded: false,
-        openHour: hours.openHour,
-        closeHour: hours.closeHour,
-      });
-    }
-
     const who = customerName ?? 'Visitante web';
     const text =
       `🟢 Luxel · chat web — ${who}\nSesión: ${sessionId}\n\n${message}\n\n` +

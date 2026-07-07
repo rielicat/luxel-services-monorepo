@@ -29,6 +29,9 @@ export interface Env {
   // Shared secret the Next.js app presents to POST /send (forward a chat message
   // to the operator). Set via `wrangler secret put INTERNAL_SEND_TOKEN`.
   INTERNAL_SEND_TOKEN?: string;
+  // Optional Cloudflare rate-limit binding backstopping /send if the shared token
+  // ever leaks (declared in wrangler.toml). Absent locally/in tests → skipped.
+  SEND_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
 }
 
 interface InboundMessage {
@@ -86,38 +89,69 @@ async function verifySignature(
 
 type Thread = { session_id: string; customer_id: string | null };
 
+// The recency fallback auto-routes a non-reply operator message only when the
+// SAME single web session is the only one that has bridged to the operator in
+// this window. Kept wide (60 min) on purpose: a short window let an older
+// concurrent chat's anchor age out, collapsing the distinct-session set to 1 and
+// leaking one customer's answer into another's chat. A wider window means a
+// second recent handoff reliably disables the guess instead of misrouting.
+const FALLBACK_WINDOW_MS = 60 * 60 * 1000;
+
 /** Which web session an operator's WhatsApp reply belongs to. Prefers the exact
- *  forwarded message it replied to; otherwise only auto-routes when there is a
- *  SINGLE active thread (never guesses between concurrent chats → no cross-leak). */
+ *  bridged message it quoted; otherwise only auto-routes when there is a SINGLE
+ *  active thread (never guesses between concurrent chats → no cross-leak). */
 async function resolveOperatorThread(
   supabase: SupabaseClient,
   contextId: string | undefined,
 ): Promise<Thread | null> {
+  // Exact match: the operator quoted a specific bridged message. Match ANY of our
+  // rows carrying that id — the forwarded anchor OR one of our own prior replies —
+  // so quoting an earlier answer in a thread still resolves to the right session.
   if (contextId) {
     const { data } = await supabase
       .from('messages')
       .select('session_id, customer_id')
       .eq('whatsapp_message_id', contextId)
-      .eq('metadata->>to_operator', 'true')
+      .not('session_id', 'is', null)
       .maybeSingle();
     const row = data as Thread | null;
     if (row?.session_id)
       return { session_id: row.session_id, customer_id: row.customer_id ?? null };
   }
-  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - FALLBACK_WINDOW_MS).toISOString();
   const { data: recent } = await supabase
     .from('messages')
     .select('session_id, customer_id')
     .eq('metadata->>to_operator', 'true')
     .gt('created_at', since)
     .order('created_at', { ascending: false })
-    .limit(30);
+    .limit(50);
   const rows = (recent ?? []) as Thread[];
   const distinct = new Set(rows.map((r) => r.session_id));
   if (distinct.size === 1 && rows[0]) {
     return { session_id: rows[0].session_id, customer_id: rows[0].customer_id ?? null };
   }
   return null;
+}
+
+/** Human-readable stand-in for a non-text operator reply so the customer sees
+ *  that a person answered instead of silence. */
+function operatorPlaceholder(type: string): string {
+  switch (type) {
+    case 'image':
+      return '📷 [imagen]';
+    case 'audio':
+    case 'voice':
+      return '🎙️ [mensaje de voz]';
+    case 'video':
+      return '🎬 [video]';
+    case 'document':
+      return '📎 [archivo]';
+    case 'sticker':
+      return '[sticker]';
+    default:
+      return '[mensaje]';
+  }
 }
 
 async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promise<void> {
@@ -130,12 +164,12 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
       for (const msg of change.value.messages ?? []) {
-        if (msg.type !== 'text' || !msg.text?.body) continue;
-
         const fromDigits = msg.from.replace(/[^\d]/g, '');
         const fromOperator = Boolean(operatorDigits) && fromDigits === operatorDigits;
 
-        // 1) A reply from the operator → route it back to the web session.
+        // 1) A reply from the operator → route it back to the web session. Non-text
+        //    replies (voice note, image, sticker) become a placeholder so the
+        //    customer still sees the operator answered instead of nothing.
         if (fromOperator) {
           const target = await resolveOperatorThread(supabase, msg.context?.id);
           if (target) {
@@ -145,19 +179,26 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
                 session_id: target.session_id,
                 direction: 'out',
                 channel: 'whatsapp',
-                body: msg.text.body,
+                body: msg.text?.body || operatorPlaceholder(msg.type),
                 whatsapp_message_id: msg.id,
-                metadata: { from_operator: true, wa_from: msg.from },
+                metadata: { from_operator: true, wa_from: msg.from, wa_type: msg.type },
               },
               { onConflict: 'whatsapp_message_id', ignoreDuplicates: true },
             );
             continue;
           }
           // Operator message we can't safely route (multiple open threads and no
-          // reply-to) — fall through and store it as a plain inbound below.
+          // reply-to). Log it so it isn't lost silently, then fall through: a text
+          // one is stored as a plain inbound below; a non-text one stops here.
+          console.warn('whatsapp.operator_reply_unrouted', {
+            id: msg.id,
+            context: msg.context?.id ?? null,
+          });
         }
 
-        // 2) Otherwise a direct inbound from a customer — attribute by phone (E.164).
+        // 2) Otherwise a direct inbound from a customer — text only (media isn't
+        //    surfaced to the operator today) — attribute by phone (E.164).
+        if (msg.type !== 'text' || !msg.text?.body) continue;
         const wa = msg.from.startsWith('+') ? msg.from : `+${msg.from}`;
         const { data: customer } = await supabase
           .from('customers')
@@ -223,6 +264,12 @@ async function handleSend(req: Request, env: Env): Promise<Response> {
   const token = req.headers.get('x-luxel-internal-token');
   if (!env.INTERNAL_SEND_TOKEN || !token || !timingSafeEqual(token, env.INTERNAL_SEND_TOKEN)) {
     return new Response('Unauthorized', { status: 401 });
+  }
+  // Defense-in-depth: the token is deployed across the whole web fleet, so cap
+  // sends globally (one operator destination) in case it ever leaks.
+  if (env.SEND_LIMITER) {
+    const { success } = await env.SEND_LIMITER.limit({ key: 'operator-send' });
+    if (!success) return new Response('Too Many Requests', { status: 429 });
   }
   let body: { text?: string };
   try {

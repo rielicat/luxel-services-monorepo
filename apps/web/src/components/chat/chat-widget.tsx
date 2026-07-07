@@ -84,7 +84,14 @@ export function ChatWidget() {
   // While handed off to a person, poll for operator replies (routed from WhatsApp).
   useEffect(() => {
     if (!humanMode || sessionId === 'ssr') return;
-    if (!cursorRef.current) cursorRef.current = new Date().toISOString();
+    // Resume from the last reply we actually delivered — never from the client
+    // clock, which would skip replies that landed while the tab was closed. On a
+    // fresh handoff there's no cursor, so the first poll pulls recent replies and
+    // the id-dedup below prevents showing anything twice.
+    const cursorKey = `luxel.chat.cursor.${sessionId}`;
+    if (!cursorRef.current && typeof window !== 'undefined') {
+      cursorRef.current = localStorage.getItem(cursorKey);
+    }
     let stopped = false;
     let inFlight = false; // don't let a slow poll overlap the next interval fire
     const poll = async () => {
@@ -111,7 +118,10 @@ export function ChatWidget() {
           ];
         });
         const last = incoming[incoming.length - 1];
-        if (last) cursorRef.current = last.created_at;
+        if (last) {
+          cursorRef.current = last.created_at;
+          if (typeof window !== 'undefined') localStorage.setItem(cursorKey, last.created_at);
+        }
       } catch {
         /* best-effort */
       } finally {
