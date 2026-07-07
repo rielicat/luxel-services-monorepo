@@ -114,21 +114,38 @@ export function BookingForm({
   const [availability, setAvailability] = useState<DayAvailabilityDTO | null>(null);
   const [paymentProvider, setPaymentProvider] = useState(paymentProviders[0] ?? '');
 
-  // Accordion: every not-yet-completed step starts expanded; the carried-over
-  // ones (service/size/address/insumos/frequency from the quote) start collapsed
-  // to a summary you can click to re-open. Address opens only if it wasn't carried.
-  const [expanded, setExpanded] = useState<Set<number>>(() => {
-    const open = new Set<number>([6, 7]); // date + payment always need doing
-    if (!initial.addressLine) open.add(3);
-    return open;
-  });
+  // Accordion: a step is expanded iff it isn't selected yet. Anything carried from
+  // the quote starts collapsed; the rest start open and auto-collapse the moment a
+  // choice is made (no "continue" step). Any header re-opens a step to edit it.
+  const carried: [number, unknown][] = [
+    [1, initial.serviceTypeId],
+    [2, initial.squareMeters],
+    [3, initial.addressLine],
+    [4, initial.toolsProvidedBy],
+    [5, initial.frequency],
+  ];
+  const [collapsed, setCollapsed] = useState<Set<number>>(
+    () => new Set(carried.filter(([, v]) => Boolean(v)).map(([n]) => n)),
+  );
+  const collapse = (n: number) => setCollapsed((prev) => new Set(prev).add(n));
   const toggle = (n: number) =>
-    setExpanded((prev) => {
+    setCollapsed((prev) => {
       const next = new Set(prev);
       if (next.has(n)) next.delete(n);
       else next.add(n);
       return next;
     });
+
+  // On load, jump to the first step that still needs a choice.
+  const firstUnfilled = carried.find(([, v]) => !v)?.[0] ?? 6;
+  useEffect(() => {
+    if (firstUnfilled > 1) {
+      document
+        .getElementById(`book-step-${firstUnfilled}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [pending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -197,7 +214,7 @@ export function BookingForm({
     n,
     done,
     summary,
-    expanded: expanded.has(n),
+    expanded: !collapsed.has(n),
     onToggle: () => toggle(n),
   });
 
@@ -212,7 +229,10 @@ export function BookingForm({
         >
           <RadioGroup
             value={serviceTypeId}
-            onValueChange={setServiceTypeId}
+            onValueChange={(v) => {
+              setServiceTypeId(v);
+              collapse(1);
+            }}
             className="grid gap-3 sm:grid-cols-2"
           >
             {serviceTypes.map((s) => {
@@ -281,7 +301,10 @@ export function BookingForm({
                 <button
                   type="button"
                   key={p.key}
-                  onClick={() => setSquareMeters(p.m2)}
+                  onClick={() => {
+                    setSquareMeters(p.m2);
+                    collapse(2);
+                  }}
                   className={cn(
                     'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                     squareMeters === p.m2
@@ -315,6 +338,7 @@ export function BookingForm({
             onSelect={(s) => {
               setAddressLine(s.shortName);
               setCommune(s.commune ?? '');
+              collapse(3);
             }}
             onClear={() => {
               setAddressLine('');
@@ -335,7 +359,10 @@ export function BookingForm({
         >
           <RadioGroup
             value={toolsProvidedBy}
-            onValueChange={(v) => setToolsProvidedBy(v as 'customer' | 'company')}
+            onValueChange={(v) => {
+              setToolsProvidedBy(v as 'customer' | 'company');
+              collapse(4);
+            }}
             className="grid gap-3 sm:grid-cols-2"
           >
             <ToolCard
@@ -364,7 +391,10 @@ export function BookingForm({
         >
           <RadioGroup
             value={frequency}
-            onValueChange={(v) => setFrequency(v as Frequency)}
+            onValueChange={(v) => {
+              setFrequency(v as Frequency);
+              collapse(5);
+            }}
             className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
           >
             {FREQUENCIES.map((f) => {
@@ -441,7 +471,10 @@ export function BookingForm({
                       key={b.timeblock}
                       type="button"
                       disabled={full}
-                      onClick={() => setTimeblock(b.timeblock)}
+                      onClick={() => {
+                        setTimeblock(b.timeblock);
+                        collapse(6);
+                      }}
                       className={cn(
                         'flex items-center justify-between rounded-xl border-2 p-3 text-left transition-all',
                         active
@@ -482,7 +515,10 @@ export function BookingForm({
           {paymentProviders.length ? (
             <RadioGroup
               value={paymentProvider}
-              onValueChange={setPaymentProvider}
+              onValueChange={(v) => {
+                setPaymentProvider(v);
+                collapse(7);
+              }}
               className="grid gap-2.5"
             >
               {paymentProviders.map((p) => {
@@ -585,8 +621,9 @@ function AccordionStep({
 }) {
   return (
     <Card
+      id={`book-step-${n}`}
       className={cn(
-        'shadow-soft overflow-hidden',
+        'shadow-soft scroll-mt-24 overflow-hidden',
         expanded ? 'border-primary/30 ring-primary/10 ring-2' : 'border-border/60',
       )}
     >
