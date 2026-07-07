@@ -25,7 +25,13 @@ type AvailabilityWidget = {
   date: string;
   timeblocks: { timeblock: string; available: number }[];
 };
-type HandoffWidget = { kind: 'handoff'; whatsappUrl: string | null };
+type HandoffWidget = {
+  kind: 'handoff';
+  whatsappUrl: string | null;
+  withinHours: boolean;
+  openHour: number;
+  closeHour: number;
+};
 type Widget = QuoteWidget | AvailabilityWidget | HandoffWidget;
 
 interface ChatMessage {
@@ -57,12 +63,68 @@ export function ChatWidget() {
   const [working, setWorking] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState('ssr');
+  const [humanMode, setHumanMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSessionId(getOrCreateSession());
     setMessages([{ id: 'greeting', role: 'bot', text: t('bot_greeting'), widgets: [] }]);
+    // Survive a reload mid-handoff: stay with the person, keep polling their replies.
+    if (typeof window !== 'undefined' && localStorage.getItem('luxel.chat.human') === '1') {
+      setHumanMode(true);
+    }
   }, [t]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (humanMode) localStorage.setItem('luxel.chat.human', '1');
+  }, [humanMode]);
+
+  // While handed off to a person, poll for operator replies (routed from WhatsApp).
+  useEffect(() => {
+    if (!humanMode || sessionId === 'ssr') return;
+    if (!cursorRef.current) cursorRef.current = new Date().toISOString();
+    let stopped = false;
+    let inFlight = false; // don't let a slow poll overlap the next interval fire
+    const poll = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const after = cursorRef.current ? `&after=${encodeURIComponent(cursorRef.current)}` : '';
+        const res = await fetch(
+          `/api/chat/poll?sessionId=${encodeURIComponent(sessionId)}${after}`,
+        );
+        const data = (await res.json()) as {
+          ok: boolean;
+          messages?: { id: string; body: string; created_at: string }[];
+        };
+        if (stopped || !data.ok || !data.messages?.length) return;
+        const incoming = data.messages;
+        setMessages((prev) => {
+          const seen = new Set(prev.map((m) => m.id));
+          const fresh = incoming.filter((m) => !seen.has(m.id));
+          if (!fresh.length) return prev;
+          return [
+            ...prev,
+            ...fresh.map((m) => ({ id: m.id, role: 'bot' as const, text: m.body, widgets: [] })),
+          ];
+        });
+        const last = incoming[incoming.length - 1];
+        if (last) cursorRef.current = last.created_at;
+      } catch {
+        /* best-effort */
+      } finally {
+        inFlight = false;
+      }
+    };
+    const iv = setInterval(poll, 4000);
+    void poll();
+    return () => {
+      stopped = true;
+      clearInterval(iv);
+    };
+  }, [humanMode, sessionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -85,6 +147,47 @@ export function ChatWidget() {
       text: clean,
       widgets: [],
     };
+
+    // Handed off to a person: forward to WhatsApp instead of the AI, stay in chat.
+    if (humanMode) {
+      setMessages((prev) => [...prev, userMsg]);
+      setInput('');
+      setPending(true);
+      try {
+        const res = await fetch('/api/chat/human', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId, message: clean }),
+        });
+        const data = (await res.json()) as {
+          ok: boolean;
+          open: boolean;
+          forwarded: boolean;
+          openHour: number;
+          closeHour: number;
+        };
+        const note = !data.open
+          ? t('human_closed', { open: data.openHour, close: data.closeHour })
+          : !data.forwarded
+            ? t('human_received')
+            : null;
+        if (note) {
+          setMessages((prev) => [
+            ...prev,
+            { id: crypto.randomUUID(), role: 'bot', text: note, widgets: [] },
+          ]);
+        }
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'bot', text: t('human_error'), widgets: [] },
+        ]);
+      } finally {
+        setPending(false);
+      }
+      return;
+    }
+
     const botId = crypto.randomUUID();
     const history = [...messages, userMsg];
     setMessages([...history, { id: botId, role: 'bot', text: '', widgets: [] }]);
@@ -135,6 +238,7 @@ export function ChatWidget() {
             update((m) => ({ ...m, text: m.text || evt.message }));
           } else if (evt.type === 'done') {
             setWorking(false);
+            if (evt.handoff) setHumanMode(true);
           }
         }
       }
@@ -170,10 +274,20 @@ export function ChatWidget() {
             <LuxelMark className="h-5 w-5" />
           </span>
           <div className="text-primary-foreground">
-            <h3 className="font-display text-sm font-bold leading-tight">{t('assistant_name')}</h3>
-            <p className="text-primary-foreground/80 text-xs leading-tight">{t('subtitle')}</p>
+            <h3 className="font-display text-sm font-bold leading-tight">
+              {humanMode ? t('human_name') : t('assistant_name')}
+            </h3>
+            <p className="text-primary-foreground/80 text-xs leading-tight">
+              {humanMode ? t('human_subtitle') : t('subtitle')}
+            </p>
           </div>
         </header>
+
+        {humanMode && (
+          <div className="bg-secondary/10 text-secondary border-border/50 border-b px-4 py-2 text-center text-xs font-medium">
+            {t('human_banner')}
+          </div>
+        )}
 
         <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
           {messages.map((m) => (
@@ -330,16 +444,17 @@ function WidgetCard({
   // handoff
   return (
     <div className="border-border bg-background shadow-soft max-w-[90%] rounded-xl border p-3.5">
-      {widget.whatsappUrl ? (
-        <Button asChild variant="secondary" size="sm" className="w-full">
+      <p className="text-sm leading-relaxed">
+        {widget.withinHours
+          ? t('handoff_open')
+          : t('handoff_closed', { open: widget.openHour, close: widget.closeHour })}
+      </p>
+      {widget.whatsappUrl && (
+        <Button asChild variant="outline" size="sm" className="mt-2.5 w-full">
           <a href={widget.whatsappUrl} target="_blank" rel="noopener noreferrer">
-            <Phone className="h-4 w-4" /> WhatsApp
+            <Phone className="h-4 w-4" /> {t('handoff_whatsapp')}
           </a>
         </Button>
-      ) : (
-        <p className="text-muted-foreground text-sm">
-          Un asesor te contactará por WhatsApp a la brevedad.
-        </p>
       )}
     </div>
   );

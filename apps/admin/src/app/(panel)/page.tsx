@@ -76,6 +76,21 @@ export default async function DashboardPage({
         </div>
       )}
 
+      {!d.error && d.traffic.events === 0 && (
+        <div className="border-warning/30 bg-warning/10 text-warning mb-6 flex items-start gap-3 rounded-xl border p-4 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-semibold">Conexión OK, pero sin eventos en este período.</p>
+            <p className="text-warning/90 mt-0.5">
+              Si el sitio ya recibe tráfico, verifica que la base de datos de producción tenga las
+              migraciones de <code className="font-mono text-xs">supabase/migrations/</code>{' '}
+              aplicadas y que el sitio web (no solo el panel) tenga sus variables de Supabase para
+              escribir eventos.
+            </p>
+          </div>
+        </div>
+      )}
+
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
           icon={<Wallet className="h-5 w-5" />}

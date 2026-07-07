@@ -1,0 +1,46 @@
+name: DB migrate
+
+# Applies supabase/migrations/** to the production database. This is the piece
+# that makes the admin panel show data: without the tables + admin_* RPCs, the
+# site's writes silently drop and the panel reads nothing.
+#
+# Add the `SUPABASE_DB_URL` repo secret (the prod Postgres connection string,
+# e.g. postgresql://postgres:<pwd>@db.<ref>.supabase.co:5432/postgres) to enable
+# it. Until then the job skips green.
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/migrations/**']
+  workflow_dispatch: {}
+
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — require SUPABASE_DB_URL
+        id: guard
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::notice::SUPABASE_DB_URL not set — skipping. Add it to auto-apply prod migrations."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: supabase/setup-cli@v1
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          version: latest
+
+      - name: Apply pending migrations to prod
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase db push --db-url "$DB_URL"

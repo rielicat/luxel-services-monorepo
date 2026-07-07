@@ -291,7 +291,16 @@
     "quick_1": "¿Cuánto cuesta un aseo?",
     "quick_2": "¿Atienden en mi comuna?",
     "quick_3": "¿Cómo funciona la suscripción?",
-    "per_visit": "por visita"
+    "per_visit": "por visita",
+    "human_name": "Asesor Luxel",
+    "human_subtitle": "Estás con una persona",
+    "human_banner": "🟢 Estás hablando con una persona. Te responderemos aquí mismo.",
+    "human_received": "Recibimos tu mensaje. Un asesor te responderá aquí muy pronto.",
+    "human_closed": "Estamos fuera de horario (atendemos {open}:00–{close}:00). Deja tu mensaje y te responderemos apenas abramos.",
+    "human_error": "No pudimos enviar tu mensaje. Intenta de nuevo.",
+    "handoff_open": "Un asesor se unió a la conversación. Escribe tu consulta aquí y te responderá.",
+    "handoff_closed": "Estamos fuera de horario ({open}:00–{close}:00). Deja tu mensaje aquí y un asesor te responderá en horario hábil.",
+    "handoff_whatsapp": "Continuar por WhatsApp"
   },
   "errors": {
     "generic": "Ocurrió un error. Intenta nuevamente.",

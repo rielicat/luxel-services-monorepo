@@ -13,7 +13,7 @@
  *   - Outbound replies are sent from the Next.js API (so an authenticated user can reply).
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export interface Env {
   WHATSAPP_VERIFY_TOKEN: string;
@@ -24,6 +24,8 @@ export interface Env {
   // sb_secret_* opaque token (post-2025 rotation). Workers only — never exposed to clients.
   // Worker secrets are set via `wrangler secret put SUPABASE_SECRET_KEY`.
   SUPABASE_SECRET_KEY: string;
+  // Operator/team number (E.164) whose replies bridge back into the web chat.
+  LUXEL_OPERATOR_WHATSAPP?: string;
 }
 
 interface InboundMessage {
@@ -32,6 +34,9 @@ interface InboundMessage {
   timestamp: string;
   type: string;
   text?: { body: string };
+  // Present when the sender replied to a specific message — used to route an
+  // operator's reply back to the originating web-chat session.
+  context?: { id: string };
 }
 
 interface WhatsAppWebhookPayload {
@@ -76,28 +81,80 @@ async function verifySignature(
   return diff === 0;
 }
 
+type Thread = { session_id: string; customer_id: string | null };
+
+/** Which web session an operator's WhatsApp reply belongs to. Prefers the exact
+ *  forwarded message it replied to; otherwise only auto-routes when there is a
+ *  SINGLE active thread (never guesses between concurrent chats → no cross-leak). */
+async function resolveOperatorThread(
+  supabase: SupabaseClient,
+  contextId: string | undefined,
+): Promise<Thread | null> {
+  if (contextId) {
+    const { data } = await supabase
+      .from('messages')
+      .select('session_id, customer_id')
+      .eq('whatsapp_message_id', contextId)
+      .eq('metadata->>to_operator', 'true')
+      .maybeSingle();
+    const row = data as Thread | null;
+    if (row?.session_id)
+      return { session_id: row.session_id, customer_id: row.customer_id ?? null };
+  }
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data: recent } = await supabase
+    .from('messages')
+    .select('session_id, customer_id')
+    .eq('metadata->>to_operator', 'true')
+    .gt('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  const rows = (recent ?? []) as Thread[];
+  const distinct = new Set(rows.map((r) => r.session_id));
+  if (distinct.size === 1 && rows[0]) {
+    return { session_id: rows[0].session_id, customer_id: rows[0].customer_id ?? null };
+  }
+  return null;
+}
+
 async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promise<void> {
   const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY, {
     auth: { persistSession: false },
   });
 
-  type Row = {
-    customer_id: string | null;
-    direction: 'in';
-    channel: 'whatsapp';
-    body: string;
-    whatsapp_message_id: string;
-    metadata: Record<string, unknown>;
-  };
-  const rows: Row[] = [];
+  const operatorDigits = env.LUXEL_OPERATOR_WHATSAPP?.replace(/[^\d]/g, '') ?? '';
 
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
-      const messages = change.value.messages ?? [];
-      for (const msg of messages) {
+      for (const msg of change.value.messages ?? []) {
         if (msg.type !== 'text' || !msg.text?.body) continue;
 
-        // Best-effort attribution: match by phone (we expect E.164 stored on customers.phone).
+        const fromDigits = msg.from.replace(/[^\d]/g, '');
+        const fromOperator = Boolean(operatorDigits) && fromDigits === operatorDigits;
+
+        // 1) A reply from the operator → route it back to the web session.
+        if (fromOperator) {
+          const target = await resolveOperatorThread(supabase, msg.context?.id);
+          if (target) {
+            await supabase.from('messages').upsert(
+              {
+                customer_id: target.customer_id ?? null,
+                session_id: target.session_id,
+                direction: 'out',
+                channel: 'whatsapp',
+                body: msg.text.body,
+                whatsapp_message_id: msg.id,
+                metadata: { from_operator: true, wa_from: msg.from },
+              },
+              { onConflict: 'whatsapp_message_id', ignoreDuplicates: true },
+            );
+            continue;
+          }
+          // Operator message we can't safely route (multiple open threads and no
+          // reply-to) — fall through and store it as a plain inbound below.
+        }
+
+        // 2) Otherwise a direct inbound from a customer — attribute by phone (E.164).
         const wa = msg.from.startsWith('+') ? msg.from : `+${msg.from}`;
         const { data: customer } = await supabase
           .from('customers')
@@ -105,23 +162,19 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
           .eq('phone', wa)
           .maybeSingle();
 
-        rows.push({
-          customer_id: customer?.id ?? null,
-          direction: 'in',
-          channel: 'whatsapp',
-          body: msg.text.body,
-          whatsapp_message_id: msg.id,
-          metadata: { wa_from: msg.from, wa_timestamp: msg.timestamp },
-        });
+        await supabase.from('messages').upsert(
+          {
+            customer_id: customer?.id ?? null,
+            direction: 'in',
+            channel: 'whatsapp',
+            body: msg.text.body,
+            whatsapp_message_id: msg.id,
+            metadata: { wa_from: msg.from, wa_timestamp: msg.timestamp },
+          },
+          { onConflict: 'whatsapp_message_id', ignoreDuplicates: true },
+        );
       }
     }
-  }
-
-  if (rows.length > 0) {
-    await supabase.from('messages').upsert(rows, {
-      onConflict: 'whatsapp_message_id',
-      ignoreDuplicates: true,
-    });
   }
 }
 

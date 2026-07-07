@@ -4,6 +4,7 @@ import { OutOfServiceAreaError, quote, findNearestActivePoint } from '@luxel/pri
 import { getPricingData } from '@/lib/pricing-data';
 import { geocodeAddress } from '@/lib/geocode';
 import { getDayAvailability } from '@/lib/availability';
+import { workingHoursStatus } from '@/lib/working-hours';
 
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 
@@ -23,7 +24,13 @@ export type Widget =
       distanceKm: number;
     }
   | { kind: 'availability'; date: string; timeblocks: { timeblock: string; available: number }[] }
-  | { kind: 'handoff'; whatsappUrl: string | null };
+  | {
+      kind: 'handoff';
+      whatsappUrl: string | null;
+      withinHours: boolean;
+      openHour: number;
+      closeHour: number;
+    };
 
 export interface ToolResult {
   /** Text the model relays to the user. Must be self-contained. */
@@ -293,10 +300,18 @@ async function escalate(input: Record<string, unknown>, ctx: ToolContext): Promi
   const url = number
     ? `https://wa.me/${number}?text=${encodeURIComponent('Hola, vengo del chat de Luxel: ' + reason)}`
     : null;
+  const hours = workingHoursStatus();
   return {
-    content:
-      'Listo — un asesor de Servicios Luxel continuará por WhatsApp. Confirma al usuario y comparte el enlace de WhatsApp.',
+    content: hours.open
+      ? 'Deriva a una persona: un asesor continuará en este mismo chat. Confírmalo brevemente al usuario y pídele que escriba su consulta aquí.'
+      : 'Estamos fuera del horario de atención humana. Avísale al usuario que un asesor le responderá en horario hábil y que puede dejar su mensaje aquí mismo; no prometas respuesta inmediata.',
     handoff: true,
-    widget: { kind: 'handoff', whatsappUrl: url },
+    widget: {
+      kind: 'handoff',
+      whatsappUrl: url,
+      withinHours: hours.open,
+      openHour: hours.openHour,
+      closeHour: hours.closeHour,
+    },
   };
 }
