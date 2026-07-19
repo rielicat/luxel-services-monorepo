@@ -2,6 +2,7 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { draftGuestReply } from '@/lib/ai/copilot';
 import { getChannelProvider } from './provider';
+import { hospitableTokenForCustomer } from './hospitable';
 
 export type InboundResult = {
   ok: boolean;
@@ -78,7 +79,23 @@ export async function handleInboundMessage(input: {
     return { ok: true, action: 'handoff', draft: draft.draft, threadId: thread.id };
   }
 
-  const extId = await getChannelProvider(channel).send(input.externalThreadId ?? null, draft.draft);
+  // SaaS: sends go out with the property owner's own channel token.
+  let token: string | null = null;
+  if (channel === 'hospitable') {
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('owner_id')
+      .eq('id', input.propertyId)
+      .maybeSingle();
+    token = await hospitableTokenForCustomer((prop?.owner_id as string | undefined) ?? null);
+  }
+  const extId = await getChannelProvider(channel).send(
+    input.externalThreadId ?? null,
+    draft.draft,
+    {
+      token,
+    },
+  );
   await supabase.from('guest_messages').insert({
     thread_id: thread.id,
     direction: 'out',

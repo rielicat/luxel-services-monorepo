@@ -22,6 +22,9 @@ export function Nav() {
           <a href="/#caracteristicas" className="hover:text-foreground transition-colors">
             {t('features')}
           </a>
+          <a href="/#airbnb" className="hover:text-foreground transition-colors">
+            {t('airbnb')}
+          </a>
           <a href="/#faq" className="hover:text-foreground transition-colors">
             {t('faq')}
           </a>

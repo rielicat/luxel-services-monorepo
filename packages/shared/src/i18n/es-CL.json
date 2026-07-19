@@ -24,7 +24,8 @@
     "signup": "Crear cuenta",
     "how": "Cómo funciona",
     "features": "Servicios",
-    "faq": "Preguntas"
+    "faq": "Preguntas",
+    "airbnb": "Airbnb"
   },
   "landing": {
     "hero": {
@@ -89,6 +90,21 @@
     },
     "footer": {
       "tagline": "Servicios de aseo en la Región Metropolitana."
+    },
+    "airbnb": {
+      "badge": "Nuevo servicio",
+      "title": "Administración Airbnb con IA",
+      "subtitle": "Deja de pagar 20–25% de comisión. Luxel responde a tus huéspedes al instante, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana.",
+      "f1_title": "Respuestas con IA",
+      "f1_body": "Tus huéspedes reciben respuesta al instante, 24/7, con derivación a ti solo cuando importa.",
+      "f2_title": "Precios inteligentes",
+      "f2_body": "Detectamos noches sin reservar y sugerimos precios según demanda y temporada.",
+      "f3_title": "Aseo coordinado",
+      "f3_body": "Cada check-out agenda su aseo automáticamente, pagado por el huésped.",
+      "f4_title": "Check-in sin llaves",
+      "f4_body": "Formulario de check-in y notificación automática a conserjería o código de acceso.",
+      "cta": "Comienza gratis 14 días",
+      "price_note": "$39.900/mes por propiedad + IVA. Cancela cuando quieras."
     }
   },
   "calculator": {
@@ -363,7 +379,7 @@
   },
   "properties": {
     "title": "Mis propiedades",
-    "subtitle": "Configura el acceso y genera enlaces de check-in.",
+    "subtitle": "Tu operación Airbnb en un solo lugar.",
     "new_title": "Agregar propiedad",
     "nickname": "Nombre de la propiedad",
     "address": "Dirección",
@@ -408,7 +424,17 @@
     "block_to": "Hasta",
     "add": "Agregar",
     "export_feed": "Ver enlace de exportación",
-    "export_help": "Agrega este enlace en AirBnB/Booking para que bloqueen automáticamente estas fechas."
+    "export_help": "Agrega este enlace en AirBnB/Booking para que bloqueen automáticamente estas fechas.",
+    "empty_title": "Aún no tienes propiedades",
+    "empty_body": "Conecta tu cuenta de Hospitable para importarlas automáticamente, o agrega una propiedad manualmente.",
+    "chip_keyless": "Sin llave",
+    "chip_concierge": "Conserjería",
+    "chip_no_access": "Configura el acceso",
+    "needs_reply": "{n} por responder",
+    "next_checkout": "Check-out: {date}",
+    "no_upcoming": "Sin reservas próximas",
+    "no_address": "Sin dirección",
+    "manage": "Administrar"
   },
   "cleaning": {
     "title": "Aseo entre estadías",
@@ -473,5 +499,35 @@
     "suggest": "Ver precios sugeridos",
     "occupancy": "Ocupación 30 días: {pct}%",
     "underbooked": "{n} noches abiertas (2 semanas)"
+  },
+  "hospitable": {
+    "connect_title": "Conecta tu cuenta de Hospitable",
+    "connect_body": "Sincroniza tus propiedades y reservas de Airbnb automáticamente. Crea un token en Hospitable → Apps → API access y pégalo aquí; se guarda cifrado.",
+    "connect_cta": "Conectar Hospitable",
+    "connect_confirm": "Verificar y conectar",
+    "connecting": "Verificando…",
+    "cancel": "Cancelar",
+    "token_ph": "Pega tu Personal Access Token…",
+    "token_help": "Se valida contra Hospitable antes de guardarse, y se almacena cifrado.",
+    "error_invalid": "El token no es válido o no tiene permisos. Revísalo en Hospitable.",
+    "error_generic": "No pudimos conectar. Inténtalo de nuevo.",
+    "connected_title": "Hospitable conectado",
+    "last_sync": "Última sincronización: {date}",
+    "never_synced": "Aún sin sincronizar",
+    "sync": "Sincronizar",
+    "sync_done": "{n} reservas sincronizadas",
+    "disconnect": "Desconectar"
+  },
+  "detail": {
+    "back": "Mis propiedades",
+    "occupancy": "Ocupación 30 días",
+    "next_checkout": "Próximo check-out",
+    "pending_cleanings": "Aseos pendientes",
+    "needs_reply": "Por responder",
+    "tab_overview": "Resumen",
+    "tab_messages": "Mensajes",
+    "tab_calendar": "Calendario",
+    "tab_cleaning": "Aseos",
+    "tab_access": "Acceso"
   }
 }

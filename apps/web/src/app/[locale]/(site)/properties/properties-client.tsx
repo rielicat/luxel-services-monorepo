@@ -3,31 +3,29 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Plus, Link2, Copy, Check, TriangleAlert } from 'lucide-react';
+import {
+  Home,
+  Plus,
+  KeyRound,
+  ConciergeBell,
+  TriangleAlert,
+  MessagesSquare,
+  CalendarDays,
+  ArrowRight,
+} from 'lucide-react';
+import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createProperty, updateAccess, createCheckinLink } from './actions';
-import { CalendarPanel, type Feed, type Block } from './calendar-panel';
-import { CleaningPanel, type Cleaning } from './cleaning-panel';
-import { CopilotPanel } from './copilot-panel';
+import { createProperty } from './actions';
 import { PlanBar, type Plan } from './plan-bar';
-import { MessagingPanel, type Thread } from './messaging-panel';
-import { RevenuePanel } from './revenue-panel';
-
-export type AccessRow = {
-  method: 'keyless' | 'physical_concierge' | 'physical_none';
-  require_id: boolean;
-  keyless_code: string | null;
-  keyless_instructions: string | null;
-  concierge_name: string | null;
-  concierge_whatsapp: string | null;
-  concierge_email: string | null;
-  concierge_hours: string | null;
-  id_basis: string | null;
-  id_disclosed: boolean;
-} | null;
+import { HospitableCard } from './hospitable-card';
+import type { HostConnection } from '@/lib/host/queries';
+import type { AccessRow } from './access-panel';
+import type { Feed, Block } from './calendar-panel';
+import type { Cleaning } from './cleaning-panel';
+import type { Thread } from './messaging-panel';
 
 export type PropertyRow = {
   id: string;
@@ -35,6 +33,9 @@ export type PropertyRow = {
   address: string | null;
   comuna: string | null;
   guest_info: string | null;
+  external_listing_id: string | null;
+  platform: string | null;
+  base_nightly_clp: number | null;
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];
@@ -42,28 +43,125 @@ export type PropertyRow = {
   guest_threads: Thread[];
 };
 
-const inputCls =
-  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
-
-export function PropertiesClient({ initial, plan }: { initial: PropertyRow[]; plan: Plan }) {
+export function PropertiesClient({
+  initial,
+  plan,
+  connection,
+}: {
+  initial: PropertyRow[];
+  plan: Plan;
+  connection: HostConnection | null;
+}) {
   const t = useTranslations('properties');
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <div className="mb-6 flex items-center gap-2">
-        <Home className="text-primary h-6 w-6" />
-        <div>
-          <h1 className="font-display text-2xl font-semibold">{t('title')}</h1>
-          <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-xl">
+            <Home className="h-6 w-6" />
+          </span>
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">{t('title')}</h1>
+            <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
+          </div>
         </div>
+        <NewProperty />
       </div>
-      <PlanBar plan={plan} />
-      <NewProperty />
-      <div className="mt-6 grid gap-4">
-        {initial.map((p) => (
-          <PropertyCard key={p.id} property={p} />
-        ))}
+
+      <div className="grid gap-4">
+        <PlanBar plan={plan} />
+        <HospitableCard connection={connection} />
+
+        {initial.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {initial.map((p) => (
+              <PropertySummaryCard key={p.id} property={p} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function EmptyState() {
+  const t = useTranslations('properties');
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center gap-2 p-10 text-center">
+        <Home className="text-muted-foreground/50 h-10 w-10" />
+        <p className="font-display font-semibold">{t('empty_title')}</p>
+        <p className="text-muted-foreground max-w-sm text-sm">{t('empty_body')}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function accessChip(method: string | undefined, t: (key: string) => string) {
+  if (method === 'keyless')
+    return { icon: KeyRound, cls: 'bg-success/10 text-success', label: t('chip_keyless') };
+  if (method === 'physical_concierge')
+    return { icon: ConciergeBell, cls: 'bg-primary/10 text-primary', label: t('chip_concierge') };
+  return { icon: TriangleAlert, cls: 'bg-warning/15 text-warning', label: t('chip_no_access') };
+}
+
+function PropertySummaryCard({ property }: { property: PropertyRow }) {
+  const t = useTranslations('properties');
+  const today = new Date().toISOString().slice(0, 10);
+  const nextCheckout = property.calendar_blocks
+    .filter((b) => b.source === 'import' && b.ends_on >= today)
+    .map((b) => b.ends_on)
+    .sort()[0];
+  const needsReply = property.guest_threads.filter((th) => th.status === 'needs_host').length;
+  const chip = accessChip(property.property_access?.method, t);
+  const ChipIcon = chip.icon;
+
+  return (
+    <Card className="group transition-shadow hover:shadow-md">
+      <CardContent className="grid gap-3 p-5">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-display font-semibold leading-tight">{property.nickname}</p>
+            {property.external_listing_id && (
+              <span className="bg-secondary/60 text-secondary-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                Airbnb
+              </span>
+            )}
+          </div>
+          <p className="text-muted-foreground truncate text-sm">
+            {[property.address, property.comuna].filter(Boolean).join(', ') || t('no_address')}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span
+            className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${chip.cls}`}
+          >
+            <ChipIcon className="h-3 w-3" /> {chip.label}
+          </span>
+          {needsReply > 0 && (
+            <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+              <MessagesSquare className="h-3 w-3" /> {t('needs_reply', { n: needsReply })}
+            </span>
+          )}
+        </div>
+
+        <div className="text-muted-foreground flex items-center justify-between text-xs">
+          <span className="flex items-center gap-1">
+            <CalendarDays className="h-3.5 w-3.5" />
+            {nextCheckout ? t('next_checkout', { date: nextCheckout }) : t('no_upcoming')}
+          </span>
+          <Link
+            href={`/properties/${property.id}`}
+            className="text-primary flex items-center gap-1 text-sm font-medium opacity-80 transition-opacity group-hover:opacity-100"
+          >
+            {t('manage')} <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -102,256 +200,77 @@ function NewProperty() {
     });
   };
 
-  if (!open) {
-    return (
+  return (
+    <>
       <Button variant="outline" onClick={() => setOpen(true)}>
         <Plus className="mr-1.5 h-4 w-4" /> {t('new_title')}
       </Button>
-    );
-  }
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <form onSubmit={submit} className="grid gap-3">
-          <div className="grid gap-1.5">
-            <Label htmlFor="np-nick">{t('nickname')}</Label>
-            <Input id="np-nick" required value={f.nickname} onChange={set('nickname')} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="np-addr">{t('address')}</Label>
-            <Input id="np-addr" value={f.address} onChange={set('address')} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="np-comuna">{t('comuna')}</Label>
-              <Input id="np-comuna" value={f.comuna} onChange={set('comuna')} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="np-size">{t('size_m2')}</Label>
-              <Input id="np-size" type="number" value={f.sizeM2} onChange={set('sizeM2')} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="np-bed">{t('bedrooms')}</Label>
-              <Input id="np-bed" type="number" value={f.bedrooms} onChange={set('bedrooms')} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="np-bath">{t('bathrooms')}</Label>
-              <Input id="np-bath" type="number" value={f.bathrooms} onChange={set('bathrooms')} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" disabled={pending || !f.nickname.trim()}>
-              {pending ? t('creating') : t('create')}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              {t('cancel')}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
-
-function PropertyCard({ property }: { property: PropertyRow }) {
-  const t = useTranslations('properties');
-  const a = property.property_access;
-  const [pending, start] = useTransition();
-  const [saved, setSaved] = useState(false);
-  const [link, setLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const [s, setS] = useState({
-    method: a?.method ?? 'physical_none',
-    keylessCode: a?.keyless_code ?? '',
-    keylessInstructions: a?.keyless_instructions ?? '',
-    conciergeName: a?.concierge_name ?? '',
-    conciergeWhatsapp: a?.concierge_whatsapp ?? '',
-    conciergeEmail: a?.concierge_email ?? '',
-    conciergeHours: a?.concierge_hours ?? '',
-    requireId: a?.require_id ?? false,
-    idBasis: a?.id_basis ?? '',
-    idDisclosed: a?.id_disclosed ?? false,
-  });
-  const upd = <K extends keyof typeof s>(k: K, v: (typeof s)[K]) => setS((p) => ({ ...p, [k]: v }));
-
-  const save = () => {
-    setSaved(false);
-    start(async () => {
-      const r = await updateAccess({ propertyId: property.id, ...s });
-      if (r.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    });
-  };
-
-  const genLink = () => {
-    start(async () => {
-      const r = await createCheckinLink(property.id);
-      if (r.ok && r.token) setLink(`${window.location.origin}/checkin/${r.token}`);
-    });
-  };
-
-  const copy = () => {
-    if (!link) return;
-    void navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  return (
-    <Card>
-      <CardContent className="grid gap-4 p-5">
-        <div>
-          <p className="font-display font-semibold">{property.nickname}</p>
-          {property.address && <p className="text-muted-foreground text-sm">{property.address}</p>}
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={(e) => e.target === e.currentTarget && setOpen(false)}
+        >
+          <Card className="w-full max-w-md">
+            <CardContent className="p-5">
+              <p className="font-display mb-3 font-semibold">{t('new_title')}</p>
+              <form onSubmit={submit} className="grid gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="np-nick">{t('nickname')}</Label>
+                  <Input
+                    id="np-nick"
+                    required
+                    autoFocus
+                    value={f.nickname}
+                    onChange={set('nickname')}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="np-addr">{t('address')}</Label>
+                  <Input id="np-addr" value={f.address} onChange={set('address')} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="np-comuna">{t('comuna')}</Label>
+                    <Input id="np-comuna" value={f.comuna} onChange={set('comuna')} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="np-size">{t('size_m2')}</Label>
+                    <Input id="np-size" type="number" value={f.sizeM2} onChange={set('sizeM2')} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="np-bed">{t('bedrooms')}</Label>
+                    <Input
+                      id="np-bed"
+                      type="number"
+                      value={f.bedrooms}
+                      onChange={set('bedrooms')}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="np-bath">{t('bathrooms')}</Label>
+                    <Input
+                      id="np-bath"
+                      type="number"
+                      value={f.bathrooms}
+                      onChange={set('bathrooms')}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                    {t('cancel')}
+                  </Button>
+                  <Button type="submit" disabled={pending || !f.nickname.trim()}>
+                    {pending ? t('creating') : t('create')}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
-
-        <div className="grid gap-1.5">
-          <Label>{t('method')}</Label>
-          <select
-            className={inputCls}
-            value={s.method}
-            onChange={(e) => upd('method', e.target.value as typeof s.method)}
-          >
-            <option value="keyless">{t('method_keyless')}</option>
-            <option value="physical_concierge">{t('method_concierge')}</option>
-            <option value="physical_none">{t('method_none')}</option>
-          </select>
-          {s.method === 'physical_none' && (
-            <p className="text-warning flex items-start gap-1.5 text-xs">
-              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {t('none_warning')}
-            </p>
-          )}
-        </div>
-
-        {s.method === 'keyless' && (
-          <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label>{t('keyless_code')}</Label>
-              <Input value={s.keylessCode} onChange={(e) => upd('keylessCode', e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>{t('keyless_instructions')}</Label>
-              <Input
-                value={s.keylessInstructions}
-                onChange={(e) => upd('keylessInstructions', e.target.value)}
-              />
-            </div>
-          </div>
-        )}
-
-        {s.method === 'physical_concierge' && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>{t('concierge_name')}</Label>
-              <Input
-                value={s.conciergeName}
-                onChange={(e) => upd('conciergeName', e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>{t('concierge_hours')}</Label>
-              <Input
-                value={s.conciergeHours}
-                onChange={(e) => upd('conciergeHours', e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>{t('concierge_whatsapp')}</Label>
-              <Input
-                value={s.conciergeWhatsapp}
-                onChange={(e) => upd('conciergeWhatsapp', e.target.value)}
-                placeholder="+56 9 ..."
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>{t('concierge_email')}</Label>
-              <Input
-                type="email"
-                value={s.conciergeEmail}
-                onChange={(e) => upd('conciergeEmail', e.target.value)}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="border-border grid gap-2 rounded-lg border p-3">
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={s.requireId}
-              onChange={(e) => upd('requireId', e.target.checked)}
-            />
-            <span>
-              <span className="font-medium">{t('require_id')}</span>
-              <span className="text-muted-foreground block text-xs">{t('require_id_help')}</span>
-            </span>
-          </label>
-          {s.requireId && (
-            <div className="grid gap-2 pl-6">
-              <div className="grid gap-1.5">
-                <Label>{t('id_basis')}</Label>
-                <Input
-                  value={s.idBasis}
-                  onChange={(e) => upd('idBasis', e.target.value)}
-                  placeholder={t('id_basis_ph')}
-                />
-              </div>
-              <label className="flex items-start gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  checked={s.idDisclosed}
-                  onChange={(e) => upd('idDisclosed', e.target.checked)}
-                />
-                <span className="text-muted-foreground">{t('id_disclosed')}</span>
-              </label>
-            </div>
-          )}
-        </div>
-
-        <CalendarPanel
-          propertyId={property.id}
-          feeds={property.property_calendars}
-          blocks={property.calendar_blocks}
-        />
-
-        <CleaningPanel propertyId={property.id} cleanings={property.cleanings} />
-
-        <CopilotPanel propertyId={property.id} guestInfo={property.guest_info} />
-
-        <MessagingPanel propertyId={property.id} threads={property.guest_threads} />
-
-        <RevenuePanel propertyId={property.id} />
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={save} disabled={pending}>
-            {pending ? t('saving') : saved ? t('saved') : t('save')}
-          </Button>
-          <Button variant="outline" onClick={genLink} disabled={pending}>
-            <Link2 className="mr-1.5 h-4 w-4" /> {t('gen_link')}
-          </Button>
-        </div>
-
-        {link && (
-          <div className="bg-muted/50 flex items-center gap-2 rounded-md p-2 text-xs">
-            <span className="truncate font-mono">{link}</span>
-            <button
-              type="button"
-              onClick={copy}
-              className="text-primary shrink-0"
-              aria-label={t('copy')}
-            >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </>
   );
 }
