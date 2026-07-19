@@ -425,5 +425,20 @@
     "err_out_of_area": "Fuera del área de cobertura.",
     "err_service": "No disponible por ahora.",
     "err_generic": "No se pudo calcular."
+  },
+  "copilot": {
+    "title": "Copiloto de mensajes",
+    "info_label": "Información para el asistente (wifi, reglas, check-in, cómo llegar…)",
+    "info_ph": "Ej.: WiFi LuxelGuest / clave 1234. Check-in desde las 15:00. Estacionamiento en el subterráneo…",
+    "info_save": "Guardar información",
+    "info_saved": "Guardado ✓",
+    "msg_label": "Mensaje del huésped",
+    "msg_ph": "Pega aquí el mensaje del huésped…",
+    "draft": "Redactar respuesta",
+    "drafting": "Redactando…",
+    "handoff": "Requiere tu atención — revisa antes de enviar.",
+    "copy": "Copiar",
+    "no_ai": "El asistente de IA no está configurado. Responde tú al huésped.",
+    "error": "No se pudo redactar. Inténtalo de nuevo."
   }
 }

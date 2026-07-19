@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { createProperty, updateAccess, createCheckinLink } from './actions';
 import { CalendarPanel, type Feed, type Block } from './calendar-panel';
 import { CleaningPanel, type Cleaning } from './cleaning-panel';
+import { CopilotPanel } from './copilot-panel';
 
 export type AccessRow = {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
@@ -30,6 +31,7 @@ export type PropertyRow = {
   nickname: string;
   address: string | null;
   comuna: string | null;
+  guest_info: string | null;
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];
@@ -315,6 +317,8 @@ function PropertyCard({ property }: { property: PropertyRow }) {
         />
 
         <CleaningPanel propertyId={property.id} cleanings={property.cleanings} />
+
+        <CopilotPanel propertyId={property.id} guestInfo={property.guest_info} />
 
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={save} disabled={pending}>
