@@ -1,6 +1,10 @@
 import 'server-only';
 import { getOpenAI, AI_MODEL } from './client';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { devMockEnabled } from '@/lib/dev-mock';
+
+// Frustration / explicit-person triggers for the dev-mock and as a safety net.
+const HANDOFF_RE = /(molest|enoj|terrible|p[ée]sim|hablar con|una persona|humano|reclamo|urgente)/i;
 
 export type Draft = {
   ok: boolean;
@@ -18,7 +22,8 @@ const SYSTEM = `Eres el asistente del anfitrión de un alojamiento en Chile (Air
  */
 export async function draftGuestReply(propertyId: string, guestMessage: string): Promise<Draft> {
   const openai = getOpenAI();
-  if (!openai) return { ok: true, handoff: true, reason: 'no_ai' };
+  const useMock = !openai && devMockEnabled();
+  if (!openai && !useMock) return { ok: true, handoff: true, reason: 'no_ai' };
 
   const supabase = createSupabaseServiceRoleClient();
   const { data: prop } = await supabase
@@ -45,6 +50,15 @@ export async function draftGuestReply(propertyId: string, guestMessage: string):
   ]
     .filter(Boolean)
     .join('\n');
+
+  if (useMock) {
+    const handoff = HANDOFF_RE.test(guestMessage);
+    const draft = handoff
+      ? ''
+      : `¡Hola! Gracias por tu mensaje sobre ${prop.nickname}.${prop.guest_info ? ` Según la información del alojamiento: ${prop.guest_info.slice(0, 300)}.` : ''} Quedo atento/a a cualquier otra consulta.`;
+    return { ok: true, draft, handoff };
+  }
+  if (!openai) return { ok: false, reason: 'error' }; // unreachable; narrows the type
 
   try {
     const res = await openai.chat.completions.create({

@@ -17,6 +17,9 @@ const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-checkin-${nodeCrypto.randomUUID()}`;
 process.env.LUXEL_PII_KEY = nodeCrypto.randomBytes(32).toString('hex');
+// Exercise the notification leg via the email dev-mock (no real Resend send).
+delete process.env.RESEND_API_KEY;
+process.env.LUXEL_DEV_MOCK = '1';
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
@@ -104,11 +107,16 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
 
     const { data: checkin } = await admin
       .from('checkins')
-      .select('id, status, guest_name, party_size')
+      .select('id, status, guest_name, party_size, notify_result')
       .eq('token', token)
       .maybeSingle();
     expect(checkin!.guest_name).toBe('María Pérez');
-    expect(['submitted', 'notified']).toContain(checkin!.status); // email unconfigured in test → submitted
+    // dev-mock email "delivers", so the check-in reaches notified with a record
+    // of the keyless-code-to-guest + confirmation-to-host notifications.
+    expect(checkin!.status).toBe('notified');
+    const result = checkin!.notify_result as Array<{ role: string; ok: boolean }>;
+    expect(result.some((r) => r.role === 'guest' && r.ok)).toBe(true);
+    expect(result.some((r) => r.role === 'host' && r.ok)).toBe(true);
 
     const { data: id } = await admin
       .from('checkin_identity')

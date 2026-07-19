@@ -57,3 +57,20 @@ export async function extendTrial(customerId: string): Promise<boolean> {
     .eq('customer_id', customerId);
   return !error;
 }
+
+/** Moves a plan from trial to active with a 30-day period. In production this is
+ *  called after a MercadoPago preapproval is authorized; in dev-mock it's direct. */
+export async function activatePlan(customerId: string): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient();
+  const periodEnd = new Date(Date.now() + 30 * 86_400_000).toISOString();
+  const { error } = await supabase
+    .from('plan_subscriptions')
+    .update({
+      status: 'active',
+      current_period_end: periodEnd,
+      provider: 'mercadopago',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('customer_id', customerId);
+  return !error;
+}

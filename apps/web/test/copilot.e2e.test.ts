@@ -12,7 +12,8 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABAS
 const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-copilot-${nodeCrypto.randomUUID()}`;
-delete process.env.OPENAI_API_KEY; // deterministic no-AI path
+delete process.env.OPENAI_API_KEY; // deterministic: no real LLM call
+delete process.env.LUXEL_DEV_MOCK; // reset (other test files may have set it)
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
@@ -78,5 +79,30 @@ describe.skipIf(!LIVE)('AI messaging co-pilot (end to end)', () => {
   it('rejects a draft request for a property the caller does not own', async () => {
     const d = await draftReply({ propertyId: nodeCrypto.randomUUID(), guestMessage: 'hola' });
     expect(d.ok).toBe(false);
+  });
+
+  it('drafts a grounded reply in dev-mock mode, flagging handoff on frustration', async () => {
+    process.env.LUXEL_DEV_MOCK = '1';
+    try {
+      const prop = await createProperty({ nickname: 'Depto Mock' });
+      await updateGuestInfo({ propertyId: prop.id, guestInfo: 'WiFi: LuxelGuest / clave 1234.' });
+
+      const ok = await draftReply({
+        propertyId: prop.id,
+        guestMessage: '¿Cuál es la clave del wifi?',
+      });
+      expect(ok.ok).toBe(true);
+      expect(ok.reason).toBeUndefined();
+      expect(ok.draft).toBeTruthy();
+      expect(ok.handoff).toBe(false);
+
+      const angry = await draftReply({
+        propertyId: prop.id,
+        guestMessage: 'Esto es pésimo, quiero hablar con una persona',
+      });
+      expect(angry.handoff).toBe(true);
+    } finally {
+      delete process.env.LUXEL_DEV_MOCK;
+    }
   });
 });

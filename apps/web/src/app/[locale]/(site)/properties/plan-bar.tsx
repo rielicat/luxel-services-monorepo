@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { startPlan, cancelMyPlan, extendMyTrial } from './plan-actions';
+import { startPlan, cancelMyPlan, extendMyTrial, activateMyPlan } from './plan-actions';
 
 export type Plan = { plan: string; status: string; trial_ends_at: string | null } | null;
 
@@ -79,9 +79,16 @@ export function PlanBar({ plan }: { plan: Plan }) {
             </Button>
           </div>
         ) : (
-          <Button variant="outline" size="sm" disabled={pending} onClick={() => setWinback(true)}>
-            {t('cancel')}
-          </Button>
+          <div className="flex gap-2">
+            {plan?.status === 'trialing' && (
+              <Button size="sm" disabled={pending} onClick={() => run(() => activateMyPlan())}>
+                {t('activate')}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" disabled={pending} onClick={() => setWinback(true)}>
+              {t('cancel')}
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>

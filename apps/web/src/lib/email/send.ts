@@ -1,12 +1,14 @@
 import 'server-only';
+import { devMockEnabled } from '@/lib/dev-mock';
 
 /**
  * Outbound transactional email via Resend. Gated on RESEND_API_KEY + RESEND_FROM
  * so a fresh environment without email configured simply no-ops (the same pattern
- * as the payment providers), and never throws.
+ * as the payment providers), and never throws. In dev-mock mode (no real key) it
+ * simulates a successful send so notification flows are testable end-to-end.
  */
 export function emailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM);
+  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM) || devMockEnabled();
 }
 
 export async function sendEmail(opts: {
@@ -17,7 +19,15 @@ export async function sendEmail(opts: {
 }): Promise<{ id: string } | null> {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM;
-  if (!key || !from) return null;
+
+  if (!key || !from) {
+    if (devMockEnabled()) {
+      console.warn('email.dev_mock', { to: opts.to, subject: opts.subject });
+      return { id: `dev_mock_${Date.now()}` };
+    }
+    return null;
+  }
+
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
