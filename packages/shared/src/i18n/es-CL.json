@@ -466,5 +466,12 @@
     "reply_ph": "Tu respuesta…",
     "sim_ph": "Simular mensaje de huésped (dev)…",
     "sim": "Probar"
+  },
+  "revenue": {
+    "title": "Ingresos y agente",
+    "agent_ph": "Pídeme algo: reporte, bloquear fecha, optimizar precios…",
+    "suggest": "Ver precios sugeridos",
+    "occupancy": "Ocupación 30 días: {pct}%",
+    "underbooked": "{n} noches abiertas (2 semanas)"
   }
 }
