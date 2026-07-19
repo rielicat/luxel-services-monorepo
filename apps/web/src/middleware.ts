@@ -9,6 +9,7 @@ const isProtectedRoute = createRouteMatcher([
   '/account(.*)',
   '/calendar(.*)',
   '/book(.*)',
+  '/properties(.*)',
   '/api/protected(.*)',
 ]);
 
