@@ -455,5 +455,16 @@
     "winback_body": "Extiende tu prueba 30 días gratis.",
     "winback_extend": "Extender 30 días gratis",
     "winback_confirm": "Cancelar de todas formas"
+  },
+  "inbox": {
+    "title": "Mensajes (IA)",
+    "empty": "Sin conversaciones aún.",
+    "guest": "Huésped",
+    "status_open": "IA respondió",
+    "status_needs_host": "Requiere tu respuesta",
+    "status_closed": "Cerrado",
+    "reply_ph": "Tu respuesta…",
+    "sim_ph": "Simular mensaje de huésped (dev)…",
+    "sim": "Probar"
   }
 }

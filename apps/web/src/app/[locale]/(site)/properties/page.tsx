@@ -24,7 +24,7 @@ export default async function PropertiesPage() {
     const { data } = await supabase
       .from('properties')
       .select(
-        'id, nickname, address, comuna, guest_info, property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_whatsapp, concierge_email, concierge_hours, id_basis, id_disclosed), property_calendars(id, label, ical_url, last_synced_at), calendar_blocks(id, starts_on, ends_on, source, summary), cleanings(id, cleaning_date, status, price_clp, source)',
+        'id, nickname, address, comuna, guest_info, property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_whatsapp, concierge_email, concierge_hours, id_basis, id_disclosed), property_calendars(id, label, ical_url, last_synced_at), calendar_blocks(id, starts_on, ends_on, source, summary), cleanings(id, cleaning_date, status, price_clp, source), guest_threads(id, status, guest_name, updated_at, guest_messages(id, direction, source, body, created_at))',
       )
       .eq('owner_id', customer.id)
       .order('created_at', { ascending: true });
@@ -36,6 +36,7 @@ export default async function PropertiesPage() {
         property_calendars: p.property_calendars ?? [],
         calendar_blocks: p.calendar_blocks ?? [],
         cleanings: p.cleanings ?? [],
+        guest_threads: p.guest_threads ?? [],
       } as PropertyRow;
     });
   }

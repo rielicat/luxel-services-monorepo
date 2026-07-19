@@ -20,7 +20,11 @@ const SYSTEM = `Eres el asistente del anfitrión de un alojamiento en Chile (Air
  * no-PMS "co-pilot": the AI drafts, the host sends. Marks handoff when it can't
  * answer, detects frustration, or the guest asks for a person. Never throws.
  */
-export async function draftGuestReply(propertyId: string, guestMessage: string): Promise<Draft> {
+export async function draftGuestReply(
+  propertyId: string,
+  guestMessage: string,
+  opts?: { history?: string },
+): Promise<Draft> {
   const openai = getOpenAI();
   const useMock = !openai && devMockEnabled();
   if (!openai && !useMock) return { ok: true, handoff: true, reason: 'no_ai' };
@@ -47,6 +51,7 @@ export async function draftGuestReply(propertyId: string, guestMessage: string):
         ? `Acceso: llave en conserjería${access.concierge_hours ? ` (${access.concierge_hours})` : ''}.`
         : '',
     prop.guest_info ? `Información para huéspedes:\n${prop.guest_info}` : '',
+    opts?.history ? `Contexto (respuestas previas + conversación):\n${opts.history}` : '',
   ]
     .filter(Boolean)
     .join('\n');

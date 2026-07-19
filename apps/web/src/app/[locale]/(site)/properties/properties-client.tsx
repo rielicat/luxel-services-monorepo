@@ -13,6 +13,7 @@ import { CalendarPanel, type Feed, type Block } from './calendar-panel';
 import { CleaningPanel, type Cleaning } from './cleaning-panel';
 import { CopilotPanel } from './copilot-panel';
 import { PlanBar, type Plan } from './plan-bar';
+import { MessagingPanel, type Thread } from './messaging-panel';
 
 export type AccessRow = {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
@@ -37,6 +38,7 @@ export type PropertyRow = {
   property_calendars: Feed[];
   calendar_blocks: Block[];
   cleanings: Cleaning[];
+  guest_threads: Thread[];
 };
 
 const inputCls =
@@ -321,6 +323,8 @@ function PropertyCard({ property }: { property: PropertyRow }) {
         <CleaningPanel propertyId={property.id} cleanings={property.cleanings} />
 
         <CopilotPanel propertyId={property.id} guestInfo={property.guest_info} />
+
+        <MessagingPanel propertyId={property.id} threads={property.guest_threads} />
 
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={save} disabled={pending}>
