@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { checkinToken } from '@/lib/checkin/tokens';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
+import { geocodeAddress } from '@/lib/geocode';
 
 const PropertySchema = z.object({
   nickname: z.string().min(1).max(120),
@@ -13,6 +14,8 @@ const PropertySchema = z.object({
   bedrooms: z.number().int().min(0).max(50).optional(),
   bathrooms: z.number().int().min(0).max(50).optional(),
   sizeM2: z.number().positive().max(5000).optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 });
 
 export async function createProperty(input: unknown): Promise<{ ok: boolean; id?: string }> {
@@ -20,6 +23,18 @@ export async function createProperty(input: unknown): Promise<{ ok: boolean; id?
   if (!parsed.success) return { ok: false };
   const customerId = await currentCustomerId();
   if (!customerId) return { ok: false };
+
+  // Geocode once at creation so cleaning pricing has coordinates; best-effort.
+  let lat = parsed.data.lat ?? null;
+  let lng = parsed.data.lng ?? null;
+  if ((lat == null || lng == null) && parsed.data.address) {
+    const g = await geocodeAddress(parsed.data.address);
+    if (g) {
+      lat = g.lat;
+      lng = g.lng;
+    }
+  }
+
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('properties')
@@ -31,6 +46,8 @@ export async function createProperty(input: unknown): Promise<{ ok: boolean; id?
       bedrooms: parsed.data.bedrooms ?? null,
       bathrooms: parsed.data.bathrooms ?? null,
       size_m2: parsed.data.sizeM2 ?? null,
+      lat,
+      lng,
     })
     .select('id')
     .single();

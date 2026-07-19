@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createProperty, updateAccess, createCheckinLink } from './actions';
 import { CalendarPanel, type Feed, type Block } from './calendar-panel';
+import { CleaningPanel, type Cleaning } from './cleaning-panel';
 
 export type AccessRow = {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
@@ -32,6 +33,7 @@ export type PropertyRow = {
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];
+  cleanings: Cleaning[];
 };
 
 const inputCls =
@@ -311,6 +313,8 @@ function PropertyCard({ property }: { property: PropertyRow }) {
           feeds={property.property_calendars}
           blocks={property.calendar_blocks}
         />
+
+        <CleaningPanel propertyId={property.id} cleanings={property.cleanings} />
 
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={save} disabled={pending}>

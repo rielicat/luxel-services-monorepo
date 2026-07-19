@@ -408,5 +408,22 @@
     "add": "Agregar",
     "export_feed": "Ver enlace de exportación",
     "export_help": "Agrega este enlace en AirBnB/Booking para que bloqueen automáticamente estas fechas."
+  },
+  "cleaning": {
+    "title": "Aseo entre estadías",
+    "price_turnover": "Calcular precio por aseo",
+    "price_help": "Configúralo como tarifa de limpieza en AirBnB para que lo pague el huésped.",
+    "none": "Sin aseos programados.",
+    "refresh": "Actualizar desde reservas",
+    "schedule": "Programar",
+    "skip": "Omitir",
+    "status_suggested": "sugerido",
+    "status_scheduled": "programado",
+    "status_done": "realizado",
+    "status_skipped": "omitido",
+    "err_no_data": "Agrega tamaño y dirección para calcular.",
+    "err_out_of_area": "Fuera del área de cobertura.",
+    "err_service": "No disponible por ahora.",
+    "err_generic": "No se pudo calcular."
   }
 }
