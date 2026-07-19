@@ -21,13 +21,18 @@ export default async function PropertiesPage() {
     const { data } = await supabase
       .from('properties')
       .select(
-        'id, nickname, address, comuna, property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_whatsapp, concierge_email, concierge_hours, id_basis, id_disclosed)',
+        'id, nickname, address, comuna, property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_whatsapp, concierge_email, concierge_hours, id_basis, id_disclosed), property_calendars(id, label, ical_url, last_synced_at), calendar_blocks(id, starts_on, ends_on, source, summary)',
       )
       .eq('owner_id', customer.id)
       .order('created_at', { ascending: true });
     properties = (data ?? []).map((p) => {
       const pa = p.property_access;
-      return { ...p, property_access: Array.isArray(pa) ? (pa[0] ?? null) : pa } as PropertyRow;
+      return {
+        ...p,
+        property_access: Array.isArray(pa) ? (pa[0] ?? null) : pa,
+        property_calendars: p.property_calendars ?? [],
+        calendar_blocks: p.calendar_blocks ?? [],
+      } as PropertyRow;
     });
   }
 

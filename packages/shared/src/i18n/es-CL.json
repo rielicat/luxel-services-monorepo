@@ -393,6 +393,20 @@
     "saving": "Guardando…",
     "saved": "Guardado ✓",
     "gen_link": "Generar enlace de check-in",
-    "copy": "Copiar"
+    "copy": "Copiar",
+    "calendar": "Calendario",
+    "synced": "sincronizado",
+    "never_synced": "sin sincronizar",
+    "remove": "Quitar",
+    "feed_url_ph": "URL de calendario iCal (AirBnB/Booking)",
+    "sync_now": "Sincronizar",
+    "no_blocks": "Sin fechas bloqueadas.",
+    "block_manual": "Bloqueado por ti",
+    "block_import": "Reservado",
+    "block_from": "Desde",
+    "block_to": "Hasta",
+    "add": "Agregar",
+    "export_feed": "Ver enlace de exportación",
+    "export_help": "Agrega este enlace en AirBnB/Booking para que bloqueen automáticamente estas fechas."
   }
 }

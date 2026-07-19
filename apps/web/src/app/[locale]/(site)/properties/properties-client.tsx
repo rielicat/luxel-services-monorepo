@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createProperty, updateAccess, createCheckinLink } from './actions';
+import { CalendarPanel, type Feed, type Block } from './calendar-panel';
 
 export type AccessRow = {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
@@ -29,6 +30,8 @@ export type PropertyRow = {
   address: string | null;
   comuna: string | null;
   property_access: AccessRow;
+  property_calendars: Feed[];
+  calendar_blocks: Block[];
 };
 
 const inputCls =
@@ -302,6 +305,12 @@ function PropertyCard({ property }: { property: PropertyRow }) {
             </div>
           )}
         </div>
+
+        <CalendarPanel
+          propertyId={property.id}
+          feeds={property.property_calendars}
+          blocks={property.calendar_blocks}
+        />
 
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={save} disabled={pending}>
