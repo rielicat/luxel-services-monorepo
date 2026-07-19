@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { getPlan, type PlanRow } from '@/lib/plans';
 import { PropertiesClient, type PropertyRow } from './properties-client';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,9 @@ export default async function PropertiesPage() {
     .maybeSingle();
 
   let properties: PropertyRow[] = [];
+  let plan: PlanRow | null = null;
   if (customer) {
+    plan = await getPlan(customer.id);
     const { data } = await supabase
       .from('properties')
       .select(
@@ -37,5 +40,5 @@ export default async function PropertiesPage() {
     });
   }
 
-  return <PropertiesClient initial={properties} />;
+  return <PropertiesClient initial={properties} plan={plan} />;
 }

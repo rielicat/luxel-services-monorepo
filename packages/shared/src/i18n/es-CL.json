@@ -17,6 +17,7 @@
     "calculator": "Cotizar",
     "plan": "Mi Plan",
     "account": "Mi cuenta",
+    "properties": "Mis propiedades",
     "calendar": "Calendario",
     "login": "Ingresar",
     "logout": "Cerrar sesión",
@@ -440,5 +441,18 @@
     "copy": "Copiar",
     "no_ai": "El asistente de IA no está configurado. Responde tú al huésped.",
     "error": "No se pudo redactar. Inténtalo de nuevo."
+  },
+  "hostplan": {
+    "ai_name": "Plan IA — Luxel",
+    "price": "$39.900/mes + IVA · 14 días gratis",
+    "start_trial": "Iniciar prueba de 14 días",
+    "trialing": "Prueba activa — {days} días restantes",
+    "active": "Plan activo",
+    "cancelled": "Plan cancelado",
+    "cancel": "Cancelar plan",
+    "reactivate": "Reactivar",
+    "winback_body": "Extiende tu prueba 30 días gratis.",
+    "winback_extend": "Extender 30 días gratis",
+    "winback_confirm": "Cancelar de todas formas"
   }
 }

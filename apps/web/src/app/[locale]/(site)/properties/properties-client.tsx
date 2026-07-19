@@ -12,6 +12,7 @@ import { createProperty, updateAccess, createCheckinLink } from './actions';
 import { CalendarPanel, type Feed, type Block } from './calendar-panel';
 import { CleaningPanel, type Cleaning } from './cleaning-panel';
 import { CopilotPanel } from './copilot-panel';
+import { PlanBar, type Plan } from './plan-bar';
 
 export type AccessRow = {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
@@ -41,7 +42,7 @@ export type PropertyRow = {
 const inputCls =
   'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-export function PropertiesClient({ initial }: { initial: PropertyRow[] }) {
+export function PropertiesClient({ initial, plan }: { initial: PropertyRow[]; plan: Plan }) {
   const t = useTranslations('properties');
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -52,6 +53,7 @@ export function PropertiesClient({ initial }: { initial: PropertyRow[] }) {
           <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
         </div>
       </div>
+      <PlanBar plan={plan} />
       <NewProperty />
       <div className="mt-6 grid gap-4">
         {initial.map((p) => (
