@@ -1,24 +1,20 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   Home,
-  Plus,
   KeyRound,
   ConciergeBell,
   TriangleAlert,
   MessagesSquare,
   CalendarDays,
   ArrowRight,
+  Plug,
+  RefreshCw,
+  Settings2,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { createProperty } from './actions';
 import { PlanBar, type Plan } from './plan-bar';
 import { HospitableCard } from './hospitable-card';
 import type { HostConnection } from '@/lib/host/queries';
@@ -55,17 +51,14 @@ export function PropertiesClient({
   const t = useTranslations('properties');
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-xl">
-            <Home className="h-6 w-6" />
-          </span>
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">{t('title')}</h1>
-            <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
-          </div>
+      <div className="mb-6 flex items-center gap-2.5">
+        <span className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-xl">
+          <Home className="h-6 w-6" />
+        </span>
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
         </div>
-        <NewProperty />
       </div>
 
       <div className="grid gap-4">
@@ -73,7 +66,7 @@ export function PropertiesClient({
         <HospitableCard connection={connection} />
 
         {initial.length === 0 ? (
-          <EmptyState />
+          <Onboarding connected={Boolean(connection)} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {initial.map((p) => (
@@ -86,14 +79,50 @@ export function PropertiesClient({
   );
 }
 
-function EmptyState() {
-  const t = useTranslations('properties');
+/** Listings are import-only: the empty state IS the onboarding — three steps
+ *  from zero to an imported, configured property. */
+function Onboarding({ connected }: { connected: boolean }) {
+  const t = useTranslations('onboarding');
+  const steps = [
+    { icon: Plug, title: t('s1_title'), body: t('s1_body'), done: connected },
+    { icon: RefreshCw, title: t('s2_title'), body: t('s2_body'), done: false },
+    { icon: Settings2, title: t('s3_title'), body: t('s3_body'), done: false },
+  ];
   return (
     <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center gap-2 p-10 text-center">
-        <Home className="text-muted-foreground/50 h-10 w-10" />
-        <p className="font-display font-semibold">{t('empty_title')}</p>
-        <p className="text-muted-foreground max-w-sm text-sm">{t('empty_body')}</p>
+      <CardContent className="grid gap-5 p-8">
+        <div className="text-center">
+          <p className="font-display text-lg font-semibold">{t('title')}</p>
+          <p className="text-muted-foreground mx-auto max-w-md text-sm">{t('subtitle')}</p>
+        </div>
+        <ol className="grid gap-4 sm:grid-cols-3">
+          {steps.map(({ icon: Icon, title, body, done }, i) => (
+            <li key={title} className="grid gap-1.5 text-center">
+              <span
+                className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${
+                  done ? 'bg-success/15 text-success' : 'bg-primary/10 text-primary'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </span>
+              <p className="text-sm font-semibold">
+                {i + 1}. {title}
+              </p>
+              <p className="text-muted-foreground text-xs">{body}</p>
+            </li>
+          ))}
+        </ol>
+        <p className="text-muted-foreground text-center text-xs">
+          {t('help_pre')}{' '}
+          <a
+            className="text-primary underline underline-offset-2"
+            href="https://my.hospitable.com/apps/api-access"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('help_link')}
+          </a>
+        </p>
       </CardContent>
     </Card>
   );
@@ -162,115 +191,5 @@ function PropertySummaryCard({ property }: { property: PropertyRow }) {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function NewProperty() {
-  const t = useTranslations('properties');
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [pending, start] = useTransition();
-  const [f, setF] = useState({
-    nickname: '',
-    address: '',
-    comuna: '',
-    bedrooms: '',
-    bathrooms: '',
-    sizeM2: '',
-  });
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setF((p) => ({ ...p, [k]: e.target.value }));
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    start(async () => {
-      const r = await createProperty({
-        nickname: f.nickname.trim(),
-        address: f.address.trim() || undefined,
-        comuna: f.comuna.trim() || undefined,
-        bedrooms: f.bedrooms ? Number(f.bedrooms) : undefined,
-        bathrooms: f.bathrooms ? Number(f.bathrooms) : undefined,
-        sizeM2: f.sizeM2 ? Number(f.sizeM2) : undefined,
-      });
-      if (r.ok) {
-        setF({ nickname: '', address: '', comuna: '', bedrooms: '', bathrooms: '', sizeM2: '' });
-        setOpen(false);
-        router.refresh();
-      }
-    });
-  };
-
-  return (
-    <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
-        <Plus className="mr-1.5 h-4 w-4" /> {t('new_title')}
-      </Button>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={(e) => e.target === e.currentTarget && setOpen(false)}
-        >
-          <Card className="w-full max-w-md">
-            <CardContent className="p-5">
-              <p className="font-display mb-3 font-semibold">{t('new_title')}</p>
-              <form onSubmit={submit} className="grid gap-3">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="np-nick">{t('nickname')}</Label>
-                  <Input
-                    id="np-nick"
-                    required
-                    autoFocus
-                    value={f.nickname}
-                    onChange={set('nickname')}
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="np-addr">{t('address')}</Label>
-                  <Input id="np-addr" value={f.address} onChange={set('address')} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="np-comuna">{t('comuna')}</Label>
-                    <Input id="np-comuna" value={f.comuna} onChange={set('comuna')} />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="np-size">{t('size_m2')}</Label>
-                    <Input id="np-size" type="number" value={f.sizeM2} onChange={set('sizeM2')} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="np-bed">{t('bedrooms')}</Label>
-                    <Input
-                      id="np-bed"
-                      type="number"
-                      value={f.bedrooms}
-                      onChange={set('bedrooms')}
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="np-bath">{t('bathrooms')}</Label>
-                    <Input
-                      id="np-bath"
-                      type="number"
-                      value={f.bathrooms}
-                      onChange={set('bathrooms')}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                    {t('cancel')}
-                  </Button>
-                  <Button type="submit" disabled={pending || !f.nickname.trim()}>
-                    {pending ? t('creating') : t('create')}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </>
   );
 }

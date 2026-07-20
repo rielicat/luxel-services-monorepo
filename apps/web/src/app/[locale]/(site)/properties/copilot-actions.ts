@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
 import { draftGuestReply, type Draft } from '@/lib/ai/copilot';
+import { buildGrounding } from '@/lib/ai/grounding';
 
 export async function updateGuestInfo(input: unknown): Promise<{ ok: boolean }> {
   const p = z
@@ -29,5 +30,6 @@ export async function draftReply(input: unknown): Promise<Draft> {
   if (!p.success) return { ok: false, reason: 'error' };
   const cid = await currentCustomerId();
   if (!cid || !(await ownsProperty(cid, p.data.propertyId))) return { ok: false, reason: 'error' };
-  return draftGuestReply(p.data.propertyId, p.data.guestMessage);
+  const grounding = await buildGrounding(p.data.propertyId);
+  return draftGuestReply(p.data.propertyId, p.data.guestMessage, { history: grounding.text });
 }

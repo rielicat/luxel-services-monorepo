@@ -96,14 +96,16 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       token,
       guestName: 'María Pérez',
       guestEmail: 'maria@guest.cl',
-      partySize: 2,
       arrivalAt: new Date('2026-08-01T18:00:00Z').toISOString(),
       docType: 'rut',
       docNumber: '12.345.678-9',
       nationality: 'Chilena',
+      companions: [{ fullName: 'Pedro Pérez', docType: 'rut', docNumber: '9.876.543-2' }],
       consent: true,
     });
     expect(res.ok).toBe(true);
+    // Zero-friction confirmation: the keyless access is revealed immediately.
+    expect(res.access).toMatchObject({ method: 'keyless', keylessCode: '4821' });
 
     const { data: checkin } = await admin
       .from('checkins')
@@ -128,6 +130,47 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(decryptPII(id!.doc_number_enc as string)).toBe('12.345.678-9'); // but recoverable
     expect(id!.doc_last4).toBe('78-9');
     expect(new Date(id!.purge_after as string).getTime()).toBeGreaterThan(Date.now()); // retention set
+
+    // EVERY incoming guest registered; companion doc also encrypted at rest.
+    expect(checkin!.party_size).toBe(2);
+    const { data: guests } = await admin
+      .from('checkin_guests')
+      .select('is_lead, full_name, doc_last4, doc_number_enc')
+      .eq('checkin_id', checkin!.id)
+      .order('is_lead', { ascending: false });
+    expect(guests).toHaveLength(2);
+    expect(guests![0]).toMatchObject({ is_lead: true, full_name: 'María Pérez' });
+    expect(guests![1]).toMatchObject({
+      is_lead: false,
+      full_name: 'Pedro Pérez',
+      doc_last4: '43-2',
+    });
+    expect(guests![1].doc_number_enc).not.toContain('9.876.543-2');
+    expect(decryptPII(guests![1].doc_number_enc as string)).toBe('9.876.543-2');
+  });
+
+  it('when the host requires ID, every companion must carry a document too', async () => {
+    const prop = await createProperty({ nickname: 'Depto Todos Con ID' });
+    const propertyId = prop.id!;
+    await updateAccess({
+      propertyId,
+      method: 'keyless',
+      requireId: true,
+      idBasis: 'Reglamento de copropiedad exige registro',
+      idDisclosed: true,
+    });
+    const link = await createCheckinLink(propertyId);
+    const res = await submitCheckin({
+      token: link.token,
+      guestName: 'Líder Con Doc',
+      guestEmail: 'lider@guest.cl',
+      docType: 'rut',
+      docNumber: '11.111.111-1',
+      companions: [{ fullName: 'Acompañante Sin Doc' }],
+      consent: true,
+    });
+    expect(res.ok).toBe(false);
+    expect(res.error).toBe('id_required');
   });
 
   it('rejects a submission missing ID when the property requires it', async () => {

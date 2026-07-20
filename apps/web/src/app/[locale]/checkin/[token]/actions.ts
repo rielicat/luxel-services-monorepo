@@ -9,21 +9,36 @@ import { notifyCheckin } from '@/lib/checkin/notify';
 // kept for the stay + a dispute/chargeback window, then a job deletes it.
 const RETENTION_DAYS = 90;
 
+const GuestSchema = z.object({
+  fullName: z.string().min(1).max(120),
+  docType: z.enum(['rut', 'passport', 'dni', 'other']).optional(),
+  docNumber: z.string().min(3).max(40).optional(),
+});
+
 const Schema = z.object({
   token: z.string().min(10).max(64),
   guestName: z.string().min(1).max(120),
   guestEmail: z.string().email().max(120),
   guestPhone: z.string().max(30).optional(),
-  partySize: z.number().int().positive().max(30).optional(),
   arrivalAt: z.string().datetime().optional(),
   docType: z.enum(['rut', 'passport', 'dni', 'other']).optional(),
   docNumber: z.string().min(3).max(40).optional(),
   nationality: z.string().max(60).optional(),
-  dateOfBirth: z.string().date().optional(),
+  companions: z.array(GuestSchema).max(29).default([]),
   consent: z.literal(true),
 });
 
-type Result = { ok: boolean; error?: string };
+/** What the confirmation screen needs for a zero-friction arrival: the access
+ *  details, revealed immediately after a valid submit (and also emailed). */
+export interface AccessInfo {
+  method: 'keyless' | 'physical_concierge' | 'physical_none';
+  keylessCode: string | null;
+  keylessInstructions: string | null;
+  conciergeName: string | null;
+  conciergeHours: string | null;
+}
+
+type Result = { ok: boolean; error?: string; access?: AccessInfo };
 
 export async function submitCheckin(input: unknown): Promise<Result> {
   const parsed = Schema.safeParse(input);
@@ -40,13 +55,22 @@ export async function submitCheckin(input: unknown): Promise<Result> {
   if (checkin.status !== 'pending') return { ok: false, error: 'already_submitted' };
 
   // Re-check the property's ID requirement server-side — never trust the client.
+  // When the host requires ID (declared legal basis), EVERY incoming guest
+  // must carry a document; otherwise documents are optional.
   const { data: access } = await supabase
     .from('property_access')
-    .select('require_id')
+    .select(
+      'method, keyless_code, keyless_instructions, concierge_name, concierge_hours, require_id',
+    )
     .eq('property_id', checkin.property_id)
     .maybeSingle();
-  const idProvided = Boolean(d.docType && d.docNumber);
-  if (access?.require_id && !idProvided) return { ok: false, error: 'id_required' };
+  const everyone = [
+    { fullName: d.guestName, docType: d.docType, docNumber: d.docNumber },
+    ...d.companions,
+  ];
+  if (access?.require_id && everyone.some((g) => !g.docType || !g.docNumber)) {
+    return { ok: false, error: 'id_required' };
+  }
 
   const now = new Date();
   const { error: e1 } = await supabase
@@ -56,25 +80,23 @@ export async function submitCheckin(input: unknown): Promise<Result> {
       guest_name: d.guestName,
       guest_email: d.guestEmail,
       guest_phone: d.guestPhone ?? null,
-      party_size: d.partySize ?? null,
+      party_size: everyone.length,
       arrival_at: d.arrivalAt ?? null,
       submitted_at: now.toISOString(),
     })
     .eq('id', checkin.id);
   if (e1) return { ok: false, error: 'store' };
 
-  // Store the minimized identity only when provided; the number is encrypted and
-  // never persisted in plaintext (only a last-4 for host display).
-  if (idProvided) {
+  // Lead identity (minimized + encrypted), kept for the retention window.
+  if (d.docType && d.docNumber) {
     const purgeAfter = new Date(now.getTime() + RETENTION_DAYS * 86_400_000);
     const { error: e2 } = await supabase.from('checkin_identity').upsert(
       {
         checkin_id: checkin.id,
-        doc_type: d.docType!,
-        doc_number_enc: encryptPII(d.docNumber!),
-        doc_last4: last4(d.docNumber!),
+        doc_type: d.docType,
+        doc_number_enc: encryptPII(d.docNumber),
+        doc_last4: last4(d.docNumber),
         nationality: d.nationality ?? null,
-        date_of_birth: d.dateOfBirth ?? null,
         purge_after: purgeAfter.toISOString(),
       },
       { onConflict: 'checkin_id' },
@@ -82,6 +104,35 @@ export async function submitCheckin(input: unknown): Promise<Result> {
     if (e2) return { ok: false, error: 'store_id' };
   }
 
+  // Every incoming guest, lead included — docs encrypted when provided.
+  await supabase.from('checkin_guests').delete().eq('checkin_id', checkin.id);
+  const { error: e3 } = await supabase.from('checkin_guests').insert(
+    everyone.map((g, i) => ({
+      checkin_id: checkin.id,
+      is_lead: i === 0,
+      full_name: g.fullName,
+      doc_type: g.docType && g.docNumber ? g.docType : null,
+      doc_number_enc: g.docNumber ? encryptPII(g.docNumber) : null,
+      doc_last4: g.docNumber ? last4(g.docNumber) : null,
+    })),
+  );
+  if (e3) return { ok: false, error: 'store_guests' };
+
   await notifyCheckin(checkin.id);
-  return { ok: true };
+
+  return {
+    ok: true,
+    access: access
+      ? {
+          method: access.method as AccessInfo['method'],
+          keylessCode: access.method === 'keyless' ? (access.keyless_code ?? null) : null,
+          keylessInstructions:
+            access.method === 'keyless' ? (access.keyless_instructions ?? null) : null,
+          conciergeName:
+            access.method === 'physical_concierge' ? (access.concierge_name ?? null) : null,
+          conciergeHours:
+            access.method === 'physical_concierge' ? (access.concierge_hours ?? null) : null,
+        }
+      : undefined,
+  };
 }

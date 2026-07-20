@@ -1,6 +1,7 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { draftGuestReply } from '@/lib/ai/copilot';
+import { buildGrounding } from '@/lib/ai/grounding';
 import { getChannelProvider } from './provider';
 import { hospitableTokenForCustomer } from './hospitable';
 
@@ -48,25 +49,27 @@ export async function handleInboundMessage(input: {
     .from('guest_messages')
     .insert({ thread_id: thread.id, direction: 'in', source: 'guest', body: input.body });
 
-  const [{ data: recent }, { data: learned }] = await Promise.all([
+  // Grounding = the property's own chat/automated-message experience (learned
+  // answers + past Q→A), falling back to anonymized cross-property experience
+  // when this property has no history yet — plus the current conversation tail.
+  const [grounding, { data: recent }] = await Promise.all([
+    buildGrounding(input.propertyId),
     supabase
       .from('guest_messages')
       .select('source, body')
       .eq('thread_id', thread.id)
       .order('created_at', { ascending: false })
       .limit(8),
-    supabase
-      .from('learned_answers')
-      .select('question, answer')
-      .eq('property_id', input.propertyId)
-      .limit(20),
   ]);
   const history = [
-    ...(learned ?? []).map((l) => `P: ${l.question}\nR: ${l.answer}`),
+    grounding.text,
+    'Conversación actual:',
     ...(recent ?? [])
       .reverse()
       .map((m) => `${m.source === 'guest' ? 'Huésped' : 'Anfitrión'}: ${m.body}`),
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   const draft = await draftGuestReply(input.propertyId, input.body, { history });
   if (!draft.ok) return { ok: false, threadId: thread.id };

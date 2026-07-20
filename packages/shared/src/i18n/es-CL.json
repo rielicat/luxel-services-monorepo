@@ -373,9 +373,25 @@
     "sending": "Enviando…",
     "submit": "Enviar check-in",
     "done_title": "¡Check-in recibido!",
-    "done_body": "Te enviaremos los detalles de acceso a tu correo.",
+    "done_body": "Te enviamos los detalles a tu correo. ¡Buen viaje!",
     "error_generic": "No pudimos guardar tu check-in. Inténtalo de nuevo.",
-    "error_id_required": "El anfitrión requiere un documento de identidad para este alojamiento."
+    "error_id_required": "El anfitrión requiere un documento de identidad para este alojamiento.",
+    "email_help": "Te enviaremos ahí los detalles de acceso.",
+    "phone_opt": "Teléfono (opcional)",
+    "your_id": "Tu documento de identidad",
+    "your_id_opt": "Tu documento (opcional)",
+    "doc_number_ph": "Número de documento",
+    "next": "Continuar",
+    "back": "Atrás",
+    "companions_title": "¿Quiénes te acompañan?",
+    "companions_body": "Agrega a cada persona que se hospedará contigo. Puedes continuar sin acompañantes.",
+    "companions_body_id": "El anfitrión requiere el documento de identidad de cada huésped.",
+    "companion_name_ph": "Nombre completo",
+    "add_companion": "Agregar acompañante",
+    "remove": "Quitar",
+    "access_title": "Tu acceso",
+    "access_concierge": "Retira la llave en conserjería ({name}, {hours}) presentando tu documento.",
+    "access_concierge_generic": "conserjería del edificio"
   },
   "properties": {
     "title": "Mis propiedades",
@@ -529,5 +545,17 @@
     "tab_calendar": "Calendario",
     "tab_cleaning": "Aseos",
     "tab_access": "Acceso"
+  },
+  "onboarding": {
+    "title": "Conecta tu propiedad en 3 pasos",
+    "subtitle": "Tus propiedades no se crean a mano: se importan automáticamente desde tu cuenta de Airbnb vía Hospitable.",
+    "s1_title": "Conecta Hospitable",
+    "s1_body": "Crea un token de API en Hospitable y pégalo arriba. Se guarda cifrado.",
+    "s2_title": "Importación automática",
+    "s2_body": "Tus propiedades, reservas y calendario se sincronizan solos.",
+    "s3_title": "Configura y listo",
+    "s3_body": "Define el acceso (código o conserjería) y la info para huéspedes. La IA hace el resto.",
+    "help_pre": "¿Dónde creo el token?",
+    "help_link": "Hospitable → Apps → API access"
   }
 }
