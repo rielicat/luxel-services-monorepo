@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/hospitable-sync",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

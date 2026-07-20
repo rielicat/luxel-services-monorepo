@@ -16,6 +16,8 @@ const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 process.env.TEST_CLERK_ID = `test-hosp-${nodeCrypto.randomUUID()}`;
 process.env.LUXEL_PII_KEY = nodeCrypto.randomBytes(32).toString('hex');
 delete process.env.HOSPITABLE_API_TOKEN; // per-customer tokens only — no env fallback
+delete process.env.OPENAI_API_KEY;
+process.env.LUXEL_DEV_MOCK = '1'; // dev-mock AI so auto-replies are deterministic
 
 const FAKE_TOKEN = `tok_${nodeCrypto.randomBytes(24).toString('hex')}`;
 const HOSP_PROPERTY_ID = 'a6eb2c65-1e45-43a8-9cde-000000000001';
@@ -72,6 +74,17 @@ const RESERVATIONS_PAYLOAD = {
   links: { next: null },
 };
 
+// Mutable conversation state for the messages endpoint (per reservation res-1).
+// eslint-disable-next-line prefer-const
+let MESSAGES: Array<{
+  id: string;
+  body: string;
+  sender_type: string;
+  created_at: string;
+  sender?: { first_name?: string };
+}> = [];
+const SENT: Array<{ reservationId: string; body: string }> = [];
+
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
 }));
@@ -96,6 +109,18 @@ beforeAll(async () => {
       apiCalls++;
       const auth = new Headers(init?.headers).get('authorization') ?? '';
       if (auth !== `Bearer ${FAKE_TOKEN}`) return new Response('Unauthorized', { status: 401 });
+      const msgMatch = url.match(/\/reservations\/([^/]+)\/messages/);
+      if (msgMatch) {
+        if ((init?.method ?? 'GET').toUpperCase() === 'POST') {
+          const body = JSON.parse((init?.body as string) ?? '{}') as { body?: string };
+          SENT.push({ reservationId: msgMatch[1]!, body: body.body ?? '' });
+          return Response.json({ data: { id: `sent-${SENT.length}` } });
+        }
+        return Response.json({
+          data: msgMatch[1] === 'res-1' ? MESSAGES : [],
+          links: { next: null },
+        });
+      }
       if (url.includes('/reservations')) {
         return Response.json(RESERVATIONS_PAYLOAD);
       }
@@ -130,6 +155,8 @@ afterEach(async () => {
   if (!LIVE || !customerId) return;
   await admin.from('properties').delete().eq('owner_id', customerId);
   await admin.from('channel_connections').delete().eq('customer_id', customerId);
+  MESSAGES = [];
+  SENT.length = 0;
 });
 
 describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
@@ -211,6 +238,126 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('*', { count: 'exact', head: true })
       .eq('property_id', prop!.id);
     expect(blocks).toBe(2);
+  });
+
+  it('ingests conversations: history silently (no auto-replies), new guest messages get the AI', async () => {
+    MESSAGES = [
+      {
+        id: 'h1',
+        body: '¿Aceptan mascotas?',
+        sender_type: 'guest',
+        created_at: '2026-01-01T10:00:00Z',
+        sender: { first_name: 'Matheus' },
+      },
+      {
+        id: 'h2',
+        body: 'Sí, mascotas pequeñas.',
+        sender_type: 'host',
+        created_at: '2026-01-01T11:00:00Z',
+      },
+      {
+        id: 'h3',
+        body: 'Gracias!',
+        sender_type: 'guest',
+        created_at: '2026-01-01T12:00:00Z',
+        sender: { first_name: 'Matheus' },
+      },
+    ];
+    await connectHospitable({ token: FAKE_TOKEN });
+
+    const { data: thread } = await admin
+      .from('guest_threads')
+      .select('id, guest_name')
+      .eq('channel', 'hospitable')
+      .eq('external_thread_id', 'res-1')
+      .single();
+    expect(thread!.guest_name).toBe('Matheus');
+    const { data: hist } = await admin
+      .from('guest_messages')
+      .select('source, external_id')
+      .eq('thread_id', thread!.id);
+    expect(hist).toHaveLength(3); // full history imported for grounding
+    expect(hist!.some((m) => m.source === 'ai')).toBe(false); // but nothing auto-sent
+    expect(SENT).toHaveLength(0);
+
+    // A NEW guest message arrives after the watermark → the AI replies via Hospitable.
+    const future = new Date(Date.now() + 60_000).toISOString();
+    MESSAGES.push({
+      id: 'new-1',
+      body: '¿Hay wifi en el departamento?',
+      sender_type: 'guest',
+      created_at: future,
+      sender: { first_name: 'Matheus' },
+    });
+    const r2 = await syncHospitable();
+    expect(r2.ok).toBe(true);
+
+    const { data: after } = await admin
+      .from('guest_messages')
+      .select('source, external_id, body')
+      .eq('thread_id', thread!.id)
+      .order('created_at');
+    expect(after!.some((m) => m.external_id === 'new-1')).toBe(true);
+    expect(after!.some((m) => m.source === 'ai')).toBe(true); // AI answered
+    expect(SENT.length).toBeGreaterThan(0); // …and it went out through Hospitable
+    expect(SENT[0]!.reservationId).toBe('res-1');
+
+    // Idempotent: a third sync must not duplicate or re-reply.
+    const count = after!.length;
+    const sends = SENT.length;
+    await syncHospitable();
+    const { count: again } = await admin
+      .from('guest_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('thread_id', thread!.id);
+    expect(again).toBe(count);
+    expect(SENT.length).toBe(sends);
+  });
+
+  it('webhook ingests a guest message and auto-replies through Hospitable', async () => {
+    await connectHospitable({ token: FAKE_TOKEN }); // creates the property + hosp:res-1 block
+    const { POST } = await import('../src/app/api/channels/[provider]/route');
+
+    const res = await POST(
+      new Request('http://localhost/api/channels/hospitable', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'message.created',
+          data: {
+            reservation_id: 'res-1',
+            message: {
+              id: 'wh-1',
+              body: '¿A qué hora es el check-in?',
+              sender_type: 'guest',
+              sender: { first_name: 'Matheus' },
+            },
+          },
+        }),
+      }),
+      { params: Promise.resolve({ provider: 'hospitable' }) },
+    );
+    const json = (await res.json()) as { ok: boolean; action?: string };
+    expect(json.ok).toBe(true);
+    expect(json.action).toBe('sent');
+    expect(SENT.some((s) => s.reservationId === 'res-1')).toBe(true);
+
+    // Host (non-guest) events are acknowledged but ignored.
+    const res2 = await POST(
+      new Request('http://localhost/api/channels/hospitable', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'message.created',
+          data: {
+            reservation_id: 'res-1',
+            message: { id: 'wh-2', body: 'ok', sender_type: 'host' },
+          },
+        }),
+      }),
+      { params: Promise.resolve({ provider: 'hospitable' }) },
+    );
+    expect(((await res2.json()) as { ignored?: boolean }).ignored).toBe(true);
   });
 
   it('disconnect removes the connection and sync stops working', async () => {

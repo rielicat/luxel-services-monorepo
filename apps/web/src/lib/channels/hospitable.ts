@@ -98,6 +98,33 @@ export async function listHospitableReservations(
   return out;
 }
 
+export interface HospitableMessage {
+  id: string;
+  body: string | null;
+  sender_type: string | null; // 'guest' | 'host' | 'teammate' | ...
+  created_at: string;
+  conversation_id?: string | null;
+  reservation_id?: string | null;
+  sender?: { first_name?: string | null; full_name?: string | null } | null;
+}
+
+/** Full message thread of a reservation (shape verified live 2026-07). */
+export async function listHospitableMessages(
+  token: string,
+  reservationId: string,
+): Promise<HospitableMessage[] | null> {
+  const out: HospitableMessage[] = [];
+  let url: string | null =
+    `/reservations/${encodeURIComponent(reservationId)}/messages?per_page=100`;
+  for (let page = 0; url && page < 10; page++) {
+    const r: Awaited<ReturnType<typeof hospGet<HospitableMessage>>> = await hospGet(token, url);
+    if (!r.ok) return page === 0 ? null : out;
+    out.push(...(r.data ?? []));
+    url = r.nextUrl ?? null;
+  }
+  return out;
+}
+
 /** Sends a message into a reservation's guest thread. Returns a message id-ish, or null. */
 export async function sendHospitableMessage(
   token: string,

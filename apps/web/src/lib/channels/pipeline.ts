@@ -7,7 +7,7 @@ import { hospitableTokenForCustomer } from './hospitable';
 
 export type InboundResult = {
   ok: boolean;
-  action?: 'sent' | 'handoff';
+  action?: 'sent' | 'handoff' | 'duplicate';
   draft?: string;
   threadId?: string;
 };
@@ -25,9 +25,21 @@ export async function handleInboundMessage(input: {
   externalThreadId?: string | null;
   guestName?: string | null;
   body: string;
+  /** Provider message id — polled/webhooked messages dedupe on it. */
+  externalMessageId?: string | null;
 }): Promise<InboundResult> {
   const supabase = createSupabaseServiceRoleClient();
   const channel = input.channel ?? 'local';
+
+  if (input.externalMessageId) {
+    const { data: dup } = await supabase
+      .from('guest_messages')
+      .select('id')
+      .eq('external_id', input.externalMessageId)
+      .limit(1)
+      .maybeSingle();
+    if (dup) return { ok: true, action: 'duplicate' };
+  }
 
   const { data: thread } = await supabase
     .from('guest_threads')
@@ -45,9 +57,13 @@ export async function handleInboundMessage(input: {
     .single();
   if (!thread) return { ok: false };
 
-  await supabase
-    .from('guest_messages')
-    .insert({ thread_id: thread.id, direction: 'in', source: 'guest', body: input.body });
+  await supabase.from('guest_messages').insert({
+    thread_id: thread.id,
+    direction: 'in',
+    source: 'guest',
+    body: input.body,
+    external_id: input.externalMessageId ?? null,
+  });
 
   // The host's simple switch: AI off → straight to the inbox, nothing auto-sent.
   const { data: property } = await supabase
