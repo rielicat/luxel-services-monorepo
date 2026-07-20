@@ -544,7 +544,8 @@
     "tab_messages": "Mensajes",
     "tab_calendar": "Calendario",
     "tab_cleaning": "Aseos",
-    "tab_access": "Acceso"
+    "tab_access": "Acceso",
+    "ai_off": "IA desactivada"
   },
   "onboarding": {
     "title": "Conecta tu propiedad en 3 pasos",
@@ -557,5 +558,34 @@
     "s3_body": "Define el acceso (código o conserjería) y la info para huéspedes. La IA hace el resto.",
     "help_pre": "¿Dónde creo el token?",
     "help_link": "Hospitable → Apps → API access"
+  },
+  "cal": {
+    "prev": "Mes anterior",
+    "next": "Mes siguiente",
+    "reserved": "Reservado",
+    "blocked": "Bloqueado por ti",
+    "hint": "Toca un día libre para bloquearlo; toca tu bloqueo para liberarlo.",
+    "advanced": "Sincronización avanzada (iCal)",
+    "feed_ph": "URL de calendario iCal…",
+    "remove": "Quitar",
+    "sync": "Sincronizar"
+  },
+  "ai": {
+    "toggle_title": "Respuestas automáticas con IA",
+    "on_body": "La IA responde a tus huéspedes al instante y te deriva solo lo importante.",
+    "off_body": "Desactivado: todos los mensajes llegan a tu bandeja para que respondas tú.",
+    "info_label": "Información que usa la IA (wifi, reglas, check-in, cómo llegar…)",
+    "info_ph": "Ej.: WiFi LuxelGuest / clave 1234. Check-in desde las 15:00…",
+    "save": "Guardar",
+    "saved": "Guardado ✓"
+  },
+  "resumen": {
+    "upcoming": "Próximas reservas",
+    "none": "Sin reservas próximas.",
+    "prices": "Precios sugeridos",
+    "no_prices": "Sincroniza tu calendario para ver sugerencias.",
+    "occupancy": "Ocupación 30 días: {pct}% · {n} noches abiertas",
+    "agent_ph": "Pídeme algo: \"reporte de… a…\", \"bloquea 2026-08-15\", \"¿precios?\"",
+    "send": "Enviar"
   }
 }

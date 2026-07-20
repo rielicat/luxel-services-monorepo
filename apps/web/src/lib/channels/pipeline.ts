@@ -49,6 +49,20 @@ export async function handleInboundMessage(input: {
     .from('guest_messages')
     .insert({ thread_id: thread.id, direction: 'in', source: 'guest', body: input.body });
 
+  // The host's simple switch: AI off → straight to the inbox, nothing auto-sent.
+  const { data: property } = await supabase
+    .from('properties')
+    .select('ai_enabled, owner_id')
+    .eq('id', input.propertyId)
+    .maybeSingle();
+  if (property && property.ai_enabled === false) {
+    await supabase
+      .from('guest_threads')
+      .update({ status: 'needs_host', updated_at: new Date().toISOString() })
+      .eq('id', thread.id);
+    return { ok: true, action: 'handoff', threadId: thread.id };
+  }
+
   // Grounding = the property's own chat/automated-message experience (learned
   // answers + past Q→A), falling back to anonymized cross-property experience
   // when this property has no history yet — plus the current conversation tail.
@@ -85,12 +99,7 @@ export async function handleInboundMessage(input: {
   // SaaS: sends go out with the property owner's own channel token.
   let token: string | null = null;
   if (channel === 'hospitable') {
-    const { data: prop } = await supabase
-      .from('properties')
-      .select('owner_id')
-      .eq('id', input.propertyId)
-      .maybeSingle();
-    token = await hospitableTokenForCustomer((prop?.owner_id as string | undefined) ?? null);
+    token = await hospitableTokenForCustomer((property?.owner_id as string | undefined) ?? null);
   }
   const extId = await getChannelProvider(channel).send(
     input.externalThreadId ?? null,

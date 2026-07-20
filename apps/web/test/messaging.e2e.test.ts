@@ -88,6 +88,32 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
     expect(msgs!.map((m) => `${m.source}:${m.direction}`)).toEqual(['guest:in', 'ai:out']);
   });
 
+  it('respects the host AI switch: disabled → straight to the inbox, nothing auto-sent', async () => {
+    const prop = await createProperty({ nickname: 'Depto IA Apagada' });
+    await updateGuestInfo({ propertyId: prop.id, guestInfo: 'WiFi: LuxelGuest / clave 1234.' });
+    await admin.from('properties').update({ ai_enabled: false }).eq('id', prop.id!);
+
+    const r = await handleInboundMessage({
+      propertyId: prop.id!,
+      externalThreadId: 't-off',
+      body: '¿Hay wifi?', // benign — would auto-reply if the AI were on
+    });
+    expect(r.action).toBe('handoff');
+
+    const { data: thread } = await admin
+      .from('guest_threads')
+      .select('status')
+      .eq('id', r.threadId!)
+      .single();
+    expect(thread!.status).toBe('needs_host');
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('source')
+      .eq('thread_id', r.threadId!);
+    expect(msgs).toHaveLength(1);
+    expect(msgs![0].source).toBe('guest');
+  });
+
   it('hands off to a human on frustration and does not auto-send', async () => {
     const prop = await createProperty({ nickname: 'Depto Molesto' });
     const r = await handleInboundMessage({

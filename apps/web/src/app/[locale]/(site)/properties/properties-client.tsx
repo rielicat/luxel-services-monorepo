@@ -32,6 +32,7 @@ export type PropertyRow = {
   external_listing_id: string | null;
   platform: string | null;
   base_nightly_clp: number | null;
+  ai_enabled: boolean;
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];

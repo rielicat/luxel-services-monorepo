@@ -23,7 +23,15 @@ export type Thread = {
   guest_messages: Msg[];
 };
 
-export function MessagingPanel({ propertyId, threads }: { propertyId: string; threads: Thread[] }) {
+export function MessagingPanel({
+  propertyId,
+  threads,
+  showSim = false,
+}: {
+  propertyId: string;
+  threads: Thread[];
+  showSim?: boolean;
+}) {
   const t = useTranslations('inbox');
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -95,27 +103,29 @@ export function MessagingPanel({ propertyId, threads }: { propertyId: string; th
         </div>
       ))}
 
-      <div className="flex gap-1.5">
-        <Input
-          className="h-8 text-xs"
-          value={sim}
-          onChange={(e) => setSim(e.target.value)}
-          placeholder={t('sim_ph')}
-        />
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={pending || !sim.trim()}
-          onClick={() =>
-            run(async () => {
-              await simulateInbound({ propertyId, body: sim.trim() });
-              setSim('');
-            })
-          }
-        >
-          {t('sim')}
-        </Button>
-      </div>
+      {showSim && (
+        <div className="flex gap-1.5">
+          <Input
+            className="h-8 text-xs"
+            value={sim}
+            onChange={(e) => setSim(e.target.value)}
+            placeholder={t('sim_ph')}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={pending || !sim.trim()}
+            onClick={() =>
+              run(async () => {
+                await simulateInbound({ propertyId, body: sim.trim() });
+                setSim('');
+              })
+            }
+          >
+            {t('sim')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

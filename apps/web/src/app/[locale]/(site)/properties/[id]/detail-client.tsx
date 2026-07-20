@@ -8,17 +8,18 @@ import {
   CalendarDays,
   Sparkles,
   KeyRound,
+  BotOff,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs } from '@/components/ui/tabs';
 import type { PropertyRow } from '../properties-client';
 import { AccessPanel } from '../access-panel';
-import { CalendarPanel } from '../calendar-panel';
+import { MonthCalendar } from '../month-calendar';
 import { CleaningPanel } from '../cleaning-panel';
 import { MessagingPanel } from '../messaging-panel';
-import { CopilotPanel } from '../copilot-panel';
-import { RevenuePanel } from '../revenue-panel';
+import { AiSettings } from '../ai-settings';
+import { ResumenPanel, type Insight } from '../resumen-panel';
 
 const DAY = 86_400_000;
 
@@ -53,7 +54,17 @@ function stats(property: PropertyRow) {
   };
 }
 
-export function PropertyDetailClient({ property }: { property: PropertyRow }) {
+export function PropertyDetailClient({
+  property,
+  insight,
+  turnoverPrice,
+  showSim,
+}: {
+  property: PropertyRow;
+  insight: Insight | null;
+  turnoverPrice: number | null;
+  showSim: boolean;
+}) {
   const t = useTranslations('detail');
   const tp = useTranslations('properties');
   const s = stats(property);
@@ -83,11 +94,18 @@ export function PropertyDetailClient({ property }: { property: PropertyRow }) {
             {[property.address, property.comuna].filter(Boolean).join(', ') || tp('no_address')}
           </p>
         </div>
-        {property.external_listing_id && (
-          <span className="bg-secondary/60 text-secondary-foreground rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide">
-            Airbnb · Hospitable
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {property.ai_enabled === false && (
+            <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold">
+              <BotOff className="h-3.5 w-3.5" /> {t('ai_off')}
+            </span>
+          )}
+          {property.external_listing_id && (
+            <span className="bg-secondary/60 text-secondary-foreground rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide">
+              Airbnb
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -114,7 +132,28 @@ export function PropertyDetailClient({ property }: { property: PropertyRow }) {
                 <LayoutDashboard className="h-4 w-4" /> {t('tab_overview')}
               </span>
             ),
-            content: <RevenuePanel propertyId={property.id} />,
+            content: (
+              <ResumenPanel
+                propertyId={property.id}
+                blocks={property.calendar_blocks}
+                insight={insight}
+              />
+            ),
+          },
+          {
+            id: 'calendario',
+            label: (
+              <span className="flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4" /> {t('tab_calendar')}
+              </span>
+            ),
+            content: (
+              <MonthCalendar
+                propertyId={property.id}
+                blocks={property.calendar_blocks}
+                feeds={property.property_calendars}
+              />
+            ),
           },
           {
             id: 'mensajes',
@@ -126,24 +165,17 @@ export function PropertyDetailClient({ property }: { property: PropertyRow }) {
             badge: s.needsReply,
             content: (
               <div className="grid gap-4">
-                <MessagingPanel propertyId={property.id} threads={property.guest_threads} />
-                <CopilotPanel propertyId={property.id} guestInfo={property.guest_info} />
+                <AiSettings
+                  propertyId={property.id}
+                  aiEnabled={property.ai_enabled !== false}
+                  guestInfo={property.guest_info}
+                />
+                <MessagingPanel
+                  propertyId={property.id}
+                  threads={property.guest_threads}
+                  showSim={showSim}
+                />
               </div>
-            ),
-          },
-          {
-            id: 'calendario',
-            label: (
-              <span className="flex items-center gap-1.5">
-                <CalendarDays className="h-4 w-4" /> {t('tab_calendar')}
-              </span>
-            ),
-            content: (
-              <CalendarPanel
-                propertyId={property.id}
-                feeds={property.property_calendars}
-                blocks={property.calendar_blocks}
-              />
             ),
           },
           {
@@ -153,7 +185,13 @@ export function PropertyDetailClient({ property }: { property: PropertyRow }) {
                 <Sparkles className="h-4 w-4" /> {t('tab_cleaning')}
               </span>
             ),
-            content: <CleaningPanel propertyId={property.id} cleanings={property.cleanings} />,
+            content: (
+              <CleaningPanel
+                propertyId={property.id}
+                cleanings={property.cleanings}
+                turnoverPrice={turnoverPrice}
+              />
+            ),
           },
           {
             id: 'acceso',
