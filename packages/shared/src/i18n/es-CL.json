@@ -33,7 +33,8 @@
     "menu": "Menú",
     "close": "Cerrar",
     "services_airbnb_caption": "IA, precios y aseo — tarifa plana",
-    "services_cleaning_caption": "Aseo profesional por m²"
+    "services_cleaning_caption": "Aseo profesional para tu espacio",
+    "precios": "Precios"
   },
   "landing": {
     "hero": {
@@ -57,7 +58,7 @@
       "steps": {
         "quote": {
           "title": "1. Cotiza online",
-          "description": "Ingresa metros cuadrados y dirección. Te mostramos el precio al instante."
+          "description": "Ingresa el tamaño de tu espacio y dirección. Te mostramos el precio al instante."
         },
         "book": {
           "title": "2. Agenda tu bloque",
@@ -75,7 +76,7 @@
       "items": {
         "calculator": {
           "title": "Precio claro al instante",
-          "description": "Cotiza por metros cuadrados y ubicación. Sin sorpresas."
+          "description": "Cotiza según tu espacio y ubicación. Sin sorpresas."
         },
         "calendar": {
           "title": "Agenda flexible",
@@ -93,7 +94,7 @@
     },
     "pricing": {
       "title": "Precios honestos, calculados al detalle",
-      "subtitle": "Tarifa base + metros cuadrados + distancia. Descuentos por suscripción.",
+      "subtitle": "Tarifa base + el tamaño de tu espacio + distancia. Descuentos por suscripción.",
       "cta": "Cotizar ahora"
     },
     "footer": {
@@ -102,19 +103,17 @@
     "services": {
       "title": "Dos servicios, una sola plataforma",
       "subtitle": "Automatiza tu arriendo corto o agenda un aseo profesional cuando lo necesites.",
-      "airbnb_badge": "Servicio principal",
       "airbnb_title": "Administración Airbnb con IA",
       "airbnb_body": "Mensajería automática, precios inteligentes, check-in sin llaves y aseo coordinado. Tarifa plana, sin comisiones.",
       "airbnb_cta": "Conocer el servicio",
-      "cleaning_badge": "Aseo a pedido",
       "cleaning_title": "Plan de Aseo profesional",
-      "cleaning_body": "Cotiza por metros cuadrados y ubicación. Servicio único o por suscripción, con o sin insumos.",
+      "cleaning_body": "Cotiza según tu espacio y ubicación. Servicio único o por suscripción, con o sin insumos.",
       "cleaning_cta": "Conocer el servicio"
     }
   },
   "calculator": {
     "title": "Cotiza tu servicio",
-    "subtitle": "Te entregamos un precio en menos de un minuto.",
+    "subtitle": "Tarifa base + el tamaño de tu espacio + distancia. Descuentos por suscripción.",
     "realtime_hint": "Precio en tiempo real",
     "from_prefix": "desde",
     "address_searching": "Buscando direcciones…",
@@ -174,11 +173,10 @@
     "picker": {
       "title": "¿Qué quieres cotizar?",
       "subtitle": "Elige el servicio y te llevamos a la cotización.",
-      "airbnb_badge": "Servicio principal",
       "airbnb_title": "Administración Airbnb",
       "airbnb_body": "Tarifa plana por propiedad. IA, precios y aseo coordinado.",
       "cleaning_title": "Aseo profesional",
-      "cleaning_body": "Cotiza por metros cuadrados y ubicación.",
+      "cleaning_body": "Cotiza según tu espacio y ubicación.",
       "select": "Cotizar"
     },
     "airbnb": {
@@ -197,7 +195,13 @@
       "inc4": "Check-in sin llaves",
       "inc5": "Panel con calendario y mensajes",
       "cta": "Empezar gratis",
-      "back": "Cambiar servicio"
+      "back": "Cambiar servicio",
+      "plan_label": "Elige tu plan",
+      "plan_base_name": "Esencial",
+      "plan_base_desc": "IA responde por ti, 24/7",
+      "plan_pro_name": "Con respaldo humano",
+      "plan_pro_desc": "IA + un equipo real cuando se necesita",
+      "inc_handoff": "Respaldo de un equipo real cuando la IA deriva"
     }
   },
   "lead": {
@@ -644,9 +648,8 @@
   },
   "services": {
     "airbnb": {
-      "eyebrow": "Servicio principal",
       "title": "Administración Airbnb con IA",
-      "subtitle": "Deja de pagar 20–25% de comisión. Luxel responde a tus huéspedes al instante, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana mensual.",
+      "subtitle": "Deja de pagar 20–25% de comisión. Luxel responde a tus huéspedes al instante, ajusta tus precios según la demanda y coordina el aseo entre estadías — por una tarifa plana mensual, con reportes claros.",
       "features_title": "Todo incluido",
       "f1_title": "Respuestas con IA",
       "f1_body": "Tus huéspedes reciben respuesta al instante, 24/7, con derivación a ti solo cuando importa.",
@@ -663,11 +666,24 @@
       "s2_body": "Luxel responde a tus huéspedes y sincroniza tu calendario automáticamente.",
       "s3_title": "Relájate",
       "s3_body": "Revisa todo desde un panel simple: mensajes, calendario, aseos y precios.",
-      "pricing_title": "Precio simple",
+      "pricing_title": "Elige tu plan",
       "pricing_suffix": "por propiedad al mes + IVA",
       "pricing_note": "Sin comisiones por reserva · 14 días gratis · cancela cuando quieras.",
       "cta_primary": "Cotizar administración",
-      "cta_secondary": "Empezar gratis"
+      "cta_secondary": "Empezar gratis",
+      "price_suffix": "por propiedad al mes + IVA",
+      "price_note": "14 días gratis · cancela cuando quieras",
+      "tier_base_name": "Esencial",
+      "tier_base_desc": "Automatización completa con IA",
+      "tier_pro_name": "Con respaldo humano",
+      "tier_pro_desc": "Todo lo de Esencial, con una persona detrás",
+      "tier_pro_extra": "Un equipo de Luxel toma la conversación cuando la IA deriva — como una agencia, por una fracción del precio.",
+      "incl_1": "Respuestas con IA 24/7 a tus huéspedes",
+      "incl_2": "Precios sugeridos según la demanda",
+      "incl_3": "Aseo coordinado entre estadías",
+      "incl_4": "Check-in sin llaves",
+      "incl_5": "Panel y reportes claros",
+      "incl_handoff": "Respaldo de un equipo real cuando la IA deriva"
     },
     "cleaning": {
       "eyebrow": "Aseo a pedido",
@@ -675,7 +691,7 @@
       "subtitle": "Aseo profesional en la Región Metropolitana. Cotiza online en segundos, agenda tu bloque y recibe el servicio. Con o sin insumos, una vez o por suscripción.",
       "features_title": "Qué incluye",
       "f1_title": "Precio claro al instante",
-      "f1_body": "Cotiza por metros cuadrados y ubicación. Sin sorpresas.",
+      "f1_body": "Cotiza según tu espacio y ubicación. Sin sorpresas.",
       "f2_title": "Agenda flexible",
       "f2_body": "Servicio único o suscripción semanal, quincenal o mensual.",
       "f3_title": "Operadores verificados",

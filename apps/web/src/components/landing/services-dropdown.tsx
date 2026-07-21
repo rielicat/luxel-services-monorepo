@@ -51,7 +51,6 @@ export function ServicesDropdown() {
             icon={Bot}
             title={t('services_airbnb')}
             caption={t('services_airbnb_caption')}
-            primary
             onNavigate={() => setOpen(false)}
           />
           <ServiceItem
@@ -72,14 +71,12 @@ function ServiceItem({
   icon: Icon,
   title,
   caption,
-  primary,
   onNavigate,
 }: {
   href: string;
   icon: typeof Bot;
   title: string;
   caption: string;
-  primary?: boolean;
   onNavigate: () => void;
 }) {
   return (
@@ -89,11 +86,7 @@ function ServiceItem({
       onClick={onNavigate}
       className="hover:bg-muted flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors"
     >
-      <span
-        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          primary ? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'
-        }`}
-      >
+      <span className="bg-primary/10 text-primary mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0">

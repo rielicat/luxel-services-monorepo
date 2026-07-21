@@ -21,10 +21,7 @@ export function ServicesOverview() {
         >
           <div aria-hidden className="bg-brand-glow pointer-events-none absolute inset-0" />
           <div className="relative">
-            <span className="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-              {t('airbnb_badge')}
-            </span>
-            <div className="bg-primary/10 text-primary mt-5 flex h-12 w-12 items-center justify-center rounded-xl">
+            <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
               <Bot className="h-6 w-6" />
             </div>
             <h3 className="font-display mt-5 text-2xl font-semibold">{t('airbnb_title')}</h3>
@@ -41,10 +38,7 @@ export function ServicesOverview() {
           href="/services/cleaning"
           className="border-border bg-card shadow-card hover:shadow-lift group flex flex-col rounded-2xl border p-8 transition-all lg:col-span-2"
         >
-          <span className="bg-muted text-muted-foreground inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-            {t('cleaning_badge')}
-          </span>
-          <div className="bg-accent text-accent-foreground mt-5 flex h-12 w-12 items-center justify-center rounded-xl">
+          <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
             <Sparkles className="h-6 w-6" />
           </div>
           <h3 className="font-display mt-5 text-2xl font-semibold">{t('cleaning_title')}</h3>

@@ -20,10 +20,7 @@ export function ServicePicker() {
         >
           <div aria-hidden className="bg-brand-glow pointer-events-none absolute inset-0" />
           <div className="relative flex flex-1 flex-col">
-            <span className="bg-primary text-primary-foreground w-fit rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-              {t('airbnb_badge')}
-            </span>
-            <div className="bg-primary/10 text-primary mt-4 flex h-12 w-12 items-center justify-center rounded-xl">
+            <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
               <Bot className="h-6 w-6" />
             </div>
             <h2 className="font-display mt-4 text-xl font-semibold">{t('airbnb_title')}</h2>
@@ -39,7 +36,7 @@ export function ServicePicker() {
           href="/calculator?service=cleaning"
           className="border-border bg-card shadow-card hover:shadow-lift group flex flex-col rounded-2xl border p-7 transition-all"
         >
-          <div className="bg-accent text-accent-foreground flex h-12 w-12 items-center justify-center rounded-xl">
+          <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
             <Sparkles className="h-6 w-6" />
           </div>
           <h2 className="font-display mt-4 text-xl font-semibold">{t('cleaning_title')}</h2>

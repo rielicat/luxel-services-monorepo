@@ -16,15 +16,15 @@ export function Nav() {
           <LuxelLogo />
         </Link>
 
-        {/* Marketing links (desktop) */}
+        {/* Marketing links (desktop): Servicios · Precios · Nosotros */}
         <nav className="text-muted-foreground hidden items-center gap-7 text-sm font-medium md:flex">
+          <ServicesDropdown />
+          <Link href="/calculator" className="hover:text-foreground transition-colors">
+            {t('precios')}
+          </Link>
           <Link href="/about" className="hover:text-foreground transition-colors">
             {t('about')}
           </Link>
-          <ServicesDropdown />
-          <a href="/#faq" className="hover:text-foreground transition-colors">
-            {t('faq')}
-          </a>
         </nav>
 
         <div className="flex items-center gap-2 text-sm sm:gap-3">
@@ -40,23 +40,14 @@ export function Nav() {
           </ClerkLoading>
           <ClerkLoaded>
             <SignedIn>
-              <Link
-                href="/calculator"
-                className="text-muted-foreground hover:text-foreground hidden px-1 font-medium transition-colors sm:block"
-              >
-                {t('calculator')}
-              </Link>
               <Button asChild variant="lime" size="sm">
                 <Link href="/account">{t('plan')}</Link>
               </Button>
               <UserMenu />
             </SignedIn>
             <SignedOut>
-              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Button asChild variant="ghost" size="sm">
                 <Link href="/sign-in">{t('login')}</Link>
-              </Button>
-              <Button asChild variant="lime" size="sm">
-                <Link href="/calculator">{t('calculator')}</Link>
               </Button>
             </SignedOut>
           </ClerkLoaded>

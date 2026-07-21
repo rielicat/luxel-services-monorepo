@@ -6,11 +6,12 @@ is the practical "how to work here" for agents.
 
 ## Project
 
-**Servicios Luxel** — a cleaning-services marketplace for Chile (`es-CL`). A
-pnpm + Turborepo monorepo of Next.js 15 (App Router) apps plus a Cloudflare
-Worker, shared packages, Supabase, and Pulumi IaC. The core user journey is:
-land → get an instant quote (per-visit + monthly subscription) → book. An AI
-concierge ("Lux", OpenAI) assists throughout.
+**Servicios Luxel** — a short-term-rental (Airbnb) automation platform for Chile
+(`es-CL`), with professional cleaning as a second service line. A pnpm + Turborepo
+monorepo of Next.js 15 (App Router) apps plus a Cloudflare Worker, shared packages,
+Supabase, and Pulumi IaC. **Airbnb management is the primary service**; cleaning is
+secondary. Core journeys: land → pick a service → quote → start. An AI concierge
+("Lux") assists throughout.
 
 ## ⚠️ Toolchain: use the pinned pnpm
 
@@ -93,6 +94,33 @@ supabase/       SQL migrations + seed + local config
   checks manually. Branch off `main` for PRs.
 - **Before pushing**, make sure `format:check`, `typecheck`, `lint`, `test`,
   `build` all pass — that's exactly what CI enforces.
+
+## Product & marketing constraints (user-set)
+
+These are locked product decisions — honor them when touching site copy/IA:
+
+- **Airbnb management is the PRIMARY service**, cleaning is secondary. Airbnb
+  leads in ordering (nav, homepage, service picker) — but do **not** label it
+  "Servicio Principal" or add "primary/flagship" badges in the UI; the emphasis
+  is order, not a badge.
+- **Marketing nav** (signed-out): `Servicios ▾` (dropdown: Administración
+  Airbnb, then Plan de Aseo) · `Precios` (→ `/calculator`) · `Nosotros`
+  (→ `/about`), in that order. No "Preguntas" item. Only a **Login** ("Ingresar")
+  action button — no "Cotizar" button in the header (quoting lives under the
+  `Precios` nav item). Mobile menu mirrors this (no header CTA).
+- **Service dropdown/card icons share one color** (`bg-primary/10 text-primary`)
+  across both services — never color-code one service differently.
+- **Never use "m²" / "metros cuadrados" as a marketing term.** Say **"tu
+  espacio"** (your space). The calculator's functional inputs may keep a real
+  unit, but marketing copy uses "tu espacio".
+- **Airbnb pricing = two flat tiers per listing/mo** (source of truth
+  `apps/web/src/lib/plan-pricing.ts`): `AI_PLAN_CLP` = 39.900 (Esencial, full AI
+  automation) and `AI_PLAN_HANDOFF_CLP` = 99.900 (Con respaldo humano — AI **plus
+  a real team taking over when the AI defers**). No per-booking commission.
+- **Competitor reference** for Airbnb-management benefits/positioning:
+  `airhost.cl` and `airhostchile.com` (full-service agencies — 24/7 guest comms,
+  dynamic pricing, cleaning between stays, check-in, transparent reporting). Our
+  angle: the same outcomes via automation + a flat fee, no % commission.
 
 ## CI
 

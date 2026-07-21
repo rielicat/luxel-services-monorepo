@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Menu, X, Bot, Sparkles, Users, HelpCircle } from 'lucide-react';
+import { Menu, X, Bot, Sparkles, Users, Tag } from 'lucide-react';
 import { Link } from '@/i18n/routing';
-import { Button } from '@/components/ui/button';
 
 /** Mobile marketing menu — the site previously had NO mobile access to the
  *  marketing links. Custom useState + outside-click/Escape, like user-menu.tsx. */
@@ -55,25 +54,12 @@ export function MobileMenu() {
           <Item href="/services/cleaning" icon={Sparkles} onNavigate={close}>
             {t('services_cleaning')}
           </Item>
+          <Item href="/calculator" icon={Tag} onNavigate={close}>
+            {t('precios')}
+          </Item>
           <Item href="/about" icon={Users} onNavigate={close}>
             {t('about')}
           </Item>
-          <a
-            href="/#faq"
-            role="menuitem"
-            onClick={close}
-            className="text-foreground hover:bg-muted flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
-          >
-            <HelpCircle className="text-muted-foreground h-4 w-4" />
-            {t('faq')}
-          </a>
-          <div className="p-1.5">
-            <Button asChild variant="lime" size="sm" className="w-full">
-              <Link href="/calculator" onClick={close}>
-                {t('calculator')}
-              </Link>
-            </Button>
-          </div>
         </div>
       )}
     </div>

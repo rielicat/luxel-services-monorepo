@@ -4,8 +4,8 @@ import { Bot, TrendingUp, Sparkles, KeyRound, ArrowRight, Check } from 'lucide-r
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { AI_PLAN_CLP } from '@/lib/plan-pricing';
-import { formatCLP } from '@/lib/utils';
+import { AI_PLAN_CLP, AI_PLAN_HANDOFF_CLP } from '@/lib/plan-pricing';
+import { formatCLP, cn } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Administración Airbnb con IA' };
 
@@ -17,6 +17,7 @@ const FEATURES = [
 ] as const;
 
 const STEPS = ['s1', 's2', 's3'] as const;
+const INCLUDED = ['incl_1', 'incl_2', 'incl_3', 'incl_4', 'incl_5'] as const;
 
 export default function AirbnbServicePage() {
   const t = useTranslations('services.airbnb');
@@ -25,10 +26,7 @@ export default function AirbnbServicePage() {
       <section className="relative overflow-hidden">
         <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0 -z-10" />
         <div className="container py-20 text-center sm:py-28">
-          <span className="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-            {t('eyebrow')}
-          </span>
-          <h1 className="mx-auto mt-5 max-w-3xl text-balance font-serif text-4xl font-medium tracking-tight sm:text-6xl">
+          <h1 className="mx-auto max-w-3xl text-balance font-serif text-4xl font-medium tracking-tight sm:text-6xl">
             {t('title')}
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-pretty text-lg">
@@ -84,27 +82,83 @@ export default function AirbnbServicePage() {
       </section>
 
       <section className="container pb-24">
-        <div className="border-primary/20 bg-card ring-primary/10 shadow-card relative mx-auto max-w-xl overflow-hidden rounded-3xl border p-10 text-center ring-1">
-          <div aria-hidden className="bg-brand-glow pointer-events-none absolute inset-0" />
-          <div className="relative">
-            <p className="text-muted-foreground text-sm font-semibold uppercase tracking-wide">
-              {t('pricing_title')}
-            </p>
-            <p className="font-display mt-3 text-5xl font-bold tabular-nums">
-              {formatCLP(AI_PLAN_CLP)}
-            </p>
-            <p className="text-muted-foreground mt-1 text-sm">{t('pricing_suffix')}</p>
-            <p className="text-muted-foreground mx-auto mt-3 flex max-w-sm items-center justify-center gap-1.5 text-sm">
-              <Check className="text-success h-4 w-4 shrink-0" /> {t('pricing_note')}
-            </p>
-            <Button asChild variant="lime" size="xl" className="mt-8 w-full sm:w-auto">
-              <Link href="/calculator?service=airbnb">
-                {t('cta_primary')} <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
+        <h2 className="font-display text-center text-3xl font-semibold tracking-tight">
+          {t('pricing_title')}
+        </h2>
+        <div className="mx-auto mt-12 grid max-w-3xl items-start gap-5 sm:grid-cols-2">
+          <Tier t={t} name={t('tier_base_name')} desc={t('tier_base_desc')} price={AI_PLAN_CLP} />
+          <Tier
+            t={t}
+            name={t('tier_pro_name')}
+            desc={t('tier_pro_desc')}
+            price={AI_PLAN_HANDOFF_CLP}
+            extra={t('tier_pro_extra')}
+            handoff={t('incl_handoff')}
+            featured
+          />
         </div>
+        <p className="text-muted-foreground mt-6 text-center text-sm">{t('price_note')}</p>
       </section>
     </main>
+  );
+}
+
+function Tier({
+  t,
+  name,
+  desc,
+  price,
+  extra,
+  handoff,
+  featured,
+}: {
+  t: (key: string) => string;
+  name: string;
+  desc: string;
+  price: number;
+  extra?: string;
+  handoff?: string;
+  featured?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'bg-card relative flex flex-col overflow-hidden rounded-2xl border p-7',
+        featured
+          ? 'border-primary/30 ring-primary/15 shadow-card ring-1'
+          : 'border-border shadow-soft',
+      )}
+    >
+      {featured && (
+        <div aria-hidden className="bg-brand-glow pointer-events-none absolute inset-0" />
+      )}
+      <div className="relative flex flex-1 flex-col">
+        <h3 className="font-display text-lg font-semibold">{name}</h3>
+        <p className="text-muted-foreground mt-1 text-sm">{desc}</p>
+        <p className="font-display mt-5 text-4xl font-bold tabular-nums">{formatCLP(price)}</p>
+        <p className="text-muted-foreground text-sm">{t('price_suffix')}</p>
+
+        <ul className="mt-5 grid flex-1 gap-2">
+          {handoff && (
+            <li className="text-foreground flex items-start gap-2 text-sm font-medium">
+              <Check className="text-primary mt-0.5 h-4 w-4 shrink-0" /> {handoff}
+            </li>
+          )}
+          {INCLUDED.map((k) => (
+            <li key={k} className="text-muted-foreground flex items-start gap-2 text-sm">
+              <Check className="text-success mt-0.5 h-4 w-4 shrink-0" /> {t(k)}
+            </li>
+          ))}
+        </ul>
+
+        {extra && <p className="text-muted-foreground mt-4 text-xs">{extra}</p>}
+
+        <Button asChild variant={featured ? 'lime' : 'outline'} size="lg" className="mt-6 w-full">
+          <Link href="/calculator?service=airbnb">
+            {t('cta_primary')} <ArrowRight className="ml-1 h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+    </div>
   );
 }
