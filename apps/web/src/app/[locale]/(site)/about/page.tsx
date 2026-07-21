@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { useTranslations } from 'next-intl';
-import { Target, Compass, HandHeart, Wallet, Cpu, MapPin } from 'lucide-react';
+import { Target, Compass, HandHeart, Wallet, Cpu, MapPin, Sprout, ChevronDown } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,25 +34,34 @@ export default function AboutPage() {
       </section>
 
       <section className="container pb-4 pt-6">
-        <div className="mx-auto max-w-2xl">
-          <h2 className="font-display text-center text-3xl font-semibold tracking-tight">
-            {t('story_title')}
-          </h2>
-          <div className="text-muted-foreground mt-8 space-y-5 text-lg leading-relaxed">
-            <p>{t('story_p1')}</p>
-            <p>{t('story_p2')}</p>
+        <details className="border-border bg-card shadow-soft hover:border-primary/30 group mx-auto max-w-2xl overflow-hidden rounded-2xl border transition-colors">
+          <summary className="flex cursor-pointer list-none items-center gap-4 p-5 [&::-webkit-details-marker]:hidden">
+            <span className="bg-primary/10 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+              <Sprout className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="font-display block text-lg font-semibold">{t('story_title')}</span>
+              <span className="text-muted-foreground block text-sm">{t('story_teaser')}</span>
+            </span>
+            <ChevronDown className="text-muted-foreground h-5 w-5 shrink-0 transition-transform duration-300 group-open:rotate-180" />
+          </summary>
+          <div className="border-border/60 border-t px-6 pb-7 pt-6">
+            <div className="text-muted-foreground space-y-4 leading-relaxed">
+              <p>{t('story_p1')}</p>
+              <p>{t('story_p2')}</p>
+            </div>
+            <blockquote className="border-primary my-6 border-l-4 pl-5">
+              <p className="text-foreground text-balance font-serif text-xl italic leading-snug">
+                {t('story_quote')}
+              </p>
+            </blockquote>
+            <div className="text-muted-foreground space-y-4 leading-relaxed">
+              <p>{t('story_p3')}</p>
+              <p>{t('story_p4')}</p>
+              <p>{t('story_p5')}</p>
+            </div>
           </div>
-          <blockquote className="border-primary my-8 border-l-4 pl-5">
-            <p className="text-foreground text-balance font-serif text-2xl italic leading-snug">
-              {t('story_quote')}
-            </p>
-          </blockquote>
-          <div className="text-muted-foreground space-y-5 text-lg leading-relaxed">
-            <p>{t('story_p3')}</p>
-            <p>{t('story_p4')}</p>
-            <p>{t('story_p5')}</p>
-          </div>
-        </div>
+        </details>
       </section>
 
       <section className="container pb-6 pt-10">
