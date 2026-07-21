@@ -156,8 +156,8 @@ function Tier({
         {extra && <p className="text-muted-foreground mt-4 text-xs">{extra}</p>}
 
         <Button asChild variant={featured ? 'lime' : 'outline'} size="lg" className="mt-6 w-full">
-          <Link href="/calculator?service=airbnb">
-            {t('cta_primary')} <ArrowRight className="ml-1 h-4 w-4" />
+          <Link href="/properties">
+            {t('cta_start')} <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>
       </div>

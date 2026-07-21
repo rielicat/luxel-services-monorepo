@@ -21,10 +21,7 @@ export default function AboutPage() {
       <section className="relative overflow-hidden">
         <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0 -z-10" />
         <div className="container py-20 text-center sm:py-28">
-          <span className="text-secondary text-sm font-semibold uppercase tracking-wide">
-            {t('eyebrow')}
-          </span>
-          <h1 className="mx-auto mt-4 max-w-3xl text-balance font-serif text-4xl font-medium tracking-tight sm:text-6xl">
+          <h1 className="mx-auto max-w-3xl text-balance font-serif text-4xl font-medium tracking-tight sm:text-6xl">
             {t('title')}
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-pretty text-lg">

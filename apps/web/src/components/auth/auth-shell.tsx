@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
-import { BadgeCheck, CalendarClock, Lock, Zap } from 'lucide-react';
+import { Bot, TrendingUp, Sparkles, Percent } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { LuxelLogo } from '@/components/brand/logo';
@@ -31,11 +31,11 @@ export const authAppearance = {
   },
 } as const;
 
-const POINTS: { icon: LucideIcon; key: 'instant' | 'verified' | 'flexible' | 'secure' }[] = [
-  { icon: Zap, key: 'instant' },
-  { icon: BadgeCheck, key: 'verified' },
-  { icon: CalendarClock, key: 'flexible' },
-  { icon: Lock, key: 'secure' },
+const POINTS: { icon: LucideIcon; key: 'ai' | 'pricing' | 'cleaning' | 'commission' }[] = [
+  { icon: Bot, key: 'ai' },
+  { icon: TrendingUp, key: 'pricing' },
+  { icon: Sparkles, key: 'cleaning' },
+  { icon: Percent, key: 'commission' },
 ];
 
 export async function AuthShell({
@@ -70,10 +70,7 @@ export async function AuthShell({
               'radial-gradient(50% 45% at 100% 100%, hsl(var(--secondary) / 0.24) 0%, transparent 72%)',
           }}
         />
-        <Link
-          href="/"
-          className="relative w-fit rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15 backdrop-blur transition-opacity hover:opacity-90"
-        >
+        <Link href="/" className="relative w-fit transition-opacity hover:opacity-90">
           <LuxelLogo />
         </Link>
 

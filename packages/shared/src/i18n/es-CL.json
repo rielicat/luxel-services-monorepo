@@ -61,7 +61,7 @@
           "description": "Importa tus propiedades desde Airbnb. Sin cargar nada a mano."
         },
         "automate": {
-          "title": "2. La IA se encarga",
+          "title": "2. Luxel se encarga",
           "description": "Responde a tus huéspedes 24/7, ajusta tus precios y coordina el aseo entre estadías."
         },
         "relax": {
@@ -266,16 +266,16 @@
     "sign_in_subtitle": "Ingresa para gestionar tus servicios, plan y reservas.",
     "sign_up_title": "Crea tu cuenta",
     "sign_up_subtitle": "Cotiza, agenda y controla todo desde un solo lugar.",
-    "panel_headline": "Tu espacio impecable, sin complicaciones.",
-    "panel_subtitle": "Aseo profesional en la Región Metropolitana, con o sin insumos, una vez o por suscripción.",
-    "point_instant": "Precio al instante",
-    "point_verified": "Operadores verificados",
-    "point_flexible": "Agenda flexible",
-    "point_secure": "Pago seguro",
+    "panel_headline": "Tu propiedad en buenas manos",
+    "panel_subtitle": "Automatiza tu Airbnb con IA: respuestas 24/7, precios optimizados y aseo coordinado — por una tarifa plana, con 0% de comisión.",
     "switch_to_sign_up_prompt": "¿No tienes cuenta?",
     "switch_to_sign_up_cta": "Crear cuenta",
     "switch_to_sign_in_prompt": "¿Ya tienes cuenta?",
-    "switch_to_sign_in_cta": "Ingresar"
+    "switch_to_sign_in_cta": "Ingresar",
+    "point_ai": "Respuestas 24/7 con IA",
+    "point_pricing": "Precios optimizados",
+    "point_cleaning": "Aseo coordinado",
+    "point_commission": "0% de comisión"
   },
   "calendar": {
     "title": "Mi calendario",
@@ -354,7 +354,8 @@
     "human_error": "No pudimos enviar tu mensaje. Intenta de nuevo.",
     "handoff_open": "Un asesor se unió a la conversación. Escribe tu consulta aquí y te responderá.",
     "handoff_closed": "Estamos fuera de horario ({open}:00–{close}:00). Deja tu mensaje aquí y un asesor te responderá en horario hábil.",
-    "handoff_whatsapp": "Continuar por WhatsApp"
+    "handoff_whatsapp": "Continuar por WhatsApp",
+    "bar_placeholder": "¿En qué te puedo ayudar hoy?"
   },
   "errors": {
     "generic": "Ocurrió un error. Intenta nuevamente.",
@@ -376,16 +377,18 @@
   "faq": {
     "section_title": "Preguntas frecuentes",
     "q": {
-      "coverage": "¿En qué comunas trabajan?",
-      "tools": "¿Llevan los insumos?",
-      "payment": "¿Qué medios de pago aceptan?",
-      "cancel": "¿Puedo cancelar o pausar mi suscripción?"
+      "connect": "¿Cómo conecto mi Airbnb?",
+      "commission": "¿Cobran comisión por reserva?",
+      "tiers": "¿Qué diferencia hay entre los planes?",
+      "cleaning": "¿Incluye el aseo entre estadías?",
+      "cancel": "¿Puedo cancelar cuando quiera?"
     },
     "a": {
-      "coverage": "Operamos en la Región Metropolitana, con cobertura por radio desde nuestros puntos de operación. Ingresa tu dirección en la cotizadora para confirmarlo al instante.",
-      "tools": "Tú decides: puedes aportar los insumos o solicitar que Luxel los lleve por un recargo fijo.",
-      "payment": "Aceptamos tarjetas y transferencias vía Stripe y MercadoPago.",
-      "cancel": "Sí, puedes pausar o cancelar tu suscripción en cualquier momento desde Mi cuenta."
+      "connect": "Conectas tu cuenta y tus propiedades, reservas y calendario se importan solos vía Hospitable. No tienes que cargar nada a mano.",
+      "commission": "No. Pagas una tarifa plana por propiedad al mes, con 0% de comisión. Lo que ganas con tus reservas es tuyo.",
+      "tiers": "El plan Esencial automatiza todo con IA. Con respaldo humano suma un equipo real de Luxel que toma la conversación cuando la IA no basta.",
+      "cleaning": "Coordinamos el aseo después de cada check-out automáticamente; normalmente lo paga el huésped con la tarifa de aseo de la plataforma. También puedes contratar aseo profesional por separado.",
+      "cancel": "Sí. Pruebas 14 días gratis y puedes pausar o cancelar cuando quieras desde Mi cuenta."
     }
   },
   "checkin": {
@@ -691,7 +694,8 @@
       "incl_3": "Aseo coordinado entre estadías",
       "incl_4": "Check-in sin llaves",
       "incl_5": "Panel y reportes claros",
-      "incl_handoff": "Respaldo de un equipo real cuando la IA deriva"
+      "incl_handoff": "Respaldo de un equipo real cuando la IA deriva",
+      "cta_start": "Empezar gratis"
     },
     "cleaning": {
       "eyebrow": "Aseo a pedido",

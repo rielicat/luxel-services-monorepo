@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 
-const ITEMS = ['coverage', 'tools', 'payment', 'cancel'] as const;
+const ITEMS = ['connect', 'commission', 'tiers', 'cleaning', 'cancel'] as const;
 
 export function FAQSection() {
   const t = useTranslations('faq');
@@ -14,13 +14,13 @@ export function FAQSection() {
           {ITEMS.map((key) => (
             <details key={key} className="open:bg-accent/30 group p-5 transition-colors">
               <summary className="flex cursor-pointer list-none items-center justify-between text-base font-medium">
-                <span>{t(`q.${key}` as 'q.coverage')}</span>
+                <span>{t(`q.${key}` as 'q.connect')}</span>
                 <span className="text-primary text-xl transition-transform group-open:rotate-45">
                   +
                 </span>
               </summary>
               <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-                {t(`a.${key}` as 'a.coverage')}
+                {t(`a.${key}` as 'a.connect')}
               </p>
             </details>
           ))}

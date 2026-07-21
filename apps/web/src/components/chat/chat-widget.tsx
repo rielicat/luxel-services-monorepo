@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import posthog from 'posthog-js';
-import { MessageCircle, X, Send, CalendarCheck, Sparkles, Phone } from 'lucide-react';
+import { Send, CalendarCheck, Sparkles, Phone, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Link } from '@/i18n/routing';
 import { LuxelMark } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
@@ -140,11 +139,11 @@ export function ChatWidget() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, working]);
 
-  const toggle = () => {
-    setOpen((v) => {
-      if (!v) tryCapture('chat_opened', { session_id: sessionId });
-      return !v;
-    });
+  const openPanel = () => {
+    if (!open) {
+      setOpen(true);
+      tryCapture('chat_opened', { session_id: sessionId });
+    }
   };
 
   const send = async (text: string) => {
@@ -264,33 +263,35 @@ export function ChatWidget() {
 
   return (
     <>
-      <button
-        type="button"
-        aria-label={open ? 'Cerrar chat' : 'Abrir chat con Lux'}
-        onClick={toggle}
-        className="bg-primary text-primary-foreground shadow-glow fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-transform hover:scale-105"
-      >
-        {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-      </button>
-
+      {/* Conversation — rises above the docked composer bar */}
       <div
         className={cn(
-          'border-border bg-card fixed bottom-24 right-5 z-50 flex h-[560px] max-h-[calc(100dvh-7rem)] w-[380px] max-w-[calc(100vw-2.5rem)] origin-bottom-right flex-col overflow-hidden rounded-2xl border shadow-2xl transition-all',
-          open ? 'scale-100 opacity-100' : 'pointer-events-none scale-95 opacity-0',
+          'border-border bg-card fixed bottom-24 left-1/2 z-50 flex h-[540px] max-h-[calc(100dvh-9rem)] w-[440px] max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border shadow-2xl transition-all duration-200',
+          open
+            ? 'translate-y-0 scale-100 opacity-100'
+            : 'pointer-events-none translate-y-3 scale-95 opacity-0',
         )}
       >
         <header className="border-border from-primary to-secondary flex items-center gap-3 border-b bg-gradient-to-r p-4">
           <span className="bg-primary-foreground/15 flex h-9 w-9 items-center justify-center rounded-full">
             <LuxelMark className="h-5 w-5" />
           </span>
-          <div className="text-primary-foreground">
+          <div className="text-primary-foreground min-w-0 flex-1">
             <h3 className="font-display text-sm font-bold leading-tight">
               {humanMode ? t('human_name') : t('assistant_name')}
             </h3>
-            <p className="text-primary-foreground/80 text-xs leading-tight">
+            <p className="text-primary-foreground/80 truncate text-xs leading-tight">
               {humanMode ? t('human_subtitle') : t('subtitle')}
             </p>
           </div>
+          <button
+            type="button"
+            aria-label="Cerrar chat"
+            onClick={() => setOpen(false)}
+            className="text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </button>
         </header>
 
         {humanMode && (
@@ -341,28 +342,32 @@ export function ChatWidget() {
             </div>
           )}
         </div>
+      </div>
 
-        <div className="border-border border-t p-3">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              send(input);
-            }}
-            className="flex gap-2"
-          >
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={t('placeholder')}
-              disabled={pending}
-              aria-label={t('placeholder')}
-            />
-            <Button type="submit" size="icon" disabled={pending || !input.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-          <p className="text-muted-foreground mt-2 text-center text-[10px]">{t('disclaimer')}</p>
-        </div>
+      {/* Docked composer bar — the always-present, agentic entry point */}
+      <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            openPanel();
+            send(input);
+          }}
+          className="border-border bg-card/95 shadow-lift focus-within:border-primary/40 flex w-[640px] max-w-full items-center gap-2 rounded-2xl border p-2 backdrop-blur transition-colors"
+        >
+          <LuxelMark className="ml-1.5 h-6 w-6 shrink-0" />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onFocus={openPanel}
+            placeholder={t('bar_placeholder')}
+            aria-label={t('bar_placeholder')}
+            disabled={pending}
+            className="text-foreground placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent px-1.5 text-sm outline-none disabled:opacity-60"
+          />
+          <Button type="submit" size="icon" disabled={pending || !input.trim()}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
       </div>
     </>
   );
