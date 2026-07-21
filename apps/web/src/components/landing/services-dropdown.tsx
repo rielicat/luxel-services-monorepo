@@ -47,7 +47,7 @@ export function ServicesDropdown() {
           className="bg-popover border-border shadow-card animate-fade-in-up absolute left-1/2 top-full z-50 mt-3 w-72 -translate-x-1/2 overflow-hidden rounded-2xl border p-1.5 [animation-duration:150ms]"
         >
           <ServiceItem
-            href="/services/airbnb-management"
+            href="/services/airbnb"
             icon={Bot}
             title={t('services_airbnb')}
             caption={t('services_airbnb_caption')}

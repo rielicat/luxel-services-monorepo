@@ -30,7 +30,9 @@ export default function AirbnbServicePage() {
             {t('title')}
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-pretty text-lg">
-            {t('subtitle')}
+            {t.rich('subtitle', {
+              hl: (chunks) => <span className="text-primary font-semibold">{chunks}</span>,
+            })}
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild variant="lime" size="xl" className="w-full sm:w-auto">

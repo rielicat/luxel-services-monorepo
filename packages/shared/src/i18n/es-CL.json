@@ -39,14 +39,14 @@
   "landing": {
     "hero": {
       "eyebrow": "Gestión de arriendos cortos con IA",
-      "title": "Tu Airbnb en piloto automático, sin comisiones.",
+      "title": "Tu Airbnb en piloto automático, 0% comisión.",
       "title_lead": "Tu Airbnb en piloto automático,",
-      "title_accent": "sin comisiones.",
-      "subtitle": "Luxel responde a tus huéspedes 24/7, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana mensual, sin comisiones por reserva. ¿Solo necesitas aseo? También lo hacemos.",
+      "title_accent": "0% comisión.",
+      "subtitle": "Luxel responde a tus huéspedes 24/7, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana mensual, con 0% de comisión por reserva. ¿Solo necesitas aseo? También lo hacemos.",
       "cta_primary": "Cotizar administración",
       "cta_secondary": "Ver cómo funciona",
       "trust": {
-        "instant": "Sin comisiones por reserva",
+        "instant": "0% comisión por reserva",
         "operators": "Respuestas 24/7 con IA",
         "flexible": "Precios optimizados",
         "secure": "14 días gratis"
@@ -101,10 +101,10 @@
       "tagline": "Administración de Airbnb y aseo profesional en la Región Metropolitana."
     },
     "services": {
-      "title": "Dos servicios, una sola plataforma",
+      "title": "Elige tu servicio",
       "subtitle": "Automatiza tu arriendo corto o agenda un aseo profesional cuando lo necesites.",
       "airbnb_title": "Gestiona tu Airbnb con Agentes de IA",
-      "airbnb_body": "Mensajería automática, precios inteligentes, check-in sin llaves y aseo coordinado. Tarifa plana, sin comisiones.",
+      "airbnb_body": "Mensajería automática, precios inteligentes, check-in sin llaves y aseo coordinado. Tarifa plana, 0% comisión.",
       "airbnb_cta": "Conocer el servicio",
       "cleaning_title": "Plan de Aseo profesional",
       "cleaning_body": "Cotiza según tu espacio y ubicación. Servicio único o por suscripción, con o sin insumos.",
@@ -181,7 +181,7 @@
     },
     "airbnb": {
       "title": "Cotiza tu administración Airbnb",
-      "subtitle": "Una tarifa plana por propiedad. Sin comisiones por reserva.",
+      "subtitle": "Una tarifa plana por propiedad. 0% de comisión por reserva.",
       "listings_label": "¿Cuántas propiedades administras?",
       "unit_one": "propiedad",
       "unit_many": "propiedades",
@@ -630,14 +630,14 @@
     "title": "Administrar tu arriendo no debería ser un segundo trabajo",
     "lead": "Luxel nació en Santiago para que gestionar un arriendo corto deje de consumir tus tardes: la tecnología responde, cobra el precio justo y coordina cada aseo, mientras tú te enfocas en tus huéspedes.",
     "mission_title": "Misión",
-    "mission_body": "Devolverles el tiempo a los anfitriones. Que responder, ajustar precios y coordinar el aseo pase a piloto automático, sin comisiones abusivas.",
+    "mission_body": "Devolverles el tiempo a los anfitriones. Que responder, ajustar precios y coordinar el aseo pase a piloto automático, con 0% de comisión.",
     "vision_title": "Visión",
     "vision_body": "Ser la plataforma de administración de arriendos cortos líder en Chile: la forma más simple y rentable de operar una propiedad.",
     "values_title": "Lo que nos mueve",
     "v1_title": "Anfitrión primero",
     "v1_body": "Cada decisión parte de una pregunta: ¿le ahorra tiempo o dinero al anfitrión?",
     "v2_title": "Precios justos",
-    "v2_body": "Tarifa plana y transparente. Sin comisiones por reserva ni costos escondidos.",
+    "v2_body": "Tarifa plana y transparente. 0% de comisión por reserva, sin costos escondidos.",
     "v3_title": "Tecnología con criterio",
     "v3_body": "IA que responde como lo harías tú, con derivación a una persona cuando de verdad importa.",
     "v4_title": "Hecho en Chile",
@@ -649,7 +649,7 @@
   "services": {
     "airbnb": {
       "title": "Gestiona tu Airbnb con Agentes de IA",
-      "subtitle": "Deja de pagar 20–25% de comisión. Luxel responde a tus huéspedes al instante, ajusta tus precios según la demanda y coordina el aseo entre estadías — por una tarifa plana mensual, con reportes claros.",
+      "subtitle": "Deja de pagar 20% de comisión. Luxel responde a tus huéspedes al instante, ajusta tus precios según la demanda y coordina el aseo entre estadías <hl>por una tarifa plana mensual, con reportes claros</hl>.",
       "features_title": "Todo incluido",
       "f1_title": "Respuestas con IA",
       "f1_body": "Tus huéspedes reciben respuesta al instante, 24/7, con derivación a ti solo cuando importa.",
@@ -668,7 +668,7 @@
       "s3_body": "Revisa todo desde un panel simple: mensajes, calendario, aseos y precios.",
       "pricing_title": "Elige tu plan",
       "pricing_suffix": "por propiedad al mes + IVA",
-      "pricing_note": "Sin comisiones por reserva · 14 días gratis · cancela cuando quieras.",
+      "pricing_note": "0% comisión por reserva · 14 días gratis · cancela cuando quieras.",
       "cta_primary": "Cotizar administración",
       "cta_secondary": "Empezar gratis",
       "price_suffix": "por propiedad al mes + IVA",

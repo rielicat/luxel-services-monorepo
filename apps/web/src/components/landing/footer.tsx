@@ -13,10 +13,7 @@ export function Footer() {
           <p className="text-muted-foreground max-w-xs text-sm">{t('tagline')}</p>
         </div>
         <nav className="text-muted-foreground flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <Link
-            href="/services/airbnb-management"
-            className="hover:text-foreground transition-colors"
-          >
+          <Link href="/services/airbnb" className="hover:text-foreground transition-colors">
             {tNav('services_airbnb')}
           </Link>
           <Link href="/services/cleaning" className="hover:text-foreground transition-colors">

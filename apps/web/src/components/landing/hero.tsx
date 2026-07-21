@@ -41,7 +41,7 @@ export function Hero() {
               <Link href="/calculator?service=airbnb">{t('cta_primary')}</Link>
             </Button>
             <Button asChild variant="outline" size="xl" className="w-full sm:w-auto">
-              <Link href="/services/airbnb-management">{t('cta_secondary')}</Link>
+              <Link href="/services/airbnb">{t('cta_secondary')}</Link>
             </Button>
           </div>
 

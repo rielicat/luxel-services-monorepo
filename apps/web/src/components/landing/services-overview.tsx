@@ -16,7 +16,7 @@ export function ServicesOverview() {
       <div className="mx-auto mt-14 grid max-w-5xl gap-5 lg:grid-cols-5">
         {/* Flagship — AirBnB (wider, primary-accented) */}
         <Link
-          href="/services/airbnb-management"
+          href="/services/airbnb"
           className="border-primary/20 bg-card ring-primary/10 shadow-card hover:shadow-lift group relative overflow-hidden rounded-2xl border p-8 ring-1 transition-all lg:col-span-3"
         >
           <div aria-hidden className="bg-brand-glow pointer-events-none absolute inset-0" />
