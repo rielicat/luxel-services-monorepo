@@ -3,7 +3,11 @@ import { teamId, gitRepo, productionBranch, web } from './config';
 import { importId } from './adopt';
 
 // The live customer site. Adopted via import — Pulumi manages its identity, git
-// link and domains, but deliberately does NOT manage:
+// link and domains. Re-applying this stack re-asserts `gitRepository` below, so
+// if Vercel's Git integration for the web project ever drifts/disconnects (as it
+// did 2026-07 — the project silently stopped auto-deploying), a fresh apply
+// reconnects it to `productionBranch` on the repo. It deliberately does NOT
+// manage:
 //   - env vars (separate resources, left in Vercel — they're secrets), and
 //   - build/runtime commands (`ignoreChanges` below): these are Optional,
 //     non-computed fields, so if the live project has a custom install/build
