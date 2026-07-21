@@ -1,8 +1,8 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { AI_PLAN_CLP, TRIAL_DAYS } from '@/lib/plan-pricing';
 
-export const AI_PLAN_CLP = 39900;
-const TRIAL_DAYS = 14;
+export { AI_PLAN_CLP };
 const WINBACK_DAYS = 30;
 
 export type PlanRow = {

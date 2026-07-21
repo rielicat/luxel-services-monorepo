@@ -1,17 +1,17 @@
 import { Hero } from '@/components/landing/hero';
+import { ServicesOverview } from '@/components/landing/services-overview';
 import { HowItWorks } from '@/components/landing/how-it-works';
 import { Features } from '@/components/landing/features';
 import { PricingTeaser } from '@/components/landing/pricing-teaser';
-import { AirbnbTeaser } from '@/components/landing/airbnb-teaser';
 import { FAQSection } from '@/components/landing/faq';
 
 export default function HomePage() {
   return (
     <main>
       <Hero />
+      <ServicesOverview />
       <HowItWorks />
       <Features />
-      <AirbnbTeaser />
       <PricingTeaser />
       <FAQSection />
     </main>

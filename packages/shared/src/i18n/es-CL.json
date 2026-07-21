@@ -25,22 +25,30 @@
     "how": "Cómo funciona",
     "features": "Servicios",
     "faq": "Preguntas",
-    "airbnb": "Airbnb"
+    "airbnb": "Airbnb",
+    "about": "Nosotros",
+    "services": "Servicios",
+    "services_airbnb": "Administración Airbnb",
+    "services_cleaning": "Plan de Aseo",
+    "menu": "Menú",
+    "close": "Cerrar",
+    "services_airbnb_caption": "IA, precios y aseo — tarifa plana",
+    "services_cleaning_caption": "Aseo profesional por m²"
   },
   "landing": {
     "hero": {
-      "eyebrow": "Aseo profesional en la Región Metropolitana",
-      "title": "Aseo profesional, sin complicaciones.",
-      "title_lead": "Tu espacio impecable,",
-      "title_accent": "sin complicaciones.",
-      "subtitle": "Cotiza online en segundos, agenda tu bloque y recibe un servicio de aseo profesional. Con o sin insumos, una vez o por suscripción.",
-      "cta_primary": "Cotizar mi servicio",
-      "cta_secondary": "Cómo funciona",
+      "eyebrow": "Gestión de arriendos cortos con IA",
+      "title": "Tu Airbnb en piloto automático, sin comisiones.",
+      "title_lead": "Tu Airbnb en piloto automático,",
+      "title_accent": "sin comisiones.",
+      "subtitle": "Luxel responde a tus huéspedes 24/7, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana mensual, sin comisiones por reserva. ¿Solo necesitas aseo? También lo hacemos.",
+      "cta_primary": "Cotizar administración",
+      "cta_secondary": "Ver cómo funciona",
       "trust": {
-        "instant": "Precio al instante",
-        "operators": "Operadores verificados",
-        "flexible": "Agenda flexible",
-        "secure": "Pago seguro"
+        "instant": "Sin comisiones por reserva",
+        "operators": "Respuestas 24/7 con IA",
+        "flexible": "Precios optimizados",
+        "secure": "14 días gratis"
       }
     },
     "how": {
@@ -89,22 +97,19 @@
       "cta": "Cotizar ahora"
     },
     "footer": {
-      "tagline": "Servicios de aseo en la Región Metropolitana."
+      "tagline": "Administración de Airbnb y aseo profesional en la Región Metropolitana."
     },
-    "airbnb": {
-      "badge": "Nuevo servicio",
-      "title": "Administración Airbnb con IA",
-      "subtitle": "Deja de pagar 20–25% de comisión. Luxel responde a tus huéspedes al instante, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana.",
-      "f1_title": "Respuestas con IA",
-      "f1_body": "Tus huéspedes reciben respuesta al instante, 24/7, con derivación a ti solo cuando importa.",
-      "f2_title": "Precios inteligentes",
-      "f2_body": "Detectamos noches sin reservar y sugerimos precios según demanda y temporada.",
-      "f3_title": "Aseo coordinado",
-      "f3_body": "Cada check-out agenda su aseo automáticamente, pagado por el huésped.",
-      "f4_title": "Check-in sin llaves",
-      "f4_body": "Formulario de check-in y notificación automática a conserjería o código de acceso.",
-      "cta": "Comienza gratis 14 días",
-      "price_note": "$39.900/mes por propiedad + IVA. Cancela cuando quieras."
+    "services": {
+      "title": "Dos servicios, una sola plataforma",
+      "subtitle": "Automatiza tu arriendo corto o agenda un aseo profesional cuando lo necesites.",
+      "airbnb_badge": "Servicio principal",
+      "airbnb_title": "Administración Airbnb con IA",
+      "airbnb_body": "Mensajería automática, precios inteligentes, check-in sin llaves y aseo coordinado. Tarifa plana, sin comisiones.",
+      "airbnb_cta": "Conocer el servicio",
+      "cleaning_badge": "Aseo a pedido",
+      "cleaning_title": "Plan de Aseo profesional",
+      "cleaning_body": "Cotiza por metros cuadrados y ubicación. Servicio único o por suscripción, con o sin insumos.",
+      "cleaning_cta": "Conocer el servicio"
     }
   },
   "calculator": {
@@ -165,6 +170,34 @@
       "discount_applied": "Descuento por suscripción",
       "distance": "Movilización",
       "book_now": "Agendar ahora"
+    },
+    "picker": {
+      "title": "¿Qué quieres cotizar?",
+      "subtitle": "Elige el servicio y te llevamos a la cotización.",
+      "airbnb_badge": "Servicio principal",
+      "airbnb_title": "Administración Airbnb",
+      "airbnb_body": "Tarifa plana por propiedad. IA, precios y aseo coordinado.",
+      "cleaning_title": "Aseo profesional",
+      "cleaning_body": "Cotiza por metros cuadrados y ubicación.",
+      "select": "Cotizar"
+    },
+    "airbnb": {
+      "title": "Cotiza tu administración Airbnb",
+      "subtitle": "Una tarifa plana por propiedad. Sin comisiones por reserva.",
+      "listings_label": "¿Cuántas propiedades administras?",
+      "unit_one": "propiedad",
+      "unit_many": "propiedades",
+      "per_unit": "por propiedad / mes",
+      "total_label": "Total mensual",
+      "vat_note": "+ IVA · 14 días gratis · cancela cuando quieras",
+      "included_title": "Todo incluido",
+      "inc1": "Respuestas con IA 24/7 a tus huéspedes",
+      "inc2": "Precios sugeridos según demanda",
+      "inc3": "Aseo coordinado entre estadías",
+      "inc4": "Check-in sin llaves",
+      "inc5": "Panel con calendario y mensajes",
+      "cta": "Empezar gratis",
+      "back": "Cambiar servicio"
     }
   },
   "lead": {
@@ -587,5 +620,76 @@
     "occupancy": "Ocupación 30 días: {pct}% · {n} noches abiertas",
     "agent_ph": "Pídeme algo: \"reporte de… a…\", \"bloquea 2026-08-15\", \"¿precios?\"",
     "send": "Enviar"
+  },
+  "about": {
+    "eyebrow": "Quiénes somos",
+    "title": "Administrar tu arriendo no debería ser un segundo trabajo",
+    "lead": "Luxel nació en Santiago para que gestionar un arriendo corto deje de consumir tus tardes: la tecnología responde, cobra el precio justo y coordina cada aseo, mientras tú te enfocas en tus huéspedes.",
+    "mission_title": "Misión",
+    "mission_body": "Devolverles el tiempo a los anfitriones. Que responder, ajustar precios y coordinar el aseo pase a piloto automático, sin comisiones abusivas.",
+    "vision_title": "Visión",
+    "vision_body": "Ser la plataforma de administración de arriendos cortos líder en Chile: la forma más simple y rentable de operar una propiedad.",
+    "values_title": "Lo que nos mueve",
+    "v1_title": "Anfitrión primero",
+    "v1_body": "Cada decisión parte de una pregunta: ¿le ahorra tiempo o dinero al anfitrión?",
+    "v2_title": "Precios justos",
+    "v2_body": "Tarifa plana y transparente. Sin comisiones por reserva ni costos escondidos.",
+    "v3_title": "Tecnología con criterio",
+    "v3_body": "IA que responde como lo harías tú, con derivación a una persona cuando de verdad importa.",
+    "v4_title": "Hecho en Chile",
+    "v4_body": "Pensado para el mercado local: RUT, comunas, conserjería y cómo se arrienda acá.",
+    "cta_title": "¿Listo para automatizar tu Airbnb?",
+    "cta_body": "Prueba Luxel gratis por 14 días.",
+    "cta_button": "Cotizar administración"
+  },
+  "services": {
+    "airbnb": {
+      "eyebrow": "Servicio principal",
+      "title": "Administración Airbnb con IA",
+      "subtitle": "Deja de pagar 20–25% de comisión. Luxel responde a tus huéspedes al instante, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana mensual.",
+      "features_title": "Todo incluido",
+      "f1_title": "Respuestas con IA",
+      "f1_body": "Tus huéspedes reciben respuesta al instante, 24/7, con derivación a ti solo cuando importa.",
+      "f2_title": "Precios inteligentes",
+      "f2_body": "Detectamos noches sin reservar y sugerimos precios según demanda y temporada.",
+      "f3_title": "Aseo coordinado",
+      "f3_body": "Cada check-out agenda su aseo automáticamente, pagado por el huésped.",
+      "f4_title": "Check-in sin llaves",
+      "f4_body": "Formulario de check-in y notificación automática a conserjería o código de acceso.",
+      "how_title": "Cómo funciona",
+      "s1_title": "Conecta tu propiedad",
+      "s1_body": "Importa tus listings desde Airbnb vía Hospitable. Sin cargar nada a mano.",
+      "s2_title": "Enciende la IA",
+      "s2_body": "Luxel responde a tus huéspedes y sincroniza tu calendario automáticamente.",
+      "s3_title": "Relájate",
+      "s3_body": "Revisa todo desde un panel simple: mensajes, calendario, aseos y precios.",
+      "pricing_title": "Precio simple",
+      "pricing_suffix": "por propiedad al mes + IVA",
+      "pricing_note": "Sin comisiones por reserva · 14 días gratis · cancela cuando quieras.",
+      "cta_primary": "Cotizar administración",
+      "cta_secondary": "Empezar gratis"
+    },
+    "cleaning": {
+      "eyebrow": "Aseo a pedido",
+      "title": "Plan de Aseo profesional",
+      "subtitle": "Aseo profesional en la Región Metropolitana. Cotiza online en segundos, agenda tu bloque y recibe el servicio. Con o sin insumos, una vez o por suscripción.",
+      "features_title": "Qué incluye",
+      "f1_title": "Precio claro al instante",
+      "f1_body": "Cotiza por metros cuadrados y ubicación. Sin sorpresas.",
+      "f2_title": "Agenda flexible",
+      "f2_body": "Servicio único o suscripción semanal, quincenal o mensual.",
+      "f3_title": "Operadores verificados",
+      "f3_body": "Personal confiable, con o sin nuestros insumos. Tú eliges.",
+      "f4_title": "Pago seguro",
+      "f4_body": "Paga online con tarjeta o transferencia. Boleta incluida.",
+      "how_title": "Cómo funciona",
+      "s1_title": "Cotiza",
+      "s1_body": "Ingresa metros y ubicación y recibe el precio al instante.",
+      "s2_title": "Agenda",
+      "s2_body": "Elige día y bloque. Confirma tu reserva online.",
+      "s3_title": "Listo",
+      "s3_body": "Un operador verificado llega y deja tu espacio impecable.",
+      "cta_primary": "Cotizar aseo"
+    }
   }
 }

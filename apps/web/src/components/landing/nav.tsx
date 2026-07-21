@@ -4,6 +4,8 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { LuxelLogo } from '@/components/brand/logo';
 import { UserMenu } from '@/components/account/user-menu';
+import { ServicesDropdown } from '@/components/landing/services-dropdown';
+import { MobileMenu } from '@/components/landing/mobile-menu';
 
 export function Nav() {
   const t = useTranslations('nav');
@@ -16,15 +18,10 @@ export function Nav() {
 
         {/* Marketing links (desktop) */}
         <nav className="text-muted-foreground hidden items-center gap-7 text-sm font-medium md:flex">
-          <a href="/#como-funciona" className="hover:text-foreground transition-colors">
-            {t('how')}
-          </a>
-          <a href="/#caracteristicas" className="hover:text-foreground transition-colors">
-            {t('features')}
-          </a>
-          <a href="/#airbnb" className="hover:text-foreground transition-colors">
-            {t('airbnb')}
-          </a>
+          <Link href="/about" className="hover:text-foreground transition-colors">
+            {t('about')}
+          </Link>
+          <ServicesDropdown />
           <a href="/#faq" className="hover:text-foreground transition-colors">
             {t('faq')}
           </a>
@@ -63,6 +60,7 @@ export function Nav() {
               </Button>
             </SignedOut>
           </ClerkLoaded>
+          <MobileMenu />
         </div>
       </div>
     </header>

@@ -38,10 +38,10 @@ export function Hero() {
 
           <div className="animate-fade-in-up mt-10 flex flex-col items-center justify-center gap-3 [animation-delay:240ms] sm:flex-row">
             <Button asChild variant="lime" size="xl" className="w-full sm:w-auto">
-              <Link href="/calculator">{t('cta_primary')}</Link>
+              <Link href="/calculator?service=airbnb">{t('cta_primary')}</Link>
             </Button>
             <Button asChild variant="outline" size="xl" className="w-full sm:w-auto">
-              <a href="#como-funciona">{t('cta_secondary')}</a>
+              <Link href="/services/airbnb-management">{t('cta_secondary')}</Link>
             </Button>
           </div>
 
