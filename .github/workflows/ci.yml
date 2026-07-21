@@ -54,38 +54,3 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_stub
           SUPABASE_SERVICE_ROLE_KEY: sb_secret_stub
           NEXT_PUBLIC_POSTHOG_KEY: phc_stub
-
-  # Deploy the customer site (luxel-web) after a green build on main. Driven by
-  # the Vercel API using the token already in repo secrets, because Vercel's Git
-  # webhook for this project silently stopped firing (2026-07). This does not
-  # depend on that webhook. No-ops if the token isn't set.
-  deploy-web:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create luxel-web production deployment (Vercel API)
-        env:
-          TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
-          TEAM: ${{ secrets.VERCEL_TEAM_ID }}
-          SHA: ${{ github.sha }}
-        run: |
-          set -uo pipefail
-          if [ -z "${TOKEN:-}" ]; then echo "VERCEL_API_TOKEN not set — skipping."; exit 0; fi
-          Q=""; if [ -n "${TEAM:-}" ]; then Q="?teamId=$TEAM"; fi
-
-          # Repo id from the project's git link (needed by the deployments API).
-          proj=$(curl -sS -H "Authorization: Bearer $TOKEN" "https://api.vercel.com/v9/projects/luxel-web${Q}")
-          repoId=$(printf '%s' "$proj" | node -e 'const p=JSON.parse(require("fs").readFileSync(0,"utf8"));process.stdout.write(String((p.link&&p.link.repoId)||""))')
-          if [ -z "$repoId" ]; then echo "Could not read repoId from project link"; printf '%s\n' "$proj" | head -c 800; exit 1; fi
-          echo "repoId=$repoId  sha=$SHA"
-
-          body=$(printf '{"name":"luxel-web","project":"luxel-web","target":"production","gitSource":{"type":"github","repoId":%s,"ref":"main","sha":"%s"}}' "$repoId" "$SHA")
-          resp=$(curl -sS -w $'\n%{http_code}' -X POST \
-            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -d "$body" "https://api.vercel.com/v13/deployments${Q}")
-          code=$(printf '%s' "$resp" | tail -n1)
-          out=$(printf '%s' "$resp" | sed '$d')
-          echo "HTTP $code"
-          printf '%s' "$out" | node -e 'try{const d=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(JSON.stringify({id:d.id,url:d.url,state:d.readyState||d.status,target:d.target,inspectorUrl:d.inspectorUrl,error:d.error},null,2))}catch(e){console.log("raw:",require("fs").readFileSync(0,"utf8").slice(0,800))}'
-          case "$code" in 200|201|202) echo "✓ luxel-web production deployment created.";; *) echo "✗ deployment create failed"; exit 1;; esac

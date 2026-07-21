@@ -87,10 +87,12 @@ const preset = {
       },
       boxShadow: {
         xs: '0 1px 2px 0 hsl(185 45% 12% / 0.05)',
-        soft: '0 1px 2px 0 hsl(185 45% 12% / 0.04), 0 4px 14px -4px hsl(185 45% 12% / 0.07)',
-        card: '0 1px 3px 0 hsl(185 45% 12% / 0.05), 0 10px 28px -12px hsl(185 45% 12% / 0.11)',
-        lift: '0 2px 6px -2px hsl(185 45% 12% / 0.09), 0 22px 48px -18px hsl(185 45% 12% / 0.17)',
-        glow: '0 0 0 1px hsl(var(--primary) / 0.08), 0 18px 48px -18px hsl(var(--primary) / 0.32)',
+        soft: '0 1px 2px 0 hsl(185 45% 12% / 0.05), 0 5px 16px -4px hsl(185 45% 12% / 0.08)',
+        card: '0 1px 3px 0 hsl(185 45% 12% / 0.06), 0 12px 30px -10px hsl(185 45% 12% / 0.13)',
+        lift: '0 4px 10px -3px hsl(185 45% 12% / 0.12), 0 28px 56px -18px hsl(185 45% 12% / 0.22)',
+        glow: '0 0 0 1px hsl(var(--primary) / 0.08), 0 20px 52px -16px hsl(var(--primary) / 0.38)',
+        // Glossy inner top-highlight — sits on solid buttons to kill flatness.
+        sheen: 'inset 0 1px 0 0 hsl(0 0% 100% / 0.16)',
       },
       transitionTimingFunction: {
         lux: 'cubic-bezier(0.16, 1, 0.3, 1)',
@@ -119,6 +121,10 @@ const preset = {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-8px)' },
         },
+        'gradient-pan': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-out forwards',
@@ -127,6 +133,7 @@ const preset = {
         'bounce-dot': 'bounce-dot 1.2s ease-in-out infinite',
         shimmer: 'shimmer 1.6s infinite',
         float: 'float 6s ease-in-out infinite',
+        'gradient-pan': 'gradient-pan 7s ease-in-out infinite',
       },
     },
   },

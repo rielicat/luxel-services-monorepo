@@ -25,9 +25,9 @@ export function Features() {
           return (
             <div
               key={key}
-              className="border-border bg-card shadow-soft hover:border-primary/30 hover:shadow-card group rounded-xl border p-6 transition-all"
+              className="border-border bg-card shadow-soft hover:border-primary/30 hover:shadow-lift hover-lift group rounded-xl border p-6"
             >
-              <div className="bg-accent text-accent-foreground group-hover:bg-primary group-hover:text-primary-foreground flex h-11 w-11 items-center justify-center rounded-xl transition-colors">
+              <div className="bg-accent text-accent-foreground group-hover:bg-primary group-hover:text-primary-foreground ease-lux flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110">
                 <Icon className="h-5 w-5" />
               </div>
               <h3 className="font-display mt-5 font-semibold">{t(`items.${key}.title`)}</h3>

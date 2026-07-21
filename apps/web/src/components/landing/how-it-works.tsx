@@ -26,12 +26,12 @@ export function HowItWorks() {
             return (
               <li
                 key={step}
-                className="border-border bg-card shadow-soft relative rounded-xl border p-6"
+                className="border-border bg-card shadow-soft hover:shadow-card hover:border-primary/30 hover-lift group relative rounded-xl border p-6"
               >
-                <span className="text-primary/15 font-display absolute right-5 top-4 text-5xl font-extrabold leading-none">
+                <span className="text-primary/15 font-display ease-lux group-hover:text-primary/25 absolute right-5 top-4 text-5xl font-extrabold leading-none transition-colors duration-300">
                   {i + 1}
                 </span>
-                <div className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-xl">
+                <div className="bg-primary/10 text-primary ease-lux flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110">
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="font-display mt-5 text-lg font-semibold">

@@ -29,7 +29,7 @@ export function Hero() {
 
           <h1 className="animate-fade-in-up mt-7 text-balance font-serif text-5xl font-medium leading-[1.02] tracking-tight [animation-delay:80ms] sm:text-7xl">
             {t('title_lead')}{' '}
-            <span className="text-gradient-brand italic">{t('title_accent')}</span>
+            <span className="text-gradient-brand animate-gradient italic">{t('title_accent')}</span>
           </h1>
 
           <p className="text-muted-foreground animate-fade-in-up mx-auto mt-7 max-w-2xl text-pretty text-lg [animation-delay:160ms]">

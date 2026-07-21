@@ -17,11 +17,14 @@ export function ServicesOverview() {
         {/* Flagship — AirBnB (wider, primary-accented) */}
         <Link
           href="/services/airbnb"
-          className="border-primary/20 bg-card ring-primary/10 shadow-card hover:shadow-lift group relative overflow-hidden rounded-2xl border p-8 ring-1 transition-all lg:col-span-3"
+          className="border-primary/20 bg-card ring-primary/10 shadow-card hover:shadow-lift hover-lift group relative overflow-hidden rounded-2xl border p-8 ring-1 lg:col-span-3"
         >
-          <div aria-hidden className="bg-brand-glow pointer-events-none absolute inset-0" />
+          <div
+            aria-hidden
+            className="bg-brand-glow pointer-events-none absolute inset-0 opacity-80 transition-opacity duration-500 group-hover:opacity-100"
+          />
           <div className="relative">
-            <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
+            <div className="bg-primary/10 text-primary ease-lux flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110">
               <Bot className="h-6 w-6" />
             </div>
             <h3 className="font-display mt-5 text-2xl font-semibold">{t('airbnb_title')}</h3>
@@ -36,9 +39,9 @@ export function ServicesOverview() {
         {/* Second line — cleaning */}
         <Link
           href="/services/cleaning"
-          className="border-border bg-card shadow-card hover:shadow-lift group flex flex-col rounded-2xl border p-8 transition-all lg:col-span-2"
+          className="border-border bg-card shadow-card hover:shadow-lift hover-lift hover:border-primary/30 group flex flex-col rounded-2xl border p-8 lg:col-span-2"
         >
-          <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
+          <div className="bg-primary/10 text-primary ease-lux flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110">
             <Sparkles className="h-6 w-6" />
           </div>
           <h3 className="font-display mt-5 text-2xl font-semibold">{t('cleaning_title')}</h3>
