@@ -54,19 +54,19 @@
     },
     "how": {
       "title": "Cómo funciona",
-      "subtitle": "De la cotización al servicio en tres pasos.",
+      "subtitle": "Tu Airbnb en piloto automático, en tres pasos.",
       "steps": {
-        "quote": {
-          "title": "1. Cotiza online",
-          "description": "Ingresa el tamaño de tu espacio y dirección. Te mostramos el precio al instante."
+        "connect": {
+          "title": "1. Conecta tu Airbnb",
+          "description": "Importa tus propiedades desde Airbnb. Sin cargar nada a mano."
         },
-        "book": {
-          "title": "2. Agenda tu bloque",
-          "description": "Elige día, mañana o tarde, y paga con MercadoPago o tarjeta."
+        "automate": {
+          "title": "2. La IA se encarga",
+          "description": "Responde a tus huéspedes 24/7, ajusta tus precios y coordina el aseo entre estadías."
         },
         "relax": {
-          "title": "3. Disfruta tu espacio",
-          "description": "Llegamos puntuales, con o sin insumos. Tú eliges la frecuencia."
+          "title": "3. Relájate",
+          "description": "Revisa todo desde un panel simple: mensajes, calendario y reportes."
         }
       }
     },
@@ -103,7 +103,7 @@
     "services": {
       "title": "Dos servicios, una sola plataforma",
       "subtitle": "Automatiza tu arriendo corto o agenda un aseo profesional cuando lo necesites.",
-      "airbnb_title": "Administración Airbnb con IA",
+      "airbnb_title": "Gestiona tu Airbnb con Agentes de IA",
       "airbnb_body": "Mensajería automática, precios inteligentes, check-in sin llaves y aseo coordinado. Tarifa plana, sin comisiones.",
       "airbnb_cta": "Conocer el servicio",
       "cleaning_title": "Plan de Aseo profesional",
@@ -648,7 +648,7 @@
   },
   "services": {
     "airbnb": {
-      "title": "Administración Airbnb con IA",
+      "title": "Gestiona tu Airbnb con Agentes de IA",
       "subtitle": "Deja de pagar 20–25% de comisión. Luxel responde a tus huéspedes al instante, ajusta tus precios según la demanda y coordina el aseo entre estadías — por una tarifa plana mensual, con reportes claros.",
       "features_title": "Todo incluido",
       "f1_title": "Respuestas con IA",

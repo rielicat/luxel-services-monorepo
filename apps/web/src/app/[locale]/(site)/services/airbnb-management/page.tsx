@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AI_PLAN_CLP, AI_PLAN_HANDOFF_CLP } from '@/lib/plan-pricing';
 import { formatCLP, cn } from '@/lib/utils';
 
-export const metadata: Metadata = { title: 'Administración Airbnb con IA' };
+export const metadata: Metadata = { title: 'Gestiona tu Airbnb con Agentes de IA' };
 
 const FEATURES = [
   { key: 'f1', icon: Bot },

@@ -1,12 +1,12 @@
 import { useTranslations } from 'next-intl';
-import { Calculator, CalendarCheck, Sparkles } from 'lucide-react';
+import { Plug, Bot, LayoutDashboard } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-const STEPS = ['quote', 'book', 'relax'] as const;
+const STEPS = ['connect', 'automate', 'relax'] as const;
 const ICONS: Record<(typeof STEPS)[number], LucideIcon> = {
-  quote: Calculator,
-  book: CalendarCheck,
-  relax: Sparkles,
+  connect: Plug,
+  automate: Bot,
+  relax: LayoutDashboard,
 };
 
 export function HowItWorks() {
