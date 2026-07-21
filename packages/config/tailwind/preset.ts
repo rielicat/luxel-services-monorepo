@@ -59,6 +59,7 @@ const preset = {
         ring: 'hsl(var(--ring))',
       },
       borderRadius: {
+        '2xl': 'calc(var(--radius) + 8px)',
         xl: 'calc(var(--radius) + 4px)',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
@@ -69,11 +70,27 @@ const preset = {
         display: ['var(--font-display)', 'var(--font-sans)', 'ui-sans-serif', 'sans-serif'],
         serif: ['var(--font-serif)', 'ui-serif', 'Georgia', 'serif'],
       },
+      // Tuned type scale: display sizes get progressively tighter tracking for a
+      // confident, editorial feel; body sizes stay comfortable to read.
+      fontSize: {
+        xs: ['0.75rem', { lineHeight: '1rem' }],
+        sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        base: ['1rem', { lineHeight: '1.5rem' }],
+        lg: ['1.125rem', { lineHeight: '1.65rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
+        '2xl': ['1.5rem', { lineHeight: '1.95rem', letterSpacing: '-0.015em' }],
+        '3xl': ['1.875rem', { lineHeight: '2.2rem', letterSpacing: '-0.02em' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.025em' }],
+        '5xl': ['3rem', { lineHeight: '1.06', letterSpacing: '-0.03em' }],
+        '6xl': ['3.75rem', { lineHeight: '1.02', letterSpacing: '-0.035em' }],
+        '7xl': ['4.5rem', { lineHeight: '1', letterSpacing: '-0.04em' }],
+      },
       boxShadow: {
-        soft: '0 1px 2px 0 hsl(178 40% 12% / 0.04), 0 4px 16px -4px hsl(178 40% 12% / 0.08)',
-        card: '0 1px 3px 0 hsl(178 40% 12% / 0.06), 0 12px 32px -12px hsl(178 40% 12% / 0.12)',
-        lift: '0 2px 6px -2px hsl(178 40% 12% / 0.10), 0 20px 44px -16px hsl(178 40% 12% / 0.18)',
-        glow: '0 0 0 1px hsl(var(--primary) / 0.08), 0 18px 48px -18px hsl(var(--primary) / 0.35)',
+        xs: '0 1px 2px 0 hsl(185 45% 12% / 0.05)',
+        soft: '0 1px 2px 0 hsl(185 45% 12% / 0.04), 0 4px 14px -4px hsl(185 45% 12% / 0.07)',
+        card: '0 1px 3px 0 hsl(185 45% 12% / 0.05), 0 10px 28px -12px hsl(185 45% 12% / 0.11)',
+        lift: '0 2px 6px -2px hsl(185 45% 12% / 0.09), 0 22px 48px -18px hsl(185 45% 12% / 0.17)',
+        glow: '0 0 0 1px hsl(var(--primary) / 0.08), 0 18px 48px -18px hsl(var(--primary) / 0.32)',
       },
       transitionTimingFunction: {
         lux: 'cubic-bezier(0.16, 1, 0.3, 1)',

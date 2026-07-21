@@ -3,90 +3,92 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────
-   Servicios Luxel — design tokens ("Fresh Teal + Lime")
-   Colors are stored as HSL channels so Tailwind can compose them
-   with alpha (hsl(var(--x) / <alpha>)). See docs/BRAND.md.
+   Servicios Luxel — design tokens ("Fresh Teal + Lime", elevated)
+   Colors are HSL channels so Tailwind composes them with alpha:
+   hsl(var(--x) / <alpha>). Deep teal primary on ivory surfaces,
+   crisp neutrals, lime as the high-energy accent. See docs/BRAND.md.
    ───────────────────────────────────────────────────────────── */
 
 @layer base {
   :root {
-    --background: 160 44% 99%;
-    --foreground: 178 52% 11%;
+    /* Ivory canvas, crisp white cards for contrast */
+    --background: 168 38% 99%;
+    --foreground: 187 44% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 178 52% 11%;
+    --card-foreground: 187 44% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 178 52% 11%;
+    --popover-foreground: 187 44% 10%;
 
-    /* Teal-700 — primary brand */
-    --primary: 175 78% 26%;
+    /* Deep teal — primary brand (#0c7c6a) */
+    --primary: 172 82% 26%;
     --primary-foreground: 0 0% 100%;
 
     /* Teal-500 — secondary brand */
-    --secondary: 173 71% 39%;
+    --secondary: 172 66% 41%;
     --secondary-foreground: 0 0% 100%;
 
     /* Lime — high-energy accent (CTAs, highlights) */
-    --lime: 71 92% 63%;
-    --lime-foreground: 138 55% 20%;
+    --lime: 70 90% 62%;
+    --lime-foreground: 138 58% 18%;
 
-    --muted: 165 30% 96%;
-    --muted-foreground: 178 13% 40%;
+    --muted: 168 32% 96%;
+    --muted-foreground: 190 13% 38%;
 
     /* Soft teal wash for subtle surfaces */
-    --accent: 172 55% 93%;
-    --accent-foreground: 175 78% 22%;
+    --accent: 170 52% 94%;
+    --accent-foreground: 172 80% 22%;
 
-    --success: 158 64% 38%;
+    --success: 160 68% 36%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 48%;
-    --warning-foreground: 40 60% 12%;
-    --destructive: 0 72% 51%;
+    --warning: 36 95% 47%;
+    --warning-foreground: 33 70% 12%;
+    --destructive: 3 74% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 168 28% 89%;
-    --input: 168 28% 89%;
-    --ring: 175 78% 30%;
+    --border: 172 22% 89%;
+    --input: 172 22% 89%;
+    --ring: 172 82% 32%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 185 47% 6%;
-    --foreground: 160 30% 96%;
+    --background: 190 44% 6%;
+    --foreground: 165 28% 95%;
 
-    --card: 187 42% 8%;
-    --card-foreground: 160 30% 96%;
+    --card: 190 40% 8%;
+    --card-foreground: 165 28% 95%;
 
-    --popover: 187 42% 8%;
-    --popover-foreground: 160 30% 96%;
+    --popover: 190 40% 8%;
+    --popover-foreground: 165 28% 95%;
 
-    --primary: 172 76% 44%;
-    --primary-foreground: 185 60% 7%;
+    --primary: 170 74% 45%;
+    --primary-foreground: 190 60% 7%;
 
-    --secondary: 173 60% 34%;
-    --secondary-foreground: 160 40% 96%;
+    --secondary: 172 58% 36%;
+    --secondary-foreground: 165 30% 96%;
 
-    --lime: 71 88% 60%;
-    --lime-foreground: 140 60% 10%;
+    --lime: 70 86% 60%;
+    --lime-foreground: 140 62% 9%;
 
-    --muted: 186 30% 14%;
-    --muted-foreground: 170 15% 62%;
+    --muted: 190 30% 14%;
+    --muted-foreground: 172 14% 64%;
 
-    --accent: 186 34% 16%;
-    --accent-foreground: 160 40% 92%;
+    --accent: 190 34% 16%;
+    --accent-foreground: 165 34% 92%;
 
-    --success: 158 60% 44%;
-    --success-foreground: 185 60% 7%;
-    --warning: 38 90% 55%;
-    --warning-foreground: 40 60% 10%;
-    --destructive: 0 63% 47%;
+    --success: 158 62% 45%;
+    --success-foreground: 190 60% 7%;
+    --warning: 38 92% 56%;
+    --warning-foreground: 38 60% 10%;
+    --destructive: 2 66% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 186 28% 17%;
-    --input: 186 28% 19%;
-    --ring: 172 76% 44%;
+    --border: 190 28% 17%;
+    --input: 190 28% 19%;
+    --ring: 170 74% 46%;
   }
 
   * {
@@ -95,14 +97,21 @@
 
   html {
     scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
     font-feature-settings:
       'rlig' 1,
       'calt' 1,
       'ss01' 1;
+  }
+
+  /* Display headings — tighter tracking for a confident, modern voice. */
+  .font-display {
+    letter-spacing: -0.02em;
   }
 
   /* Serif display headings — editorial, luxe feel. */
@@ -111,9 +120,19 @@
     letter-spacing: -0.01em;
   }
 
+  /* Numeric readouts (prices, stats, calendars) line up crisply. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
   ::selection {
     background: hsl(var(--lime) / 0.5);
     color: hsl(var(--lime-foreground));
+  }
+
+  /* Consistent, visible keyboard focus across the app. */
+  :focus-visible {
+    outline: none;
   }
 }
 
@@ -123,8 +142,8 @@
     background-image: linear-gradient(
       100deg,
       hsl(var(--primary)),
-      hsl(var(--secondary)) 60%,
-      hsl(158 64% 45%)
+      hsl(var(--secondary)) 55%,
+      hsl(160 68% 42%)
     );
     -webkit-background-clip: text;
     background-clip: text;
@@ -135,30 +154,30 @@
   .bg-brand-glow {
     background-image: radial-gradient(
       55% 45% at 50% 0%,
-      hsl(var(--secondary) / 0.18) 0%,
+      hsl(var(--secondary) / 0.16) 0%,
       transparent 70%
     );
   }
 
   /* Subtle dotted grid backdrop (placeholder for hero imagery) */
   .bg-dot-grid {
-    background-image: radial-gradient(hsl(var(--primary) / 0.09) 1px, transparent 1px);
+    background-image: radial-gradient(hsl(var(--primary) / 0.08) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 
   /* Layered ambient aurora for premium hero / section backdrops */
   .bg-aurora {
     background-image:
-      radial-gradient(40% 40% at 15% 10%, hsl(var(--secondary) / 0.14) 0%, transparent 70%),
-      radial-gradient(45% 45% at 85% 0%, hsl(var(--lime) / 0.16) 0%, transparent 70%),
-      radial-gradient(50% 50% at 50% 100%, hsl(var(--primary) / 0.08) 0%, transparent 70%);
+      radial-gradient(38% 42% at 12% 8%, hsl(var(--secondary) / 0.13) 0%, transparent 72%),
+      radial-gradient(44% 46% at 88% 0%, hsl(var(--lime) / 0.15) 0%, transparent 72%),
+      radial-gradient(52% 52% at 50% 100%, hsl(var(--primary) / 0.07) 0%, transparent 72%);
   }
 
   /* Frosted glass surface */
   .glass {
-    background: hsl(var(--card) / 0.6);
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    background: hsl(var(--card) / 0.65);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
   }
 
   /* Hairline luxe divider */
@@ -166,8 +185,8 @@
     background-image: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--primary) / 0.25) 20%,
-      hsl(var(--primary) / 0.25) 80%,
+      hsl(var(--primary) / 0.22) 20%,
+      hsl(var(--primary) / 0.22) 80%,
       transparent
     );
   }
@@ -175,6 +194,7 @@
   @media (prefers-reduced-motion: reduce) {
     .animate-fade-in-up,
     .animate-fade-in,
+    .animate-scale-in,
     .animate-float {
       animation: none !important;
     }
