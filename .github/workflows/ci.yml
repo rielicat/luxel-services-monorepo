@@ -54,3 +54,24 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_stub
           SUPABASE_SERVICE_ROLE_KEY: sb_secret_stub
           NEXT_PUBLIC_POSTHOG_KEY: phc_stub
+
+  # Deploy the customer site (luxel-web) after a green build on main. We drive it
+  # from CI via a Vercel Deploy Hook rather than relying on Vercel's own Git
+  # integration, which silently stopped triggering luxel-web builds. Add the hook
+  # URL (luxel-web → Settings → Git → Deploy Hooks, branch `main`) as the repo
+  # secret VERCEL_WEB_DEPLOY_HOOK; the step no-ops until it's set.
+  deploy-web:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel deploy (luxel-web)
+        env:
+          HOOK: ${{ secrets.VERCEL_WEB_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "VERCEL_WEB_DEPLOY_HOOK not set — skipping (configure it to enable auto-deploy)."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "✓ Triggered luxel-web production deploy."
