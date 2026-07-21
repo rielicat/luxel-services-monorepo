@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { PostHogProvider } from '@/lib/posthog/provider';
 import { PostHogPageview } from '@/components/analytics/track-view';
+import { StealthGate } from '@/components/stealth-gate';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -57,7 +58,8 @@ export default async function LocaleLayout({
           <NextIntlClientProvider messages={messages}>
             <PostHogProvider>
               <PostHogPageview />
-              {children}
+              {/* TEMP stealth gate — deployed build only; see stealth-gate.tsx. */}
+              <StealthGate>{children}</StealthGate>
             </PostHogProvider>
           </NextIntlClientProvider>
         </ClerkProvider>

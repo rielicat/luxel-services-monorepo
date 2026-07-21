@@ -95,6 +95,17 @@ supabase/       SQL migrations + seed + local config
 - **Before pushing**, make sure `format:check`, `typecheck`, `lint`, `test`,
   `build` all pass — that's exactly what CI enforces.
 
+## Temporary — remove before public launch
+
+- **Stealth access gate.** While in stealth, the **deployed** build shows a
+  "restricted access" screen over the whole app. It listens for keystrokes (no
+  input field): type **`0612`** then **Enter** to unlock (Enter with a wrong
+  code clears it); the unlock is remembered per-browser. Production only
+  (`NODE_ENV === 'production'`) — local `next dev` is never gated. It is
+  client-side obfuscation, **not** real security. To LIFT it: delete
+  `apps/web/src/components/stealth-gate.tsx` and its `<StealthGate>` mount in
+  `apps/web/src/app/[locale]/layout.tsx`.
+
 ## Product & marketing constraints (user-set)
 
 These are locked product decisions — honor them when touching site copy/IA:
