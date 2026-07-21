@@ -107,12 +107,22 @@ export default function AboutPage() {
       </section>
 
       <section className="container pb-24">
-        <div className="bg-primary text-primary-foreground shadow-glow relative mx-auto max-w-4xl overflow-hidden rounded-3xl px-8 py-14 text-center">
-          <h2 className="font-display text-balance text-3xl font-semibold">{t('cta_title')}</h2>
-          <p className="text-primary-foreground/80 mt-3">{t('cta_body')}</p>
-          <Button asChild variant="lime" size="xl" className="mt-8">
-            <Link href="/calculator?service=airbnb">{t('cta_button')}</Link>
-          </Button>
+        <div className="from-primary to-secondary shadow-lift relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br px-8 py-16 text-center">
+          <div
+            aria-hidden
+            className="bg-lime/25 pointer-events-none absolute -top-20 left-1/2 h-52 w-[28rem] -translate-x-1/2 rounded-full blur-3xl"
+          />
+          <div className="relative">
+            <h2 className="font-display text-primary-foreground text-balance text-3xl font-semibold sm:text-4xl">
+              {t('cta_title')}
+            </h2>
+            <p className="text-primary-foreground/85 mx-auto mt-3 max-w-md text-pretty">
+              {t('cta_body')}
+            </p>
+            <Button asChild variant="lime" size="xl" className="mt-8 shadow-lg">
+              <Link href="/calculator?service=airbnb">{t('cta_button')}</Link>
+            </Button>
+          </div>
         </div>
       </section>
     </main>
