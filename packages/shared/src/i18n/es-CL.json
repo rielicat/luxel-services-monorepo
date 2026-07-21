@@ -39,9 +39,9 @@
   "landing": {
     "hero": {
       "eyebrow": "Gestión de arriendos cortos con IA",
-      "title": "Tu Airbnb en piloto automático, 0% comisión.",
-      "title_lead": "Tu Airbnb en piloto automático,",
-      "title_accent": "0% comisión.",
+      "title": "Tu Airbnb en piloto automático.",
+      "title_lead": "Tu Airbnb en piloto",
+      "title_accent": "automático.",
       "subtitle": "Luxel responde a tus huéspedes 24/7, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana mensual, con 0% de comisión por reserva. ¿Solo necesitas aseo? También lo hacemos.",
       "cta_primary": "Cotizar administración",
       "cta_secondary": "Ver cómo funciona",
@@ -644,7 +644,14 @@
     "v4_body": "Pensado para el mercado local: RUT, comunas, conserjería y cómo se arrienda acá.",
     "cta_title": "¿Listo para automatizar tu Airbnb?",
     "cta_body": "Prueba Luxel gratis por 14 días.",
-    "cta_button": "Cotizar administración"
+    "cta_button": "Cotizar administración",
+    "story_title": "Cómo nació Luxel",
+    "story_p1": "Empecé como anfitrión en Airbnb con toda la ilusión. A las pocas semanas ya estaba sobrepasado: mensajes a cualquier hora, precios que nunca sabía si estaban bien y la sensación de tener un segundo trabajo que jamás pedí.",
+    "story_p2": "Hice lo que hace todo el mundo: contraté una empresa de administración. Pero cuando de verdad se complicó —algo se rompió en el departamento— terminé coordinando la reparación yo mismo. Más de una vez me tocó ir a arreglarlo con mis propias manos.",
+    "story_quote": "Estaba pagando por un servicio… y terminé trabajando para ellos.",
+    "story_p3": "Ahí caché algo simple: lo único que de verdad necesitaba era alguien de confianza que dejara todo impecable antes de cada huésped y revisara que estuviera en orden en cada check-in y check-out. Y eso ya lo pagaba el huésped, en la tarifa de aseo de la plataforma.",
+    "story_p4": "Entonces, ¿por qué le entregaba un 20% de comisión a la administración? Básicamente, para que respondieran mensajes. Así que decidí resolverlo a mi manera: desarrollé una IA que entendía mi propiedad, respondía a mis huéspedes como lo haría yo y me sugería cómo resolver cada imprevisto.",
+    "story_p5": "Funcionó tan bien que quise ponerla en manos de otros anfitriones. Así nació Luxel: para sacarte de encima la carga de administrar tu propiedad y darte transparencia total sobre lo que pagas."
   },
   "services": {
     "airbnb": {

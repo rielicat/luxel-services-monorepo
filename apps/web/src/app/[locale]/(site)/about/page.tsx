@@ -33,7 +33,29 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="container pb-6">
+      <section className="container pb-4 pt-6">
+        <div className="mx-auto max-w-2xl">
+          <h2 className="font-display text-center text-3xl font-semibold tracking-tight">
+            {t('story_title')}
+          </h2>
+          <div className="text-muted-foreground mt-8 space-y-5 text-lg leading-relaxed">
+            <p>{t('story_p1')}</p>
+            <p>{t('story_p2')}</p>
+          </div>
+          <blockquote className="border-primary my-8 border-l-4 pl-5">
+            <p className="text-foreground text-balance font-serif text-2xl italic leading-snug">
+              {t('story_quote')}
+            </p>
+          </blockquote>
+          <div className="text-muted-foreground space-y-5 text-lg leading-relaxed">
+            <p>{t('story_p3')}</p>
+            <p>{t('story_p4')}</p>
+            <p>{t('story_p5')}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="container pb-6 pt-10">
         <div className="mx-auto grid max-w-4xl gap-5 sm:grid-cols-2">
           <Card>
             <CardContent className="p-8">
