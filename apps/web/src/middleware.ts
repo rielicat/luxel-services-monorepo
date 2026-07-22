@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createIntlMiddleware from 'next-intl/middleware';
-import type { NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createIntlMiddleware(routing);
@@ -30,7 +30,19 @@ export default skipAuth
   ? intlOnly
   : clerkMiddleware(async (auth, req) => {
       if (isProtectedRoute(req)) {
-        await auth.protect();
+        const { userId } = await auth();
+        if (!userId) {
+          // auth.protect()'s default redirect resolves the sign-in URL via
+          // requestState.signInUrl → NEXT_PUBLIC_CLERK_SIGN_IN_URL, which is
+          // unset on Vercel prod, so it falls back to Clerk's hosted Account
+          // Portal. Build the redirect to our own /sign-in explicitly instead.
+          if (req.nextUrl.pathname.startsWith('/api/')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+          }
+          const signInUrl = new URL('/sign-in', req.url);
+          signInUrl.searchParams.set('redirect_url', req.nextUrl.pathname + req.nextUrl.search);
+          return NextResponse.redirect(signInUrl);
+        }
       }
       // API routes are not locale-aware — skip intl middleware
       if (req.nextUrl.pathname.startsWith('/api/')) return;
