@@ -4,9 +4,10 @@
  * TEMPORARY STEALTH GATE — remove before public launch.
  *
  * While the product is in stealth, the DEPLOYED build shows a "restricted
- * access" screen over the whole app. There is no input field: it listens for
- * keystrokes globally; type the code then press Enter to unlock. Enter with a
- * wrong code clears the digits. The unlock is remembered per-browser.
+ * access" screen over the whole app. There is no input field and no on-screen
+ * hint about how to get in: it listens for keystrokes globally and unlocks the
+ * moment the last digits typed match the code — no Enter needed. The unlock is
+ * remembered per-browser.
  *
  * Access code: 0612
  * Scope: production only (`NODE_ENV === 'production'`) — local `next dev` is
@@ -29,7 +30,6 @@ export function StealthGate({ children }: { children: React.ReactNode }) {
   const gateActive = process.env.NODE_ENV === 'production';
   const [unlocked, setUnlocked] = useState(false);
   const [count, setCount] = useState(0);
-  const [wrong, setWrong] = useState(false);
   const buffer = useRef('');
 
   useEffect(() => {
@@ -39,22 +39,14 @@ export function StealthGate({ children }: { children: React.ReactNode }) {
       return;
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        if (buffer.current === CODE) {
-          localStorage.setItem(STORAGE_KEY, '1');
-          setUnlocked(true);
-          return;
-        }
-        setWrong(true);
-        window.setTimeout(() => {
-          buffer.current = '';
-          setCount(0);
-          setWrong(false);
-        }, 350);
-      } else if (/^[0-9]$/.test(e.key)) {
-        setWrong(false);
-        buffer.current = (buffer.current + e.key).slice(0, 12);
-        setCount(buffer.current.length);
+      if (!/^[0-9]$/.test(e.key)) return;
+      // Rolling window of the last CODE.length digits — unlock the instant they
+      // match, so there's no Enter and no obvious "submit" step.
+      buffer.current = (buffer.current + e.key).slice(-CODE.length);
+      setCount((c) => Math.min(c + 1, CODE.length));
+      if (buffer.current === CODE) {
+        localStorage.setItem(STORAGE_KEY, '1');
+        setUnlocked(true);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -63,7 +55,6 @@ export function StealthGate({ children }: { children: React.ReactNode }) {
 
   if (!gateActive || unlocked) return <>{children}</>;
 
-  const dots = Math.max(CODE.length, count);
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-7 px-6 text-center text-white"
@@ -77,15 +68,14 @@ export function StealthGate({ children }: { children: React.ReactNode }) {
           Acceso restringido
         </p>
         <h1 className="font-display text-2xl font-bold tracking-tight">Esta versión es privada</h1>
-        <p className="text-sm text-white/55">Ingresa el código de acceso para continuar.</p>
       </div>
       <div className="flex gap-2.5" aria-hidden>
-        {Array.from({ length: dots }).map((_, i) => (
+        {Array.from({ length: CODE.length }).map((_, i) => (
           <span
             key={i}
             className={cn(
               'h-2.5 w-2.5 rounded-full transition-colors',
-              i < count ? (wrong ? 'bg-red-400' : 'bg-lime') : 'bg-white/15',
+              i < count ? 'bg-lime' : 'bg-white/15',
             )}
           />
         ))}
