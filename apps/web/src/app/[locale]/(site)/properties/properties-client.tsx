@@ -117,7 +117,7 @@ function Onboarding({ connected }: { connected: boolean }) {
           {t('help_pre')}{' '}
           <a
             className="text-primary underline underline-offset-2"
-            href="https://my.hospitable.com/apps/api-access"
+            href={`https://wa.me/${(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, '')}`}
             target="_blank"
             rel="noreferrer"
           >

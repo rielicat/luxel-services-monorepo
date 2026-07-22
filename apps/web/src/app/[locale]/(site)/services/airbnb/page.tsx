@@ -3,90 +3,56 @@ import { useTranslations } from 'next-intl';
 import { Bot, TrendingUp, Sparkles, KeyRound, ArrowRight, Check } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { ServiceHero } from '@/components/sections/service-hero';
+import { SectionHeading } from '@/components/sections/section-heading';
+import { FeatureGrid } from '@/components/sections/feature-grid';
+import { Steps } from '@/components/sections/steps';
 import { AI_PLAN_CLP, AI_PLAN_HANDOFF_CLP } from '@/lib/plan-pricing';
 import { formatCLP, cn } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Gestiona tu Airbnb con Agentes de IA' };
 
-const FEATURES = [
-  { key: 'f1', icon: Bot },
-  { key: 'f2', icon: TrendingUp },
-  { key: 'f3', icon: Sparkles },
-  { key: 'f4', icon: KeyRound },
-] as const;
-
+const FEATURE_ICONS = [Bot, TrendingUp, Sparkles, KeyRound];
 const STEPS = ['s1', 's2', 's3'] as const;
 const INCLUDED = ['incl_1', 'incl_2', 'incl_3', 'incl_4', 'incl_5'] as const;
 
 export default function AirbnbServicePage() {
   const t = useTranslations('services.airbnb');
+  const features = FEATURE_ICONS.map((icon, i) => ({
+    icon,
+    title: t(`f${i + 1}_title`),
+    body: t(`f${i + 1}_body`),
+  }));
+  const steps = STEPS.map((key) => ({ title: t(`${key}_title`), body: t(`${key}_body`) }));
+
   return (
     <main>
-      <section className="relative overflow-hidden">
-        <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0 -z-10" />
-        <div className="container py-20 text-center sm:py-28">
-          <h1 className="mx-auto max-w-3xl text-balance font-serif text-4xl font-medium tracking-tight sm:text-6xl">
-            {t('title')}
-          </h1>
-          <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-pretty text-lg">
-            {t.rich('subtitle', {
-              hl: (chunks) => <span className="text-primary font-semibold">{chunks}</span>,
-            })}
-          </p>
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild variant="lime" size="xl" className="w-full sm:w-auto">
-              <Link href="/calculator?service=airbnb">{t('cta_primary')}</Link>
-            </Button>
-            <Button asChild variant="outline" size="xl" className="w-full sm:w-auto">
-              <Link href="/properties">{t('cta_secondary')}</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+      <ServiceHero
+        title={t('title')}
+        subtitle={t.rich('subtitle', {
+          hl: (chunks) => <span className="text-primary font-semibold">{chunks}</span>,
+        })}
+      >
+        <Button asChild variant="lime" size="xl" className="w-full sm:w-auto">
+          <Link href="/calculator?service=airbnb">{t('cta_primary')}</Link>
+        </Button>
+        <Button asChild variant="outline" size="xl" className="w-full sm:w-auto">
+          <Link href="/properties">{t('cta_secondary')}</Link>
+        </Button>
+      </ServiceHero>
 
       <section className="container py-6">
-        <h2 className="font-display text-center text-3xl font-semibold tracking-tight">
-          {t('features_title')}
-        </h2>
-        <div className="mx-auto mt-12 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map(({ key, icon: Icon }) => (
-            <Card key={key}>
-              <CardContent className="p-6">
-                <div className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-xl">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h3 className="font-display mt-5 font-semibold">{t(`${key}_title`)}</h3>
-                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-                  {t(`${key}_body`)}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <SectionHeading title={t('features_title')} />
+        <FeatureGrid features={features} tone="primary" />
       </section>
 
       <section className="container py-16 sm:py-20">
-        <h2 className="font-display text-center text-3xl font-semibold tracking-tight">
-          {t('how_title')}
-        </h2>
-        <div className="mx-auto mt-12 grid max-w-4xl gap-8 sm:grid-cols-3">
-          {STEPS.map((key, i) => (
-            <div key={key} className="text-center">
-              <span className="bg-primary text-primary-foreground font-display mx-auto flex h-11 w-11 items-center justify-center rounded-full text-lg font-bold">
-                {i + 1}
-              </span>
-              <h3 className="font-display mt-4 font-semibold">{t(`${key}_title`)}</h3>
-              <p className="text-muted-foreground mt-2 text-sm">{t(`${key}_body`)}</p>
-            </div>
-          ))}
-        </div>
+        <SectionHeading title={t('how_title')} />
+        <Steps steps={steps} tone="primary" />
       </section>
 
       <section className="container pb-24">
-        <h2 className="font-display text-center text-3xl font-semibold tracking-tight">
-          {t('pricing_title')}
-        </h2>
+        <SectionHeading title={t('pricing_title')} />
         <div className="mx-auto mt-12 grid max-w-3xl items-start gap-5 sm:grid-cols-2">
           <Tier t={t} name={t('tier_base_name')} desc={t('tier_base_desc')} price={AI_PLAN_CLP} />
           <Tier

@@ -12,8 +12,9 @@ import type { HostConnection } from '@/lib/host/queries';
 const inputCls =
   'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-/** Connect-your-Hospitable card: paste a Personal Access Token → verified against
- *  the live API → stored encrypted → first sync runs immediately. */
+/** Connect-your-Airbnb card: the host pastes the Luxel-issued connection code
+ *  (a PMS access token, internally) → verified against the live API → stored
+ *  encrypted → first sync runs immediately. */
 export function HospitableCard({ connection }: { connection: HostConnection | null }) {
   const t = useTranslations('hospitable');
   const router = useRouter();

@@ -5,6 +5,7 @@ import { getPricingData } from '@/lib/pricing-data';
 import { geocodeAddress } from '@/lib/geocode';
 import { getDayAvailability } from '@/lib/availability';
 import { workingHoursStatus } from '@/lib/working-hours';
+import { airbnbTierPrice, type AirbnbTier } from '@/lib/plan-pricing';
 
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 
@@ -25,12 +26,45 @@ export type Widget =
     }
   | { kind: 'availability'; date: string; timeblocks: { timeblock: string; available: number }[] }
   | {
+      kind: 'airbnb_quote';
+      listings: number;
+      tier: AirbnbTier;
+      tierLabel: string;
+      perListingClp: number;
+      monthlyClp: number;
+    }
+  | {
+      kind: 'links';
+      actions: { label: string; href: string; style: 'lime' | 'primary' | 'outline' }[];
+    }
+  | {
       kind: 'handoff';
       whatsappUrl: string | null;
       withinHours: boolean;
       openHour: number;
       closeHour: number;
     };
+
+/** Curated navigation targets the agent may surface as clickable actions. Keeps
+ *  the model from inventing URLs — it picks keys, we resolve label + href here. */
+const LINK_DESTINATIONS: Record<
+  string,
+  { label: string; href: string; style: 'lime' | 'primary' | 'outline' }
+> = {
+  airbnb_service: { label: 'Administración Airbnb', href: '/services/airbnb', style: 'primary' },
+  cleaning_service: { label: 'Plan de Aseo', href: '/services/cleaning', style: 'primary' },
+  airbnb_quote: { label: 'Cotizar Airbnb', href: '/calculator?service=airbnb', style: 'lime' },
+  cleaning_quote: { label: 'Cotizar aseo', href: '/calculator?service=cleaning', style: 'lime' },
+  start_trial: {
+    label: 'Comenzar prueba de 14 días',
+    href: '/calculator?service=airbnb',
+    style: 'lime',
+  },
+  book: { label: 'Agendar aseo', href: '/book', style: 'lime' },
+  pricing: { label: 'Ver precios', href: '/calculator', style: 'outline' },
+  dashboard: { label: 'Ir a mi panel', href: '/account', style: 'outline' },
+  about: { label: 'Sobre Luxel', href: '/about', style: 'outline' },
+};
 
 export interface ToolResult {
   /** Text the model relays to the user. Must be self-contained. */
@@ -107,6 +141,53 @@ export function buildTools(serviceSlugs: string[]): OpenAI.Chat.Completions.Chat
     {
       type: 'function',
       function: {
+        name: 'get_airbnb_quote',
+        description:
+          'Calcula el costo mensual de la Administración de Airbnb con IA (tarifa plana por propiedad). Úsala cuando el usuario quiere saber cuánto cuesta administrar sus propiedades/listings de Airbnb. NUNCA inventes el monto.',
+        parameters: {
+          type: 'object',
+          properties: {
+            listings: {
+              type: 'integer',
+              description: 'Cantidad de propiedades/listings de Airbnb a administrar (1–50).',
+            },
+            tier: {
+              type: 'string',
+              enum: ['base', 'handoff'],
+              description:
+                '"base" = plan Esencial (automatización 100% con IA); "handoff" = Con respaldo humano (un equipo real toma la conversación cuando la IA deriva).',
+            },
+          },
+          required: ['listings'],
+          additionalProperties: false,
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'share_links',
+        description:
+          'Muestra 1–3 accesos directos útiles al usuario (páginas del sitio) según lo que necesita. Úsala para ofrecer el siguiente paso: cotizar, ver un servicio, agendar, comenzar la prueba o ir al panel. Elige solo los destinos relevantes.',
+        parameters: {
+          type: 'object',
+          properties: {
+            destinations: {
+              type: 'array',
+              description: 'Destinos a mostrar, en orden de relevancia (máximo 3).',
+              items: { type: 'string', enum: Object.keys(LINK_DESTINATIONS) },
+              minItems: 1,
+              maxItems: 3,
+            },
+          },
+          required: ['destinations'],
+          additionalProperties: false,
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
         name: 'check_availability',
         description:
           'Consulta los bloques (mañana/tarde) disponibles para una fecha y dirección. Úsala cuando el usuario quiere saber si hay cupo un día específico.',
@@ -151,6 +232,10 @@ export async function runTool(
       return checkCoverage(input);
     case 'get_quote':
       return getQuote(input);
+    case 'get_airbnb_quote':
+      return getAirbnbQuote(input);
+    case 'share_links':
+      return shareLinks(input);
     case 'check_availability':
       return checkAvailability(input);
     case 'escalate_to_human':
@@ -158,6 +243,45 @@ export async function runTool(
     default:
       return { content: `Herramienta desconocida: ${name}` };
   }
+}
+
+function getAirbnbQuote(input: Record<string, unknown>): ToolResult {
+  const listings = Math.max(1, Math.min(50, Math.round(Number(input.listings ?? 1)) || 1));
+  const tier: AirbnbTier = input.tier === 'handoff' ? 'handoff' : 'base';
+  const perListingClp = airbnbTierPrice(tier);
+  const monthlyClp = perListingClp * listings;
+  const tierLabel = tier === 'handoff' ? 'Con respaldo humano' : 'Esencial';
+  const per = listings === 1 ? 'la propiedad' : `${listings} propiedades`;
+  return {
+    content: `Plan ${tierLabel}: ${clp(perListingClp)} por propiedad al mes (+IVA). Para ${per} son ${clp(
+      monthlyClp,
+    )} al mes, con 0% de comisión y 14 días de prueba gratis. Comunícalo e invita a comenzar la prueba.`,
+    widget: {
+      kind: 'airbnb_quote',
+      listings,
+      tier,
+      tierLabel,
+      perListingClp,
+      monthlyClp,
+    },
+  };
+}
+
+function shareLinks(input: Record<string, unknown>): ToolResult {
+  const raw = Array.isArray(input.destinations) ? input.destinations : [];
+  const actions = raw
+    .map((k) => LINK_DESTINATIONS[String(k)])
+    .filter((d): d is (typeof LINK_DESTINATIONS)[string] => Boolean(d))
+    .slice(0, 3);
+  if (!actions.length) {
+    return {
+      content: 'No hay accesos directos que mostrar. Continúa la conversación normalmente.',
+    };
+  }
+  return {
+    content: 'Se mostraron accesos directos al usuario. Menciónalos brevemente en tu respuesta.',
+    widget: { kind: 'links', actions },
+  };
 }
 
 async function checkCoverage(input: Record<string, unknown>): Promise<ToolResult> {

@@ -54,7 +54,12 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <body className="bg-background text-foreground min-h-dvh font-sans antialiased">
-        <ClerkProvider>
+        <ClerkProvider
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+          signInFallbackRedirectUrl="/account"
+          signUpFallbackRedirectUrl="/account"
+        >
           <NextIntlClientProvider messages={messages}>
             <PostHogProvider>
               <PostHogPageview />

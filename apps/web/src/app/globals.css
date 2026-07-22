@@ -29,9 +29,10 @@
     --secondary: 172 66% 41%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Lime — high-energy accent (CTAs, highlights) */
-    --lime: 70 90% 62%;
-    --lime-foreground: 138 58% 18%;
+    /* Lime — high-energy accent (CTAs, highlights). Hue nudged toward green
+       and desaturated off the acid-yellow so it sits with the teal, not against it. */
+    --lime: 82 72% 55%;
+    --lime-foreground: 140 72% 14%;
 
     --muted: 168 32% 96%;
     --muted-foreground: 190 13% 38%;
@@ -70,8 +71,8 @@
     --secondary: 172 58% 36%;
     --secondary-foreground: 165 30% 96%;
 
-    --lime: 70 86% 60%;
-    --lime-foreground: 140 62% 9%;
+    --lime: 82 68% 56%;
+    --lime-foreground: 141 66% 8%;
 
     --muted: 190 30% 14%;
     --muted-foreground: 172 14% 64%;

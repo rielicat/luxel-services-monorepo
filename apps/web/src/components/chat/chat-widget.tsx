@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import posthog from 'posthog-js';
-import { Send, CalendarCheck, Sparkles, Phone, X } from 'lucide-react';
+import { Send, CalendarCheck, Sparkles, Phone, X, Home, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/routing';
 import { LuxelMark } from '@/components/brand/logo';
@@ -31,7 +31,19 @@ type HandoffWidget = {
   openHour: number;
   closeHour: number;
 };
-type Widget = QuoteWidget | AvailabilityWidget | HandoffWidget;
+type AirbnbQuoteWidget = {
+  kind: 'airbnb_quote';
+  listings: number;
+  tier: 'base' | 'handoff';
+  tierLabel: string;
+  perListingClp: number;
+  monthlyClp: number;
+};
+type LinksWidget = {
+  kind: 'links';
+  actions: { label: string; href: string; style: 'lime' | 'primary' | 'outline' }[];
+};
+type Widget = QuoteWidget | AvailabilityWidget | HandoffWidget | AirbnbQuoteWidget | LinksWidget;
 
 interface ChatMessage {
   id: string;
@@ -260,9 +272,9 @@ export function ChatWidget() {
   };
 
   const showQuickReplies = messages.length <= 1 && !pending;
-  // The bot turn currently receiving streamed tokens (shows the blinking caret).
-  const streamingId =
-    pending && !working ? [...messages].reverse().find((m) => m.role === 'bot')?.id : null;
+  // The bot turn currently being generated — shows the thinking dots (while a
+  // tool runs, no text yet) then the blinking stream caret. One avatar, no dupe.
+  const activeId = pending ? [...messages].reverse().find((m) => m.role === 'bot')?.id : null;
 
   return (
     <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
@@ -322,13 +334,19 @@ export function ChatWidget() {
                       <LuxelMark className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1 space-y-2.5">
-                      {(m.text || m.id === streamingId) && (
-                        <div className="text-foreground whitespace-pre-wrap text-sm leading-relaxed">
-                          {m.text}
-                          {m.id === streamingId && (
-                            <span className="bg-primary ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse align-middle" />
-                          )}
-                        </div>
+                      {m.id === activeId && working && !m.text ? (
+                        <span className="inline-flex items-center gap-1 py-1.5">
+                          <Dot /> <Dot delay="0.15s" /> <Dot delay="0.3s" />
+                        </span>
+                      ) : (
+                        (m.text || m.id === activeId) && (
+                          <div className="text-foreground whitespace-pre-wrap text-sm leading-relaxed">
+                            {m.text}
+                            {m.id === activeId && !working && (
+                              <span className="bg-primary ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse align-middle" />
+                            )}
+                          </div>
+                        )
                       )}
                       {m.widgets.map((w, i) => (
                         <WidgetCard key={i} widget={w} t={t} />
@@ -336,17 +354,6 @@ export function ChatWidget() {
                     </div>
                   </div>
                 ),
-              )}
-
-              {working && (
-                <div className="text-muted-foreground flex items-center gap-2.5">
-                  <span className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
-                    <LuxelMark className="h-4 w-4" />
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Dot /> <Dot delay="0.15s" /> <Dot delay="0.3s" />
-                  </span>
-                </div>
               )}
 
               {showQuickReplies && (
@@ -477,6 +484,52 @@ function WidgetCard({
             <CalendarCheck className="h-4 w-4" /> {t('book_cta')}
           </Link>
         </Button>
+      </div>
+    );
+  }
+
+  if (widget.kind === 'airbnb_quote') {
+    return (
+      <div className="border-border bg-background shadow-soft max-w-[90%] rounded-xl border p-3.5">
+        <div className="flex items-center gap-2">
+          <Home className="text-secondary h-4 w-4" />
+          <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+            {widget.tierLabel} · {widget.listings}
+            {widget.listings === 1 ? ' propiedad' : ' propiedades'}
+          </span>
+        </div>
+        <p className="font-display text-primary mt-1 text-2xl font-extrabold">
+          {clp(widget.monthlyClp)}{' '}
+          <span className="text-muted-foreground text-xs font-medium">{t('per_month')}</span>
+        </p>
+        <p className="text-muted-foreground mt-0.5 text-xs font-medium">
+          {t('airbnb_per_listing', { price: clp(widget.perListingClp) })} · {t('airbnb_commission')}
+        </p>
+        <Button asChild variant="lime" size="sm" className="mt-3 w-full">
+          <Link
+            href="/calculator?service=airbnb"
+            onClick={() => tryCapture('cta_clicked', { source: 'chat_airbnb', cta: 'trial' })}
+          >
+            {t('airbnb_trial_cta')} <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (widget.kind === 'links') {
+    return (
+      <div className="flex max-w-[90%] flex-wrap gap-2">
+        {widget.actions.map((a, i) => (
+          <Button key={i} asChild size="sm" variant={a.style === 'primary' ? 'default' : a.style}>
+            <Link
+              href={a.href}
+              onClick={() => tryCapture('cta_clicked', { source: 'chat_links', cta: a.href })}
+            >
+              {a.label}
+            </Link>
+          </Button>
+        ))}
       </div>
     );
   }
