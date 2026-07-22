@@ -54,3 +54,43 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_stub
           SUPABASE_SERVICE_ROLE_KEY: sb_secret_stub
           NEXT_PUBLIC_POSTHOG_KEY: phc_stub
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          standalone: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm --filter @luxel/web exec playwright install --with-deps chromium
+
+      # Playwright starts the DEV server (gate is production-only, so dev is
+      # ungated) and smoke-tests the public routes. Stub creds are enough — the
+      # public pages don't hit Supabase/Clerk APIs.
+      - name: Run e2e smoke tests
+        run: pnpm --filter @luxel/web test:e2e
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+          CLERK_SECRET_KEY: sk_test_stubstubstubstubstubstubstubstub
+          NEXT_PUBLIC_SUPABASE_URL: https://stub.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_stub
+          SUPABASE_SERVICE_ROLE_KEY: sb_secret_stub
+          NEXT_PUBLIC_POSTHOG_KEY: phc_stub
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7

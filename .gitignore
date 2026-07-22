@@ -49,3 +49,8 @@ supabase/.temp/
 # Cloudflare Wrangler
 .wrangler/
 .dev.vars
+
+# Playwright
+**/test-results/
+**/playwright-report/
+**/playwright/.cache/
