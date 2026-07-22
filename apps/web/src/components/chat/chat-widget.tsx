@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import posthog from 'posthog-js';
-import { Send, CalendarCheck, Sparkles, Phone, ChevronDown } from 'lucide-react';
+import { Send, CalendarCheck, Sparkles, Phone, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/routing';
 import { LuxelMark } from '@/components/brand/logo';
@@ -260,101 +260,126 @@ export function ChatWidget() {
   };
 
   const showQuickReplies = messages.length <= 1 && !pending;
+  // The bot turn currently receiving streamed tokens (shows the blinking caret).
+  const streamingId =
+    pending && !working ? [...messages].reverse().find((m) => m.role === 'bot')?.id : null;
 
   return (
-    <>
-      {/* Conversation — rises above the docked composer bar */}
-      <div
-        className={cn(
-          'border-border bg-card fixed bottom-24 left-1/2 z-50 flex h-[540px] max-h-[calc(100dvh-9rem)] w-[440px] max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border shadow-2xl transition-all duration-200',
-          open
-            ? 'translate-y-0 scale-100 opacity-100'
-            : 'pointer-events-none translate-y-3 scale-95 opacity-0',
-        )}
-      >
-        <header className="border-border from-primary to-secondary flex items-center gap-3 border-b bg-gradient-to-r p-4">
-          <span className="bg-primary-foreground/15 flex h-9 w-9 items-center justify-center rounded-full">
-            <LuxelMark className="h-5 w-5" />
-          </span>
-          <div className="text-primary-foreground min-w-0 flex-1">
-            <h3 className="font-display text-sm font-bold leading-tight">
-              {humanMode ? t('human_name') : t('assistant_name')}
-            </h3>
-            <p className="text-primary-foreground/80 truncate text-xs leading-tight">
-              {humanMode ? t('human_subtitle') : t('subtitle')}
-            </p>
-          </div>
-          <button
-            type="button"
-            aria-label="Cerrar chat"
-            onClick={() => setOpen(false)}
-            className="text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors"
-          >
-            <ChevronDown className="h-5 w-5" />
-          </button>
-        </header>
-
-        {humanMode && (
-          <div className="bg-secondary/10 text-secondary border-border/50 border-b px-4 py-2 text-center text-xs font-medium">
-            {t('human_banner')}
-          </div>
-        )}
-
-        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-          {messages.map((m) => (
-            <div key={m.id} className="space-y-2">
-              {m.text && (
-                <div
+    <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
+      {/* One cohesive agent surface: the composer is the docked bar; the
+          conversation expands above it (grid-rows trick animates the height). */}
+      <div className="bg-card/95 border-border shadow-lift ease-lux flex w-[680px] max-w-full flex-col overflow-hidden rounded-2xl border backdrop-blur">
+        <div
+          className={cn(
+            'ease-lux grid transition-[grid-template-rows] duration-300',
+            open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+          )}
+        >
+          <div className="min-h-0 overflow-hidden">
+            {/* Minimal agent header — no chat chrome */}
+            <div className="border-border/60 flex items-center justify-between border-b px-4 py-2.5">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <span
                   className={cn(
-                    'max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed',
-                    m.role === 'user'
-                      ? 'bg-primary text-primary-foreground ml-auto rounded-br-md'
-                      : 'bg-muted text-foreground rounded-bl-md',
+                    'h-2 w-2 rounded-full',
+                    humanMode ? 'bg-secondary' : 'bg-success animate-pulse',
                   )}
-                >
-                  {m.text}
+                />
+                {humanMode ? t('human_name') : t('assistant_name')}
+                <span className="text-muted-foreground font-normal">
+                  · {humanMode ? t('human_subtitle') : t('agent_tagline')}
+                </span>
+              </span>
+              <button
+                type="button"
+                aria-label="Cerrar"
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground -mr-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {humanMode && (
+              <div className="bg-secondary/10 text-secondary px-4 py-2 text-center text-xs font-medium">
+                {t('human_banner')}
+              </div>
+            )}
+
+            <div ref={scrollRef} className="max-h-[56vh] space-y-5 overflow-y-auto px-4 py-4">
+              {messages.map((m) =>
+                m.role === 'user' ? (
+                  <div key={m.id}>
+                    {m.text && (
+                      <div className="bg-muted text-foreground ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md px-3.5 py-2 text-sm leading-relaxed">
+                        {m.text}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div key={m.id} className="flex gap-2.5">
+                    <span className="bg-primary/10 text-primary mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
+                      <LuxelMark className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-2.5">
+                      {(m.text || m.id === streamingId) && (
+                        <div className="text-foreground whitespace-pre-wrap text-sm leading-relaxed">
+                          {m.text}
+                          {m.id === streamingId && (
+                            <span className="bg-primary ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse align-middle" />
+                          )}
+                        </div>
+                      )}
+                      {m.widgets.map((w, i) => (
+                        <WidgetCard key={i} widget={w} t={t} />
+                      ))}
+                    </div>
+                  </div>
+                ),
+              )}
+
+              {working && (
+                <div className="text-muted-foreground flex items-center gap-2.5">
+                  <span className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
+                    <LuxelMark className="h-4 w-4" />
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Dot /> <Dot delay="0.15s" /> <Dot delay="0.3s" />
+                  </span>
                 </div>
               )}
-              {m.widgets.map((w, i) => (
-                <WidgetCard key={i} widget={w} t={t} />
-              ))}
-            </div>
-          ))}
 
-          {working && (
-            <div className="bg-muted text-muted-foreground inline-flex items-center gap-1.5 rounded-2xl rounded-bl-md px-3.5 py-2.5">
-              <Dot /> <Dot delay="0.15s" /> <Dot delay="0.3s" />
+              {showQuickReplies && (
+                <div className="flex flex-wrap gap-2 pl-[2.375rem]">
+                  {(['quick_1', 'quick_2', 'quick_3'] as const).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => send(t(k))}
+                      className="border-border bg-background hover:border-primary/40 hover:bg-accent hover:text-accent-foreground rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+                    >
+                      {t(k)}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-
-          {showQuickReplies && (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {(['quick_1', 'quick_2', 'quick_3'] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => send(t(k))}
-                  className="border-border bg-background hover:bg-accent hover:text-accent-foreground rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
-                >
-                  {t(k)}
-                </button>
-              ))}
-            </div>
-          )}
+          </div>
         </div>
-      </div>
 
-      {/* Docked composer bar — the always-present, agentic entry point */}
-      <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
+        {/* Composer — always visible; this row IS the docked agent bar when collapsed */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             openPanel();
             send(input);
           }}
-          className="border-border bg-card/95 shadow-lift focus-within:border-primary/40 flex w-[640px] max-w-full items-center gap-2 rounded-2xl border p-2 backdrop-blur transition-colors"
+          className={cn(
+            'focus-within:border-primary/40 flex items-center gap-2 p-2.5 transition-colors',
+            open && 'border-border/60 border-t',
+          )}
         >
-          <LuxelMark className="ml-1.5 h-6 w-6 shrink-0" />
+          <LuxelMark className="ml-1 h-6 w-6 shrink-0" />
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -369,7 +394,7 @@ export function ChatWidget() {
           </Button>
         </form>
       </div>
-    </>
+    </div>
   );
 }
 

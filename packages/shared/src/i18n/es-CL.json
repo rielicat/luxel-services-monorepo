@@ -355,7 +355,8 @@
     "handoff_open": "Un asesor se unió a la conversación. Escribe tu consulta aquí y te responderá.",
     "handoff_closed": "Estamos fuera de horario ({open}:00–{close}:00). Deja tu mensaje aquí y un asesor te responderá en horario hábil.",
     "handoff_whatsapp": "Continuar por WhatsApp",
-    "bar_placeholder": "¿En qué te puedo ayudar hoy?"
+    "bar_placeholder": "¿En qué te puedo ayudar hoy?",
+    "agent_tagline": "agente IA · en línea"
   },
   "errors": {
     "generic": "Ocurrió un error. Intenta nuevamente.",

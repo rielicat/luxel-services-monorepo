@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     const reply =
       'El asistente con IA no está disponible en este momento. Puedes cotizar al instante en la sección Cotizar del sitio, o escribirnos por WhatsApp y te ayudamos.';
     await persistAssistant(supabase, customerId, sessionId, reply, 'ai_unavailable');
-    return sseOnce(reply);
+    return sseStream(reply);
   }
 
   const { pricingConfig, serviceTypes, operationPoints } = await getPricingData();
@@ -269,14 +269,20 @@ async function persistAssistant(
   });
 }
 
-function sseOnce(text: string): Response {
+// Streams a fixed reply token-by-token so even the non-AI fallback path reads as
+// a live agent response (same SSE shape as the real LLM stream).
+function sseStream(text: string): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(
-        encoder.encode(`data: ${JSON.stringify({ type: 'text', value: text })}\n\n`),
-      );
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+    async start(controller) {
+      const send = (event: Record<string, unknown>) =>
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      const chunks = text.match(/\S+\s*/g) ?? [text];
+      for (const chunk of chunks) {
+        send({ type: 'text', value: chunk });
+        await new Promise((r) => setTimeout(r, 22));
+      }
+      send({ type: 'done' });
       controller.close();
     },
   });
