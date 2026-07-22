@@ -80,6 +80,9 @@ jobs:
       - name: Run e2e smoke tests
         run: pnpm --filter @luxel/web test:e2e
         env:
+          # Skips Clerk in middleware (stub creds can't complete the dev handshake);
+          # the smoke suite only hits public routes. Never set outside CI e2e.
+          E2E_SKIP_AUTH: '1'
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
           CLERK_SECRET_KEY: sk_test_stubstubstubstubstubstubstubstub
           NEXT_PUBLIC_SUPABASE_URL: https://stub.supabase.co
