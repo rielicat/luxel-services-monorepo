@@ -4,6 +4,7 @@ import {
   listHospitableProperties,
   listHospitableReservations,
   listHospitableMessages,
+  type HospitableProperty,
   type HospitableReservation,
 } from './hospitable';
 import { suggestCleaningsFromCheckouts } from '@/lib/cleaning/schedule';
@@ -22,6 +23,77 @@ export interface HospitableSyncResult {
 }
 
 type Supabase = ReturnType<typeof createSupabaseServiceRoleClient>;
+
+/** Upserts one Hospitable property into the Luxel `properties` mirror (matched by
+ *  external_listing_id). New rows get a default access record. Returns the row id,
+ *  or null if the insert failed. Shared by the full sync and the light reconcile. */
+async function upsertHospitableProperty(
+  supabase: Supabase,
+  customerId: string,
+  rp: HospitableProperty,
+): Promise<string | null> {
+  const coords = rp.address?.coordinates;
+  const lat = coords?.latitude != null ? Number(coords.latitude) : null;
+  const lng = coords?.longitude != null ? Number(coords.longitude) : null;
+
+  const fields = {
+    nickname: rp.public_name || rp.name || 'Propiedad Airbnb',
+    address: rp.address?.street ?? null,
+    comuna: rp.address?.city ?? null,
+    bedrooms: rp.capacity?.bedrooms ?? null,
+    bathrooms: rp.capacity?.bathrooms ?? null,
+    platform: 'airbnb',
+    external_listing_id: rp.id,
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existing } = await supabase
+    .from('properties')
+    .select('id')
+    .eq('owner_id', customerId)
+    .eq('external_listing_id', rp.id)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from('properties').update(fields).eq('id', existing.id);
+    return existing.id as string;
+  }
+
+  const { data: created } = await supabase
+    .from('properties')
+    .insert({ owner_id: customerId, ...fields })
+    .select('id')
+    .single();
+  if (!created) return null;
+  await supabase
+    .from('property_access')
+    .insert({ property_id: created.id as string, method: 'physical_none' });
+  return created.id as string;
+}
+
+export interface HospitableReconcileResult {
+  ok: boolean;
+  properties: number;
+}
+
+/** Light, page-load-safe refresh: pulls ONLY the property list from Hospitable
+ *  and upserts the rows — no reservations, messages or AI replies. Lets the
+ *  /properties grid stay live on every load without the cost or side effects of a
+ *  full sync (which stays on connect / the manual button / webhooks). */
+export async function reconcileHospitableProperties(
+  customerId: string,
+  token: string,
+): Promise<HospitableReconcileResult> {
+  const supabase = createSupabaseServiceRoleClient();
+  const remote = await listHospitableProperties(token);
+  if (!remote) return { ok: false, properties: 0 };
+  for (const rp of remote) {
+    await upsertHospitableProperty(supabase, customerId, rp);
+  }
+  return { ok: true, properties: remote.length };
+}
 
 /**
  * Pulls each recent/upcoming reservation's conversation. History (anything at or
@@ -147,47 +219,9 @@ export async function syncHospitableAccount(
   let aiReplies = 0;
 
   for (const rp of remote) {
-    const coords = rp.address?.coordinates;
-    const lat = coords?.latitude != null ? Number(coords.latitude) : null;
-    const lng = coords?.longitude != null ? Number(coords.longitude) : null;
-
     // 1) Upsert the Luxel property, matched by the Hospitable property id.
-    const { data: existing } = await supabase
-      .from('properties')
-      .select('id')
-      .eq('owner_id', customerId)
-      .eq('external_listing_id', rp.id)
-      .maybeSingle();
-
-    const fields = {
-      nickname: rp.public_name || rp.name || 'Propiedad Airbnb',
-      address: rp.address?.street ?? null,
-      comuna: rp.address?.city ?? null,
-      bedrooms: rp.capacity?.bedrooms ?? null,
-      bathrooms: rp.capacity?.bathrooms ?? null,
-      platform: 'airbnb',
-      external_listing_id: rp.id,
-      lat: Number.isFinite(lat) ? lat : null,
-      lng: Number.isFinite(lng) ? lng : null,
-      updated_at: new Date().toISOString(),
-    };
-
-    let propertyId: string;
-    if (existing) {
-      propertyId = existing.id as string;
-      await supabase.from('properties').update(fields).eq('id', propertyId);
-    } else {
-      const { data: created } = await supabase
-        .from('properties')
-        .insert({ owner_id: customerId, ...fields })
-        .select('id')
-        .single();
-      if (!created) continue;
-      propertyId = created.id as string;
-      await supabase
-        .from('property_access')
-        .insert({ property_id: propertyId, method: 'physical_none' });
-    }
+    const propertyId = await upsertHospitableProperty(supabase, customerId, rp);
+    if (!propertyId) continue;
 
     // 2) Reservations → calendar blocks (full refresh of the hosp: namespace).
     const startDate = iso(new Date(now.getTime() - 60 * DAY));
