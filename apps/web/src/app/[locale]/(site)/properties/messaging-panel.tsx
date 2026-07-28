@@ -24,13 +24,21 @@ export type Thread = {
   guest_messages: Msg[];
 };
 
+/** The AI's replies are the product — they get the highlight; guest messages
+ *  read plain, imported host history stays quiet. */
 function MsgRow({ m }: { m: Msg }) {
+  if (m.source === 'ai') {
+    return (
+      <div className="border-primary/30 bg-primary/5 flex items-start gap-1.5 rounded-md border-l-2 px-2 py-1 text-xs">
+        <Bot className="text-primary mt-0.5 h-3 w-3 shrink-0" />
+        <span>{m.body}</span>
+      </div>
+    );
+  }
   return (
-    <div className="flex items-start gap-1.5 text-xs">
+    <div className="flex items-start gap-1.5 px-2 text-xs">
       {m.source === 'guest' ? (
         <User className="text-muted-foreground mt-0.5 h-3 w-3 shrink-0" />
-      ) : m.source === 'ai' ? (
-        <Bot className="text-primary mt-0.5 h-3 w-3 shrink-0" />
       ) : (
         <Reply className="text-secondary mt-0.5 h-3 w-3 shrink-0" />
       )}

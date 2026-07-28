@@ -34,6 +34,7 @@ export function CleaningPanel({
   contactName,
   contactEmail,
   contactWhatsapp,
+  autoConfirm,
 }: {
   propertyId: string;
   cleanings: Cleaning[];
@@ -42,11 +43,13 @@ export function CleaningPanel({
   contactName: string | null;
   contactEmail: string | null;
   contactWhatsapp: string | null;
+  autoConfirm: boolean;
 }) {
   const t = useTranslations('cleaning');
   const router = useRouter();
   const [pending, start] = useTransition();
   const [mode, setMode] = useState<'luxel' | 'own'>(managedBy);
+  const [auto, setAuto] = useState(autoConfirm);
   const [name, setName] = useState(contactName ?? '');
   const [email, setEmail] = useState(contactEmail ?? '');
   const [whatsapp, setWhatsapp] = useState(contactWhatsapp ?? '');
@@ -58,7 +61,7 @@ export function CleaningPanel({
       router.refresh();
     });
 
-  const saveStaff = (nextMode: 'luxel' | 'own') =>
+  const saveStaff = (nextMode: 'luxel' | 'own', nextAuto?: boolean) =>
     run(async () => {
       const r = await updateCleaningStaff({
         propertyId,
@@ -66,6 +69,7 @@ export function CleaningPanel({
         contactName: name,
         contactEmail: email,
         contactWhatsapp: whatsapp,
+        ...(nextAuto != null ? { autoConfirm: nextAuto } : {}),
       });
       if (r.ok) {
         setSaved(true);
@@ -140,6 +144,38 @@ export function CleaningPanel({
         </div>
       )}
 
+      {/* Zero-busywork default: cleanings confirm and notify themselves. */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">{t('auto_title')}</p>
+          <p className="text-muted-foreground text-xs">
+            {auto ? t('auto_on_body') : t('auto_off_body')}
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={auto}
+          disabled={pending}
+          onClick={() => {
+            const next = !auto;
+            setAuto(next);
+            saveStaff(mode, next);
+          }}
+          className={cn(
+            'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+            auto ? 'bg-primary' : 'bg-muted-foreground/30',
+          )}
+        >
+          <span
+            className={cn(
+              'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all',
+              auto ? 'left-[22px]' : 'left-0.5',
+            )}
+          />
+        </button>
+      </div>
+
       <p className="text-muted-foreground text-xs">
         {mode === 'own' ? t('notify_own') : t('notify_luxel')}
         {turnoverPrice != null &&
@@ -163,7 +199,7 @@ export function CleaningPanel({
               </p>
             </div>
             <div className="flex gap-2">
-              {c.status !== 'scheduled' && (
+              {c.status !== 'scheduled' && !auto && (
                 <Button
                   size="sm"
                   disabled={pending}

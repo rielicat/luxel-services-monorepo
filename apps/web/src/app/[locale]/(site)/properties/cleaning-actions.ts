@@ -5,8 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
 import { priceTurnover } from '@/lib/cleaning/price';
-import { sendEmail } from '@/lib/email/send';
-import { sendWhatsAppViaWorker } from '@/lib/whatsapp/send';
+import { notifyCleaningScheduled } from '@/lib/cleaning/notify';
 
 export async function getTurnoverPrice(
   propertyId: string,
@@ -23,6 +22,7 @@ const StaffSchema = z.object({
   contactName: z.string().max(120).optional(),
   contactEmail: z.union([z.string().email().max(120), z.literal('')]).optional(),
   contactWhatsapp: z.string().max(30).optional(),
+  autoConfirm: z.boolean().optional(),
 });
 
 /** Who runs the turnovers: Luxel's crew, or the host's own staff (with the
@@ -40,6 +40,7 @@ export async function updateCleaningStaff(input: unknown): Promise<{ ok: boolean
       cleaning_contact_name: p.data.contactName?.trim() || null,
       cleaning_contact_email: p.data.contactEmail?.trim() || null,
       cleaning_contact_whatsapp: p.data.contactWhatsapp?.trim() || null,
+      ...(p.data.autoConfirm != null ? { cleaning_auto_confirm: p.data.autoConfirm } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('id', p.data.propertyId);
@@ -73,37 +74,7 @@ export async function setCleaningStatus(input: unknown): Promise<{ ok: boolean }
   await supabase.from('cleanings').update({ status: p.data.status }).eq('id', p.data.cleaningId);
 
   if (p.data.status === 'scheduled') {
-    try {
-      const { data: prop } = await supabase
-        .from('properties')
-        .select(
-          'nickname, address, comuna, cleaning_managed_by, cleaning_contact_name, cleaning_contact_email, cleaning_contact_whatsapp',
-        )
-        .eq('id', cleaning.property_id)
-        .maybeSingle();
-      if (prop) {
-        const where = [prop.address, prop.comuna].filter(Boolean).join(', ');
-        const summary = `Aseo confirmado — ${prop.nickname}${where ? ` (${where})` : ''} el ${cleaning.cleaning_date}.`;
-        if (prop.cleaning_managed_by === 'own' && prop.cleaning_contact_email) {
-          const wa = prop.cleaning_contact_whatsapp?.replace(/\D/g, '');
-          await sendEmail({
-            to: prop.cleaning_contact_email,
-            subject: `Aseo confirmado · ${prop.nickname} · ${cleaning.cleaning_date}`,
-            html: [
-              `<p>Hola${prop.cleaning_contact_name ? ` ${prop.cleaning_contact_name}` : ''},</p>`,
-              `<p>${summary}</p>`,
-              `<p>Coordina el ingreso con el anfitrión si necesitas indicaciones.</p>`,
-              wa ? `<p><a href="https://wa.me/${wa}">Responder por WhatsApp</a></p>` : '',
-              `<p>— Luxel</p>`,
-            ].join(''),
-          });
-        } else if (prop.cleaning_managed_by === 'luxel') {
-          await sendWhatsAppViaWorker(`Nuevo aseo para el equipo: ${summary}`);
-        }
-      }
-    } catch {
-      /* best-effort — the confirmation itself already persisted */
-    }
+    await notifyCleaningScheduled(supabase, cleaning.property_id, cleaning.cleaning_date as string);
   }
 
   revalidatePath('/properties');

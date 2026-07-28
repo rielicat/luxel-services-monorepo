@@ -3,8 +3,9 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Bot, Plus, ChevronDown } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Disclosure } from '@/components/ui/disclosure';
 import { setAiEnabled, updateGuestInfo } from './copilot-actions';
 
 /** The host's AI controls, minimal by design: an on/off switch, and an OPT-IN
@@ -26,8 +27,8 @@ export function AiSettings({
   const [on, setOn] = useState(aiEnabled);
   const [info, setInfo] = useState(guestInfo ?? '');
   const [saved, setSaved] = useState(false);
-  // Opt-in: closed unless the host already added context earlier.
-  const [showInfo, setShowInfo] = useState(Boolean(guestInfo?.trim()));
+  // Opt-in: starts open only when the host already added context earlier.
+  const showInfo = Boolean(guestInfo?.trim());
 
   const toggle = () => {
     const next = !on;
@@ -65,23 +66,9 @@ export function AiSettings({
 
       <p className="text-muted-foreground text-xs">{t('knows_note')}</p>
 
-      {!showInfo ? (
-        <button
-          type="button"
-          onClick={() => setShowInfo(true)}
-          className="text-primary flex w-fit items-center gap-1 text-xs font-medium hover:underline"
-        >
-          <Plus className="h-3.5 w-3.5" /> {t('add_context')}
-        </button>
-      ) : (
-        <div className="grid gap-1.5">
-          <button
-            type="button"
-            onClick={() => setShowInfo(false)}
-            className="text-muted-foreground flex w-fit items-center gap-1 text-xs font-medium"
-          >
-            <ChevronDown className="h-3.5 w-3.5 rotate-180" /> {t('info_label')}
-          </button>
+      <Disclosure label={t('add_context')} defaultOpen={showInfo}>
+        <div className="grid gap-2">
+          <p className="text-muted-foreground text-xs">{t('info_label')}</p>
           <textarea
             className="border-input bg-background focus-visible:ring-ring w-full rounded-md border p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2"
             rows={4}
@@ -107,7 +94,7 @@ export function AiSettings({
             {saved ? t('saved') : t('save')}
           </Button>
         </div>
-      )}
+      </Disclosure>
     </div>
   );
 }

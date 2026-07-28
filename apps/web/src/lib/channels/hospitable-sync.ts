@@ -8,6 +8,7 @@ import {
   type HospitableReservation,
 } from './hospitable';
 import { suggestCleaningsFromCheckouts } from '@/lib/cleaning/schedule';
+import { autoConfirmSuggested } from '@/lib/cleaning/notify';
 import { handleInboundMessage } from './pipeline';
 
 const DAY = 86_400_000;
@@ -303,9 +304,11 @@ export async function syncHospitableAccount(
       reservationCount += accepted.length;
     }
 
-    // 3) Cleaning suggestions from the fresh check-outs.
+    // 3) Cleaning suggestions from the fresh check-outs — and, unless the host
+    // opted out, they confirm themselves and notify whoever runs the turnover.
     const c = await suggestCleaningsFromCheckouts(propertyId);
     cleaningCount += c.suggested;
+    await autoConfirmSuggested(propertyId, iso(now));
 
     // 4) Conversations: history feeds grounding; new guest messages get the AI.
     if (reservations?.length) {

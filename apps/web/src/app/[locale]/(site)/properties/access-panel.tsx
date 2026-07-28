@@ -6,6 +6,7 @@ import { Link2, Copy, Check, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Disclosure } from '@/components/ui/disclosure';
 import { updateAccess, createCheckinLink } from './actions';
 
 export type AccessRow = {
@@ -143,11 +144,8 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
         </div>
       )}
 
-      <details className="border-border rounded-lg border p-3">
-        <summary className="text-muted-foreground cursor-pointer text-xs font-medium">
-          {t('id_advanced')}
-        </summary>
-        <div className="mt-3 grid gap-2">
+      <Disclosure label={t('id_advanced')} defaultOpen={s.requireId}>
+        <div className="grid gap-2">
           <label className="flex items-start gap-2 text-sm">
             <input
               type="checkbox"
@@ -182,7 +180,7 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
             </div>
           )}
         </div>
-      </details>
+      </Disclosure>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={save} disabled={pending}>

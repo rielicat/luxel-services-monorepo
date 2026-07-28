@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Bot,
   Wallet,
+  ChevronDown,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
@@ -169,32 +170,87 @@ export function PropertyDetailClient({
 
   const stays = buildStays(liveDays, property.calendar_blocks, today);
 
-  const metrics = [
+  // Metric drill-downs — every number explains itself on tap.
+  type MetricId = 'revenue' | 'occupancy' | 'adr' | 'ai';
+  const [openMetric, setOpenMetric] = useState<MetricId | null>(null);
+  const horizon = liveDays?.slice(0, 30) ?? null;
+  const reservedNights = horizon ? horizon.filter((d) => d.reserved).length : null;
+  const openNights = horizon
+    ? horizon.filter((d) => d.available && d.priceClp != null).length
+    : null;
+  const pricedNights = horizon ? horizon.filter((d) => d.priceClp != null) : [];
+  const priceMin = pricedNights.length ? Math.min(...pricedNights.map((d) => d.priceClp!)) : null;
+  const priceMax = pricedNights.length ? Math.max(...pricedNights.map((d) => d.priceClp!)) : null;
+  const cleanings30 = property.cleanings.filter(
+    (c) =>
+      c.status !== 'skipped' && c.cleaning_date >= today && c.cleaning_date < addDays(today, 30),
+  ).length;
+  const cleaningCost30 = turnoverPrice != null ? cleanings30 * turnoverPrice : null;
+
+  const metrics: {
+    id: MetricId;
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: string;
+    sub: string;
+    detail: string[];
+  }[] = [
     {
+      id: 'revenue',
       icon: Wallet,
       label: t('m_revenue'),
       value: s.revenue30 != null ? clp(s.revenue30) : '—',
       sub: t('m_revenue_sub'),
+      detail: [
+        reservedNights != null ? t('d_revenue_nights', { n: reservedNights }) : t('d_no_calendar'),
+        cleaningCost30 != null
+          ? t('d_revenue_cleaning', {
+              n: cleanings30,
+              each: clp(turnoverPrice!),
+              total: clp(cleaningCost30),
+            })
+          : t('d_revenue_cleaning_unknown', { n: cleanings30 }),
+        t('d_revenue_disclaimer'),
+      ],
     },
     {
+      id: 'occupancy',
       icon: TrendingUp,
       label: t('m_occupancy'),
       value: `${s.occupancy}%`,
       sub: t('m_occupancy_sub'),
+      detail:
+        reservedNights != null
+          ? [
+              t('d_occupancy_split', { reserved: reservedNights, open: openNights ?? 0 }),
+              t('d_occupancy_note'),
+            ]
+          : [t('d_no_calendar')],
     },
     {
+      id: 'adr',
       icon: CalendarDays,
       label: t('m_adr'),
       value: s.adr != null ? clp(s.adr) : '—',
       sub: t('m_adr_sub'),
+      detail:
+        priceMin != null && priceMax != null
+          ? [t('d_adr_range', { min: clp(priceMin), max: clp(priceMax) }), t('d_adr_note')]
+          : [t('d_no_calendar')],
     },
     {
+      id: 'ai',
       icon: Bot,
       label: t('m_ai'),
       value: String(s.aiReplies7d),
       sub: t('m_ai_sub'),
+      detail: [
+        t('d_ai_threads', { n: property.guest_threads.length }),
+        s.needsReply > 0 ? t('d_ai_pending', { n: s.needsReply }) : t('d_ai_clear'),
+      ],
     },
   ];
+  const expanded = metrics.find((m) => m.id === openMetric) ?? null;
 
   const attention: { id: SectionId; label: string }[] = [
     s.needsReply > 0 && { id: 'mensajes' as const, label: t('att_reply', { n: s.needsReply }) },
@@ -216,20 +272,61 @@ export function PropertyDetailClient({
 
       <SlimHero property={property} aiOff={property.ai_enabled === false} />
 
-      {/* Metrics that matter to the owner: money, occupancy, workload saved. */}
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Metrics that matter to the owner — tap any to see how it's computed. */}
+      <div className="mb-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {metrics.map((m) => (
-          <Card key={m.label}>
-            <CardContent className="grid gap-0.5 p-3.5">
-              <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <m.icon className="h-3.5 w-3.5" /> {m.label}
-              </span>
-              <span className="font-display text-xl font-semibold tabular-nums">{m.value}</span>
-              <span className="text-muted-foreground text-xs">{m.sub}</span>
-            </CardContent>
-          </Card>
+          <button
+            key={m.id}
+            type="button"
+            aria-expanded={openMetric === m.id}
+            onClick={() => setOpenMetric((cur) => (cur === m.id ? null : m.id))}
+            className="text-left"
+          >
+            <Card
+              className={cn(
+                'ease-lux h-full transition-all',
+                openMetric === m.id
+                  ? 'border-primary/40 shadow-soft'
+                  : 'hover:border-primary/30 hover:shadow-soft',
+              )}
+            >
+              <CardContent className="grid gap-0.5 p-3.5">
+                <span className="text-muted-foreground flex items-center justify-between gap-1.5 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <m.icon className="h-3.5 w-3.5" /> {m.label}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      'h-3 w-3 transition-transform',
+                      openMetric === m.id && 'rotate-180',
+                    )}
+                  />
+                </span>
+                <span className="font-display text-xl font-semibold tabular-nums">{m.value}</span>
+                <span className="text-muted-foreground text-xs">{m.sub}</span>
+              </CardContent>
+            </Card>
+          </button>
         ))}
       </div>
+      {expanded && (
+        <Card className="border-primary/30 mb-4">
+          <CardContent className="grid gap-1.5 p-4">
+            {expanded.detail.map((line, i) => (
+              <p
+                key={i}
+                className={cn(
+                  'text-sm',
+                  i === expanded.detail.length - 1 && 'text-muted-foreground text-xs',
+                )}
+              >
+                {line}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+      {!expanded && <div className="mb-2" />}
 
       {/* What needs you — actionable, or a quiet all-clear. */}
       {attention.length > 0 ? (
@@ -300,6 +397,7 @@ export function PropertyDetailClient({
             contactName={property.cleaning_contact_name}
             contactEmail={property.cleaning_contact_email}
             contactWhatsapp={property.cleaning_contact_whatsapp}
+            autoConfirm={property.cleaning_auto_confirm}
           />
         </Section>
 

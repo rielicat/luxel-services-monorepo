@@ -68,6 +68,7 @@ export type PropertyRow = {
   cleaning_contact_name: string | null;
   cleaning_contact_email: string | null;
   cleaning_contact_whatsapp: string | null;
+  cleaning_auto_confirm: boolean;
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];
