@@ -3,7 +3,7 @@
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Sparkles, RefreshCw, Check, X } from 'lucide-react';
+import { RefreshCw, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { refreshCleanings, setCleaningStatus } from './cleaning-actions';
 
@@ -41,18 +41,15 @@ export function CleaningPanel({
     .sort((a, b) => a.cleaning_date.localeCompare(b.cleaning_date));
 
   return (
-    <div className="border-border grid gap-3 rounded-lg border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-sm font-medium">
-          <Sparkles className="text-primary h-4 w-4" /> {t('title')}
-        </span>
+    <div className="grid gap-3">
+      <div className="text-muted-foreground flex items-center justify-between gap-2 text-xs">
+        <span>{turnoverPrice != null ? t('price_help') : t('err_no_data')}</span>
         {turnoverPrice != null && (
-          <span className="text-sm font-semibold tabular-nums">{clp(turnoverPrice)}</span>
+          <span className="text-foreground text-sm font-semibold tabular-nums">
+            {clp(turnoverPrice)}
+          </span>
         )}
       </div>
-      <p className="text-muted-foreground text-xs">
-        {turnoverPrice != null ? t('price_help') : t('err_no_data')}
-      </p>
 
       <div className="grid gap-1.5">
         {upcoming.length === 0 && <p className="text-muted-foreground text-xs">{t('none')}</p>}

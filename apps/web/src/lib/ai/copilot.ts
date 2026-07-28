@@ -2,6 +2,7 @@ import 'server-only';
 import { getOpenAI, AI_MODEL } from './client';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { devMockEnabled } from '@/lib/dev-mock';
+import { amenityLabel } from '@/lib/host/listing-labels';
 
 // Frustration / explicit-person triggers for the dev-mock and as a safety net.
 const HANDOFF_RE = /(molest|enoj|terrible|p[ée]sim|hablar con|una persona|humano|reclamo|urgente)/i;
@@ -32,7 +33,9 @@ export async function draftGuestReply(
   const supabase = createSupabaseServiceRoleClient();
   const { data: prop } = await supabase
     .from('properties')
-    .select('nickname, address, comuna, guest_info')
+    .select(
+      'nickname, address, comuna, guest_info, bedrooms, bathrooms, beds, max_guests, checkin_time, checkout_time, property_type, room_type, amenities, house_rules',
+    )
     .eq('id', propertyId)
     .maybeSingle();
   if (!prop) return { ok: false, reason: 'not_found' };
@@ -42,15 +45,58 @@ export async function draftGuestReply(
     .eq('property_id', propertyId)
     .maybeSingle();
 
+  // The synced listing record IS the base context: capacity, times, amenities
+  // and rules answer most guest questions without the host typing anything.
+  const capacity = [
+    prop.bedrooms != null && `${prop.bedrooms} dormitorios`,
+    prop.bathrooms != null && `${prop.bathrooms} baños`,
+    prop.beds != null && `${prop.beds} camas`,
+    prop.max_guests != null && `hasta ${prop.max_guests} huéspedes`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const amenities = Array.isArray(prop.amenities)
+    ? (prop.amenities as unknown[])
+        .filter((a): a is string => typeof a === 'string')
+        .map(amenityLabel)
+        .join(', ')
+    : '';
+  const rules = prop.house_rules
+    ? (
+        [
+          ['pets_allowed', 'mascotas'],
+          ['smoking_allowed', 'fumar'],
+          ['events_allowed', 'eventos'],
+        ] as const
+      )
+        .map(([key, label]) => {
+          const allowed = (prop.house_rules as Record<string, boolean | null>)[key];
+          return allowed == null ? null : `${label}: ${allowed ? 'permitido' : 'no permitido'}`;
+        })
+        .filter(Boolean)
+        .join('; ')
+    : '';
+
   const context = [
     `Propiedad: ${prop.nickname}${prop.comuna ? `, ${prop.comuna}` : ''}.`,
     prop.address ? `Dirección: ${prop.address}.` : '',
+    capacity ? `Capacidad: ${capacity}.` : '',
+    prop.checkin_time || prop.checkout_time
+      ? `Horarios: ${[
+          prop.checkin_time && `check-in desde ${prop.checkin_time}`,
+          prop.checkout_time && `check-out hasta ${prop.checkout_time}`,
+        ]
+          .filter(Boolean)
+          .join(', ')}.`
+      : '',
+    amenities ? `Comodidades del anuncio: ${amenities}.` : '',
+    rules ? `Reglas del anuncio: ${rules}.` : '',
     access?.method === 'keyless'
       ? 'Acceso: cerradura con código (self check-in).'
       : access?.method === 'physical_concierge'
         ? `Acceso: llave en conserjería${access.concierge_hours ? ` (${access.concierge_hours})` : ''}.`
         : '',
-    prop.guest_info ? `Información para huéspedes:\n${prop.guest_info}` : '',
+    prop.guest_info ? `Información adicional del anfitrión:\n${prop.guest_info}` : '',
     opts?.history ? `Contexto (respuestas previas + conversación):\n${opts.history}` : '',
   ]
     .filter(Boolean)

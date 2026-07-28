@@ -3,7 +3,16 @@
 import { useTranslations } from 'next-intl';
 import { CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { LiveDay } from './resumen-panel';
+
+/** One night of the listing's REAL Airbnb calendar, mapped server-side from the
+ *  channel API — published price and availability, never computed locally. */
+export type LiveDay = {
+  date: string;
+  available: boolean;
+  reserved: boolean;
+  priceClp: number | null;
+  minStay: number | null;
+};
 
 /** Read-only mirror of the listing's REAL Airbnb calendar: per-night state and
  *  published price, exactly as the channel reports them. Availability is

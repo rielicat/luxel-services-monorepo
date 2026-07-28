@@ -551,7 +551,6 @@
     "winback_confirm": "Cancelar de todas formas"
   },
   "inbox": {
-    "title": "Conversaciones",
     "empty": "Sin conversaciones aún.",
     "guest": "Huésped",
     "status_ai": "IA respondió",
@@ -596,7 +595,19 @@
     "rule_pets": "Mascotas",
     "rule_smoking": "Fumar",
     "rule_events": "Eventos",
-    "synced_note": "Ficha del anuncio sincronizada desde Airbnb — se actualiza sola."
+    "synced_note": "Ficha del anuncio sincronizada desde Airbnb — se actualiza sola.",
+    "att_reply": "{n, plural, one {# conversación por responder} other {# conversaciones por responder}}",
+    "att_cleanings": "{n, plural, one {# aseo por confirmar} other {# aseos por confirmar}}",
+    "att_access": "Configura el acceso",
+    "att_clear": "Todo al día — nada requiere tu atención.",
+    "sum_next_stay": "Próxima: {from} → {to}",
+    "sum_no_stays": "Sin reservas próximas",
+    "sum_price": "Tarifa próxima noche",
+    "sum_open_nights": "{n} noches abiertas · 30 días",
+    "sum_no_calendar": "Calendario no disponible",
+    "sum_ai_7d": "{n, plural, =0 {Sin respuestas IA esta semana} one {# respuesta IA · 7 días} other {# respuestas IA · 7 días}}",
+    "sum_cleaning": "Próximo aseo",
+    "sum_pending_cleanings": "{n, plural, =0 {Sin aseos pendientes} one {# pendiente} other {# pendientes}}"
   },
   "onboarding": {
     "title": "Conecta tu propiedad en 3 pasos",
@@ -621,27 +632,12 @@
     "toggle_title": "Respuestas automáticas con IA",
     "on_body": "La IA responde a tus huéspedes al instante y te deriva solo lo importante.",
     "off_body": "Desactivado: todos los mensajes llegan a tu bandeja para que respondas tú.",
-    "info_label": "Información que usa la IA (wifi, reglas, check-in, cómo llegar…)",
+    "info_label": "Contexto adicional (wifi, cómo llegar, indicaciones especiales…)",
     "info_ph": "Ej.: WiFi LuxelGuest / clave 1234. Check-in desde las 15:00…",
     "save": "Guardar",
-    "saved": "Guardado ✓"
-  },
-  "resumen": {
-    "upcoming": "Próximas estadías",
-    "none": "Sin reservas próximas.",
-    "nights": "{n, plural, one {# noche} other {# noches}}",
-    "prices": "Tarifas publicadas en Airbnb",
-    "no_prices": "No pudimos leer el calendario de Airbnb en este momento.",
-    "fully_booked": "Sin noches abiertas en los próximos 30 días.",
-    "occupancy": "Ocupación 30 días: {pct}% · {n} noches abiertas",
-    "ai_title": "IA de mensajería",
-    "ai_replies_7d": "{n, plural, =0 {Sin mensajes de huéspedes esta semana} one {La IA respondió # mensaje en los últimos 7 días} other {La IA respondió # mensajes en los últimos 7 días}}",
-    "ai_pending": "{n, plural, one {# conversación espera tu respuesta} other {# conversaciones esperan tu respuesta}}",
-    "ai_all_clear": "Todo al día — ninguna conversación pendiente.",
-    "cleanings_title": "Aseos coordinados",
-    "cleanings_none": "Se agendan solos después de cada check-out.",
-    "cleaning_scheduled": "Agendado",
-    "cleaning_suggested": "Sugerido"
+    "saved": "Guardado ✓",
+    "knows_note": "La IA ya conoce la ficha del anuncio (comodidades, reglas, horarios, capacidad) y aprende de tus respuestas anteriores — no necesitas escribir nada.",
+    "add_context": "Agregar contexto adicional (opcional)"
   },
   "about": {
     "eyebrow": "Quiénes somos",

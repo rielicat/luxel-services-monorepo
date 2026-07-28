@@ -11,7 +11,12 @@ import { PropertyDetailClient, type LiveDay } from './detail-client';
 export const dynamic = 'force-dynamic';
 
 const DAY = 86_400_000;
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+// The host operates in Chile: "today" must be the Santiago calendar date, not
+// UTC (which rolls over at 20:00–21:00 local and would drop tonight's data).
+const santiagoToday = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+const plusDays = (d: string, n: number) =>
+  new Date(new Date(`${d}T00:00:00Z`).getTime() + n * DAY).toISOString().slice(0, 10);
 
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,18 +37,19 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   // The listing's REAL calendar for the next 90 days (published nightly prices
   // + availability), straight from the channel — nothing invented. Null on any
   // failure: the panels then fall back to the locally synced blocks.
+  const today = santiagoToday();
   let liveDays: LiveDay[] | null = null;
   if (property.external_listing_id) {
     const token = await customerHospitableToken(customer.id);
     if (token) {
-      const today = new Date();
       const days = await listHospitableCalendar(
         token,
         property.external_listing_id,
-        iso(today),
-        iso(new Date(today.getTime() + 90 * DAY)),
+        today,
+        plusDays(today, 90),
       );
-      if (days) {
+      // [] normalizes to null so every consumer treats "no data" uniformly.
+      if (days?.length) {
         liveDays = days.map((d) => ({
           date: d.date,
           available: d.status?.available === true,
@@ -61,6 +67,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     <PropertyDetailClient
       property={property}
       liveDays={liveDays}
+      today={today}
       turnoverPrice={'priceClp' in turnover ? turnover.priceClp : null}
       showSim={devMockEnabled()}
     />

@@ -66,6 +66,7 @@ const LINK_DESTINATIONS: Record<
   pricing: { label: 'Ver precios', href: '/calculator', style: 'outline' },
   dashboard: { label: 'Ir a mi panel', href: '/account', style: 'outline' },
   properties: { label: 'Mis propiedades', href: '/properties', style: 'primary' },
+  sign_in: { label: 'Iniciar sesión', href: '/sign-in', style: 'primary' },
   about: { label: 'Sobre Luxel', href: '/about', style: 'outline' },
 };
 
@@ -81,6 +82,8 @@ export interface ToolContext {
   whatsappNumber?: string | null;
   /** The signed-in host's customer id — unlocks the real host-status tool. */
   customerId?: string | null;
+  /** Clerk session present (a user can be signed in with no customers row yet). */
+  signedIn?: boolean;
 }
 
 /** Tool schemas (OpenAI function tools) — service-type enum injected per request. */
@@ -289,16 +292,27 @@ const DAY = 86_400_000;
  *  number traces to a system of record — no estimates. */
 async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
   if (!ctx.customerId) {
+    if (ctx.signedIn) {
+      // Session exists but the customers row hasn't been provisioned yet
+      // (webhook lag) — never tell a signed-in user to sign in.
+      return {
+        content:
+          'Su cuenta está recién creada y su perfil aún se está preparando. Pídele que abra Mis propiedades (el botón ya se muestra) o reintente en unos minutos.',
+        widget: { kind: 'links', actions: [LINK_DESTINATIONS.properties!] },
+      };
+    }
     return {
       content:
-        'El usuario no ha iniciado sesión, así que no puedes ver sus propiedades. Invítalo a ingresar y ofrécele el acceso directo al panel con share_links.',
+        'El usuario no ha iniciado sesión, así que no puedes ver sus propiedades. Invítalo a ingresar con el botón que ya se muestra.',
+      widget: { kind: 'links', actions: [LINK_DESTINATIONS.sign_in!] },
     };
   }
   const properties = await fetchProperties(ctx.customerId);
   if (!properties.length) {
     return {
       content:
-        'La cuenta aún no tiene propiedades conectadas. Guíalo a conectar su Airbnb en la sección Mis propiedades (ofrece el acceso directo con share_links).',
+        'La cuenta aún no tiene propiedades conectadas. Guíalo a conectar su Airbnb en Mis propiedades — el botón ya se muestra.',
+      widget: { kind: 'links', actions: [LINK_DESTINATIONS.properties!] },
     };
   }
 
@@ -335,7 +349,8 @@ async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
   }
 
   return {
-    content: `Estado real de sus propiedades:\n${lines.join('\n')}\nResúmelo con claridad y ofrece el acceso directo a Mis propiedades si ayuda.`,
+    content: `Estado real de sus propiedades:\n${lines.join('\n')}\nResúmelo con claridad. El botón a Mis propiedades ya se muestra — menciónalo, no describas rutas.`,
+    widget: { kind: 'links', actions: [LINK_DESTINATIONS.properties!] },
   };
 }
 

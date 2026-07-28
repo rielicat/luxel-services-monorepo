@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { MessagesSquare, Send, Bot, User, Reply } from 'lucide-react';
+import { Send, Bot, User, Reply } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { simulateInbound, hostReply } from './messaging-actions';
@@ -47,11 +47,7 @@ export function MessagingPanel({
   const ordered = [...threads].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 
   return (
-    <div className="border-border grid gap-3 rounded-lg border p-3">
-      <div className="flex items-center gap-1.5 text-sm font-medium">
-        <MessagesSquare className="text-primary h-4 w-4" /> {t('title')}
-      </div>
-
+    <div className="grid gap-3">
       {ordered.length === 0 && <p className="text-muted-foreground text-xs">{t('empty')}</p>}
       {ordered.map((th) => {
         // Honest chip: "IA respondió" ONLY when an AI-authored reply actually

@@ -3,12 +3,14 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Bot } from 'lucide-react';
+import { Bot, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { setAiEnabled, updateGuestInfo } from './copilot-actions';
 
-/** The host's two AI controls, nothing more: an on/off switch for automatic
- *  replies, and the property info the AI answers from. */
+/** The host's AI controls, minimal by design: an on/off switch, and an OPT-IN
+ *  box for extra context. The AI already answers from the synced listing record
+ *  (amenities, rules, times, capacity) plus previous replies — most hosts never
+ *  need to type anything here. */
 export function AiSettings({
   propertyId,
   aiEnabled,
@@ -24,6 +26,8 @@ export function AiSettings({
   const [on, setOn] = useState(aiEnabled);
   const [info, setInfo] = useState(guestInfo ?? '');
   const [saved, setSaved] = useState(false);
+  // Opt-in: closed unless the host already added context earlier.
+  const [showInfo, setShowInfo] = useState(Boolean(guestInfo?.trim()));
 
   const toggle = () => {
     const next = !on;
@@ -36,7 +40,7 @@ export function AiSettings({
   };
 
   return (
-    <div className="border-border grid gap-3 rounded-lg border p-4">
+    <div className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-start gap-2.5">
           <Bot className="text-primary mt-0.5 h-5 w-5 shrink-0" />
@@ -59,33 +63,51 @@ export function AiSettings({
         </button>
       </div>
 
-      <div className="grid gap-1.5">
-        <label className="text-muted-foreground text-xs font-medium">{t('info_label')}</label>
-        <textarea
-          className="border-input bg-background focus-visible:ring-ring w-full rounded-md border p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2"
-          rows={4}
-          value={info}
-          onChange={(e) => setInfo(e.target.value)}
-          placeholder={t('info_ph')}
-        />
-        <Button
-          size="sm"
-          variant="outline"
-          className="justify-self-start"
-          disabled={pending}
-          onClick={() =>
-            start(async () => {
-              const r = await updateGuestInfo({ propertyId, guestInfo: info });
-              if (r.ok) {
-                setSaved(true);
-                setTimeout(() => setSaved(false), 2000);
-              }
-            })
-          }
+      <p className="text-muted-foreground text-xs">{t('knows_note')}</p>
+
+      {!showInfo ? (
+        <button
+          type="button"
+          onClick={() => setShowInfo(true)}
+          className="text-primary flex w-fit items-center gap-1 text-xs font-medium hover:underline"
         >
-          {saved ? t('saved') : t('save')}
-        </Button>
-      </div>
+          <Plus className="h-3.5 w-3.5" /> {t('add_context')}
+        </button>
+      ) : (
+        <div className="grid gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowInfo(false)}
+            className="text-muted-foreground flex w-fit items-center gap-1 text-xs font-medium"
+          >
+            <ChevronDown className="h-3.5 w-3.5 rotate-180" /> {t('info_label')}
+          </button>
+          <textarea
+            className="border-input bg-background focus-visible:ring-ring w-full rounded-md border p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2"
+            rows={4}
+            value={info}
+            onChange={(e) => setInfo(e.target.value)}
+            placeholder={t('info_ph')}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="justify-self-start"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                const r = await updateGuestInfo({ propertyId, guestInfo: info });
+                if (r.ok) {
+                  setSaved(true);
+                  setTimeout(() => setSaved(false), 2000);
+                }
+              })
+            }
+          >
+            {saved ? t('saved') : t('save')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
