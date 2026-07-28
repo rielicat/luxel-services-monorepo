@@ -3,12 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { getPlan, type PlanRow } from '@/lib/plans';
 import { fetchProperties, fetchConnection, type HostConnection } from '@/lib/host/queries';
-import {
-  customerHospitableToken,
-  founderEnvHospitableToken,
-  saveHospitableConnection,
-} from '@/lib/channels/hospitable';
+import { customerHospitableToken, saveHospitableConnection } from '@/lib/channels/hospitable';
 import { reconcileHospitableProperties } from '@/lib/channels/hospitable-sync';
+import { isClerkAdmin } from '@/lib/auth/admin';
 import { PropertiesClient, type PropertyRow } from './properties-client';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +17,7 @@ export default async function PropertiesPage() {
   const supabase = createSupabaseServiceRoleClient();
   const { data: customer } = await supabase
     .from('customers')
-    .select('id, email')
+    .select('id')
     .eq('clerk_user_id', userId)
     .maybeSingle();
 
@@ -34,12 +31,15 @@ export default async function PropertiesPage() {
     // listing list live and reconcile (upsert + prune). Token resolution is
     // tenant-safe by construction: a stored connection uses ITS token only (a
     // decrypt failure surfaces as a sync error — never an env fallthrough), and
-    // the HOSPITABLE_API_TOKEN env bootstrap is released exclusively to
-    // allowlisted operator emails (LUXEL_ADMIN_EMAILS), where it is persisted
-    // encrypted as that account's own connection.
+    // the HOSPITABLE_API_TOKEN env bootstrap is released exclusively to Clerk
+    // admins (publicMetadata.role === 'admin' — managed in Clerk, no env
+    // allow-list), where it is persisted encrypted as that account's own
+    // connection.
     const token = connection
       ? await customerHospitableToken(customer.id)
-      : founderEnvHospitableToken(customer.email);
+      : (await isClerkAdmin(userId))
+        ? (process.env.HOSPITABLE_API_TOKEN ?? null)
+        : null;
     if (token) {
       const r = await reconcileHospitableProperties(customer.id, token).catch(() => null);
       syncFailed = !r?.ok;

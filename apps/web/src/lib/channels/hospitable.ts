@@ -227,22 +227,6 @@ export async function customerHospitableToken(customerId: string): Promise<strin
   }
 }
 
-/**
- * The env founder token, released ONLY for allowlisted operator emails
- * (LUXEL_ADMIN_EMAILS — the same app-level admin gate the rest of Luxel uses).
- * Lets the founder's own account bootstrap from HOSPITABLE_API_TOKEN without a
- * pasted connection code; every other account gets null.
- */
-export function founderEnvHospitableToken(email: string | null | undefined): string | null {
-  const token = process.env.HOSPITABLE_API_TOKEN;
-  if (!token || !email) return null;
-  const allowed = (process.env.LUXEL_ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return allowed.includes(email.trim().toLowerCase()) ? token : null;
-}
-
 /** Resolves the customer's Hospitable token (decrypted), else the env fallback. */
 export async function hospitableTokenForCustomer(
   customerId: string | null,
