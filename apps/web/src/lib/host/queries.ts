@@ -5,7 +5,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
  *  and the per-property detail page. */
 export const PROPERTY_SELECT =
   'id, nickname, address, comuna, guest_info, external_listing_id, platform, base_nightly_clp, ai_enabled, ' +
-  'bedrooms, bathrooms, picture_url, max_guests, beds, property_type, room_type, checkin_time, checkout_time, listed, ' +
+  'bedrooms, bathrooms, picture_url, max_guests, beds, property_type, room_type, checkin_time, checkout_time, listed, amenities, house_rules, ' +
   'property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_whatsapp, concierge_email, concierge_hours, id_basis, id_disclosed), ' +
   'property_calendars(id, label, ical_url, last_synced_at), ' +
   'calendar_blocks(id, starts_on, ends_on, source, summary), ' +

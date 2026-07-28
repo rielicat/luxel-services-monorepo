@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   ArrowLeft,
@@ -9,10 +10,16 @@ import {
   Sparkles,
   KeyRound,
   BotOff,
+  Home,
+  RefreshCw,
+  PawPrint,
+  Cigarette,
+  PartyPopper,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs } from '@/components/ui/tabs';
+import { amenityLabel, propertyTypeLabel, roomTypeLabel } from '@/lib/host/listing-labels';
 import type { PropertyRow } from '../properties-client';
 import { AccessPanel } from '../access-panel';
 import { MonthCalendar } from '../month-calendar';
@@ -54,6 +61,124 @@ function stats(property: PropertyRow) {
   };
 }
 
+/** The imported anuncio, as Airbnb defines it: photo, identity, capacity,
+ *  type, check-in/out, amenities and house rules — all synced, none editable. */
+function ListingHero({ property }: { property: PropertyRow }) {
+  const t = useTranslations('detail');
+  const tp = useTranslations('properties');
+
+  const capacity = [
+    property.bedrooms != null && tp('cap_bedrooms', { n: property.bedrooms }),
+    property.bathrooms != null && tp('cap_bathrooms', { n: property.bathrooms }),
+    property.max_guests != null && tp('cap_guests', { n: property.max_guests }),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const kind = [propertyTypeLabel(property.property_type), roomTypeLabel(property.room_type)]
+    .filter(Boolean)
+    .join(' · ');
+  const amenities = property.amenities ?? [];
+  const shown = amenities.slice(0, 6);
+  const rules = [
+    { key: 'pets_allowed', icon: PawPrint, label: t('rule_pets') },
+    { key: 'smoking_allowed', icon: Cigarette, label: t('rule_smoking') },
+    { key: 'events_allowed', icon: PartyPopper, label: t('rule_events') },
+  ] as const;
+
+  return (
+    <Card className="mb-6 overflow-hidden">
+      <div className="grid sm:grid-cols-[300px,1fr]">
+        <div className="bg-accent relative aspect-[16/10] sm:aspect-auto sm:min-h-full">
+          {property.picture_url ? (
+            <Image
+              src={property.picture_url}
+              alt={property.nickname}
+              fill
+              sizes="(max-width: 640px) 100vw, 300px"
+              className="object-cover"
+            />
+          ) : (
+            <div className="text-primary/40 flex h-full items-center justify-center">
+              <Home className="h-10 w-10" />
+            </div>
+          )}
+        </div>
+        <CardContent className="grid content-start gap-3 p-5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {property.external_listing_id && (
+              <span className="bg-secondary/60 text-secondary-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                Airbnb
+              </span>
+            )}
+            {!property.listed && (
+              <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                {tp('unlisted')}
+              </span>
+            )}
+          </div>
+          <div>
+            <h1 className="font-display text-balance text-2xl font-semibold tracking-tight">
+              {property.nickname}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {[property.address, property.comuna].filter(Boolean).join(', ') || tp('no_address')}
+            </p>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            {[capacity, kind].filter(Boolean).join(' · ')}
+          </p>
+          {(property.checkin_time || property.checkout_time) && (
+            <p className="text-muted-foreground text-sm">
+              {[
+                property.checkin_time && t('checkin_at', { time: property.checkin_time }),
+                property.checkout_time && t('checkout_at', { time: property.checkout_time }),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
+          {shown.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {shown.map((a) => (
+                <span
+                  key={a}
+                  className="bg-accent text-accent-foreground rounded-full px-2 py-0.5 text-xs"
+                >
+                  {amenityLabel(a)}
+                </span>
+              ))}
+              {amenities.length > shown.length && (
+                <span className="text-muted-foreground rounded-full px-1 py-0.5 text-xs">
+                  {t('amenities_more', { n: amenities.length - shown.length })}
+                </span>
+              )}
+            </div>
+          )}
+          {property.house_rules && (
+            <div className="text-muted-foreground flex flex-wrap gap-3 text-xs">
+              {rules.map(({ key, icon: Icon, label }) => {
+                const allowed = property.house_rules?.[key];
+                if (allowed == null) return null;
+                return (
+                  <span
+                    key={key}
+                    className={`flex items-center gap-1 ${allowed ? '' : 'line-through opacity-60'}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" /> {label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-muted-foreground/80 flex items-center gap-1.5 text-xs">
+            <RefreshCw className="h-3 w-3" /> {t('synced_note')}
+          </p>
+        </CardContent>
+      </div>
+    </Card>
+  );
+}
+
 export function PropertyDetailClient({
   property,
   insight,
@@ -66,7 +191,6 @@ export function PropertyDetailClient({
   showSim: boolean;
 }) {
   const t = useTranslations('detail');
-  const tp = useTranslations('properties');
   const s = stats(property);
 
   const tiles = [
@@ -85,27 +209,14 @@ export function PropertyDetailClient({
         <ArrowLeft className="h-4 w-4" /> {t('back')}
       </Link>
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-balance text-2xl font-semibold tracking-tight">
-            {property.nickname}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {[property.address, property.comuna].filter(Boolean).join(', ') || tp('no_address')}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {property.ai_enabled === false && (
-            <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold">
-              <BotOff className="h-3.5 w-3.5" /> {t('ai_off')}
-            </span>
-          )}
-          {property.external_listing_id && (
-            <span className="bg-secondary/60 text-secondary-foreground rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide">
-              Airbnb
-            </span>
-          )}
-        </div>
+      <ListingHero property={property} />
+
+      <div className="mb-5 flex flex-wrap items-center gap-1.5">
+        {property.ai_enabled === false && (
+          <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold">
+            <BotOff className="h-3.5 w-3.5" /> {t('ai_off')}
+          </span>
+        )}
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

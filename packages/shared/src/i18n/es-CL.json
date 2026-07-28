@@ -496,6 +496,9 @@
     "export_help": "Agrega este enlace en AirBnB/Booking para que bloqueen automáticamente estas fechas.",
     "empty_title": "Aún no tienes propiedades",
     "empty_body": "Conecta tu Airbnb y tus propiedades se importan automáticamente.",
+    "empty_connected_title": "Tu cuenta de Airbnb aún no tiene anuncios",
+    "empty_connected_body": "Publica un anuncio en Airbnb y aparecerá aquí automáticamente en la próxima sincronización.",
+    "ai_off": "IA desactivada",
     "sync_failed": "No pudimos sincronizar con Airbnb en este momento. Estás viendo la última información disponible.",
     "cap_bedrooms": "{n} dorm",
     "cap_bathrooms": "{n} baños",
@@ -603,7 +606,14 @@
     "tab_calendar": "Calendario",
     "tab_cleaning": "Aseos",
     "tab_access": "Acceso",
-    "ai_off": "IA desactivada"
+    "ai_off": "IA desactivada",
+    "checkin_at": "Check-in {time}",
+    "checkout_at": "Check-out {time}",
+    "amenities_more": "+{n} más",
+    "rule_pets": "Mascotas",
+    "rule_smoking": "Fumar",
+    "rule_events": "Eventos",
+    "synced_note": "Ficha del anuncio sincronizada desde Airbnb — se actualiza sola."
   },
   "onboarding": {
     "title": "Conecta tu propiedad en 3 pasos",

@@ -13,6 +13,7 @@ import {
   Plug,
   RefreshCw,
   Settings2,
+  BotOff,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,6 +45,12 @@ export type PropertyRow = {
   checkin_time: string | null;
   checkout_time: string | null;
   listed: boolean;
+  amenities: string[] | null;
+  house_rules: {
+    pets_allowed?: boolean | null;
+    smoking_allowed?: boolean | null;
+    events_allowed?: boolean | null;
+  } | null;
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];
@@ -86,16 +93,37 @@ export function PropertiesClient({
         <HospitableCard connection={connection} />
 
         {initial.length === 0 ? (
-          <Onboarding connected={Boolean(connection)} />
+          connection ? (
+            <EmptyConnected />
+          ) : (
+            <Onboarding connected={false} />
+          )
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {initial.map((p) => (
-              <PropertySummaryCard key={p.id} property={p} />
+              <ListingCard key={p.id} property={p} />
             ))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/** Connected account, zero listings: the mirror is live — anything published on
+ *  Airbnb shows up here on its own. */
+function EmptyConnected() {
+  const t = useTranslations('properties');
+  return (
+    <Card className="border-dashed">
+      <CardContent className="grid justify-items-center gap-2 p-10 text-center">
+        <span className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-full">
+          <Home className="h-5 w-5" />
+        </span>
+        <p className="font-display font-semibold">{t('empty_connected_title')}</p>
+        <p className="text-muted-foreground max-w-sm text-sm">{t('empty_connected_body')}</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -156,7 +184,9 @@ function accessChip(method: string | undefined, t: (key: string) => string) {
   return { icon: TriangleAlert, cls: 'bg-warning/15 text-warning', label: t('chip_no_access') };
 }
 
-function PropertySummaryCard({ property }: { property: PropertyRow }) {
+/** An imported Airbnb listing, photo first — the card mirrors the anuncio, the
+ *  badges carry Luxel's operational state on top. */
+function ListingCard({ property }: { property: PropertyRow }) {
   const t = useTranslations('properties');
   const today = new Date().toISOString().slice(0, 10);
   const nextCheckout = property.calendar_blocks
@@ -177,27 +207,38 @@ function PropertySummaryCard({ property }: { property: PropertyRow }) {
 
   return (
     <Card className="group overflow-hidden transition-shadow hover:shadow-md">
-      {property.picture_url && (
-        <div className="relative h-36 w-full">
-          <Image
-            src={property.picture_url}
-            alt={property.nickname}
-            fill
-            sizes="(max-width: 640px) 100vw, 50vw"
-            className="object-cover"
-          />
-        </div>
-      )}
-      <CardContent className="grid gap-3 p-5">
-        <div>
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-display font-semibold leading-tight">{property.nickname}</p>
+      <Link href={`/properties/${property.id}`} className="block">
+        <div className="bg-accent relative aspect-[16/9] w-full">
+          {property.picture_url ? (
+            <Image
+              src={property.picture_url}
+              alt={property.nickname}
+              fill
+              sizes="(max-width: 640px) 100vw, 50vw"
+              className="ease-lux object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            />
+          ) : (
+            <div className="text-primary/40 flex h-full items-center justify-center">
+              <Home className="h-10 w-10" />
+            </div>
+          )}
+          <div className="absolute left-3 top-3 flex gap-1.5">
             {property.external_listing_id && (
-              <span className="bg-secondary/60 text-secondary-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+              <span className="bg-background/90 text-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide backdrop-blur">
                 Airbnb
               </span>
             )}
+            {!property.listed && (
+              <span className="bg-background/90 text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide backdrop-blur">
+                {t('unlisted')}
+              </span>
+            )}
           </div>
+        </div>
+      </Link>
+      <CardContent className="grid gap-3 p-4">
+        <div>
+          <p className="font-display font-semibold leading-tight">{property.nickname}</p>
           <p className="text-muted-foreground truncate text-sm">
             {[property.address, property.comuna].filter(Boolean).join(', ') || t('no_address')}
           </p>
@@ -205,16 +246,16 @@ function PropertySummaryCard({ property }: { property: PropertyRow }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          {!property.listed && (
-            <span className="bg-muted text-muted-foreground flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
-              {t('unlisted')}
-            </span>
-          )}
           <span
             className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${chip.cls}`}
           >
             <ChipIcon className="h-3 w-3" /> {chip.label}
           </span>
+          {property.ai_enabled === false && (
+            <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+              <BotOff className="h-3 w-3" /> {t('ai_off')}
+            </span>
+          )}
           {needsReply > 0 && (
             <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
               <MessagesSquare className="h-3 w-3" /> {t('needs_reply', { n: needsReply })}
