@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
 import posthog from 'posthog-js';
 import { Send, CalendarCheck, Sparkles, Phone, X, Home, ArrowRight } from 'lucide-react';
@@ -68,6 +69,7 @@ const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 
 export function ChatWidget() {
   const t = useTranslations('chat');
+  const { isSignedIn } = useUser();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
@@ -80,12 +82,22 @@ export function ChatWidget() {
 
   useEffect(() => {
     setSessionId(getOrCreateSession());
-    setMessages([{ id: 'greeting', role: 'bot', text: t('bot_greeting'), widgets: [] }]);
     // Survive a reload mid-handoff: stay with the person, keep polling their replies.
     if (typeof window !== 'undefined' && localStorage.getItem('luxel.chat.human') === '1') {
       setHumanMode(true);
     }
-  }, [t]);
+  }, []);
+
+  // Signed-in hosts get an operator greeting (manage your properties) instead of
+  // the prospect pitch. Clerk resolves after mount, so the greeting may re-render
+  // once — but never over a conversation already underway.
+  useEffect(() => {
+    const text = isSignedIn ? t('bot_greeting_host') : t('bot_greeting');
+    setMessages((prev) => {
+      if (prev.length > 1) return prev;
+      return [{ id: 'greeting', role: 'bot', text, widgets: [] }];
+    });
+  }, [t, isSignedIn]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -358,7 +370,10 @@ export function ChatWidget() {
 
               {showQuickReplies && (
                 <div className="flex flex-wrap gap-2 pl-[2.375rem]">
-                  {(['quick_1', 'quick_2', 'quick_3'] as const).map((k) => (
+                  {(isSignedIn
+                    ? (['quick_host_1', 'quick_host_2', 'quick_host_3'] as const)
+                    : (['quick_1', 'quick_2', 'quick_3'] as const)
+                  ).map((k) => (
                     <button
                       key={k}
                       type="button"
@@ -391,8 +406,8 @@ export function ChatWidget() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onFocus={openPanel}
-            placeholder={t('bar_placeholder')}
-            aria-label={t('bar_placeholder')}
+            placeholder={isSignedIn ? t('bar_placeholder_host') : t('bar_placeholder')}
+            aria-label={isSignedIn ? t('bar_placeholder_host') : t('bar_placeholder')}
             disabled={pending}
             className="text-foreground placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent px-1.5 text-sm outline-none disabled:opacity-60"
           />
