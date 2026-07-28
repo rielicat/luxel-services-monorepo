@@ -64,6 +64,10 @@ export type PropertyRow = {
     smoking_allowed?: boolean | null;
     events_allowed?: boolean | null;
   } | null;
+  cleaning_managed_by: 'luxel' | 'own';
+  cleaning_contact_name: string | null;
+  cleaning_contact_email: string | null;
+  cleaning_contact_whatsapp: string | null;
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];

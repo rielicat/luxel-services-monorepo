@@ -21,9 +21,6 @@ export type AccessRow = {
   id_disclosed: boolean;
 } | null;
 
-const inputCls =
-  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
-
 export function AccessPanel({ propertyId, access }: { propertyId: string; access: AccessRow }) {
   const t = useTranslations('properties');
   const [pending, start] = useTransition();
@@ -62,17 +59,35 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
 
   return (
     <div className="grid gap-4">
-      <div className="grid gap-1.5">
-        <Label>{t('method')}</Label>
-        <select
-          className={inputCls}
-          value={s.method}
-          onChange={(e) => upd('method', e.target.value as typeof s.method)}
-        >
-          <option value="keyless">{t('method_keyless')}</option>
-          <option value="physical_concierge">{t('method_concierge')}</option>
-          <option value="physical_none">{t('method_none')}</option>
-        </select>
+      <div className="grid gap-2">
+        <p className="text-muted-foreground text-xs">{t('method_help')}</p>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {(
+            [
+              { id: 'keyless', title: t('method_keyless_short'), body: t('method_keyless_body') },
+              {
+                id: 'physical_concierge',
+                title: t('method_concierge_short'),
+                body: t('method_concierge_body'),
+              },
+              { id: 'physical_none', title: t('method_none_short'), body: t('method_none_body') },
+            ] as const
+          ).map(({ id, title, body }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => upd('method', id)}
+              className={`rounded-lg border p-3 text-left transition-colors ${
+                s.method === id
+                  ? 'border-primary/50 bg-accent/60'
+                  : 'border-border hover:border-primary/30'
+              }`}
+            >
+              <span className="block text-sm font-semibold">{title}</span>
+              <span className="text-muted-foreground mt-0.5 block text-xs">{body}</span>
+            </button>
+          ))}
+        </div>
         {s.method === 'physical_none' && (
           <p className="text-warning flex items-start gap-1.5 text-xs">
             <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {t('none_warning')}
@@ -128,41 +143,46 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
         </div>
       )}
 
-      <div className="border-border grid gap-2 rounded-lg border p-3">
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={s.requireId}
-            onChange={(e) => upd('requireId', e.target.checked)}
-          />
-          <span>
-            <span className="font-medium">{t('require_id')}</span>
-            <span className="text-muted-foreground block text-xs">{t('require_id_help')}</span>
-          </span>
-        </label>
-        {s.requireId && (
-          <div className="grid gap-2 pl-6">
-            <div className="grid gap-1.5">
-              <Label>{t('id_basis')}</Label>
-              <Input
-                value={s.idBasis}
-                onChange={(e) => upd('idBasis', e.target.value)}
-                placeholder={t('id_basis_ph')}
-              />
+      <details className="border-border rounded-lg border p-3">
+        <summary className="text-muted-foreground cursor-pointer text-xs font-medium">
+          {t('id_advanced')}
+        </summary>
+        <div className="mt-3 grid gap-2">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={s.requireId}
+              onChange={(e) => upd('requireId', e.target.checked)}
+            />
+            <span>
+              <span className="font-medium">{t('require_id')}</span>
+              <span className="text-muted-foreground block text-xs">{t('require_id_help')}</span>
+            </span>
+          </label>
+          {s.requireId && (
+            <div className="grid gap-2 pl-6">
+              <div className="grid gap-1.5">
+                <Label>{t('id_basis')}</Label>
+                <Input
+                  value={s.idBasis}
+                  onChange={(e) => upd('idBasis', e.target.value)}
+                  placeholder={t('id_basis_ph')}
+                />
+              </div>
+              <label className="flex items-start gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={s.idDisclosed}
+                  onChange={(e) => upd('idDisclosed', e.target.checked)}
+                />
+                <span className="text-muted-foreground">{t('id_disclosed')}</span>
+              </label>
             </div>
-            <label className="flex items-start gap-2 text-xs">
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={s.idDisclosed}
-                onChange={(e) => upd('idDisclosed', e.target.checked)}
-              />
-              <span className="text-muted-foreground">{t('id_disclosed')}</span>
-            </label>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </details>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={save} disabled={pending}>

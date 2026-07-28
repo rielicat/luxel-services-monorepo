@@ -464,10 +464,6 @@
   "properties": {
     "title": "Mis propiedades",
     "subtitle": "Tu operación Airbnb en un solo lugar.",
-    "method": "Método de acceso",
-    "method_keyless": "Cerradura sin llave (código)",
-    "method_concierge": "Llave física + conserjería 24/7",
-    "method_none": "Llave física sin conserjería",
     "none_warning": "Sin cerradura inteligente ni conserjería 24/7 no podemos automatizar el acceso. Considera una cerradura con código o designar una conserjería.",
     "keyless_code": "Código de acceso",
     "keyless_instructions": "Instrucciones de acceso",
@@ -502,24 +498,34 @@
     "next_checkout": "Check-out: {date}",
     "no_upcoming": "Sin reservas próximas",
     "no_address": "Sin dirección",
-    "manage": "Administrar"
+    "manage": "Administrar",
+    "method_help": "¿Cómo entran tus huéspedes? Esto alimenta el check-in automático y las respuestas de la IA.",
+    "method_keyless_short": "Cerradura con código",
+    "method_keyless_body": "Self check-in: el código se entrega solo.",
+    "method_concierge_short": "Conserjería",
+    "method_concierge_body": "La llave se retira con el conserje.",
+    "method_none_short": "Aún no tengo",
+    "method_none_body": "Lo configuro más tarde.",
+    "id_advanced": "Requisitos de identidad (opcional)"
   },
   "cleaning": {
-    "title": "Aseo entre estadías",
-    "price_turnover": "Calcular precio por aseo",
-    "price_help": "Configúralo como tarifa de limpieza en AirBnB para que lo pague el huésped.",
-    "none": "Sin aseos programados.",
-    "refresh": "Actualizar desde reservas",
-    "schedule": "Programar",
-    "skip": "Omitir",
-    "status_suggested": "sugerido",
-    "status_scheduled": "programado",
-    "status_done": "realizado",
-    "status_skipped": "omitido",
-    "err_no_data": "Agrega tamaño y dirección para calcular.",
-    "err_out_of_area": "Fuera del área de cobertura.",
-    "err_service": "No disponible por ahora.",
-    "err_generic": "No se pudo calcular."
+    "mode_luxel": "Luxel lo gestiona",
+    "mode_luxel_body": "Nuestro equipo hace el aseo después de cada check-out.",
+    "mode_own": "Mi propio personal",
+    "mode_own_body": "Tú eliges a quién avisamos automáticamente.",
+    "staff_name": "Nombre",
+    "staff_email": "Correo",
+    "staff_whatsapp": "WhatsApp (+56 9…)",
+    "staff_save": "Guardar contacto",
+    "staff_saved": "Guardado ✓",
+    "notify_own": "Al confirmar un aseo, avisamos automáticamente a tu personal por correo (con enlace directo a su WhatsApp).",
+    "notify_luxel": "Al confirmar un aseo, el equipo Luxel recibe el aviso automáticamente.",
+    "price_note": "Tarifa por aseo: {price} — configúrala como tarifa de limpieza en Airbnb para que la pague el huésped.",
+    "none": "Sin aseos pendientes — se crean solos después de cada check-out.",
+    "status_scheduled": "Agendado y notificado",
+    "status_suggested_hint": "Detectado desde un check-out — confírmalo",
+    "confirm": "Confirmar",
+    "skip": "Omitir"
   },
   "copilot": {
     "title": "Copiloto de mensajes",
@@ -551,7 +557,6 @@
     "winback_confirm": "Cancelar de todas formas"
   },
   "inbox": {
-    "empty": "Sin conversaciones aún.",
     "guest": "Huésped",
     "status_ai": "IA respondió",
     "status_quiet": "Al día",
@@ -559,7 +564,9 @@
     "status_closed": "Cerrado",
     "reply_ph": "Tu respuesta…",
     "sim_ph": "Simular mensaje de huésped (dev)…",
-    "sim": "Probar"
+    "sim": "Probar",
+    "all_handled": "Todo respondido — la IA está al día con tus huéspedes.",
+    "toggle_all": "Ver todas las conversaciones ({n})"
   },
   "hospitable": {
     "connect_title": "Conecta tu Airbnb",
@@ -580,34 +587,23 @@
   },
   "detail": {
     "back": "Mis propiedades",
-    "occupancy": "Ocupación 30 días",
-    "next_checkout": "Próximo check-out",
-    "pending_cleanings": "Aseos pendientes",
-    "needs_reply": "Por responder",
     "tab_messages": "Mensajes",
-    "tab_calendar": "Calendario",
     "tab_cleaning": "Aseos",
     "tab_access": "Acceso",
     "ai_off": "IA desactivada",
-    "checkin_at": "Check-in {time}",
-    "checkout_at": "Check-out {time}",
-    "amenities_more": "+{n} más",
-    "rule_pets": "Mascotas",
-    "rule_smoking": "Fumar",
-    "rule_events": "Eventos",
-    "synced_note": "Ficha del anuncio sincronizada desde Airbnb — se actualiza sola.",
     "att_reply": "{n, plural, one {# conversación por responder} other {# conversaciones por responder}}",
     "att_cleanings": "{n, plural, one {# aseo por confirmar} other {# aseos por confirmar}}",
     "att_access": "Configura el acceso",
     "att_clear": "Todo al día — nada requiere tu atención.",
-    "sum_next_stay": "Próxima: {from} → {to}",
-    "sum_no_stays": "Sin reservas próximas",
-    "sum_price": "Tarifa próxima noche",
-    "sum_open_nights": "{n} noches abiertas · 30 días",
-    "sum_no_calendar": "Calendario no disponible",
-    "sum_ai_7d": "{n, plural, =0 {Sin respuestas IA esta semana} one {# respuesta IA · 7 días} other {# respuestas IA · 7 días}}",
-    "sum_cleaning": "Próximo aseo",
-    "sum_pending_cleanings": "{n, plural, =0 {Sin aseos pendientes} one {# pendiente} other {# pendientes}}"
+    "sec_stays": "Estadías y calendario",
+    "m_revenue": "Ingresos 30 días",
+    "m_revenue_sub": "Estimado según tus tarifas",
+    "m_occupancy": "Ocupación",
+    "m_occupancy_sub": "Próximos 30 días",
+    "m_adr": "Tarifa promedio",
+    "m_adr_sub": "Por noche publicada",
+    "m_ai": "Respuestas IA",
+    "m_ai_sub": "Últimos 7 días"
   },
   "onboarding": {
     "title": "Conecta tu propiedad en 3 pasos",
@@ -620,13 +616,6 @@
     "s3_body": "Define el acceso (código o conserjería) y la info para huéspedes. La IA hace el resto.",
     "help_pre": "¿No tienes tu código de conexión?",
     "help_link": "Escríbenos y te lo enviamos"
-  },
-  "cal": {
-    "reserved": "Reservado",
-    "blocked": "Bloqueado en Airbnb",
-    "available": "Disponible (tarifa publicada)",
-    "no_data": "No pudimos leer el calendario de Airbnb en este momento.",
-    "managed_note": "El calendario se administra en Airbnb (disponibilidad y tarifas) y se refleja aquí automáticamente."
   },
   "ai": {
     "toggle_title": "Respuestas automáticas con IA",
@@ -730,5 +719,14 @@
       "s3_body": "Un operador verificado llega y deja tu espacio impecable.",
       "cta_primary": "Cotizar aseo"
     }
+  },
+  "stays": {
+    "none": "Sin reservas próximas — las nuevas aparecen aquí solas.",
+    "nights": "{n, plural, one {# noche} other {# noches}}",
+    "revenue": "{amount} de ingreso",
+    "in_progress": "En curso",
+    "cleaning_scheduled": "Aseo agendado",
+    "cleaning_pending": "Aseo por confirmar",
+    "cleaning_auto": "Aseo se agenda solo"
   }
 }
