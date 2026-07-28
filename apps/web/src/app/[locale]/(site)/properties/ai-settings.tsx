@@ -3,15 +3,15 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Bot } from 'lucide-react';
+import { Bot, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Disclosure } from '@/components/ui/disclosure';
+import { Modal } from '@/components/ui/modal';
 import { setAiEnabled, updateGuestInfo } from './copilot-actions';
 
 /** The host's AI controls, minimal by design: an on/off switch, and an OPT-IN
- *  box for extra context. The AI already answers from the synced listing record
- *  (amenities, rules, times, capacity) plus previous replies — most hosts never
- *  need to type anything here. */
+ *  modal for the things only the host knows (wifi key, door quirk, parking).
+ *  The AI already answers from the synced listing record plus previous
+ *  replies — most hosts never need to open it. */
 export function AiSettings({
   propertyId,
   aiEnabled,
@@ -26,9 +26,8 @@ export function AiSettings({
   const [pending, start] = useTransition();
   const [on, setOn] = useState(aiEnabled);
   const [info, setInfo] = useState(guestInfo ?? '');
+  const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
-  // Opt-in: starts open only when the host already added context earlier.
-  const showInfo = Boolean(guestInfo?.trim());
 
   const toggle = () => {
     const next = !on;
@@ -64,21 +63,29 @@ export function AiSettings({
         </button>
       </div>
 
-      <p className="text-muted-foreground text-xs">{t('knows_note')}</p>
+      <p className="text-muted-foreground text-xs">
+        {t('knows_note')}{' '}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-primary inline-flex items-center gap-1 font-medium hover:underline"
+        >
+          <Pencil className="h-3 w-3" /> {t('teach_link')}
+        </button>
+      </p>
 
-      <Disclosure label={t('add_context')} defaultOpen={showInfo}>
-        <div className="grid gap-2">
-          <p className="text-muted-foreground text-xs">{t('info_label')}</p>
+      <Modal open={open} onClose={() => setOpen(false)} title={t('teach_title')}>
+        <div className="grid gap-3">
+          <p className="text-muted-foreground text-sm">{t('teach_body')}</p>
           <textarea
             className="border-input bg-background focus-visible:ring-ring w-full rounded-md border p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2"
-            rows={4}
+            rows={5}
             value={info}
             onChange={(e) => setInfo(e.target.value)}
             placeholder={t('info_ph')}
           />
           <Button
             size="sm"
-            variant="outline"
             className="justify-self-start"
             disabled={pending}
             onClick={() =>
@@ -86,7 +93,10 @@ export function AiSettings({
                 const r = await updateGuestInfo({ propertyId, guestInfo: info });
                 if (r.ok) {
                   setSaved(true);
-                  setTimeout(() => setSaved(false), 2000);
+                  setTimeout(() => {
+                    setSaved(false);
+                    setOpen(false);
+                  }, 800);
                 }
               })
             }
@@ -94,7 +104,7 @@ export function AiSettings({
             {saved ? t('saved') : t('save')}
           </Button>
         </div>
-      </Disclosure>
+      </Modal>
     </div>
   );
 }

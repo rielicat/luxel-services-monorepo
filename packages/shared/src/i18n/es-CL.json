@@ -506,7 +506,8 @@
     "method_concierge_body": "La llave se retira con el conserje.",
     "method_none_short": "Aún no tengo",
     "method_none_body": "Lo configuro más tarde.",
-    "id_advanced": "Requisitos de identidad (opcional)"
+    "id_advanced": "Requisitos de identidad (opcional)",
+    "id_advanced_on": "Requisitos de identidad: activados"
   },
   "cleaning": {
     "mode_luxel": "Luxel lo gestiona",
@@ -528,7 +529,9 @@
     "status_scheduled": "Agendado y notificado",
     "status_suggested_hint": "Detectado desde un check-out — confírmalo",
     "confirm": "Confirmar",
-    "skip": "Omitir"
+    "skip": "Omitir",
+    "show_all": "Ver todos los aseos ({n})",
+    "upcoming_title": "Próximos aseos"
   },
   "copilot": {
     "title": "Copiloto de mensajes",
@@ -618,7 +621,8 @@
     "d_adr_note": "Promedio simple de las noches con precio publicado en Airbnb.",
     "d_ai_threads": "{n, plural, =0 {Aún sin conversaciones con huéspedes.} one {# conversación con huéspedes en total.} other {# conversaciones con huéspedes en total.}}",
     "d_ai_pending": "{n, plural, one {# conversación espera tu respuesta.} other {# conversaciones esperan tu respuesta.}}",
-    "d_ai_clear": "Ninguna conversación espera tu respuesta — la IA está al día."
+    "d_ai_clear": "Ninguna conversación espera tu respuesta — la IA está al día.",
+    "d_revenue_by_stay": "Ingreso por estadía"
   },
   "onboarding": {
     "title": "Conecta tu propiedad en 3 pasos",
@@ -636,12 +640,13 @@
     "toggle_title": "Respuestas automáticas con IA",
     "on_body": "La IA responde a tus huéspedes al instante y te deriva solo lo importante.",
     "off_body": "Desactivado: todos los mensajes llegan a tu bandeja para que respondas tú.",
-    "info_label": "Contexto adicional (wifi, cómo llegar, indicaciones especiales…)",
-    "info_ph": "Ej.: WiFi LuxelGuest / clave 1234. Check-in desde las 15:00…",
+    "info_ph": "Ej.: la clave del wifi es 1234, el portón se abre empujando fuerte, estacionamiento visitas en el -2…",
     "save": "Guardar",
     "saved": "Guardado ✓",
-    "knows_note": "La IA ya conoce la ficha del anuncio (comodidades, reglas, horarios, capacidad) y aprende de tus respuestas anteriores — no necesitas escribir nada.",
-    "add_context": "Agregar contexto adicional (opcional)"
+    "knows_note": "La IA ya conoce la ficha del anuncio (comodidades, reglas, horarios, capacidad) y aprende de tus respuestas anteriores.",
+    "teach_link": "Contarle algo que solo tú sabes",
+    "teach_title": "Lo que solo tú sabes",
+    "teach_body": "Todo lo que aparece en tu anuncio de Airbnb la IA ya lo sabe. Agrega aquí solo los datos que no están publicados: la clave del wifi, el truco de la puerta, dónde estacionar."
   },
   "about": {
     "eyebrow": "Quiénes somos",

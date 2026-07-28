@@ -16,10 +16,11 @@ import {
   TrendingUp,
   Bot,
   Wallet,
-  ChevronDown,
+  Info,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
+import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 import type { PropertyRow } from '../properties-client';
 import { AccessPanel } from '../access-panel';
@@ -34,6 +35,10 @@ const DAY = 86_400_000;
 const clp = (n: number) => `$${n.toLocaleString('es-CL')}`;
 const addDays = (d: string, n: number) =>
   new Date(new Date(`${d}T00:00:00Z`).getTime() + n * DAY).toISOString().slice(0, 10);
+const fmtDay = (d: string) =>
+  new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
+    new Date(`${d}T00:00:00Z`),
+  );
 
 /** `from` is the Santiago calendar date computed on the SERVER — the client
  *  never reads its own clock during render, so hydration is stable. */
@@ -169,6 +174,7 @@ export function PropertyDetailClient({
     refs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const stays = buildStays(liveDays, property.calendar_blocks, today);
+  const pricedStays = stays.filter((st) => st.revenueClp != null).slice(0, 6);
 
   // Metric drill-downs — every number explains itself on tap.
   type MetricId = 'revenue' | 'occupancy' | 'adr' | 'ai';
@@ -272,35 +278,22 @@ export function PropertyDetailClient({
 
       <SlimHero property={property} aiOff={property.ai_enabled === false} />
 
-      {/* Metrics that matter to the owner — tap any to see how it's computed. */}
-      <div className="mb-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Metrics that matter to the owner — tap any for the full breakdown. */}
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {metrics.map((m) => (
           <button
             key={m.id}
             type="button"
-            aria-expanded={openMetric === m.id}
-            onClick={() => setOpenMetric((cur) => (cur === m.id ? null : m.id))}
+            onClick={() => setOpenMetric(m.id)}
             className="text-left"
           >
-            <Card
-              className={cn(
-                'ease-lux h-full transition-all',
-                openMetric === m.id
-                  ? 'border-primary/40 shadow-soft'
-                  : 'hover:border-primary/30 hover:shadow-soft',
-              )}
-            >
+            <Card className="ease-lux hover:border-primary/30 hover:shadow-soft h-full transition-all">
               <CardContent className="grid gap-0.5 p-3.5">
                 <span className="text-muted-foreground flex items-center justify-between gap-1.5 text-xs">
                   <span className="flex items-center gap-1.5">
                     <m.icon className="h-3.5 w-3.5" /> {m.label}
                   </span>
-                  <ChevronDown
-                    className={cn(
-                      'h-3 w-3 transition-transform',
-                      openMetric === m.id && 'rotate-180',
-                    )}
-                  />
+                  <Info className="h-3 w-3 opacity-50" />
                 </span>
                 <span className="font-display text-xl font-semibold tabular-nums">{m.value}</span>
                 <span className="text-muted-foreground text-xs">{m.sub}</span>
@@ -309,24 +302,47 @@ export function PropertyDetailClient({
           </button>
         ))}
       </div>
-      {expanded && (
-        <Card className="border-primary/30 mb-4">
-          <CardContent className="grid gap-1.5 p-4">
-            {expanded.detail.map((line, i) => (
-              <p
-                key={i}
-                className={cn(
-                  'text-sm',
-                  i === expanded.detail.length - 1 && 'text-muted-foreground text-xs',
-                )}
-              >
-                {line}
-              </p>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-      {!expanded && <div className="mb-2" />}
+      <Modal open={expanded != null} onClose={() => setOpenMetric(null)} title={expanded?.label}>
+        {expanded && (
+          <div className="grid gap-3">
+            <div>
+              <p className="font-display text-3xl font-semibold tabular-nums">{expanded.value}</p>
+              <p className="text-muted-foreground text-sm">{expanded.sub}</p>
+            </div>
+            <div className="grid gap-1.5">
+              {expanded.detail.map((line, i) => (
+                <p
+                  key={i}
+                  className={cn(
+                    'text-sm',
+                    i === expanded.detail.length - 1 && 'text-muted-foreground text-xs',
+                  )}
+                >
+                  {line}
+                </p>
+              ))}
+            </div>
+            {expanded.id === 'revenue' && pricedStays.length > 0 && (
+              <div className="grid gap-1.5">
+                <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
+                  {t('d_revenue_by_stay')}
+                </p>
+                {pricedStays.map((st) => (
+                  <div
+                    key={st.from}
+                    className="border-border flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                  >
+                    <span className="capitalize">
+                      {fmtDay(st.from)} → {fmtDay(st.to)}
+                    </span>
+                    <span className="font-medium tabular-nums">{clp(st.revenueClp!)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/* What needs you — actionable, or a quiet all-clear. */}
       {attention.length > 0 ? (

@@ -2,11 +2,11 @@
 
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link2, Copy, Check, TriangleAlert } from 'lucide-react';
+import { Link2, Copy, Check, TriangleAlert, IdCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Disclosure } from '@/components/ui/disclosure';
+import { Modal } from '@/components/ui/modal';
 import { updateAccess, createCheckinLink } from './actions';
 
 export type AccessRow = {
@@ -28,6 +28,7 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
   const [saved, setSaved] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [idOpen, setIdOpen] = useState(false);
 
   const [s, setS] = useState({
     method: access?.method ?? 'physical_none',
@@ -144,8 +145,25 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
         </div>
       )}
 
-      <Disclosure label={t('id_advanced')} defaultOpen={s.requireId}>
-        <div className="grid gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={save} disabled={pending}>
+          {pending ? t('saving') : saved ? t('saved') : t('save')}
+        </Button>
+        <Button variant="outline" onClick={genLink} disabled={pending}>
+          <Link2 className="mr-1.5 h-4 w-4" /> {t('gen_link')}
+        </Button>
+        <button
+          type="button"
+          onClick={() => setIdOpen(true)}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs font-medium transition-colors"
+        >
+          <IdCard className="h-3.5 w-3.5" />
+          {s.requireId ? t('id_advanced_on') : t('id_advanced')}
+        </button>
+      </div>
+
+      <Modal open={idOpen} onClose={() => setIdOpen(false)} title={t('id_advanced')}>
+        <div className="grid gap-3">
           <label className="flex items-start gap-2 text-sm">
             <input
               type="checkbox"
@@ -179,17 +197,19 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
               </label>
             </div>
           )}
+          <Button
+            size="sm"
+            className="justify-self-start"
+            disabled={pending}
+            onClick={() => {
+              save();
+              setIdOpen(false);
+            }}
+          >
+            {t('save')}
+          </Button>
         </div>
-      </Disclosure>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={save} disabled={pending}>
-          {pending ? t('saving') : saved ? t('saved') : t('save')}
-        </Button>
-        <Button variant="outline" onClick={genLink} disabled={pending}>
-          <Link2 className="mr-1.5 h-4 w-4" /> {t('gen_link')}
-        </Button>
-      </div>
+      </Modal>
 
       {link && (
         <div className="bg-muted/50 flex items-center gap-2 rounded-md p-2 text-xs">

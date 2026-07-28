@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Check, X, Building2, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 import { setCleaningStatus, updateCleaningStaff } from './cleaning-actions';
 
@@ -54,6 +55,7 @@ export function CleaningPanel({
   const [email, setEmail] = useState(contactEmail ?? '');
   const [whatsapp, setWhatsapp] = useState(contactWhatsapp ?? '');
   const [saved, setSaved] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const run = (fn: () => Promise<unknown>) =>
     start(async () => {
@@ -183,46 +185,74 @@ export function CleaningPanel({
           ` ${t('price_note', { price: clp(turnoverPrice) })}`}
       </p>
 
-      {/* After each check-out, a cleaning appears here on its own. */}
+      {/* After each check-out, a cleaning appears here on its own. Only the
+          next few matter day-to-day; the full horizon lives in a modal. */}
       <div className="grid gap-2">
         {upcoming.length === 0 && <p className="text-muted-foreground text-sm">{t('none')}</p>}
-        {upcoming.map((c) => (
-          <div
-            key={c.id}
-            className="border-border flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
-          >
-            <div>
-              <p className="text-sm font-medium capitalize">{fmt(c.cleaning_date)}</p>
-              <p className="text-muted-foreground text-xs">
-                {c.status === 'scheduled' ? t('status_scheduled') : t('status_suggested_hint')}
-                {c.price_clp != null && ` · ${clp(c.price_clp)}`}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {c.status !== 'scheduled' && !auto && (
-                <Button
-                  size="sm"
-                  disabled={pending}
-                  onClick={() =>
-                    run(() => setCleaningStatus({ cleaningId: c.id, status: 'scheduled' }))
-                  }
-                >
-                  <Check className="mr-1 h-3.5 w-3.5" /> {t('confirm')}
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={pending}
-                onClick={() =>
-                  run(() => setCleaningStatus({ cleaningId: c.id, status: 'skipped' }))
-                }
-              >
-                <X className="mr-1 h-3.5 w-3.5" /> {t('skip')}
-              </Button>
-            </div>
-          </div>
+        {upcoming.slice(0, 3).map((c) => (
+          <CleaningRow key={c.id} c={c} auto={auto} pending={pending} run={run} />
         ))}
+        {upcoming.length > 3 && (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="text-muted-foreground hover:text-foreground w-fit text-xs font-medium transition-colors"
+          >
+            {t('show_all', { n: upcoming.length })}
+          </button>
+        )}
+      </div>
+
+      <Modal open={showAll} onClose={() => setShowAll(false)} title={t('upcoming_title')}>
+        <div className="grid gap-2">
+          {upcoming.map((c) => (
+            <CleaningRow key={c.id} c={c} auto={auto} pending={pending} run={run} />
+          ))}
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+function CleaningRow({
+  c,
+  auto,
+  pending,
+  run,
+}: {
+  c: Cleaning;
+  auto: boolean;
+  pending: boolean;
+  run: (fn: () => Promise<unknown>) => void;
+}) {
+  const t = useTranslations('cleaning');
+  return (
+    <div className="border-border flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+      <div>
+        <p className="text-sm font-medium capitalize">{fmt(c.cleaning_date)}</p>
+        <p className="text-muted-foreground text-xs">
+          {c.status === 'scheduled' ? t('status_scheduled') : t('status_suggested_hint')}
+          {c.price_clp != null && ` · ${clp(c.price_clp)}`}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        {c.status !== 'scheduled' && !auto && (
+          <Button
+            size="sm"
+            disabled={pending}
+            onClick={() => run(() => setCleaningStatus({ cleaningId: c.id, status: 'scheduled' }))}
+          >
+            <Check className="mr-1 h-3.5 w-3.5" /> {t('confirm')}
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={pending}
+          onClick={() => run(() => setCleaningStatus({ cleaningId: c.id, status: 'skipped' }))}
+        >
+          <X className="mr-1 h-3.5 w-3.5" /> {t('skip')}
+        </Button>
       </div>
     </div>
   );
