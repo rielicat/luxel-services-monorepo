@@ -274,9 +274,10 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('mirrors the full listing record and prunes anything not in Hospitable', async () => {
-    // Rows Hospitable doesn't know about: one manual, one imported-then-removed.
+    // Rows Hospitable doesn't know about: a legacy row without an external id,
+    // and a listing that was removed upstream.
     await admin.from('properties').insert([
-      { owner_id: customerId, nickname: 'Manual agregada a mano' },
+      { owner_id: customerId, nickname: 'Fila legada sin listing' },
       { owner_id: customerId, nickname: 'Ya no existe', external_listing_id: 'hosp-gone' },
     ]);
 
@@ -309,7 +310,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     // The light page-load reconcile behaves the same way.
     await admin
       .from('properties')
-      .insert({ owner_id: customerId, nickname: 'Otra manual post-connect' });
+      .insert({ owner_id: customerId, nickname: 'Otra fila legada post-connect' });
     const { reconcileHospitableProperties } = await import('../src/lib/channels/hospitable-sync');
     const rec = await reconcileHospitableProperties(customerId, FAKE_TOKEN);
     expect(rec.ok).toBe(true);

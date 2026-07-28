@@ -20,7 +20,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
 let admin: ReturnType<typeof createClient>;
-let createProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
+let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let suggestPricing: (
   id: string,
   today?: Date,
@@ -36,7 +36,7 @@ let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
-  createProperty = (await import('./helpers/seed')).createProperty;
+  seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   suggestPricing = (await import('../src/lib/revenue/suggest')).suggestPricing;
   generateReport = (await import('../src/lib/revenue/report')).generateReport;
   runAgentCommand = (await import('../src/lib/agent/router')).runAgentCommand;
@@ -60,7 +60,7 @@ afterEach(async () => {
 });
 
 async function seedProperty(base = 50000): Promise<string> {
-  const prop = await createProperty({ nickname: 'Depto Revenue' });
+  const prop = await seedImportedProperty({ nickname: 'Depto Revenue' });
   await admin.from('properties').update({ base_nightly_clp: base }).eq('id', prop.id!);
   return prop.id!;
 }

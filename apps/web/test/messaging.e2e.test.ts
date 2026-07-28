@@ -34,7 +34,7 @@ let handleInboundMessage: (
 ) => Promise<{ ok: boolean; action?: string; threadId?: string }>;
 let hostReply: (i: unknown) => Promise<{ ok: boolean }>;
 let saveLearnedAnswer: (i: unknown) => Promise<{ ok: boolean }>;
-let createProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
+let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let updateGuestInfo: (i: unknown) => Promise<{ ok: boolean }>;
 let customerId: string;
 
@@ -44,7 +44,7 @@ beforeAll(async () => {
   const m = await import('../src/app/[locale]/(site)/properties/messaging-actions');
   hostReply = m.hostReply;
   saveLearnedAnswer = m.saveLearnedAnswer;
-  createProperty = (await import('./helpers/seed')).createProperty;
+  seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   updateGuestInfo = (await import('../src/app/[locale]/(site)/properties/copilot-actions'))
     .updateGuestInfo;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
@@ -68,7 +68,7 @@ afterEach(async () => {
 
 describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
   it('auto-replies to a benign message and stores the thread', async () => {
-    const prop = await createProperty({ nickname: 'Depto Mensajes' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Mensajes' });
     const propertyId = prop.id!;
     await updateGuestInfo({ propertyId, guestInfo: 'WiFi: LuxelGuest / clave 1234.' });
 
@@ -89,7 +89,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
   });
 
   it('respects the host AI switch: disabled → straight to the inbox, nothing auto-sent', async () => {
-    const prop = await createProperty({ nickname: 'Depto IA Apagada' });
+    const prop = await seedImportedProperty({ nickname: 'Depto IA Apagada' });
     await updateGuestInfo({ propertyId: prop.id, guestInfo: 'WiFi: LuxelGuest / clave 1234.' });
     await admin.from('properties').update({ ai_enabled: false }).eq('id', prop.id!);
 
@@ -115,7 +115,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
   });
 
   it('hands off to a human on frustration and does not auto-send', async () => {
-    const prop = await createProperty({ nickname: 'Depto Molesto' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Molesto' });
     const r = await handleInboundMessage({
       propertyId: prop.id!,
       externalThreadId: 't-2',
@@ -138,7 +138,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
   });
 
   it('lets the host reply and reopen the thread, and save a learned answer', async () => {
-    const prop = await createProperty({ nickname: 'Depto Host' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Host' });
     const propertyId = prop.id!;
     const r = await handleInboundMessage({
       propertyId,

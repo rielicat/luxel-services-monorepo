@@ -27,7 +27,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
 let admin: ReturnType<typeof createClient>;
-let createProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
+let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let updateAccess: (i: unknown) => Promise<{ ok: boolean; error?: string }>;
 let createCheckinLink: (id: string) => Promise<{ ok: boolean; token?: string }>;
 let submitCheckin: (i: unknown) => Promise<{ ok: boolean; error?: string }>;
@@ -37,7 +37,7 @@ let customerId: string;
 beforeAll(async () => {
   if (!LIVE) return;
   const host = await import('../src/app/[locale]/(site)/properties/actions');
-  createProperty = (await import('./helpers/seed')).createProperty;
+  seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   updateAccess = host.updateAccess;
   createCheckinLink = host.createCheckinLink;
   submitCheckin = (await import('../src/app/[locale]/checkin/[token]/actions')).submitCheckin;
@@ -64,7 +64,7 @@ afterEach(async () => {
 
 describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
   it('runs the full host→guest flow and stores the ID encrypted', async () => {
-    const prop = await createProperty({
+    const prop = await seedImportedProperty({
       nickname: 'Depto Providencia',
       comuna: 'Providencia',
       sizeM2: 55,
@@ -150,7 +150,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
   });
 
   it('when the host requires ID, every companion must carry a document too', async () => {
-    const prop = await createProperty({ nickname: 'Depto Todos Con ID' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Todos Con ID' });
     const propertyId = prop.id!;
     await updateAccess({
       propertyId,
@@ -174,7 +174,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
   });
 
   it('rejects a submission missing ID when the property requires it', async () => {
-    const prop = await createProperty({ nickname: 'Depto Las Condes' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Las Condes' });
     const propertyId = prop.id!;
     const up = await updateAccess({
       propertyId,
@@ -203,7 +203,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
   });
 
   it('will NOT set require_id unless a basis AND disclosure are affirmed (AirBnB-policy guard)', async () => {
-    const prop = await createProperty({ nickname: 'Depto Ñuñoa' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Ñuñoa' });
     const propertyId = prop.id!;
     // requireId asked, but disclosure not confirmed → guard keeps it off.
     await updateAccess({

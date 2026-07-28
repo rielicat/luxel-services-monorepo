@@ -78,9 +78,9 @@ async function upsertHospitableProperty(
 }
 
 /** Strict mirror: the properties grid IS the Hospitable account. Any local row
- *  that isn't in the remote listing set — manually created (external_listing_id
- *  null) or removed upstream — gets deleted. Every FK in the properties subtree
- *  is ON DELETE CASCADE (see 0010–0021 migrations), so children go with it.
+ *  that isn't in the remote listing set — a legacy row without an external id,
+ *  or a listing removed upstream — gets deleted. Every FK in the properties
+ *  subtree is ON DELETE CASCADE (see 0010–0021 migrations), so children go too.
  *  Callers only reach this after a COMPLETE remote fetch
  *  (listHospitableProperties is complete-or-nothing), and an EMPTY remote set
  *  skips pruning entirely: wiping the whole tree off one "0 listings" response

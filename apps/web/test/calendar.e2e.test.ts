@@ -39,7 +39,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
 let admin: ReturnType<typeof createClient>;
-let createProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
+let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let addCalendarFeed: (i: unknown) => Promise<{ ok: boolean }>;
 let addManualBlock: (i: unknown) => Promise<{ ok: boolean; error?: string }>;
 let exportUrl: (id: string) => Promise<{ ok: boolean; url?: string }>;
@@ -63,7 +63,7 @@ beforeAll(async () => {
   addCalendarFeed = cal.addCalendarFeed;
   addManualBlock = cal.addManualBlock;
   exportUrl = cal.exportUrl;
-  createProperty = (await import('./helpers/seed')).createProperty;
+  seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   feedGET = (await import('../src/app/api/calendar/[token]/route')).GET;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
@@ -107,7 +107,7 @@ describe('iCal read/write (unit)', () => {
 
 describe.skipIf(!LIVE)('property calendar (end to end)', () => {
   it('imports a feed, adds a manual block, and exports a combined iCal', async () => {
-    const prop = await createProperty({ nickname: 'Depto Bellas Artes' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Bellas Artes' });
     const propertyId = prop.id!;
 
     const feed = await addCalendarFeed({ propertyId, label: 'airbnb', url: FEED_URL });
@@ -144,7 +144,7 @@ describe.skipIf(!LIVE)('property calendar (end to end)', () => {
   });
 
   it('rejects a manual block with an inverted date range', async () => {
-    const prop = await createProperty({ nickname: 'Depto Lastarria' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Lastarria' });
     const r = await addManualBlock({
       propertyId: prop.id,
       startsOn: '2026-09-10',

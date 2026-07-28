@@ -1,10 +1,12 @@
 /**
- * Test-only property seeding. The app has NO manual property creation — rows
- * are a strict mirror of the host's Hospitable account — so the e2e suites
- * seed their fixtures here instead of through a (now-removed) server action.
- * Verbatim port of the old createProperty behavior: resolves the customer from
- * TEST_CLERK_ID, best-effort geocodes, inserts property + default access row.
+ * Test-only fixture seeding. Properties are a strict mirror of the host's
+ * Hospitable account — the app has NO manual property creation — so the e2e
+ * suites seed rows shaped exactly like the mirror's imports: an external
+ * listing id + platform, plus the default access record, written straight to
+ * the DB (never through an app path). Customer resolved from TEST_CLERK_ID;
+ * best-effort geocode keeps cleaning-pricing fixtures located.
  */
+import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { geocodeAddress } from '../../src/lib/geocode';
 
@@ -19,7 +21,7 @@ export interface SeedPropertyInput {
   lng?: number;
 }
 
-export async function createProperty(
+export async function seedImportedProperty(
   input: SeedPropertyInput,
 ): Promise<{ ok: boolean; id?: string }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -57,6 +59,8 @@ export async function createProperty(
       size_m2: input.sizeM2 ?? null,
       lat,
       lng,
+      platform: 'airbnb',
+      external_listing_id: `test:${nodeCrypto.randomUUID()}`,
     })
     .select('id')
     .single();

@@ -21,7 +21,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
 let admin: ReturnType<typeof createClient>;
-let createProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
+let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let updateGuestInfo: (i: unknown) => Promise<{ ok: boolean }>;
 let draftReply: (
   i: unknown,
@@ -30,7 +30,7 @@ let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
-  createProperty = (await import('./helpers/seed')).createProperty;
+  seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   const cp = await import('../src/app/[locale]/(site)/properties/copilot-actions');
   updateGuestInfo = cp.updateGuestInfo;
   draftReply = cp.draftReply;
@@ -55,7 +55,7 @@ afterEach(async () => {
 
 describe.skipIf(!LIVE)('AI messaging co-pilot (end to end)', () => {
   it('saves property knowledge and hands off gracefully without an AI key', async () => {
-    const prop = await createProperty({ nickname: 'Depto Copiloto' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Copiloto' });
     const propertyId = prop.id!;
 
     const save = await updateGuestInfo({
@@ -84,7 +84,7 @@ describe.skipIf(!LIVE)('AI messaging co-pilot (end to end)', () => {
   it('drafts a grounded reply in dev-mock mode, flagging handoff on frustration', async () => {
     process.env.LUXEL_DEV_MOCK = '1';
     try {
-      const prop = await createProperty({ nickname: 'Depto Mock' });
+      const prop = await seedImportedProperty({ nickname: 'Depto Mock' });
       await updateGuestInfo({ propertyId: prop.id, guestInfo: 'WiFi: LuxelGuest / clave 1234.' });
 
       const ok = await draftReply({

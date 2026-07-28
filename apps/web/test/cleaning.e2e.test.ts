@@ -21,7 +21,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: unknown) => fn }));
 
 let admin: ReturnType<typeof createClient>;
-let createProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
+let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let refreshCleanings: (id: string) => Promise<{ ok: boolean; suggested?: number }>;
 let getTurnoverPrice: (id: string) => Promise<{ ok: boolean; priceClp?: number; error?: string }>;
 let setCleaningStatus: (i: unknown) => Promise<{ ok: boolean }>;
@@ -29,7 +29,7 @@ let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
-  createProperty = (await import('./helpers/seed')).createProperty;
+  seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   const clean = await import('../src/app/[locale]/(site)/properties/cleaning-actions');
   refreshCleanings = clean.refreshCleanings;
   getTurnoverPrice = clean.getTurnoverPrice;
@@ -55,7 +55,7 @@ afterEach(async () => {
 
 describe.skipIf(!LIVE)('cleaning coordination (end to end)', () => {
   it('suggests a cleaning from a check-out, schedules it, and stays idempotent', async () => {
-    const prop = await createProperty({
+    const prop = await seedImportedProperty({
       nickname: 'Depto Providencia',
       address: 'Av. Providencia 1234, Santiago',
       sizeM2: 55,
@@ -101,7 +101,7 @@ describe.skipIf(!LIVE)('cleaning coordination (end to end)', () => {
   });
 
   it('prices a turnover for a located property without throwing', async () => {
-    const prop = await createProperty({
+    const prop = await seedImportedProperty({
       nickname: 'Depto Centro',
       sizeM2: 45,
       lat: -33.4489,

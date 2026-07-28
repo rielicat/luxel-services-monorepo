@@ -21,7 +21,7 @@ vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: un
 
 let admin: ReturnType<typeof createClient>;
 let buildGrounding: (id: string) => Promise<{ source: string; text: string }>;
-let createProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
+let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let customerId: string;
 
 async function seedThread(propertyId: string, q: string, a: string, source: 'host' | 'ai') {
@@ -46,7 +46,7 @@ async function seedThread(propertyId: string, q: string, a: string, source: 'hos
 beforeAll(async () => {
   if (!LIVE) return;
   buildGrounding = (await import('../src/lib/ai/grounding')).buildGrounding;
-  createProperty = (await import('./helpers/seed')).createProperty;
+  seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
   const { data } = await admin
     .from('customers')
@@ -67,7 +67,7 @@ afterEach(async () => {
 
 describe.skipIf(!LIVE)('AI grounding (end to end)', () => {
   it('grounds on the property own history — chats AND automated (AI) messages', async () => {
-    const prop = await createProperty({ nickname: 'Depto Con Historia' });
+    const prop = await seedImportedProperty({ nickname: 'Depto Con Historia' });
     await seedThread(prop.id!, '¿Aceptan mascotas?', 'Sí, mascotas pequeñas sin costo.', 'host');
     await seedThread(
       prop.id!,
@@ -83,14 +83,14 @@ describe.skipIf(!LIVE)('AI grounding (end to end)', () => {
   });
 
   it('falls back to anonymized cross-property experience when the property has none', async () => {
-    const experienced = await createProperty({ nickname: 'Depto Veterano' });
+    const experienced = await seedImportedProperty({ nickname: 'Depto Veterano' });
     await seedThread(
       experienced.id!,
       '¿Hay estacionamiento? escríbeme a juan@perez.cl o +56 9 1234 5678',
       'Sí, estacionamiento en el subterráneo.',
       'host',
     );
-    const fresh = await createProperty({ nickname: 'Depto Nuevo' });
+    const fresh = await seedImportedProperty({ nickname: 'Depto Nuevo' });
 
     const g = await buildGrounding(fresh.id!);
     expect(g.source).toBe('global');
