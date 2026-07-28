@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createIntlMiddleware from 'next-intl/middleware';
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server';
 import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createIntlMiddleware(routing);
@@ -26,7 +26,28 @@ const intlOnly = (req: NextRequest) => {
 // production (Vercel never sets it), so real auth is always enforced in prod.
 const skipAuth = process.env.E2E_SKIP_AUTH === '1';
 
-export default skipAuth
+/* TEMP stealth gate — remove before launch (see AGENTS.md § Temporary).
+ * Production only: while the unlock cookie is absent, every PAGE request is
+ * rewritten server-side to the gate route (app/[locale]/gate), so the gate
+ * arrives fully rendered and unlocked visitors never see it — no client-side
+ * flicker in either direction. API routes stay open (they were never gated). */
+const GATE_COOKIE = 'luxel_gate';
+const gateActive = process.env.NODE_ENV === 'production';
+
+const withStealthGate =
+  (handler: (req: NextRequest, event: NextFetchEvent) => unknown) =>
+  (req: NextRequest, event: NextFetchEvent) => {
+    if (
+      gateActive &&
+      !req.nextUrl.pathname.startsWith('/api/') &&
+      req.cookies.get(GATE_COOKIE)?.value !== '1'
+    ) {
+      return NextResponse.rewrite(new URL('/es/gate', req.url));
+    }
+    return handler(req, event);
+  };
+
+const inner = skipAuth
   ? intlOnly
   : clerkMiddleware(async (auth, req) => {
       if (isProtectedRoute(req)) {
@@ -48,6 +69,8 @@ export default skipAuth
       if (req.nextUrl.pathname.startsWith('/api/')) return;
       return intlMiddleware(req);
     });
+
+export default withStealthGate(inner);
 
 export const config = {
   matcher: [

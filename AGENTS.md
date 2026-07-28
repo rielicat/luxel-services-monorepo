@@ -97,14 +97,16 @@ supabase/       SQL migrations + seed + local config
 
 ## Temporary — remove before public launch
 
-- **Stealth access gate.** While in stealth, the **deployed** build shows a
-  "restricted access" screen over the whole app. It listens for keystrokes (no
-  input field): type **`0612`** then **Enter** to unlock (Enter with a wrong
-  code clears it); the unlock is remembered per-browser. Production only
-  (`NODE_ENV === 'production'`) — local `next dev` is never gated. It is
-  client-side obfuscation, **not** real security. To LIFT it: delete
-  `apps/web/src/components/stealth-gate.tsx` and its `<StealthGate>` mount in
-  `apps/web/src/app/[locale]/layout.tsx`.
+- **Stealth access gate.** While in stealth, the **deployed** build serves a
+  "restricted access" page instead of the app: the middleware rewrites every
+  page request to `app/[locale]/gate` until the `luxel_gate` cookie is set. No
+  input field and no on-screen hint — the gate listens for keystrokes and
+  unlocks the moment the last digits typed match **`0612`** (no Enter), sets
+  the cookie and reloads. Production only (`NODE_ENV === 'production'`) —
+  local `next dev` is never gated; API routes stay open. It is obfuscation,
+  **not** real security. To LIFT it: delete
+  `apps/web/src/app/[locale]/gate/` and the `withStealthGate` block in
+  `apps/web/src/middleware.ts`.
 
 ## Product & marketing constraints (user-set)
 

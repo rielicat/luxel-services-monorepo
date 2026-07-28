@@ -3,19 +3,19 @@
 /* ─────────────────────────────────────────────────────────────────────────
  * TEMPORARY STEALTH GATE — remove before public launch.
  *
- * While the product is in stealth, the DEPLOYED build shows a "restricted
- * access" screen over the whole app. There is no input field and no on-screen
- * hint about how to get in: it listens for keystrokes globally and unlocks the
- * moment the last digits typed match the code — no Enter needed. The unlock is
- * remembered per-browser.
+ * The middleware rewrites every page to this route while the unlock cookie is
+ * absent (production only), so locked visitors get the gate straight from the
+ * server and unlocked visitors never see it — no client-side flicker either
+ * way. No input field and no on-screen hint: it listens for keystrokes
+ * globally and unlocks the moment the last digits typed match the code, then
+ * sets the cookie and reloads (the middleware lets the real page through).
  *
  * Access code: 0612
- * Scope: production only (`NODE_ENV === 'production'`) — local `next dev` is
- *   never gated. To LIFT the gate, delete this component + its mount in
- *   apps/web/src/app/[locale]/layout.tsx. See AGENTS.md § Temporary.
+ * To LIFT the gate: delete this route + the gate block in
+ * apps/web/src/middleware.ts. See AGENTS.md § Temporary.
  *
- * NOT real security — the code and app content ship in the client bundle. It's
- * a soft curtain to keep casual visitors out during stealth.
+ * NOT real security — the code ships in the client bundle. It's a soft curtain
+ * to keep casual visitors out during stealth.
  * ──────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from 'react';
@@ -23,37 +23,33 @@ import { LuxelMark } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
 
 const CODE = '0612';
-const STORAGE_KEY = 'luxel.gate.v1';
+const COOKIE = 'luxel_gate';
+const LEGACY_KEY = 'luxel.gate.v1';
 
-export function StealthGate({ children }: { children: React.ReactNode }) {
-  // Compile-time constant — the gate is stripped from behaviour in dev builds.
-  const gateActive = process.env.NODE_ENV === 'production';
-  const [unlocked, setUnlocked] = useState(false);
+function unlock() {
+  document.cookie = `${COOKIE}=1; path=/; max-age=31536000; samesite=lax; secure`;
+  window.location.reload();
+}
+
+export default function GatePage() {
   const [count, setCount] = useState(0);
   const buffer = useRef('');
 
   useEffect(() => {
-    if (!gateActive) return;
-    if (localStorage.getItem(STORAGE_KEY) === '1') {
-      setUnlocked(true);
+    // Browsers unlocked under the old localStorage gate migrate silently.
+    if (localStorage.getItem(LEGACY_KEY) === '1') {
+      unlock();
       return;
     }
     const onKey = (e: KeyboardEvent) => {
       if (!/^[0-9]$/.test(e.key)) return;
-      // Rolling window of the last CODE.length digits — unlock the instant they
-      // match, so there's no Enter and no obvious "submit" step.
       buffer.current = (buffer.current + e.key).slice(-CODE.length);
       setCount((c) => Math.min(c + 1, CODE.length));
-      if (buffer.current === CODE) {
-        localStorage.setItem(STORAGE_KEY, '1');
-        setUnlocked(true);
-      }
+      if (buffer.current === CODE) unlock();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [gateActive]);
-
-  if (!gateActive || unlocked) return <>{children}</>;
+  }, []);
 
   return (
     <div
