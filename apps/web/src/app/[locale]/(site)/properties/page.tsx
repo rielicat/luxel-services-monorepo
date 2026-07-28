@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { getPlan, type PlanRow } from '@/lib/plans';
@@ -54,14 +55,17 @@ export default async function PropertiesPage() {
       }
       // Self-operating sync: reservations, guest messages and cleanings refresh
       // automatically whenever the host visits and the last full sync is stale —
-      // no manual button. (Real-time messaging additionally flows through the
-      // channel webhook when configured.)
+      // no manual button. The heavy work runs AFTER the response streams (the
+      // page must never block on it); its results show on the next load.
+      // (Real-time messaging additionally flows through the channel webhook.)
       const syncedAt = connection?.messages_synced_at
         ? new Date(connection.messages_synced_at).getTime()
         : 0;
       if (r?.ok && connection && Date.now() - syncedAt > FULL_SYNC_STALE_MS) {
-        await syncHospitableAccount(customer.id, token).catch(() => {});
-        connection = await fetchConnection(customer.id);
+        const customerId = customer.id;
+        after(async () => {
+          await syncHospitableAccount(customerId, token).catch(() => {});
+        });
       }
     } else if (connection) {
       // A connection exists but its token can't be used → the mirror is stale.
