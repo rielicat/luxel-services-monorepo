@@ -480,20 +480,6 @@
     "saved": "Guardado ✓",
     "gen_link": "Generar enlace de check-in",
     "copy": "Copiar",
-    "calendar": "Calendario",
-    "synced": "sincronizado",
-    "never_synced": "sin sincronizar",
-    "remove": "Quitar",
-    "feed_url_ph": "URL de calendario iCal (AirBnB/Booking)",
-    "sync_now": "Sincronizar",
-    "no_blocks": "Sin fechas bloqueadas.",
-    "block_manual": "Bloqueado por ti",
-    "block_import": "Reservado",
-    "block_from": "Desde",
-    "block_to": "Hasta",
-    "add": "Agregar",
-    "export_feed": "Ver enlace de exportación",
-    "export_help": "Agrega este enlace en AirBnB/Booking para que bloqueen automáticamente estas fechas.",
     "empty_title": "Aún no tienes propiedades",
     "empty_body": "Conecta tu Airbnb y tus propiedades se importan automáticamente.",
     "empty_connected_title": "Tu cuenta de Airbnb aún no tiene anuncios",
@@ -570,13 +556,6 @@
     "sim_ph": "Simular mensaje de huésped (dev)…",
     "sim": "Probar"
   },
-  "revenue": {
-    "title": "Ingresos y agente",
-    "agent_ph": "Pídeme algo: reporte, bloquear fecha, optimizar precios…",
-    "suggest": "Ver precios sugeridos",
-    "occupancy": "Ocupación 30 días: {pct}%",
-    "underbooked": "{n} noches abiertas (2 semanas)"
-  },
   "hospitable": {
     "connect_title": "Conecta tu Airbnb",
     "connect_body": "Sincroniza tus propiedades y reservas de Airbnb automáticamente. Pega el código de conexión que te entregó tu equipo Luxel; se guarda cifrado.",
@@ -628,15 +607,11 @@
     "help_link": "Escríbenos y te lo enviamos"
   },
   "cal": {
-    "prev": "Mes anterior",
-    "next": "Mes siguiente",
     "reserved": "Reservado",
-    "blocked": "Bloqueado por ti",
-    "hint": "Toca un día libre para bloquearlo; toca tu bloqueo para liberarlo.",
-    "advanced": "Sincronización avanzada (iCal)",
-    "feed_ph": "URL de calendario iCal…",
-    "remove": "Quitar",
-    "sync": "Sincronizar"
+    "blocked": "Bloqueado en Airbnb",
+    "available": "Disponible (tarifa publicada)",
+    "no_data": "No pudimos leer el calendario de Airbnb en este momento.",
+    "managed_note": "El calendario se administra en Airbnb (disponibilidad y tarifas) y se refleja aquí automáticamente."
   },
   "ai": {
     "toggle_title": "Respuestas automáticas con IA",
@@ -662,9 +637,7 @@
     "cleanings_title": "Aseos coordinados",
     "cleanings_none": "Se agendan solos después de cada check-out.",
     "cleaning_scheduled": "Agendado",
-    "cleaning_suggested": "Sugerido",
-    "agent_ph": "Pídeme algo: \"reporte de… a…\", \"bloquea 2026-08-15\", \"¿precios?\"",
-    "send": "Enviar"
+    "cleaning_suggested": "Sugerido"
   },
   "about": {
     "eyebrow": "Quiénes somos",

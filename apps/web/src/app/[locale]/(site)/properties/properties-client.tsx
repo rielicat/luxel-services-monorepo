@@ -21,9 +21,22 @@ import { PlanBar, type Plan } from './plan-bar';
 import { HospitableCard } from './hospitable-card';
 import type { HostConnection } from '@/lib/host/queries';
 import type { AccessRow } from './access-panel';
-import type { Feed, Block } from './calendar-panel';
 import type { Cleaning } from './cleaning-panel';
 import type { Thread } from './messaging-panel';
+
+export type Feed = {
+  id: string;
+  label: string | null;
+  ical_url: string;
+  last_synced_at: string | null;
+};
+export type Block = {
+  id: string;
+  starts_on: string;
+  ends_on: string;
+  source: 'import' | 'manual';
+  summary: string | null;
+};
 
 export type PropertyRow = {
   id: string;

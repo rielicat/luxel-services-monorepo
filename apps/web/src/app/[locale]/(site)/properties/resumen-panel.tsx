@@ -1,11 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { Send, CalendarDays, TrendingUp, Bot, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { askAgent } from './revenue-actions';
+import { CalendarDays, TrendingUp, Bot, Sparkles } from 'lucide-react';
 import type { PropertyRow } from './properties-client';
 
 /** One night of the listing's REAL Airbnb calendar, mapped server-side from the
@@ -48,7 +44,8 @@ function staysFromLiveDays(days: LiveDay[]): { from: string; to: string; nights:
 
 /** The management overview, fed exclusively by real product data: the listing's
  *  live Airbnb calendar (stays + published rates), the AI messaging state, and
- *  the coordinated cleanings. Plus the command box over the property's tools. */
+ *  the coordinated cleanings. Host questions go to the global Lux agent — no
+ *  duplicate per-property chat here. */
 export function ResumenPanel({
   property,
   liveDays,
@@ -57,9 +54,6 @@ export function ResumenPanel({
   liveDays: LiveDay[] | null;
 }) {
   const t = useTranslations('resumen');
-  const [pending, start] = useTransition();
-  const [cmd, setCmd] = useState('');
-  const [reply, setReply] = useState<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -174,42 +168,6 @@ export function ResumenPanel({
           </div>
         ))}
       </section>
-
-      <div className="sm:col-span-2">
-        <div className="flex gap-1.5">
-          <Input
-            className="h-9 text-sm"
-            value={cmd}
-            onChange={(e) => setCmd(e.target.value)}
-            placeholder={t('agent_ph')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && cmd.trim() && !pending) {
-                start(async () => {
-                  const r = await askAgent({ propertyId: property.id, command: cmd.trim() });
-                  setReply(r.text ?? null);
-                });
-              }
-            }}
-          />
-          <Button
-            size="sm"
-            className="h-9"
-            disabled={pending || !cmd.trim()}
-            aria-label={t('send')}
-            onClick={() =>
-              start(async () => {
-                const r = await askAgent({ propertyId: property.id, command: cmd.trim() });
-                setReply(r.text ?? null);
-              })
-            }
-          >
-            <Send className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-        {reply && (
-          <p className="bg-muted/50 mt-2 whitespace-pre-wrap rounded-md p-2.5 text-xs">{reply}</p>
-        )}
-      </div>
     </div>
   );
 }

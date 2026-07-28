@@ -6,6 +6,8 @@ import { geocodeAddress } from '@/lib/geocode';
 import { getDayAvailability } from '@/lib/availability';
 import { workingHoursStatus } from '@/lib/working-hours';
 import { airbnbTierPrice, type AirbnbTier } from '@/lib/plan-pricing';
+import { fetchProperties } from '@/lib/host/queries';
+import { customerHospitableToken, listHospitableCalendar } from '@/lib/channels/hospitable';
 
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 
@@ -63,6 +65,7 @@ const LINK_DESTINATIONS: Record<
   book: { label: 'Agendar aseo', href: '/book', style: 'lime' },
   pricing: { label: 'Ver precios', href: '/calculator', style: 'outline' },
   dashboard: { label: 'Ir a mi panel', href: '/account', style: 'outline' },
+  properties: { label: 'Mis propiedades', href: '/properties', style: 'primary' },
   about: { label: 'Sobre Luxel', href: '/about', style: 'outline' },
 };
 
@@ -76,6 +79,8 @@ export interface ToolResult {
 
 export interface ToolContext {
   whatsappNumber?: string | null;
+  /** The signed-in host's customer id — unlocks the real host-status tool. */
+  customerId?: string | null;
 }
 
 /** Tool schemas (OpenAI function tools) — service-type enum injected per request. */
@@ -166,6 +171,15 @@ export function buildTools(serviceSlugs: string[]): OpenAI.Chat.Completions.Chat
     {
       type: 'function',
       function: {
+        name: 'get_host_status',
+        description:
+          'Estado REAL de las propiedades del anfitrión con sesión iniciada: ocupación según su calendario de Airbnb, conversaciones por responder y próximos aseos. Úsala cuando un anfitrión pregunta por SUS propiedades, reservas, ocupación, mensajes o aseos. Nunca inventes estos datos.',
+        parameters: { type: 'object', properties: {}, additionalProperties: false },
+      },
+    },
+    {
+      type: 'function',
+      function: {
         name: 'share_links',
         description:
           'Muestra 1–3 accesos directos útiles al usuario (páginas del sitio) según lo que necesita. Úsala para ofrecer el siguiente paso: cotizar, ver un servicio, agendar, comenzar la prueba o ir al panel. Elige solo los destinos relevantes.',
@@ -234,6 +248,8 @@ export async function runTool(
       return getQuote(input);
     case 'get_airbnb_quote':
       return getAirbnbQuote(input);
+    case 'get_host_status':
+      return getHostStatus(ctx);
     case 'share_links':
       return shareLinks(input);
     case 'check_availability':
@@ -264,6 +280,62 @@ function getAirbnbQuote(input: Record<string, unknown>): ToolResult {
       perListingClp,
       monthlyClp,
     },
+  };
+}
+
+const DAY = 86_400_000;
+
+/** Real host overview: mirror rows + live Airbnb calendar per listing. Every
+ *  number traces to a system of record — no estimates. */
+async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
+  if (!ctx.customerId) {
+    return {
+      content:
+        'El usuario no ha iniciado sesión, así que no puedes ver sus propiedades. Invítalo a ingresar y ofrécele el acceso directo al panel con share_links.',
+    };
+  }
+  const properties = await fetchProperties(ctx.customerId);
+  if (!properties.length) {
+    return {
+      content:
+        'La cuenta aún no tiene propiedades conectadas. Guíalo a conectar su Airbnb en la sección Mis propiedades (ofrece el acceso directo con share_links).',
+    };
+  }
+
+  const token = await customerHospitableToken(ctx.customerId);
+  const today = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const from = iso(today);
+
+  const lines: string[] = [];
+  for (const p of properties.slice(0, 5)) {
+    let occupancy = 'ocupación no disponible';
+    if (token && p.external_listing_id) {
+      const days = await listHospitableCalendar(
+        token,
+        p.external_listing_id as string,
+        from,
+        iso(new Date(today.getTime() + 30 * DAY)),
+      );
+      if (days?.length) {
+        const reserved = days.filter((d) => d.status?.reason === 'RESERVED').length;
+        occupancy = `ocupación 30 días ${Math.round((reserved / days.length) * 100)}%`;
+      }
+    }
+    const needsReply = (p.guest_threads as { status: string }[]).filter(
+      (th) => th.status === 'needs_host',
+    ).length;
+    const nextCleaning = (p.cleanings as { cleaning_date: string; status: string }[])
+      .filter((c) => c.status !== 'skipped' && c.status !== 'done' && c.cleaning_date >= from)
+      .map((c) => c.cleaning_date)
+      .sort()[0];
+    lines.push(
+      `• ${p.nickname}: ${occupancy} · ${needsReply} conversaciones por responder · próximo aseo ${nextCleaning ?? 'sin agendar'}`,
+    );
+  }
+
+  return {
+    content: `Estado real de sus propiedades:\n${lines.join('\n')}\nResúmelo con claridad y ofrece el acceso directo a Mis propiedades si ayuda.`,
   };
 }
 

@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     signedIn: Boolean(userId),
   });
   const tools = buildTools(serviceTypes.map((s) => s.slug));
-  const ctx: ToolContext = { whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER };
+  const ctx: ToolContext = { whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER, customerId };
 
   // System prompt + tools form a stable prefix → OpenAI prompt caching kicks in
   // automatically for the input tokens, cutting cost on multi-turn sessions.

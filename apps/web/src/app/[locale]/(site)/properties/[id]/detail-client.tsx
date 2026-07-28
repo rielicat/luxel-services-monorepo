@@ -22,7 +22,7 @@ import { Tabs } from '@/components/ui/tabs';
 import { amenityLabel, propertyTypeLabel, roomTypeLabel } from '@/lib/host/listing-labels';
 import type { PropertyRow } from '../properties-client';
 import { AccessPanel } from '../access-panel';
-import { MonthCalendar } from '../month-calendar';
+import { LiveCalendar } from '../live-calendar';
 import { CleaningPanel } from '../cleaning-panel';
 import { MessagingPanel } from '../messaging-panel';
 import { AiSettings } from '../ai-settings';
@@ -41,13 +41,12 @@ function stats(property: PropertyRow, liveDays: LiveDay[] | null) {
   const to = iso(new Date(today.getTime() + 30 * DAY));
 
   let occupancy: number;
-  let nextCheckout: string | null;
   if (liveDays?.length) {
-    const reserved = liveDays.filter((d) => d.reserved).length;
-    occupancy = Math.round((reserved / liveDays.length) * 100);
-    // Checkout morning = first non-reserved day right after a reserved night.
-    nextCheckout =
-      liveDays.find((d, i) => i > 0 && liveDays[i - 1]!.reserved && !d.reserved)?.date ?? null;
+    // Live occupancy over the tile's 30-day horizon, even when more days came in.
+    const horizon = liveDays.slice(0, 30);
+    occupancy = Math.round(
+      (horizon.filter((d) => d.reserved).length / Math.max(1, horizon.length)) * 100,
+    );
   } else {
     const booked = new Set<string>();
     for (const b of property.calendar_blocks) {
@@ -60,12 +59,15 @@ function stats(property: PropertyRow, liveDays: LiveDay[] | null) {
       }
     }
     occupancy = Math.round((booked.size / 30) * 100);
-    nextCheckout =
-      property.calendar_blocks
-        .filter((b) => b.source === 'import' && b.ends_on >= from)
-        .map((b) => b.ends_on)
-        .sort()[0] ?? null;
   }
+
+  // Next checkout = the earliest synced RESERVATION end, not an availability
+  // boundary — back-to-back stays have no gap for a boundary to detect.
+  const nextCheckout =
+    property.calendar_blocks
+      .filter((b) => b.source === 'import' && b.ends_on >= from)
+      .map((b) => b.ends_on)
+      .sort()[0] ?? null;
 
   const pendingCleanings = property.cleanings.filter(
     (c) => c.status !== 'skipped' && c.status !== 'done' && c.cleaning_date >= from,
@@ -269,13 +271,7 @@ export function PropertyDetailClient({
                 <CalendarDays className="h-4 w-4" /> {t('tab_calendar')}
               </span>
             ),
-            content: (
-              <MonthCalendar
-                propertyId={property.id}
-                blocks={property.calendar_blocks}
-                feeds={property.property_calendars}
-              />
-            ),
+            content: <LiveCalendar days={liveDays} />,
           },
           {
             id: 'mensajes',

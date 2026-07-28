@@ -29,8 +29,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   const property = (await fetchProperty(customer.id, id)) as PropertyRow | null;
   if (!property) notFound();
 
-  // The listing's REAL next-30-days calendar (published nightly prices +
-  // availability), straight from the channel — nothing invented. Null on any
+  // The listing's REAL calendar for the next 90 days (published nightly prices
+  // + availability), straight from the channel — nothing invented. Null on any
   // failure: the panels then fall back to the locally synced blocks.
   let liveDays: LiveDay[] | null = null;
   if (property.external_listing_id) {
@@ -41,7 +41,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         token,
         property.external_listing_id,
         iso(today),
-        iso(new Date(today.getTime() + 30 * DAY)),
+        iso(new Date(today.getTime() + 90 * DAY)),
       );
       if (days) {
         liveDays = days.map((d) => ({
