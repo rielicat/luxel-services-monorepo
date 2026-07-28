@@ -189,7 +189,8 @@ beforeAll(async () => {
 
   const a = await import('../src/app/[locale]/(site)/properties/channel-actions');
   connectHospitable = a.connectHospitable;
-  syncHospitable = a.syncHospitable;
+  const syncLib = await import('../src/lib/channels/hospitable-sync');
+  syncHospitable = () => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN);
   disconnectHospitable = a.disconnectHospitable;
   decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
@@ -531,7 +532,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(((await res2.json()) as { ignored?: boolean }).ignored).toBe(true);
   });
 
-  it('disconnect removes the connection and sync stops working', async () => {
+  it('disconnect removes the connection and the strict token resolver goes dark', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
     expect((await disconnectHospitable()).ok).toBe(true);
     const { count } = await admin
@@ -539,8 +540,10 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('*', { count: 'exact', head: true })
       .eq('customer_id', customerId);
     expect(count).toBe(0);
-    const r = await syncHospitable();
-    expect(r.ok).toBe(false); // no token (env fallback removed in this test)
+    // Every sync path (page load, cron) resolves through this — null means no
+    // sync can run for the account anymore (env fallback removed in this test).
+    const { customerHospitableToken } = await import('../src/lib/channels/hospitable');
+    expect(await customerHospitableToken(customerId)).toBeNull();
     expect(apiCalls).toBeGreaterThan(0);
   });
 });

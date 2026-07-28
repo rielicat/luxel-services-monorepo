@@ -18,7 +18,7 @@ import {
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlanBar, type Plan } from './plan-bar';
-import { HospitableCard } from './hospitable-card';
+import { HospitableCard, ConnectionNote } from './hospitable-card';
 import type { HostConnection } from '@/lib/host/queries';
 import type { AccessRow } from './access-panel';
 import type { Cleaning } from './cleaning-panel';
@@ -103,7 +103,11 @@ export function PropertiesClient({
           </div>
         )}
         <PlanBar plan={plan} />
-        <HospitableCard connection={connection} />
+        {connection ? (
+          <ConnectionNote connection={connection} />
+        ) : (
+          <HospitableCard connection={connection} />
+        )}
 
         {initial.length === 0 ? (
           connection ? (

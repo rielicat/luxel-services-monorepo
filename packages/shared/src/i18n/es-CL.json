@@ -575,8 +575,7 @@
     "connected_title": "Airbnb conectado",
     "last_sync": "Última sincronización: {date}",
     "never_synced": "Aún sin sincronizar",
-    "sync": "Sincronizar",
-    "sync_done": "{n} reservas sincronizadas",
+    "syncing_now": "Sincronizando…",
     "disconnect": "Desconectar"
   },
   "detail": {

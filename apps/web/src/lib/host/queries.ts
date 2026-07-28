@@ -53,13 +53,14 @@ export interface HostConnection {
   status: string;
   account_label: string | null;
   last_synced_at: string | null;
+  messages_synced_at: string | null;
 }
 
 export async function fetchConnection(customerId: string): Promise<HostConnection | null> {
   const supabase = createSupabaseServiceRoleClient();
   const { data } = await supabase
     .from('channel_connections')
-    .select('provider, status, account_label, last_synced_at')
+    .select('provider, status, account_label, last_synced_at, messages_synced_at')
     .eq('customer_id', customerId)
     .eq('provider', 'hospitable')
     .maybeSingle();

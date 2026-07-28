@@ -4,11 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { currentCustomerId } from '@/lib/host/owner';
-import {
-  verifyHospitableToken,
-  saveHospitableConnection,
-  customerHospitableToken,
-} from '@/lib/channels/hospitable';
+import { verifyHospitableToken, saveHospitableConnection } from '@/lib/channels/hospitable';
 import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
 
 /** Connects the host's own Hospitable account: verifies the token against the
@@ -43,19 +39,4 @@ export async function disconnectHospitable(): Promise<{ ok: boolean }> {
     .eq('provider', 'hospitable');
   revalidatePath('/properties');
   return { ok: true };
-}
-
-export async function syncHospitable(): Promise<{
-  ok: boolean;
-  properties?: number;
-  reservations?: number;
-}> {
-  const cid = await currentCustomerId();
-  if (!cid) return { ok: false };
-  // Own-connection token only — the manual Sync also prunes the mirror.
-  const token = await customerHospitableToken(cid);
-  if (!token) return { ok: false };
-  const r = await syncHospitableAccount(cid, token);
-  revalidatePath('/properties');
-  return { ok: r.ok, properties: r.properties, reservations: r.reservations };
 }

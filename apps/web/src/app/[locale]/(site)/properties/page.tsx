@@ -4,11 +4,16 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { getPlan, type PlanRow } from '@/lib/plans';
 import { fetchProperties, fetchConnection, type HostConnection } from '@/lib/host/queries';
 import { customerHospitableToken, saveHospitableConnection } from '@/lib/channels/hospitable';
-import { reconcileHospitableProperties } from '@/lib/channels/hospitable-sync';
+import {
+  reconcileHospitableProperties,
+  syncHospitableAccount,
+} from '@/lib/channels/hospitable-sync';
 import { isClerkAdmin } from '@/lib/auth/admin';
 import { PropertiesClient, type PropertyRow } from './properties-client';
 
 export const dynamic = 'force-dynamic';
+
+const FULL_SYNC_STALE_MS = 15 * 60_000;
 
 export default async function PropertiesPage() {
   const { userId } = await auth();
@@ -45,6 +50,17 @@ export default async function PropertiesPage() {
       syncFailed = !r?.ok;
       if (r?.ok && !connection) {
         await saveHospitableConnection(customer.id, token, r.accountLabel);
+        connection = await fetchConnection(customer.id);
+      }
+      // Self-operating sync: reservations, guest messages and cleanings refresh
+      // automatically whenever the host visits and the last full sync is stale —
+      // no manual button. (Real-time messaging additionally flows through the
+      // channel webhook when configured.)
+      const syncedAt = connection?.messages_synced_at
+        ? new Date(connection.messages_synced_at).getTime()
+        : 0;
+      if (r?.ok && connection && Date.now() - syncedAt > FULL_SYNC_STALE_MS) {
+        await syncHospitableAccount(customer.id, token).catch(() => {});
         connection = await fetchConnection(customer.id);
       }
     } else if (connection) {
