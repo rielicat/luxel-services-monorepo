@@ -131,6 +131,45 @@ export async function listHospitableReservations(
   return out;
 }
 
+export interface HospitableCalendarDay {
+  date: string;
+  day?: string | null;
+  min_stay?: number | null;
+  closed_for_checkin?: boolean | null;
+  closed_for_checkout?: boolean | null;
+  status?: {
+    reason?: string | null;
+    source_type?: string | null;
+    available?: boolean | null;
+  } | null;
+  price?: { amount?: number | null; currency?: string | null; formatted?: string | null } | null;
+}
+
+/** The listing's REAL calendar — per-night published price and availability as
+ *  Airbnb has it (shape captured live 2026-07; price.amount arrives in cents).
+ *  Returns null on any failure so callers degrade instead of inventing data. */
+export async function listHospitableCalendar(
+  token: string,
+  propertyId: string,
+  startDate: string,
+  endDate: string,
+): Promise<HospitableCalendarDay[] | null> {
+  try {
+    const res = await fetch(
+      `${BASE}/properties/${encodeURIComponent(propertyId)}/calendar?start_date=${startDate}&end_date=${endDate}`,
+      { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      data?: HospitableCalendarDay[] | { days?: HospitableCalendarDay[] };
+    };
+    const days = Array.isArray(json.data) ? json.data : (json.data?.days ?? null);
+    return Array.isArray(days) ? days : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface HospitableMessage {
   id: string;
   body: string | null;

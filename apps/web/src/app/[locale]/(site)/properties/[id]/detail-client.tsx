@@ -26,36 +26,53 @@ import { MonthCalendar } from '../month-calendar';
 import { CleaningPanel } from '../cleaning-panel';
 import { MessagingPanel } from '../messaging-panel';
 import { AiSettings } from '../ai-settings';
-import { ResumenPanel, type Insight } from '../resumen-panel';
+import { ResumenPanel, type LiveDay } from '../resumen-panel';
+
+export type { LiveDay } from '../resumen-panel';
 
 const DAY = 86_400_000;
 
-function stats(property: PropertyRow) {
+/** Occupancy and next checkout come from the LIVE Airbnb calendar when we have
+ *  it; the locally synced blocks are only the fallback. */
+function stats(property: PropertyRow, liveDays: LiveDay[] | null) {
   const today = new Date();
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const from = iso(today);
   const to = iso(new Date(today.getTime() + 30 * DAY));
 
-  const booked = new Set<string>();
-  for (const b of property.calendar_blocks) {
-    if (b.ends_on < from || b.starts_on > to) continue;
-    let d = new Date(`${b.starts_on > from ? b.starts_on : from}T00:00:00Z`);
-    const end = new Date(`${b.ends_on < to ? b.ends_on : to}T00:00:00Z`);
-    while (d < end) {
-      booked.add(iso(d));
-      d = new Date(d.getTime() + DAY);
+  let occupancy: number;
+  let nextCheckout: string | null;
+  if (liveDays?.length) {
+    const reserved = liveDays.filter((d) => d.reserved).length;
+    occupancy = Math.round((reserved / liveDays.length) * 100);
+    // Checkout morning = first non-reserved day right after a reserved night.
+    nextCheckout =
+      liveDays.find((d, i) => i > 0 && liveDays[i - 1]!.reserved && !d.reserved)?.date ?? null;
+  } else {
+    const booked = new Set<string>();
+    for (const b of property.calendar_blocks) {
+      if (b.ends_on < from || b.starts_on > to) continue;
+      let d = new Date(`${b.starts_on > from ? b.starts_on : from}T00:00:00Z`);
+      const end = new Date(`${b.ends_on < to ? b.ends_on : to}T00:00:00Z`);
+      while (d < end) {
+        booked.add(iso(d));
+        d = new Date(d.getTime() + DAY);
+      }
     }
+    occupancy = Math.round((booked.size / 30) * 100);
+    nextCheckout =
+      property.calendar_blocks
+        .filter((b) => b.source === 'import' && b.ends_on >= from)
+        .map((b) => b.ends_on)
+        .sort()[0] ?? null;
   }
-  const nextCheckout = property.calendar_blocks
-    .filter((b) => b.source === 'import' && b.ends_on >= from)
-    .map((b) => b.ends_on)
-    .sort()[0];
+
   const pendingCleanings = property.cleanings.filter(
     (c) => c.status !== 'skipped' && c.status !== 'done' && c.cleaning_date >= from,
   ).length;
   return {
-    occupancy: Math.round((booked.size / 30) * 100),
-    nextCheckout: nextCheckout ?? null,
+    occupancy,
+    nextCheckout,
     pendingCleanings,
     needsReply: property.guest_threads.filter((t) => t.status === 'needs_host').length,
   };
@@ -181,17 +198,17 @@ function ListingHero({ property }: { property: PropertyRow }) {
 
 export function PropertyDetailClient({
   property,
-  insight,
+  liveDays,
   turnoverPrice,
   showSim,
 }: {
   property: PropertyRow;
-  insight: Insight | null;
+  liveDays: LiveDay[] | null;
   turnoverPrice: number | null;
   showSim: boolean;
 }) {
   const t = useTranslations('detail');
-  const s = stats(property);
+  const s = stats(property, liveDays);
 
   const tiles = [
     { label: t('occupancy'), value: `${s.occupancy}%` },
@@ -243,13 +260,7 @@ export function PropertyDetailClient({
                 <LayoutDashboard className="h-4 w-4" /> {t('tab_overview')}
               </span>
             ),
-            content: (
-              <ResumenPanel
-                propertyId={property.id}
-                blocks={property.calendar_blocks}
-                insight={insight}
-              />
-            ),
+            content: <ResumenPanel property={property} liveDays={liveDays} />,
           },
           {
             id: 'calendario',

@@ -148,6 +148,29 @@ beforeAll(async () => {
       if (url.includes('/reservations')) {
         return Response.json(RESERVATIONS_PAYLOAD);
       }
+      if (url.includes('/calendar')) {
+        // Real captured shape: price.amount arrives in cents.
+        return Response.json({
+          data: {
+            days: [
+              {
+                date: '2026-07-28',
+                day: 'TUESDAY',
+                min_stay: 1,
+                status: { reason: 'RESERVED', source_type: 'RESERVATION', available: false },
+                price: { amount: 16645000, currency: 'CLP', formatted: 'CLP 166,450' },
+              },
+              {
+                date: '2026-07-29',
+                day: 'WEDNESDAY',
+                min_stay: 1,
+                status: { reason: 'AVAILABLE', source_type: null, available: true },
+                price: { amount: 16645000, currency: 'CLP', formatted: 'CLP 166,450' },
+              },
+            ],
+          },
+        });
+      }
       if (url.includes('/properties')) {
         if (PROPERTIES_MODE === 'empty') return Response.json({ data: [], links: { next: null } });
         if (PROPERTIES_MODE === 'paged_fail') {
@@ -321,6 +344,23 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('*', { count: 'exact', head: true })
       .eq('owner_id', customerId);
     expect(count).toBe(1);
+  });
+
+  it('reads the listing calendar with real per-night prices and availability', async () => {
+    const { listHospitableCalendar } = await import('../src/lib/channels/hospitable');
+    const days = await listHospitableCalendar(
+      FAKE_TOKEN,
+      HOSP_PROPERTY_ID,
+      '2026-07-28',
+      '2026-07-29',
+    );
+    expect(days).toHaveLength(2);
+    expect(days![0]).toMatchObject({
+      date: '2026-07-28',
+      status: { reason: 'RESERVED', available: false },
+    });
+    expect(days![1]!.status!.available).toBe(true);
+    expect(days![0]!.price!.amount).toBe(16645000); // cents — callers divide by 100
   });
 
   it('never prunes off a partial or empty fetch, and never touches another owner', async () => {

@@ -1,6 +1,6 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { suggestPricing } from '@/lib/revenue/suggest';
+import { customerHospitableToken, listHospitableCalendar } from '@/lib/channels/hospitable';
 import { generateReport } from '@/lib/revenue/report';
 
 export type AgentResult = {
@@ -52,11 +52,45 @@ export async function runAgentCommand(propertyId: string, command: string): Prom
   }
 
   if (/precio|price|optimiz|tarifa/.test(cmd)) {
-    const ins = await suggestPricing(propertyId);
+    // Real numbers only: the listing's live Airbnb calendar, or an honest miss.
+    const supabase = createSupabaseServiceRoleClient();
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('owner_id, external_listing_id')
+      .eq('id', propertyId)
+      .maybeSingle();
+    const token = prop?.owner_id ? await customerHospitableToken(prop.owner_id as string) : null;
+    const today = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const days =
+      token && prop?.external_listing_id
+        ? await listHospitableCalendar(
+            token,
+            prop.external_listing_id as string,
+            iso(today),
+            iso(new Date(today.getTime() + 30 * DAY)),
+          )
+        : null;
+    if (!days?.length) {
+      return {
+        ok: true,
+        intent: 'pricing',
+        text: 'No pude leer el calendario de Airbnb en este momento, así que no tengo tarifas reales que mostrarte. Intenta de nuevo en unos minutos.',
+      };
+    }
+    const reserved = days.filter((d) => d.status?.reason === 'RESERVED').length;
+    const open = days.filter((d) => d.status?.available === true);
+    const prices = open
+      .map((d) => (d.price?.amount != null ? Math.round(d.price.amount / 100) : null))
+      .filter((n): n is number => n != null);
+    const clp = (n: number) => `$${n.toLocaleString('es-CL')}`;
+    const range = prices.length
+      ? `Tarifa publicada: ${clp(Math.min(...prices))}–${clp(Math.max(...prices))} por noche.`
+      : 'Sin noches abiertas con tarifa publicada.';
     return {
       ok: true,
       intent: 'pricing',
-      text: `Ocupación próximos 30 días: ${ins.occupancy_pct}%. Tienes ${ins.underbooked} noches abiertas en las próximas 2 semanas. Precio base $${ins.base_clp.toLocaleString('es-CL')}; generé sugerencias por fecha (fin de semana +15%, última hora −10%).`,
+      text: `Según tu calendario de Airbnb: ocupación próximos 30 días ${Math.round((reserved / days.length) * 100)}%, ${open.length} noches abiertas. ${range}`,
     };
   }
 

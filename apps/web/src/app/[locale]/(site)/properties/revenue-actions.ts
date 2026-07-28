@@ -3,16 +3,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
-import { suggestPricing, type RevenueInsight } from '@/lib/revenue/suggest';
 import { runAgentCommand } from '@/lib/agent/router';
-
-export async function getPricingSuggestions(
-  propertyId: string,
-): Promise<{ ok: boolean; insight?: RevenueInsight }> {
-  const cid = await currentCustomerId();
-  if (!cid || !(await ownsProperty(cid, propertyId))) return { ok: false };
-  return { ok: true, insight: await suggestPricing(propertyId) };
-}
 
 export async function askAgent(
   input: unknown,
