@@ -551,10 +551,11 @@
     "winback_confirm": "Cancelar de todas formas"
   },
   "inbox": {
-    "title": "Mensajes (IA)",
+    "title": "Conversaciones",
     "empty": "Sin conversaciones aún.",
     "guest": "Huésped",
-    "status_open": "IA respondió",
+    "status_ai": "IA respondió",
+    "status_quiet": "Al día",
     "status_needs_host": "Requiere tu respuesta",
     "status_closed": "Cerrado",
     "reply_ph": "Tu respuesta…",

@@ -470,6 +470,9 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .eq('thread_id', thread!.id)
       .order('created_at');
     expect(after!.some((m) => m.external_id === 'new-1')).toBe(true);
+    // Re-syncs never double-import: every channel message appears exactly once.
+    const externalIds = after!.map((m) => m.external_id).filter(Boolean) as string[];
+    expect(new Set(externalIds).size).toBe(externalIds.length);
     expect(after!.some((m) => m.source === 'ai')).toBe(true); // AI answered
     expect(SENT.length).toBeGreaterThan(0); // …and it went out through Hospitable
     expect(SENT[0]!.reservationId).toBe('res-1');

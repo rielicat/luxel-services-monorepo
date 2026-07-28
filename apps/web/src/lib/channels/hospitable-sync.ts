@@ -208,13 +208,18 @@ async function syncConversations(
         if (res.action === 'sent') replies++;
         imported++;
       } else {
-        await supabase.from('guest_messages').insert({
-          thread_id: thread.id,
-          direction: isGuest ? 'in' : 'out',
-          source: isGuest ? 'guest' : 'host',
-          body: m.body,
-          external_id: m.id,
-        });
+        // Idempotent against the (thread_id, external_id) unique index —
+        // concurrent syncs can't double-import history.
+        await supabase.from('guest_messages').upsert(
+          {
+            thread_id: thread.id,
+            direction: isGuest ? 'in' : 'out',
+            source: isGuest ? 'guest' : 'host',
+            body: m.body,
+            external_id: m.id,
+          },
+          { onConflict: 'thread_id,external_id', ignoreDuplicates: true },
+        );
         imported++;
       }
       seen.add(m.id);
