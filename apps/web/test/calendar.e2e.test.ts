@@ -63,7 +63,7 @@ beforeAll(async () => {
   addCalendarFeed = cal.addCalendarFeed;
   addManualBlock = cal.addManualBlock;
   exportUrl = cal.exportUrl;
-  createProperty = (await import('../src/app/[locale]/(site)/properties/actions')).createProperty;
+  createProperty = (await import('./helpers/seed')).createProperty;
   feedGET = (await import('../src/app/api/calendar/[token]/route')).GET;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 

@@ -37,7 +37,7 @@ let customerId: string;
 beforeAll(async () => {
   if (!LIVE) return;
   const host = await import('../src/app/[locale]/(site)/properties/actions');
-  createProperty = host.createProperty;
+  createProperty = (await import('./helpers/seed')).createProperty;
   updateAccess = host.updateAccess;
   createCheckinLink = host.createCheckinLink;
   submitCheckin = (await import('../src/app/[locale]/checkin/[token]/actions')).submitCheckin;

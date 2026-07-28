@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   Home,
@@ -33,6 +34,16 @@ export type PropertyRow = {
   platform: string | null;
   base_nightly_clp: number | null;
   ai_enabled: boolean;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  picture_url: string | null;
+  max_guests: number | null;
+  beds: number | null;
+  property_type: string | null;
+  room_type: string | null;
+  checkin_time: string | null;
+  checkout_time: string | null;
+  listed: boolean;
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];
@@ -44,10 +55,12 @@ export function PropertiesClient({
   initial,
   plan,
   connection,
+  syncFailed,
 }: {
   initial: PropertyRow[];
   plan: Plan;
   connection: HostConnection | null;
+  syncFailed?: boolean;
 }) {
   const t = useTranslations('properties');
   return (
@@ -63,6 +76,12 @@ export function PropertiesClient({
       </div>
 
       <div className="grid gap-4">
+        {syncFailed && (
+          <div className="border-warning/30 bg-warning/10 text-warning flex items-start gap-2.5 rounded-xl border p-3.5 text-sm">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            {t('sync_failed')}
+          </div>
+        )}
         <PlanBar plan={plan} />
         <HospitableCard connection={connection} />
 
@@ -148,8 +167,27 @@ function PropertySummaryCard({ property }: { property: PropertyRow }) {
   const chip = accessChip(property.property_access?.method, t);
   const ChipIcon = chip.icon;
 
+  const capacity = [
+    property.bedrooms != null && t('cap_bedrooms', { n: property.bedrooms }),
+    property.bathrooms != null && t('cap_bathrooms', { n: property.bathrooms }),
+    property.max_guests != null && t('cap_guests', { n: property.max_guests }),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
-    <Card className="group transition-shadow hover:shadow-md">
+    <Card className="group overflow-hidden transition-shadow hover:shadow-md">
+      {property.picture_url && (
+        <div className="relative h-36 w-full">
+          <Image
+            src={property.picture_url}
+            alt={property.nickname}
+            fill
+            sizes="(max-width: 640px) 100vw, 50vw"
+            className="object-cover"
+          />
+        </div>
+      )}
       <CardContent className="grid gap-3 p-5">
         <div>
           <div className="flex items-start justify-between gap-2">
@@ -163,9 +201,15 @@ function PropertySummaryCard({ property }: { property: PropertyRow }) {
           <p className="text-muted-foreground truncate text-sm">
             {[property.address, property.comuna].filter(Boolean).join(', ') || t('no_address')}
           </p>
+          {capacity && <p className="text-muted-foreground mt-0.5 text-xs">{capacity}</p>}
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
+          {!property.listed && (
+            <span className="bg-muted text-muted-foreground flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+              {t('unlisted')}
+            </span>
+          )}
           <span
             className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${chip.cls}`}
           >

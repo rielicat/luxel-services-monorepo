@@ -28,14 +28,33 @@ const PROPERTIES_PAYLOAD = {
       id: HOSP_PROPERTY_ID,
       name: 'JOSÉ MANUEL INFANTE 1045 - DPTO 401',
       public_name: 'Depto Providencia céntrico',
+      picture: 'https://a0.muscache.com/im/pictures/hosting/test/original/depto.png',
       listed: true,
+      timezone: '-0400',
+      currency: 'CLP',
+      summary: '',
+      description: '',
+      checkin: '15:00',
+      checkout: '11:00',
+      amenities: ['ac', 'kitchen', 'wireless_internet', 'jacuzzi'],
       address: {
+        number: null,
         street: 'José Manuel Infante 1045',
         city: 'Providencia',
         state: 'Región Metropolitana',
+        postcode: '7501117',
+        country: 'CL',
+        country_name: 'Chile',
         coordinates: { latitude: '-33.44095859', longitude: '-70.63219' },
+        display: 'José Manuel Infante 1045, Providencia, Región Metropolitana, 7501117, CL',
       },
       capacity: { max: 6, bedrooms: 3, beds: 3, bathrooms: 2 },
+      property_type: 'apartment',
+      room_type: 'Entire Home',
+      tags: [],
+      house_rules: { pets_allowed: true, smoking_allowed: true, events_allowed: false },
+      calendar_restricted: false,
+      parent_child: null,
     },
   ],
   links: { next: null },
@@ -73,6 +92,11 @@ const RESERVATIONS_PAYLOAD = {
   ],
   links: { next: null },
 };
+
+// Failure-mode switch for the properties endpoint: 'paged_fail' serves page 1
+// with a next link and 429s page 2 (partial fetch); 'empty' serves a valid
+// zero-listing body. Both must leave the local mirror untouched.
+let PROPERTIES_MODE: 'normal' | 'paged_fail' | 'empty' = 'normal';
 
 // Mutable conversation state for the messages endpoint (per reservation res-1).
 // eslint-disable-next-line prefer-const
@@ -125,6 +149,14 @@ beforeAll(async () => {
         return Response.json(RESERVATIONS_PAYLOAD);
       }
       if (url.includes('/properties')) {
+        if (PROPERTIES_MODE === 'empty') return Response.json({ data: [], links: { next: null } });
+        if (PROPERTIES_MODE === 'paged_fail') {
+          if (url.includes('page=2')) return new Response('Too Many Requests', { status: 429 });
+          return Response.json({
+            ...PROPERTIES_PAYLOAD,
+            links: { next: 'https://public.api.hospitable.com/v2/properties?per_page=100&page=2' },
+          });
+        }
         return Response.json(PROPERTIES_PAYLOAD);
       }
       return new Response('Not found', { status: 404 });
@@ -157,6 +189,7 @@ afterEach(async () => {
   await admin.from('channel_connections').delete().eq('customer_id', customerId);
   MESSAGES = [];
   SENT.length = 0;
+  PROPERTIES_MODE = 'normal';
 });
 
 describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
@@ -238,6 +271,103 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('*', { count: 'exact', head: true })
       .eq('property_id', prop!.id);
     expect(blocks).toBe(2);
+  });
+
+  it('mirrors the full listing record and prunes anything not in Hospitable', async () => {
+    // Rows Hospitable doesn't know about: one manual, one imported-then-removed.
+    await admin.from('properties').insert([
+      { owner_id: customerId, nickname: 'Manual agregada a mano' },
+      { owner_id: customerId, nickname: 'Ya no existe', external_listing_id: 'hosp-gone' },
+    ]);
+
+    const r = await connectHospitable({ token: FAKE_TOKEN });
+    expect(r.ok).toBe(true);
+
+    // Strict mirror: only the Hospitable listing survives…
+    const { data: rows } = await admin
+      .from('properties')
+      .select(
+        'nickname, external_listing_id, picture_url, max_guests, beds, property_type, room_type, checkin_time, checkout_time, listed, amenities, house_rules',
+      )
+      .eq('owner_id', customerId);
+    expect(rows).toHaveLength(1);
+    const prop = rows![0]!;
+    expect(prop.external_listing_id).toBe(HOSP_PROPERTY_ID);
+
+    // …and it carries the API-defined parameters, not manual attributes.
+    expect(prop.picture_url).toContain('muscache.com');
+    expect(prop.max_guests).toBe(6);
+    expect(prop.beds).toBe(3);
+    expect(prop.property_type).toBe('apartment');
+    expect(prop.room_type).toBe('Entire Home');
+    expect(prop.checkin_time).toBe('15:00');
+    expect(prop.checkout_time).toBe('11:00');
+    expect(prop.listed).toBe(true);
+    expect(prop.amenities).toContain('jacuzzi');
+    expect((prop.house_rules as { pets_allowed?: boolean }).pets_allowed).toBe(true);
+
+    // The light page-load reconcile behaves the same way.
+    await admin
+      .from('properties')
+      .insert({ owner_id: customerId, nickname: 'Otra manual post-connect' });
+    const { reconcileHospitableProperties } = await import('../src/lib/channels/hospitable-sync');
+    const rec = await reconcileHospitableProperties(customerId, FAKE_TOKEN);
+    expect(rec.ok).toBe(true);
+    expect(rec.properties).toBe(1);
+    expect(rec.accountLabel).toBe('Depto Providencia céntrico');
+    const { count } = await admin
+      .from('properties')
+      .select('*', { count: 'exact', head: true })
+      .eq('owner_id', customerId);
+    expect(count).toBe(1);
+  });
+
+  it('never prunes off a partial or empty fetch, and never touches another owner', async () => {
+    await connectHospitable({ token: FAKE_TOKEN }); // mirror in place: 1 row
+
+    // A different tenant's property must be invisible to this owner's reconcile.
+    const { data: other } = await admin
+      .from('customers')
+      .insert({
+        clerk_user_id: `other-${nodeCrypto.randomUUID()}`,
+        email: 'otra@test.cl',
+        full_name: 'Otra Dueña',
+      })
+      .select('id')
+      .single();
+    await admin
+      .from('properties')
+      .insert({ owner_id: other!.id, nickname: 'Propiedad de otra cuenta' });
+
+    try {
+      const { reconcileHospitableProperties } = await import('../src/lib/channels/hospitable-sync');
+
+      // Partial fetch (page 2 rate-limited) → complete-or-nothing → NO prune.
+      PROPERTIES_MODE = 'paged_fail';
+      const partial = await reconcileHospitableProperties(customerId, FAKE_TOKEN);
+      expect(partial.ok).toBe(false);
+
+      // Valid-but-empty body → upserts nothing AND prunes nothing.
+      PROPERTIES_MODE = 'empty';
+      const empty = await reconcileHospitableProperties(customerId, FAKE_TOKEN);
+      expect(empty.ok).toBe(true);
+      expect(empty.properties).toBe(0);
+
+      const { count: mine } = await admin
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', customerId);
+      expect(mine).toBe(1); // mirror untouched through both failure modes
+
+      const { count: theirs } = await admin
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', other!.id);
+      expect(theirs).toBe(1); // owner scoping held
+    } finally {
+      await admin.from('customers').delete().eq('id', other!.id); // cascades their property
+      PROPERTIES_MODE = 'normal';
+    }
   });
 
   it('ingests conversations: history silently (no auto-replies), new guest messages get the AI', async () => {

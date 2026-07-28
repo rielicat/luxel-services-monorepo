@@ -30,7 +30,7 @@ let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
-  createProperty = (await import('../src/app/[locale]/(site)/properties/actions')).createProperty;
+  createProperty = (await import('./helpers/seed')).createProperty;
   const cp = await import('../src/app/[locale]/(site)/properties/copilot-actions');
   updateGuestInfo = cp.updateGuestInfo;
   draftReply = cp.draftReply;

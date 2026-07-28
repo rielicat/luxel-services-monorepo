@@ -36,7 +36,7 @@ let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
-  createProperty = (await import('../src/app/[locale]/(site)/properties/actions')).createProperty;
+  createProperty = (await import('./helpers/seed')).createProperty;
   suggestPricing = (await import('../src/lib/revenue/suggest')).suggestPricing;
   generateReport = (await import('../src/lib/revenue/report')).generateReport;
   runAgentCommand = (await import('../src/lib/agent/router')).runAgentCommand;

@@ -5,57 +5,10 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { checkinToken } from '@/lib/checkin/tokens';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
-import { geocodeAddress } from '@/lib/geocode';
 
-const PropertySchema = z.object({
-  nickname: z.string().min(1).max(120),
-  address: z.string().max(200).optional(),
-  comuna: z.string().max(80).optional(),
-  bedrooms: z.number().int().min(0).max(50).optional(),
-  bathrooms: z.number().int().min(0).max(50).optional(),
-  sizeM2: z.number().positive().max(5000).optional(),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-});
-
-export async function createProperty(input: unknown): Promise<{ ok: boolean; id?: string }> {
-  const parsed = PropertySchema.safeParse(input);
-  if (!parsed.success) return { ok: false };
-  const customerId = await currentCustomerId();
-  if (!customerId) return { ok: false };
-
-  // Geocode once at creation so cleaning pricing has coordinates; best-effort.
-  let lat = parsed.data.lat ?? null;
-  let lng = parsed.data.lng ?? null;
-  if ((lat == null || lng == null) && parsed.data.address) {
-    const g = await geocodeAddress(parsed.data.address);
-    if (g) {
-      lat = g.lat;
-      lng = g.lng;
-    }
-  }
-
-  const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from('properties')
-    .insert({
-      owner_id: customerId,
-      nickname: parsed.data.nickname,
-      address: parsed.data.address ?? null,
-      comuna: parsed.data.comuna ?? null,
-      bedrooms: parsed.data.bedrooms ?? null,
-      bathrooms: parsed.data.bathrooms ?? null,
-      size_m2: parsed.data.sizeM2 ?? null,
-      lat,
-      lng,
-    })
-    .select('id')
-    .single();
-  if (error || !data) return { ok: false };
-  await supabase.from('property_access').insert({ property_id: data.id, method: 'physical_none' });
-  revalidatePath('/properties');
-  return { ok: true, id: data.id };
-}
+// Properties are import-only: rows exist solely as a mirror of the host's
+// Hospitable account (see lib/channels/hospitable-sync.ts). There is no manual
+// create/edit path for listing attributes — only operational config below.
 
 const AccessSchema = z.object({
   propertyId: z.string().uuid(),

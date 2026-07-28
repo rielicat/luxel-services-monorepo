@@ -14,6 +14,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'img.clerk.com' },
       { protocol: 'https', hostname: '*.supabase.co' },
+      // Airbnb listing photos surfaced via the PMS property mirror.
+      { protocol: 'https', hostname: '*.muscache.com' },
     ],
   },
 };

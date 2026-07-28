@@ -46,53 +46,99 @@ async function upsertHospitableProperty(
     external_listing_id: rp.id,
     lat: Number.isFinite(lat) ? lat : null,
     lng: Number.isFinite(lng) ? lng : null,
+    picture_url: rp.picture ?? null,
+    max_guests: rp.capacity?.max ?? null,
+    beds: rp.capacity?.beds ?? null,
+    property_type: rp.property_type ?? null,
+    room_type: rp.room_type ?? null,
+    checkin_time: rp.checkin ?? null,
+    checkout_time: rp.checkout ?? null,
+    listed: rp.listed ?? true,
+    amenities: rp.amenities ?? null,
+    house_rules: rp.house_rules ?? null,
     updated_at: new Date().toISOString(),
   };
 
-  const { data: existing } = await supabase
+  // Atomic upsert against the (owner_id, external_listing_id) unique index —
+  // concurrent page loads can't race a select-then-insert into duplicates.
+  const { data: row } = await supabase
     .from('properties')
-    .select('id')
-    .eq('owner_id', customerId)
-    .eq('external_listing_id', rp.id)
-    .maybeSingle();
-
-  if (existing) {
-    await supabase.from('properties').update(fields).eq('id', existing.id);
-    return existing.id as string;
-  }
-
-  const { data: created } = await supabase
-    .from('properties')
-    .insert({ owner_id: customerId, ...fields })
+    .upsert({ owner_id: customerId, ...fields }, { onConflict: 'owner_id,external_listing_id' })
     .select('id')
     .single();
-  if (!created) return null;
+  if (!row) return null;
+  // Seed the default access record only if none exists (PK = property_id).
   await supabase
     .from('property_access')
-    .insert({ property_id: created.id as string, method: 'physical_none' });
-  return created.id as string;
+    .upsert(
+      { property_id: row.id as string, method: 'physical_none' },
+      { onConflict: 'property_id', ignoreDuplicates: true },
+    );
+  return row.id as string;
+}
+
+/** Strict mirror: the properties grid IS the Hospitable account. Any local row
+ *  that isn't in the remote listing set — manually created (external_listing_id
+ *  null) or removed upstream — gets deleted. Every FK in the properties subtree
+ *  is ON DELETE CASCADE (see 0010–0021 migrations), so children go with it.
+ *  Callers only reach this after a COMPLETE remote fetch
+ *  (listHospitableProperties is complete-or-nothing), and an EMPTY remote set
+ *  skips pruning entirely: wiping the whole tree off one "0 listings" response
+ *  is a worse failure mode than briefly showing a listing that was removed. */
+async function pruneToHospitable(
+  supabase: Supabase,
+  customerId: string,
+  remoteIds: string[],
+): Promise<void> {
+  if (!remoteIds.length) return;
+  await supabase
+    .from('properties')
+    .delete()
+    .eq('owner_id', customerId)
+    .is('external_listing_id', null);
+  await supabase
+    .from('properties')
+    .delete()
+    .eq('owner_id', customerId)
+    .not('external_listing_id', 'in', `(${remoteIds.map((id) => `"${id}"`).join(',')})`);
 }
 
 export interface HospitableReconcileResult {
   ok: boolean;
   properties: number;
+  accountLabel: string | null;
 }
 
-/** Light, page-load-safe refresh: pulls ONLY the property list from Hospitable
- *  and upserts the rows — no reservations, messages or AI replies. Lets the
- *  /properties grid stay live on every load without the cost or side effects of a
- *  full sync (which stays on connect / the manual button / webhooks). */
+/** Light, page-load-safe refresh: pulls ONLY the property list from Hospitable,
+ *  upserts the rows and prunes everything else (strict mirror) — no
+ *  reservations, messages or AI replies. Lets the /properties grid stay live on
+ *  every load without the cost or side effects of a full sync (which stays on
+ *  connect / the manual button / webhooks). */
 export async function reconcileHospitableProperties(
   customerId: string,
   token: string,
 ): Promise<HospitableReconcileResult> {
   const supabase = createSupabaseServiceRoleClient();
   const remote = await listHospitableProperties(token);
-  if (!remote) return { ok: false, properties: 0 };
+  if (!remote) return { ok: false, properties: 0, accountLabel: null };
   for (const rp of remote) {
     await upsertHospitableProperty(supabase, customerId, rp);
   }
-  return { ok: true, properties: remote.length };
+  await pruneToHospitable(
+    supabase,
+    customerId,
+    remote.map((rp) => rp.id),
+  );
+  await supabase
+    .from('channel_connections')
+    .update({ last_synced_at: new Date().toISOString() })
+    .eq('customer_id', customerId)
+    .eq('provider', 'hospitable');
+  return {
+    ok: true,
+    properties: remote.length,
+    accountLabel: remote[0]?.public_name ?? remote[0]?.name ?? null,
+  };
 }
 
 /**
@@ -270,6 +316,12 @@ export async function syncHospitableAccount(
       aiReplies += conv.replies;
     }
   }
+
+  await pruneToHospitable(
+    supabase,
+    customerId,
+    remote.map((rp) => rp.id),
+  );
 
   await supabase
     .from('channel_connections')

@@ -1,5 +1,5 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { hospitableTokenForCustomer } from '@/lib/channels/hospitable';
+import { customerHospitableToken } from '@/lib/channels/hospitable';
 import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
 
 export const runtime = 'nodejs';
@@ -27,7 +27,9 @@ export async function GET(req: Request) {
 
   const results: Array<{ customer: string; ok: boolean; replies?: number }> = [];
   for (const c of connections ?? []) {
-    const token = await hospitableTokenForCustomer(c.customer_id as string);
+    // Strict per-connection token: full syncs prune the mirror, so the env
+    // founder token must never substitute for another tenant's broken token.
+    const token = await customerHospitableToken(c.customer_id as string);
     if (!token) {
       results.push({ customer: c.customer_id as string, ok: false });
       continue;

@@ -7,7 +7,7 @@ import { currentCustomerId } from '@/lib/host/owner';
 import {
   verifyHospitableToken,
   saveHospitableConnection,
-  hospitableTokenForCustomer,
+  customerHospitableToken,
 } from '@/lib/channels/hospitable';
 import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
 
@@ -52,7 +52,8 @@ export async function syncHospitable(): Promise<{
 }> {
   const cid = await currentCustomerId();
   if (!cid) return { ok: false };
-  const token = await hospitableTokenForCustomer(cid);
+  // Own-connection token only — the manual Sync also prunes the mirror.
+  const token = await customerHospitableToken(cid);
   if (!token) return { ok: false };
   const r = await syncHospitableAccount(cid, token);
   revalidatePath('/properties');

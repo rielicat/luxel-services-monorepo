@@ -15,14 +15,40 @@ export interface HospitableProperty {
   id: string;
   name: string | null;
   public_name: string | null;
+  picture?: string | null;
   address: {
+    number?: string | null;
     street: string | null;
     city: string | null;
     state: string | null;
+    postcode?: string | null;
+    country?: string | null;
+    country_name?: string | null;
     coordinates?: { latitude: string | number | null; longitude: string | number | null } | null;
+    display?: string | null;
   } | null;
-  capacity: { bedrooms: number | null; bathrooms: number | null; max: number | null } | null;
+  timezone?: string | null;
   listed: boolean;
+  currency?: string | null;
+  summary?: string | null;
+  description?: string | null;
+  checkin?: string | null;
+  checkout?: string | null;
+  amenities?: string[] | null;
+  capacity: {
+    max: number | null;
+    bedrooms: number | null;
+    beds?: number | null;
+    bathrooms: number | null;
+  } | null;
+  property_type?: string | null;
+  room_type?: string | null;
+  house_rules?: {
+    pets_allowed?: boolean | null;
+    smoking_allowed?: boolean | null;
+    events_allowed?: boolean | null;
+  } | null;
+  calendar_restricted?: boolean | null;
 }
 
 export interface HospitableReservation {
@@ -47,7 +73,10 @@ async function hospGet<T>(
     });
     if (!res.ok) return { ok: false };
     const json = (await res.json()) as { data?: T[]; links?: { next?: string | null } };
-    return { ok: true, data: json.data ?? [], nextUrl: json.links?.next ?? null };
+    // A 2xx whose body doesn't carry the expected `data` array is a failure, not
+    // an empty result — the strict-mirror prune must never run off a fluke body.
+    if (!Array.isArray(json.data)) return { ok: false };
+    return { ok: true, data: json.data, nextUrl: json.links?.next ?? null };
   } catch {
     return { ok: false };
   }
@@ -66,6 +95,9 @@ export async function verifyHospitableToken(
   };
 }
 
+/** Complete-or-nothing: the result feeds the strict-mirror prune, so a partial
+ *  list (a failed later page, or the page cap hit with more remaining) must
+ *  return null — never a truncated array that would delete the missing tail. */
 export async function listHospitableProperties(
   token: string,
 ): Promise<HospitableProperty[] | null> {
@@ -73,10 +105,11 @@ export async function listHospitableProperties(
   let url: string | null = '/properties?per_page=100';
   for (let page = 0; url && page < 10; page++) {
     const r: Awaited<ReturnType<typeof hospGet<HospitableProperty>>> = await hospGet(token, url);
-    if (!r.ok) return page === 0 ? null : out;
+    if (!r.ok) return null;
     out.push(...(r.data ?? []));
     url = r.nextUrl ?? null;
   }
+  if (url) return null; // page cap reached with more pages left → incomplete
   return out;
 }
 
@@ -168,6 +201,46 @@ export async function saveHospitableConnection(
     { onConflict: 'customer_id,provider' },
   );
   return !error;
+}
+
+/**
+ * The customer's OWN Hospitable token, or null — NO env fallback, no decrypt
+ * fallthrough. This is the ONLY resolver allowed on paths that prune the
+ * property mirror (page-load reconcile, full syncs): the env founder token must
+ * never be applied to another tenant's rows, or their data would be replaced by
+ * the founder's account and pruned away.
+ */
+export async function customerHospitableToken(customerId: string): Promise<string | null> {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data } = await supabase
+    .from('channel_connections')
+    .select('token_enc')
+    .eq('customer_id', customerId)
+    .eq('provider', 'hospitable')
+    .eq('status', 'connected')
+    .maybeSingle();
+  if (!data?.token_enc) return null;
+  try {
+    return decryptPII(data.token_enc as string);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The env founder token, released ONLY for allowlisted operator emails
+ * (LUXEL_ADMIN_EMAILS — the same app-level admin gate the rest of Luxel uses).
+ * Lets the founder's own account bootstrap from HOSPITABLE_API_TOKEN without a
+ * pasted connection code; every other account gets null.
+ */
+export function founderEnvHospitableToken(email: string | null | undefined): string | null {
+  const token = process.env.HOSPITABLE_API_TOKEN;
+  if (!token || !email) return null;
+  const allowed = (process.env.LUXEL_ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowed.includes(email.trim().toLowerCase()) ? token : null;
 }
 
 /** Resolves the customer's Hospitable token (decrypted), else the env fallback. */

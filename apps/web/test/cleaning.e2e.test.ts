@@ -29,7 +29,7 @@ let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
-  createProperty = (await import('../src/app/[locale]/(site)/properties/actions')).createProperty;
+  createProperty = (await import('./helpers/seed')).createProperty;
   const clean = await import('../src/app/[locale]/(site)/properties/cleaning-actions');
   refreshCleanings = clean.refreshCleanings;
   getTurnoverPrice = clean.getTurnoverPrice;

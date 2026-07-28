@@ -44,7 +44,7 @@ beforeAll(async () => {
   const m = await import('../src/app/[locale]/(site)/properties/messaging-actions');
   hostReply = m.hostReply;
   saveLearnedAnswer = m.saveLearnedAnswer;
-  createProperty = (await import('../src/app/[locale]/(site)/properties/actions')).createProperty;
+  createProperty = (await import('./helpers/seed')).createProperty;
   updateGuestInfo = (await import('../src/app/[locale]/(site)/properties/copilot-actions'))
     .updateGuestInfo;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
