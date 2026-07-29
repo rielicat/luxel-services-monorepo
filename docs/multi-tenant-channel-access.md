@@ -11,16 +11,16 @@ Researched July 2026 against Hospitable's published OpenAPI spec (the document
 
 **A Hospitable API token is scoped to exactly ONE account.**
 
-- Authentication page, verbatim: *"These tokens are scoped to your Hospitable
-  account only."*
+- Authentication page, verbatim: _"These tokens are scoped to your Hospitable
+  account only."_
 - `GET /v2/user` → `acting_user` is documented as the secondary user acting
-  *"on behalf of the team owner"*; the token resolves to one team owner.
-- `GET /v2/properties/search` → *"always return all properties in **the
-  account**."*
+  _"on behalf of the team owner"_; the token resolves to one team owner.
+- `GET /v2/properties/search` → _"always return all properties in **the
+  account**."_
 - No account/team/tenant parameter exists in any of the 49 documented paths.
   There is no `GET /v2/accounts` and no `GET /v2/teams`.
 
-This is a constraint on *accounts*, not on listings. One token does not span
+This is a constraint on _accounts_, not on listings. One token does not span
 Hospitable accounts — adding Luxel as a manager on a host's OWN account gives
 Luxel UI access (one login, account switcher) but not API access to it. The way
 to have one token cover many hosts is therefore to have the listings live in ONE
@@ -56,14 +56,14 @@ that yields per-host tokens with observable revocation, should the central model
 ever hit a wall. Needs approved-vendor status (partner typeform,
 `partners.hospitable.com`).
 
-| | |
-|---|---|
-| Authorize | `https://auth.hospitable.com/oauth/authorize?client_id=…&response_type=code` |
-| Token | `POST https://auth.hospitable.com/oauth/token` (`grant_type=authorization_code`) |
-| Refresh | same URL, `grant_type=refresh_token` |
-| Auth code TTL | 10 minutes |
-| Access token TTL | 12 hours |
-| Refresh token TTL | 90 days — must refresh regularly or the host re-authorises |
+|                   |                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------- |
+| Authorize         | `https://auth.hospitable.com/oauth/authorize?client_id=…&response_type=code`     |
+| Token             | `POST https://auth.hospitable.com/oauth/token` (`grant_type=authorization_code`) |
+| Refresh           | same URL, `grant_type=refresh_token`                                             |
+| Auth code TTL     | 10 minutes                                                                       |
+| Access token TTL  | 12 hours                                                                         |
+| Refresh token TTL | 90 days — must refresh regularly or the host re-authorises                       |
 
 Why it fits: one token per host, a portal listing connected customers by uuid,
 one webhook endpoint for every tenant, and `integration.disconnected` events so
