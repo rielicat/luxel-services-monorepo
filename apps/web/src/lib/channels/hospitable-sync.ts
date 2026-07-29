@@ -24,17 +24,19 @@ const santiagoDate = (d: Date) =>
 /** The check-in link is part of the reservation, not a button: each newly
  *  imported future reservation gets one message with its tokenized link, and a
  *  reservation that disappears upstream (cancellation) gets its unsubmitted
- *  link revoked. The unique `reservation_uid` makes the send once-only; on the
- *  FIRST sync of an account the anchors are seeded silently so connecting
- *  never blasts messages at pre-existing bookings (same contract as the
- *  message watermark). */
+ *  link revoked. The unique `reservation_uid` makes the send once-only.
+ *
+ *  Guests who booked before this feature existed must NEVER be messaged: the
+ *  first sync that sees a property seeds anchors for its current reservations
+ *  silently and stamps `checkin_links_backfilled_at`. Only reservations that
+ *  show up after that stamp get a message — which covers both brand-new
+ *  connections and accounts already running when the feature shipped. */
 async function sendCheckinLinksForNewReservations(
   supabase: Supabase,
   hospToken: string,
   propertyId: string,
   accepted: HospitableReservation[],
   today: string,
-  firstSync: boolean,
 ): Promise<void> {
   // Revoke links whose reservation no longer exists upstream — mirrors the
   // calendar_blocks refresh, and only runs after a successful reservations
@@ -53,9 +55,10 @@ async function sendCheckinLinksForNewReservations(
 
   const { data: prop } = await supabase
     .from('properties')
-    .select('nickname')
+    .select('nickname, checkin_links_backfilled_at')
     .eq('id', propertyId)
     .maybeSingle();
+  const backfill = prop != null && prop.checkin_links_backfilled_at == null;
   for (const r of accepted) {
     try {
       if (r.arrival_date.slice(0, 10) < today) continue;
@@ -68,7 +71,7 @@ async function sendCheckinLinksForNewReservations(
         reservation_uid: uid,
         arrival_date: r.arrival_date.slice(0, 10),
         departure_date: r.departure_date.slice(0, 10),
-        ...(firstSync ? { notify_result: { hospitable: 'skipped_backfill' } } : {}),
+        ...(backfill ? { notify_result: { hospitable: 'skipped_backfill' } } : {}),
       });
       if (error) {
         // uid already claimed. Only skip if that claim actually concluded
@@ -82,8 +85,8 @@ async function sendCheckinLinksForNewReservations(
           .maybeSingle();
         if (!existing || existing.notified_at || existing.notify_result) continue;
         linkToken = existing.token as string;
-      } else if (firstSync) {
-        continue; // anchor seeded, nothing sent — pre-existing booking
+      } else if (backfill) {
+        continue; // anchor seeded, nothing sent — booked before the feature
       }
       const url = `${appUrl()}/checkin/${linkToken}`;
       const sent = await sendHospitableMessage(
@@ -106,6 +109,12 @@ async function sendCheckinLinksForNewReservations(
     } catch {
       /* best-effort per reservation */
     }
+  }
+  if (backfill) {
+    await supabase
+      .from('properties')
+      .update({ checkin_links_backfilled_at: new Date().toISOString() })
+      .eq('id', propertyId);
   }
 }
 
@@ -408,7 +417,6 @@ export async function syncHospitableAccount(
         propertyId,
         accepted,
         santiagoDate(now),
-        watermark === null,
       );
     }
 

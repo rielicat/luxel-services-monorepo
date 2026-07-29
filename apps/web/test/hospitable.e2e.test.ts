@@ -451,9 +451,9 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .eq('thread_id', thread!.id);
     expect(hist).toHaveLength(3); // full history imported for grounding
     expect(hist!.some((m) => m.source === 'ai')).toBe(false); // but nothing auto-sent
-    // FIRST sync sends NOTHING (no message blast at pre-existing bookings):
-    // check-in anchors are seeded silently for future accepted reservations
-    // (res-1 and res-2; cancelled res-3 gets none).
+    // The first sync that sees a property sends NOTHING: bookings that predate
+    // the feature are seeded silently (res-1 and res-2; cancelled res-3 gets
+    // none) and the property is stamped as backfilled.
     const checkinSends = () => SENT.filter((s) => s.body.includes('/checkin/'));
     const aiSends = () => SENT.filter((s) => !s.body.includes('/checkin/'));
     expect(aiSends()).toHaveLength(0);
@@ -464,6 +464,12 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .like('reservation_uid', 'hosp:%');
     expect(anchors!.map((a) => a.reservation_uid).sort()).toEqual(['hosp:res-1', 'hosp:res-2']);
     expect(anchors!.every((a) => a.notified_at === null)).toBe(true);
+    const { data: stamped } = await admin
+      .from('properties')
+      .select('checkin_links_backfilled_at')
+      .eq('owner_id', customerId)
+      .single();
+    expect(stamped!.checkin_links_backfilled_at).toBeTruthy();
 
     // Simulate a booking that arrives AFTER connect: its anchor doesn't exist
     // yet, so the next sync must send exactly one check-in link for it.
