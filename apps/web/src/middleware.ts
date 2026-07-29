@@ -33,6 +33,9 @@ const skipAuth = process.env.E2E_SKIP_AUTH === '1';
  * flicker in either direction. API routes stay open (they were never gated). */
 const GATE_COOKIE = 'luxel_gate';
 const gateActive = process.env.NODE_ENV === 'production';
+// Tokenized links sent to guests and cleaning crews — people who never got the
+// unlock code. The token itself is the access control.
+const isPublicTokenRoute = (pathname: string) => /^\/(checkin|cleaning\/confirm)\//.test(pathname);
 
 const withStealthGate =
   (handler: (req: NextRequest, event: NextFetchEvent) => unknown) =>
@@ -40,6 +43,7 @@ const withStealthGate =
     if (
       gateActive &&
       !req.nextUrl.pathname.startsWith('/api/') &&
+      !isPublicTokenRoute(req.nextUrl.pathname) &&
       req.cookies.get(GATE_COOKIE)?.value !== '1'
     ) {
       return NextResponse.rewrite(new URL('/es/gate', req.url));

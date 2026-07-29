@@ -4,13 +4,14 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 /** One source of truth for the host property bundle used by the overview grid
  *  and the per-property detail page. */
 export const PROPERTY_SELECT =
-  'id, nickname, address, comuna, guest_info, external_listing_id, platform, base_nightly_clp, ai_enabled, ' +
+  'id, nickname, address, comuna, guest_info, external_listing_id, platform, base_nightly_clp, ai_enabled, price_optimization_enabled, ' +
   'bedrooms, bathrooms, picture_url, max_guests, beds, property_type, room_type, checkin_time, checkout_time, listed, amenities, house_rules, ' +
-  'cleaning_managed_by, cleaning_contact_name, cleaning_contact_email, cleaning_contact_whatsapp, cleaning_auto_confirm, ' +
+  'cleaning_managed_by, cleaning_auto_confirm, ' +
+  'cleaning_contacts(id, name, email, whatsapp), ' +
   'property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_whatsapp, concierge_email, concierge_hours, id_basis, id_disclosed), ' +
   'property_calendars(id, label, ical_url, last_synced_at), ' +
   'calendar_blocks(id, starts_on, ends_on, source, summary), ' +
-  'cleanings(id, cleaning_date, status, price_clp, source), ' +
+  'cleanings(id, cleaning_date, status, price_clp, source, crew_confirmed_at), ' +
   'guest_threads(id, status, guest_name, updated_at, guest_messages(id, direction, source, body, created_at))';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,6 +23,7 @@ function normalize(p: any) {
     property_calendars: p.property_calendars ?? [],
     calendar_blocks: p.calendar_blocks ?? [],
     cleanings: p.cleanings ?? [],
+    cleaning_contacts: p.cleaning_contacts ?? [],
     guest_threads: p.guest_threads ?? [],
   };
 }

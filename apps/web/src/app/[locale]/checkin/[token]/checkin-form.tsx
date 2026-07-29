@@ -123,7 +123,13 @@ export function CheckinForm({ token, propertyName, requireId, alreadyDone }: Pro
         setAccess(r.access ?? null);
         setDone(true);
       } else {
-        setError(r.error === 'id_required' ? t('error_id_required') : t('error_generic'));
+        setError(
+          r.error === 'id_required'
+            ? t('error_id_required')
+            : r.error === 'expired'
+              ? t('error_expired')
+              : t('error_generic'),
+        );
       }
     });
   };

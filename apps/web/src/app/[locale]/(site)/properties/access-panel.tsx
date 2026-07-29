@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link2, Copy, Check, TriangleAlert, IdCard } from 'lucide-react';
+import { TriangleAlert, ExternalLink, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Modal } from '@/components/ui/modal';
 import { updateAccess, createCheckinLink } from './actions';
 
 export type AccessRow = {
@@ -22,13 +21,21 @@ export type AccessRow = {
   id_disclosed: boolean;
 } | null;
 
-export function AccessPanel({ propertyId, access }: { propertyId: string; access: AccessRow }) {
+/** Check-in links are sent to each guest automatically when their reservation
+ *  is imported — there is nothing to generate here. Admins get a preview
+ *  button for debugging the guest-facing page. */
+export function AccessPanel({
+  propertyId,
+  access,
+  isAdmin = false,
+}: {
+  propertyId: string;
+  access: AccessRow;
+  isAdmin?: boolean;
+}) {
   const t = useTranslations('properties');
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
-  const [link, setLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [idOpen, setIdOpen] = useState(false);
 
   const [s, setS] = useState({
     method: access?.method ?? 'physical_none',
@@ -44,19 +51,48 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
   });
   const upd = <K extends keyof typeof s>(k: K, v: (typeof s)[K]) => setS((p) => ({ ...p, [k]: v }));
 
-  const save = () =>
-    start(async () => {
-      const r = await updateAccess({ propertyId, ...s });
-      if (r.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    });
+  // No save button: every change persists itself after a short pause. A
+  // pending (debounced) edit is flushed if the component unmounts first, and
+  // failures surface instead of vanishing.
+  const [saveError, setSaveError] = useState(false);
+  const latest = useRef(s);
+  latest.current = s;
+  const dirty = useRef(false);
+  const hydrated = useRef(false);
+  useEffect(() => {
+    if (!hydrated.current) {
+      hydrated.current = true;
+      return;
+    }
+    dirty.current = true;
+    const id = setTimeout(() => {
+      start(async () => {
+        const r = await updateAccess({ propertyId, ...latest.current });
+        if (r.ok) {
+          dirty.current = false;
+          setSaveError(false);
+          setSaved(true);
+          setTimeout(() => setSaved(false), 2000);
+        } else {
+          setSaveError(true);
+        }
+      });
+    }, 700);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s]);
+  useEffect(
+    () => () => {
+      if (dirty.current) void updateAccess({ propertyId, ...latest.current });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
-  const genLink = () =>
+  const previewCheckin = () =>
     start(async () => {
       const r = await createCheckinLink(propertyId);
-      if (r.ok && r.token) setLink(`${window.location.origin}/checkin/${r.token}`);
+      if (r.ok && r.token) window.open(`/checkin/${r.token}`, '_blank');
     });
 
   return (
@@ -114,7 +150,7 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
       )}
 
       {s.method === 'physical_concierge' && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="border-border grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label>{t('concierge_name')}</Label>
             <Input value={s.conciergeName} onChange={(e) => upd('conciergeName', e.target.value)} />
@@ -145,88 +181,65 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={save} disabled={pending}>
-          {pending ? t('saving') : saved ? t('saved') : t('save')}
-        </Button>
-        <Button variant="outline" onClick={genLink} disabled={pending}>
-          <Link2 className="mr-1.5 h-4 w-4" /> {t('gen_link')}
-        </Button>
-        <button
-          type="button"
-          onClick={() => setIdOpen(true)}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs font-medium transition-colors"
-        >
-          <IdCard className="h-3.5 w-3.5" />
-          {s.requireId ? t('id_advanced_on') : t('id_advanced')}
-        </button>
+      <div className="grid gap-2">
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={s.requireId}
+            onChange={(e) => upd('requireId', e.target.checked)}
+          />
+          <span>
+            <span className="font-medium">{t('require_id')}</span>
+            <span className="text-muted-foreground block text-xs">{t('require_id_help')}</span>
+          </span>
+        </label>
+        {s.requireId && (
+          <div className="grid gap-2 pl-6">
+            <div className="grid gap-1.5">
+              <Label>{t('id_basis')}</Label>
+              <Input
+                value={s.idBasis}
+                onChange={(e) => upd('idBasis', e.target.value)}
+                placeholder={t('id_basis_ph')}
+              />
+            </div>
+            <label className="flex items-start gap-2 text-xs">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={s.idDisclosed}
+                onChange={(e) => upd('idDisclosed', e.target.checked)}
+              />
+              <span className="text-muted-foreground">{t('id_disclosed')}</span>
+            </label>
+          </div>
+        )}
       </div>
 
-      <Modal open={idOpen} onClose={() => setIdOpen(false)} title={t('id_advanced')}>
-        <div className="grid gap-3">
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={s.requireId}
-              onChange={(e) => upd('requireId', e.target.checked)}
-            />
-            <span>
-              <span className="font-medium">{t('require_id')}</span>
-              <span className="text-muted-foreground block text-xs">{t('require_id_help')}</span>
+      <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span>{t('checkin_auto_note')}</span>
+        <span className="flex items-center gap-1.5">
+          {pending && t('saving')}
+          {!pending && saved && (
+            <span className="text-success flex items-center gap-1">
+              <Check className="h-3.5 w-3.5" /> {t('saved')}
             </span>
-          </label>
-          {s.requireId && (
-            <div className="grid gap-2 pl-6">
-              <div className="grid gap-1.5">
-                <Label>{t('id_basis')}</Label>
-                <Input
-                  value={s.idBasis}
-                  onChange={(e) => upd('idBasis', e.target.value)}
-                  placeholder={t('id_basis_ph')}
-                />
-              </div>
-              <label className="flex items-start gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  checked={s.idDisclosed}
-                  onChange={(e) => upd('idDisclosed', e.target.checked)}
-                />
-                <span className="text-muted-foreground">{t('id_disclosed')}</span>
-              </label>
-            </div>
           )}
-          <Button
-            size="sm"
-            className="justify-self-start"
-            disabled={pending}
-            onClick={() => {
-              save();
-              setIdOpen(false);
-            }}
-          >
-            {t('save')}
-          </Button>
-        </div>
-      </Modal>
+          {!pending && saveError && <span className="text-warning">{t('save_error')}</span>}
+        </span>
+      </div>
 
-      {link && (
-        <div className="bg-muted/50 flex items-center gap-2 rounded-md p-2 text-xs">
-          <span className="truncate font-mono">{link}</span>
-          <button
-            type="button"
-            onClick={() => {
-              void navigator.clipboard.writeText(link);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            }}
-            className="text-primary shrink-0"
-            aria-label={t('copy')}
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          </button>
-        </div>
+      {isAdmin && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="justify-self-start"
+          onClick={previewCheckin}
+          disabled={pending}
+        >
+          <ExternalLink className="mr-1.5 h-4 w-4" /> {t('preview_checkin')}
+        </Button>
       )}
     </div>
   );

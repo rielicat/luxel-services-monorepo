@@ -106,6 +106,37 @@ describe.skipIf(!LIVE)('cleaning coordination (end to end)', () => {
     expect(c2![0].status).toBe('scheduled');
   });
 
+  it('lets the crew confirm attendance via the tokenized link — once', async () => {
+    const prop = await seedImportedProperty({
+      nickname: 'Depto Ñuñoa',
+      sizeM2: 50,
+      lat: -33.4569,
+      lng: -70.5986,
+    });
+    const { data: cleaning } = await admin
+      .from('cleanings')
+      .insert({ property_id: prop.id!, cleaning_date: CHECKOUT, status: 'scheduled' })
+      .select('id, confirm_token')
+      .single();
+    const token = cleaning!.confirm_token as string;
+
+    const { confirmCleaningAttendance } =
+      await import('../src/app/[locale]/cleaning/confirm/[token]/actions');
+
+    // Bad token → rejected; real token → confirmed exactly once.
+    expect((await confirmCleaningAttendance(nodeCrypto.randomUUID())).ok).toBe(false);
+    expect((await confirmCleaningAttendance('not-a-uuid')).ok).toBe(false);
+    expect((await confirmCleaningAttendance(token)).ok).toBe(true);
+    expect((await confirmCleaningAttendance(token)).ok).toBe(false);
+
+    const { data: after } = await admin
+      .from('cleanings')
+      .select('crew_confirmed_at')
+      .eq('id', cleaning!.id as string)
+      .single();
+    expect(after!.crew_confirmed_at).toBeTruthy();
+  });
+
   it('prices a turnover for a located property without throwing', async () => {
     const prop = await seedImportedProperty({
       nickname: 'Depto Centro',

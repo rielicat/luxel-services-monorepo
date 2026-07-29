@@ -443,6 +443,7 @@
     "done_title": "¡Check-in recibido!",
     "done_body": "Te enviamos los detalles a tu correo. ¡Buen viaje!",
     "error_generic": "No pudimos guardar tu check-in. Inténtalo de nuevo.",
+    "error_expired": "Este enlace de check-in ya no está vigente. Contacta a tu anfitrión por el chat de Airbnb.",
     "error_id_required": "El anfitrión requiere un documento de identidad para este alojamiento.",
     "email_help": "Te enviaremos ahí los detalles de acceso.",
     "phone_opt": "Teléfono (opcional)",
@@ -507,7 +508,9 @@
     "method_none_short": "Aún no tengo",
     "method_none_body": "Lo configuro más tarde.",
     "id_advanced": "Requisitos de identidad (opcional)",
-    "id_advanced_on": "Requisitos de identidad: activados"
+    "checkin_auto_note": "El enlace de check-in se envía solo a cada huésped al confirmarse su reserva — no tienes que hacer nada.",
+    "preview_checkin": "Ver check-in (admin)",
+    "save_error": "No se pudo guardar — revisa tu conexión."
   },
   "cleaning": {
     "mode_luxel": "Luxel lo gestiona",
@@ -516,9 +519,13 @@
     "mode_own_body": "Tú eliges a quién avisamos automáticamente.",
     "staff_name": "Nombre",
     "staff_email": "Correo",
-    "staff_whatsapp": "WhatsApp (+56 9…)",
-    "staff_save": "Guardar contacto",
-    "staff_saved": "Guardado ✓",
+    "staff_whatsapp": "WhatsApp (opcional)",
+    "contacts_title": "Personas que reciben el aviso",
+    "contacts_none": "Aún no agregas a nadie — agrega al menos un correo para que reciban cada aseo.",
+    "contact_unnamed": "Sin nombre",
+    "contact_add": "Agregar",
+    "contact_remove": "Quitar contacto",
+    "window_note": "Ventana sugerida según tu anuncio: {window}.",
     "auto_title": "Confirmación automática",
     "auto_on_body": "Cada aseo detectado tras un check-out se confirma y notifica solo — cero trabajo para ti.",
     "auto_off_body": "Cada aseo detectado queda pendiente hasta que lo confirmes tú.",
@@ -526,7 +533,8 @@
     "notify_luxel": "Al confirmar un aseo, el equipo Luxel recibe el aviso automáticamente.",
     "price_note": "Tarifa por aseo: {price} — configúrala como tarifa de limpieza en Airbnb para que la pague el huésped.",
     "none": "Sin aseos pendientes — se crean solos después de cada check-out.",
-    "status_scheduled": "Agendado y notificado",
+    "status_confirmed": "Asistencia confirmada por el equipo ✓",
+    "status_notified": "Equipo avisado — esperando su confirmación",
     "status_suggested_hint": "Detectado desde un check-out — confírmalo",
     "confirm": "Confirmar",
     "skip": "Omitir",
@@ -622,7 +630,10 @@
     "d_ai_threads": "{n, plural, =0 {Aún sin conversaciones con huéspedes.} one {# conversación con huéspedes en total.} other {# conversaciones con huéspedes en total.}}",
     "d_ai_pending": "{n, plural, one {# conversación espera tu respuesta.} other {# conversaciones esperan tu respuesta.}}",
     "d_ai_clear": "Ninguna conversación espera tu respuesta — la IA está al día.",
-    "d_revenue_by_stay": "Ingreso por estadía"
+    "d_revenue_by_stay": "Ingreso por estadía",
+    "d_occupancy_prev": "Ocupación de los 30 días previos: {p}%.",
+    "delta_prev30": "{d} pts",
+    "delta_prev7": "{d} vs sem. previa"
   },
   "onboarding": {
     "title": "Conecta tu propiedad en 3 pasos",
@@ -646,7 +657,17 @@
     "knows_note": "La IA ya conoce la ficha del anuncio (comodidades, reglas, horarios, capacidad) y aprende de tus respuestas anteriores.",
     "teach_link": "Contarle algo que solo tú sabes",
     "teach_title": "Lo que solo tú sabes",
-    "teach_body": "Todo lo que aparece en tu anuncio de Airbnb la IA ya lo sabe. Agrega aquí solo los datos que no están publicados: la clave del wifi, el truco de la puerta, dónde estacionar."
+    "teach_body": "Todo lo que aparece en tu anuncio de Airbnb la IA ya lo sabe. Agrega aquí solo los datos que no están publicados: la clave del wifi, el truco de la puerta, dónde estacionar.",
+    "price_title": "Optimización de precios",
+    "price_on_body": "Luxel gestiona tus tarifas nocturnas según demanda y temporada — los ajustes se publican directo en tu calendario.",
+    "price_off_body": "Actívala para que Luxel gestione tus tarifas nocturnas según demanda y temporada.",
+    "price_preview_link": "Ver tus tarifas (30 días)",
+    "price_preview_title": "Tus tarifas publicadas",
+    "price_preview_body": "Tarifas por noche publicadas hoy en tu calendario de Airbnb para los próximos 30 días.",
+    "price_min": "Mínima",
+    "price_avg": "Promedio",
+    "price_max": "Máxima",
+    "price_preview_note": "Datos reales de tu calendario — nada estimado."
   },
   "about": {
     "eyebrow": "Quiénes somos",
@@ -745,8 +766,25 @@
     "nights": "{n, plural, one {# noche} other {# noches}}",
     "revenue": "{amount} de ingreso",
     "in_progress": "En curso",
-    "cleaning_scheduled": "Aseo agendado",
+    "stay_title": "Estadía",
+    "cleaning_confirmed": "Aseo con asistencia confirmada",
+    "cleaning_notified": "Aseo agendado — el equipo fue avisado",
     "cleaning_pending": "Aseo por confirmar",
-    "cleaning_auto": "Aseo se agenda solo"
+    "cleaning_auto": "El aseo se agenda solo tras el check-out",
+    "legend_reserved": "Reservado",
+    "legend_confirmed": "Aseo confirmado",
+    "legend_notified": "Equipo avisado",
+    "legend_pending": "Por confirmar"
+  },
+  "crew": {
+    "title": "Confirmación de aseo",
+    "body": "Confirma tu asistencia para que el anfitrión sepa que el aseo está cubierto.",
+    "confirm": "Confirmar asistencia",
+    "confirming": "Confirmando…",
+    "confirmed": "¡Asistencia confirmada! El anfitrión ya puede verlo.",
+    "already": "Esta asistencia ya fue confirmada. ¡Gracias!",
+    "window": "Ventana: {window}",
+    "skipped": "Este aseo fue cancelado por el anfitrión.",
+    "error": "No se pudo confirmar. Recarga la página e inténtalo de nuevo."
   }
 }

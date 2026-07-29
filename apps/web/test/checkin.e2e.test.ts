@@ -23,6 +23,11 @@ process.env.LUXEL_DEV_MOCK = '1';
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
+  // createCheckinLink is an ADMIN debug tool now (guests get links
+  // automatically on reservation import) — the test host plays admin.
+  clerkClient: async () => ({
+    users: { getUser: async () => ({ publicMetadata: { role: 'admin' } }) },
+  }),
 }));
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 

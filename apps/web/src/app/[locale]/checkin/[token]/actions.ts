@@ -48,11 +48,19 @@ export async function submitCheckin(input: unknown): Promise<Result> {
 
   const { data: checkin } = await supabase
     .from('checkins')
-    .select('id, status, property_id')
+    .select('id, status, property_id, departure_date')
     .eq('token', d.token)
     .maybeSingle();
   if (!checkin) return { ok: false, error: 'not_found' };
   if (checkin.status !== 'pending') return { ok: false, error: 'already_submitted' };
+  // Auto-issued links die with the stay: after departure the token is inert,
+  // so a leaked or stale link can never surface access info later.
+  const todaySantiago = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago',
+  }).format(new Date());
+  if (checkin.departure_date && todaySantiago > (checkin.departure_date as string)) {
+    return { ok: false, error: 'expired' };
+  }
 
   // Re-check the property's ID requirement server-side — never trust the client.
   // When the host requires ID (declared legal basis), EVERY incoming guest

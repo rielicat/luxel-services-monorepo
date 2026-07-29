@@ -37,6 +37,12 @@ export type Block = {
   source: 'import' | 'manual';
   summary: string | null;
 };
+export type CleaningContact = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  whatsapp: string | null;
+};
 
 export type PropertyRow = {
   id: string;
@@ -48,6 +54,7 @@ export type PropertyRow = {
   platform: string | null;
   base_nightly_clp: number | null;
   ai_enabled: boolean;
+  price_optimization_enabled: boolean;
   bedrooms: number | null;
   bathrooms: number | null;
   picture_url: string | null;
@@ -65,10 +72,8 @@ export type PropertyRow = {
     events_allowed?: boolean | null;
   } | null;
   cleaning_managed_by: 'luxel' | 'own';
-  cleaning_contact_name: string | null;
-  cleaning_contact_email: string | null;
-  cleaning_contact_whatsapp: string | null;
   cleaning_auto_confirm: boolean;
+  cleaning_contacts: CleaningContact[];
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];

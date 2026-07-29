@@ -1,10 +1,12 @@
 'use server';
 
 import { z } from 'zod';
+import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { checkinToken } from '@/lib/checkin/tokens';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
+import { isClerkAdmin } from '@/lib/auth/admin';
 
 // Properties are import-only: rows exist solely as a mirror of the host's
 // Hospitable account (see lib/channels/hospitable-sync.ts). There is no manual
@@ -59,10 +61,14 @@ export async function updateAccess(input: unknown): Promise<{ ok: boolean; error
   return { ok: true };
 }
 
+/** Debug tool: check-in links reach guests automatically on reservation
+ *  import — this exists only so an ADMIN can preview the guest-facing page. */
 export async function createCheckinLink(
   propertyId: string,
 ): Promise<{ ok: boolean; token?: string }> {
   if (typeof propertyId !== 'string') return { ok: false };
+  const { userId } = await auth();
+  if (!userId || !(await isClerkAdmin(userId))) return { ok: false };
   const customerId = await currentCustomerId();
   if (!customerId || !(await ownsProperty(customerId, propertyId))) return { ok: false };
   const supabase = createSupabaseServiceRoleClient();

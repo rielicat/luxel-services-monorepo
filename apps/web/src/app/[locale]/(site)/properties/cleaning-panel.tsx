@@ -3,12 +3,18 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Check, X, Building2, UserRound } from 'lucide-react';
+import { Check, X, Building2, UserRound, Plus, Trash2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
-import { setCleaningStatus, updateCleaningStaff } from './cleaning-actions';
+import {
+  setCleaningStatus,
+  updateCleaningStaff,
+  addCleaningContact,
+  removeCleaningContact,
+} from './cleaning-actions';
+import type { CleaningContact } from './properties-client';
 
 export type Cleaning = {
   id: string;
@@ -16,6 +22,7 @@ export type Cleaning = {
   status: string;
   price_clp: number | null;
   source: string;
+  crew_confirmed_at: string | null;
 };
 
 const clp = (n: number | null) => (n == null ? '—' : `$${n.toLocaleString('es-CL')}`);
@@ -32,29 +39,26 @@ export function CleaningPanel({
   cleanings,
   turnoverPrice,
   managedBy,
-  contactName,
-  contactEmail,
-  contactWhatsapp,
+  contacts,
   autoConfirm,
+  checkinTime,
+  checkoutTime,
 }: {
   propertyId: string;
   cleanings: Cleaning[];
   turnoverPrice: number | null;
   managedBy: 'luxel' | 'own';
-  contactName: string | null;
-  contactEmail: string | null;
-  contactWhatsapp: string | null;
+  contacts: CleaningContact[];
   autoConfirm: boolean;
+  checkinTime: string | null;
+  checkoutTime: string | null;
 }) {
   const t = useTranslations('cleaning');
   const router = useRouter();
   const [pending, start] = useTransition();
   const [mode, setMode] = useState<'luxel' | 'own'>(managedBy);
   const [auto, setAuto] = useState(autoConfirm);
-  const [name, setName] = useState(contactName ?? '');
-  const [email, setEmail] = useState(contactEmail ?? '');
-  const [whatsapp, setWhatsapp] = useState(contactWhatsapp ?? '');
-  const [saved, setSaved] = useState(false);
+  const [draft, setDraft] = useState({ name: '', email: '', whatsapp: '' });
   const [showAll, setShowAll] = useState(false);
 
   const run = (fn: () => Promise<unknown>) =>
@@ -63,21 +67,23 @@ export function CleaningPanel({
       router.refresh();
     });
 
-  const saveStaff = (nextMode: 'luxel' | 'own', nextAuto?: boolean) =>
-    run(async () => {
-      const r = await updateCleaningStaff({
+  const setStaff = (nextMode: 'luxel' | 'own', nextAuto?: boolean) =>
+    run(() =>
+      updateCleaningStaff({
         propertyId,
         managedBy: nextMode,
-        contactName: name,
-        contactEmail: email,
-        contactWhatsapp: whatsapp,
         ...(nextAuto != null ? { autoConfirm: nextAuto } : {}),
-      });
-      if (r.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
+      }),
+    );
+
+  const addContact = () =>
+    run(async () => {
+      const r = await addCleaningContact({ propertyId, ...draft });
+      if (r.ok) setDraft({ name: '', email: '', whatsapp: '' });
     });
+
+  // The turnover window comes straight from the listing's real times.
+  const window = checkoutTime && checkinTime ? `${checkoutTime}–${checkinTime}` : null;
 
   const upcoming = [...cleanings]
     .filter((c) => c.status !== 'skipped' && c.status !== 'done')
@@ -99,7 +105,7 @@ export function CleaningPanel({
             disabled={pending}
             onClick={() => {
               setMode(id);
-              if (id === 'luxel') saveStaff('luxel');
+              setStaff(id);
             }}
             className={cn(
               'rounded-lg border p-3 text-left transition-colors',
@@ -116,33 +122,65 @@ export function CleaningPanel({
         ))}
       </div>
 
+      {/* The notify list: explicit people, explicit add/remove. */}
       {mode === 'own' && (
-        <div className="grid gap-2 sm:grid-cols-3">
-          <Input
-            placeholder={t('staff_name')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Input
-            type="email"
-            placeholder={t('staff_email')}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            placeholder={t('staff_whatsapp')}
-            value={whatsapp}
-            onChange={(e) => setWhatsapp(e.target.value)}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            className="justify-self-start sm:col-span-3"
-            disabled={pending}
-            onClick={() => saveStaff('own')}
-          >
-            {saved ? t('staff_saved') : t('staff_save')}
-          </Button>
+        <div className="border-border grid gap-2 rounded-lg border p-3">
+          <p className="text-xs font-semibold">{t('contacts_title')}</p>
+          {contacts.length === 0 && (
+            <p className="text-muted-foreground text-xs">{t('contacts_none')}</p>
+          )}
+          {contacts.map((c) => (
+            <div
+              key={c.id}
+              className="bg-muted/40 flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-sm"
+            >
+              <span className="min-w-0 truncate">
+                <span className="font-medium">{c.name || t('contact_unnamed')}</span>
+                <span className="text-muted-foreground ml-1.5 text-xs">
+                  {[c.email, c.whatsapp].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              <button
+                type="button"
+                aria-label={t('contact_remove')}
+                disabled={pending}
+                onClick={() => run(() => removeCleaningContact({ propertyId, contactId: c.id }))}
+                className="text-muted-foreground hover:text-warning shrink-0 rounded-md p-1 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
+            <Input
+              className="h-9 text-sm"
+              placeholder={t('staff_name')}
+              value={draft.name}
+              onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+            />
+            <Input
+              className="h-9 text-sm"
+              type="email"
+              placeholder={t('staff_email')}
+              value={draft.email}
+              onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
+            />
+            <Input
+              className="h-9 text-sm"
+              placeholder={t('staff_whatsapp')}
+              value={draft.whatsapp}
+              onChange={(e) => setDraft((d) => ({ ...d, whatsapp: e.target.value }))}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9"
+              disabled={pending || !draft.email.trim()}
+              onClick={addContact}
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" /> {t('contact_add')}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -162,7 +200,7 @@ export function CleaningPanel({
           onClick={() => {
             const next = !auto;
             setAuto(next);
-            saveStaff(mode, next);
+            setStaff(mode, next);
           }}
           className={cn(
             'relative h-6 w-11 shrink-0 rounded-full transition-colors',
@@ -180,6 +218,7 @@ export function CleaningPanel({
 
       <p className="text-muted-foreground text-xs">
         {mode === 'own' ? t('notify_own') : t('notify_luxel')}
+        {window && ` ${t('window_note', { window })}`}
         {turnoverPrice != null &&
           mode === 'luxel' &&
           ` ${t('price_note', { price: clp(turnoverPrice) })}`}
@@ -190,7 +229,7 @@ export function CleaningPanel({
       <div className="grid gap-2">
         {upcoming.length === 0 && <p className="text-muted-foreground text-sm">{t('none')}</p>}
         {upcoming.slice(0, 3).map((c) => (
-          <CleaningRow key={c.id} c={c} auto={auto} pending={pending} run={run} />
+          <CleaningRow key={c.id} c={c} auto={auto} pending={pending} run={run} window={window} />
         ))}
         {upcoming.length > 3 && (
           <button
@@ -206,7 +245,7 @@ export function CleaningPanel({
       <Modal open={showAll} onClose={() => setShowAll(false)} title={t('upcoming_title')}>
         <div className="grid gap-2">
           {upcoming.map((c) => (
-            <CleaningRow key={c.id} c={c} auto={auto} pending={pending} run={run} />
+            <CleaningRow key={c.id} c={c} auto={auto} pending={pending} run={run} window={window} />
           ))}
         </div>
       </Modal>
@@ -219,19 +258,39 @@ function CleaningRow({
   auto,
   pending,
   run,
+  window,
 }: {
   c: Cleaning;
   auto: boolean;
   pending: boolean;
   run: (fn: () => Promise<unknown>) => void;
+  window: string | null;
 }) {
   const t = useTranslations('cleaning');
   return (
     <div className="border-border flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
       <div>
-        <p className="text-sm font-medium capitalize">{fmt(c.cleaning_date)}</p>
-        <p className="text-muted-foreground text-xs">
-          {c.status === 'scheduled' ? t('status_scheduled') : t('status_suggested_hint')}
+        <p className="flex items-center gap-2 text-sm font-medium">
+          <span className="capitalize">{fmt(c.cleaning_date)}</span>
+          {window && (
+            <span className="text-muted-foreground flex items-center gap-1 text-xs font-normal">
+              <Clock className="h-3 w-3" /> {window}
+            </span>
+          )}
+        </p>
+        <p
+          className={cn(
+            'text-xs',
+            c.status === 'scheduled' && c.crew_confirmed_at
+              ? 'text-success'
+              : 'text-muted-foreground',
+          )}
+        >
+          {c.status === 'scheduled'
+            ? c.crew_confirmed_at
+              ? t('status_confirmed')
+              : t('status_notified')
+            : t('status_suggested_hint')}
           {c.price_clp != null && ` · ${clp(c.price_clp)}`}
         </p>
       </div>

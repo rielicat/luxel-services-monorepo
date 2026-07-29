@@ -4,15 +4,110 @@ import {
   listHospitableProperties,
   listHospitableReservations,
   listHospitableMessages,
+  sendHospitableMessage,
   type HospitableProperty,
   type HospitableReservation,
 } from './hospitable';
 import { suggestCleaningsFromCheckouts } from '@/lib/cleaning/schedule';
 import { autoConfirmSuggested } from '@/lib/cleaning/notify';
+import { checkinToken } from '@/lib/checkin/tokens';
+import { appUrl } from '@/lib/urls';
 import { handleInboundMessage } from './pipeline';
 
 const DAY = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
+// Calendar dates are host-local: computing them in UTC would skip same-day
+// arrivals every Chilean evening (UTC rolls over at 20:00–21:00 Santiago).
+const santiagoDate = (d: Date) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d);
+
+/** The check-in link is part of the reservation, not a button: each newly
+ *  imported future reservation gets one message with its tokenized link, and a
+ *  reservation that disappears upstream (cancellation) gets its unsubmitted
+ *  link revoked. The unique `reservation_uid` makes the send once-only; on the
+ *  FIRST sync of an account the anchors are seeded silently so connecting
+ *  never blasts messages at pre-existing bookings (same contract as the
+ *  message watermark). */
+async function sendCheckinLinksForNewReservations(
+  supabase: Supabase,
+  hospToken: string,
+  propertyId: string,
+  accepted: HospitableReservation[],
+  today: string,
+  firstSync: boolean,
+): Promise<void> {
+  // Revoke links whose reservation no longer exists upstream — mirrors the
+  // calendar_blocks refresh, and only runs after a successful reservations
+  // fetch, so an API failure can never mass-revoke.
+  const uids = accepted.map((r) => `hosp:${r.id}`);
+  let revoke = supabase
+    .from('checkins')
+    .delete()
+    .eq('property_id', propertyId)
+    .like('reservation_uid', 'hosp:%')
+    .is('submitted_at', null);
+  if (uids.length) {
+    revoke = revoke.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`);
+  }
+  await revoke;
+
+  const { data: prop } = await supabase
+    .from('properties')
+    .select('nickname')
+    .eq('id', propertyId)
+    .maybeSingle();
+  for (const r of accepted) {
+    try {
+      if (r.arrival_date.slice(0, 10) < today) continue;
+      const uid = `hosp:${r.id}`;
+      let linkToken = checkinToken();
+      const { error } = await supabase.from('checkins').insert({
+        property_id: propertyId,
+        token: linkToken,
+        status: 'pending',
+        reservation_uid: uid,
+        arrival_date: r.arrival_date.slice(0, 10),
+        departure_date: r.departure_date.slice(0, 10),
+        ...(firstSync ? { notify_result: { hospitable: 'skipped_backfill' } } : {}),
+      });
+      if (error) {
+        // uid already claimed. Only skip if that claim actually concluded
+        // (sent, or deliberately skipped) — a crash between insert and send
+        // leaves notified_at AND notify_result null, and that row should
+        // resend with its already-issued token.
+        const { data: existing } = await supabase
+          .from('checkins')
+          .select('token, notified_at, notify_result')
+          .eq('reservation_uid', uid)
+          .maybeSingle();
+        if (!existing || existing.notified_at || existing.notify_result) continue;
+        linkToken = existing.token as string;
+      } else if (firstSync) {
+        continue; // anchor seeded, nothing sent — pre-existing booking
+      }
+      const url = `${appUrl()}/checkin/${linkToken}`;
+      const sent = await sendHospitableMessage(
+        hospToken,
+        r.id,
+        `¡Hola! Gracias por tu reserva en ${prop?.nickname ?? 'nuestro alojamiento'}. Para agilizar tu llegada, completa tu check-in online aquí: ${url}`,
+      );
+      if (sent) {
+        await supabase
+          .from('checkins')
+          .update({ notified_at: new Date().toISOString(), notify_result: { hospitable: 'sent' } })
+          .eq('reservation_uid', uid);
+      } else {
+        await supabase
+          .from('checkins')
+          .delete()
+          .eq('reservation_uid', uid)
+          .is('submitted_at', null);
+      }
+    } catch {
+      /* best-effort per reservation */
+    }
+  }
+}
 
 export interface HospitableSyncResult {
   ok: boolean;
@@ -38,7 +133,9 @@ async function upsertHospitableProperty(
   const lng = coords?.longitude != null ? Number(coords.longitude) : null;
 
   const fields = {
-    nickname: rp.public_name || rp.name || 'Propiedad Airbnb',
+    // The host's own nickname is the title; the public listing headline is a
+    // marketing string ("Depto 3D/2B + AC…"), not how the owner names the unit.
+    nickname: rp.name || rp.public_name || 'Propiedad Airbnb',
     address: rp.address?.street ?? null,
     comuna: rp.address?.city ?? null,
     bedrooms: rp.capacity?.bedrooms ?? null,
@@ -302,13 +399,24 @@ export async function syncHospitableAccount(
         );
       }
       reservationCount += accepted.length;
+
+      // 2b) Every NEW future reservation gets its check-in link sent into the
+      // guest thread automatically — send-once, anchored on the reservation uid.
+      await sendCheckinLinksForNewReservations(
+        supabase,
+        token,
+        propertyId,
+        accepted,
+        santiagoDate(now),
+        watermark === null,
+      );
     }
 
     // 3) Cleaning suggestions from the fresh check-outs — and, unless the host
     // opted out, they confirm themselves and notify whoever runs the turnover.
     const c = await suggestCleaningsFromCheckouts(propertyId);
     cleaningCount += c.suggested;
-    await autoConfirmSuggested(propertyId, iso(now));
+    await autoConfirmSuggested(propertyId, santiagoDate(now));
 
     // 4) Conversations: history feeds grounding; new guest messages get the AI.
     if (reservations?.length) {

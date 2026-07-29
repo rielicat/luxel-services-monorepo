@@ -251,7 +251,8 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .eq('owner_id', customerId)
       .single();
     expect(prop!.external_listing_id).toBe(HOSP_PROPERTY_ID);
-    expect(prop!.nickname).toBe('Depto Providencia céntrico');
+    // The host's own nickname wins over the public listing headline.
+    expect(prop!.nickname).toBe('JOSÉ MANUEL INFANTE 1045 - DPTO 401');
     expect(prop!.comuna).toBe('Providencia');
     expect(prop!.bedrooms).toBe(3);
     expect(Number(prop!.lat)).toBeCloseTo(-33.44095859, 4);
@@ -450,7 +451,23 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .eq('thread_id', thread!.id);
     expect(hist).toHaveLength(3); // full history imported for grounding
     expect(hist!.some((m) => m.source === 'ai')).toBe(false); // but nothing auto-sent
-    expect(SENT).toHaveLength(0);
+    // FIRST sync sends NOTHING (no message blast at pre-existing bookings):
+    // check-in anchors are seeded silently for future accepted reservations
+    // (res-1 and res-2; cancelled res-3 gets none).
+    const checkinSends = () => SENT.filter((s) => s.body.includes('/checkin/'));
+    const aiSends = () => SENT.filter((s) => !s.body.includes('/checkin/'));
+    expect(aiSends()).toHaveLength(0);
+    expect(checkinSends()).toHaveLength(0);
+    const { data: anchors } = await admin
+      .from('checkins')
+      .select('reservation_uid, notified_at, notify_result')
+      .like('reservation_uid', 'hosp:%');
+    expect(anchors!.map((a) => a.reservation_uid).sort()).toEqual(['hosp:res-1', 'hosp:res-2']);
+    expect(anchors!.every((a) => a.notified_at === null)).toBe(true);
+
+    // Simulate a booking that arrives AFTER connect: its anchor doesn't exist
+    // yet, so the next sync must send exactly one check-in link for it.
+    await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
 
     // A NEW guest message arrives after the watermark → the AI replies via Hospitable.
     const future = new Date(Date.now() + 60_000).toISOString();
@@ -474,8 +491,11 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     const externalIds = after!.map((m) => m.external_id).filter(Boolean) as string[];
     expect(new Set(externalIds).size).toBe(externalIds.length);
     expect(after!.some((m) => m.source === 'ai')).toBe(true); // AI answered
-    expect(SENT.length).toBeGreaterThan(0); // …and it went out through Hospitable
-    expect(SENT[0]!.reservationId).toBe('res-1');
+    expect(aiSends().length).toBeGreaterThan(0); // …and it went out through Hospitable
+    expect(aiSends()[0]!.reservationId).toBe('res-1');
+    // Post-watermark sync sent the link for the "new" booking (res-2) only —
+    // res-1's silently seeded anchor stays quiet.
+    expect(checkinSends().map((s) => s.reservationId)).toEqual(['res-2']);
 
     // Idempotent: a third sync must not duplicate or re-reply.
     const count = after!.length;
