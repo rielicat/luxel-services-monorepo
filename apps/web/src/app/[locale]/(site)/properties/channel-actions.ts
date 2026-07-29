@@ -37,6 +37,10 @@ export async function disconnectHospitable(): Promise<{ ok: boolean }> {
     .delete()
     .eq('customer_id', cid)
     .eq('provider', 'hospitable');
+  // Dropping the token alone no longer stops anything: the operator credential
+  // would resume syncing this customer's assigned listings on the next load.
+  // Disconnecting means leaving central management too.
+  await supabase.from('listing_assignments').delete().eq('customer_id', cid);
   revalidatePath('/properties');
   return { ok: true };
 }

@@ -3,14 +3,26 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Bot, Pencil, LineChart, Plus, ExternalLink, TriangleAlert, Check } from 'lucide-react';
+import {
+  Bot,
+  Pencil,
+  LineChart,
+  Plus,
+  ExternalLink,
+  TriangleAlert,
+  Check,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 import { ADDON_KEYS, ADDONS, type AddonKey } from '@/lib/addons/catalog';
 import { setAiEnabled, setPriceOptimization, updateGuestInfo } from './copilot-actions';
-import { subscribeAddon, unsubscribeAddon, markPricelabsConnected } from './addon-actions';
+import { subscribeAddon, unsubscribeAddon } from './addon-actions';
+import { refreshPricingLink, updatePricingSettings } from './pricing-actions';
 import type { LiveDay } from './stays-timeline';
 
 const clp = (n: number) => `$${n.toLocaleString('es-CL')}`;
@@ -84,6 +96,10 @@ export function AutomationsPanel({
   const [stepsFor, setStepsFor] = useState<AddonKey | null>(null);
   const [info, setInfo] = useState(guestInfo ?? '');
   const [saved, setSaved] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [bounds, setBounds] = useState({ base: '', min: '', max: '' });
+  const [boundsError, setBoundsError] = useState<string | null>(null);
+  const [linkResult, setLinkResult] = useState<'idle' | 'pending' | 'unavailable'>('idle');
 
   const run = (fn: () => Promise<unknown>) =>
     start(async () => {
@@ -198,15 +214,24 @@ export function AutomationsPanel({
             </button>
           )}
           {pricingActive && pricelabsStatus === 'connected' && (
-            <p
-              className={cn(
-                'flex items-center gap-1 text-xs font-medium',
-                priceOptEnabled ? 'text-success' : 'text-muted-foreground',
-              )}
-            >
-              <Check className="h-3 w-3" />
-              {priceOptEnabled ? ta('connected') : ta('paused_still_connected')}
-            </p>
+            <>
+              <p
+                className={cn(
+                  'flex items-center gap-1 text-xs font-medium',
+                  priceOptEnabled ? 'text-success' : 'text-muted-foreground',
+                )}
+              >
+                <Check className="h-3 w-3" />
+                {priceOptEnabled ? ta('connected') : ta('paused_still_connected')}
+              </p>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="text-primary flex w-fit items-center gap-1 text-xs font-medium hover:underline"
+              >
+                <SlidersHorizontal className="h-3 w-3" /> {ta('bounds_link')}
+              </button>
+            </>
           )}
 
           <div className="flex flex-wrap items-center gap-3">
@@ -390,8 +415,9 @@ export function AutomationsPanel({
         </div>
       </Modal>
 
-      {/* The one step no API can do for the host: authorising the pricing tool
-          against their own account. */}
+      {/* The one step we can't do for the host: granting Luxel manager access.
+          Once granted, the listing shows up under Luxel's account and we detect
+          it — the host never has to attest anything. */}
       <Modal open={stepsFor != null} onClose={() => setStepsFor(null)} title={ta('steps_title')}>
         <div className="grid gap-3">
           <p className="text-muted-foreground text-sm">{ta('steps_intro')}</p>
@@ -399,7 +425,6 @@ export function AutomationsPanel({
             {stepsFor === 'dynamic_pricing' && <li>{ta('step_smart_pricing')}</li>}
             <li>{ta('step_1')}</li>
             <li>{ta('step_2')}</li>
-            <li>{ta('step_3')}</li>
           </ol>
           <a
             href={PRICING_SETUP_URL}
@@ -412,21 +437,85 @@ export function AutomationsPanel({
           <p className="text-muted-foreground text-xs">{ta('steps_help')}</p>
           <Button
             size="sm"
-            variant={pricelabsStatus === 'connected' ? 'ghost' : 'default'}
             className="justify-self-start"
             disabled={pending}
             onClick={() =>
               run(async () => {
-                await markPricelabsConnected({
-                  propertyId,
-                  connected: pricelabsStatus !== 'connected',
-                });
-                setStepsFor(null);
+                const r = await refreshPricingLink(propertyId);
+                if (r.ok && r.status === 'connected') {
+                  setLinkResult('idle');
+                  setStepsFor(null);
+                } else {
+                  setLinkResult(r.status === 'unavailable' ? 'unavailable' : 'pending');
+                }
               })
             }
           >
-            {pricelabsStatus === 'connected' ? ta('mark_pending') : ta('mark_done')}
+            {ta('verify_link')}
           </Button>
+          {linkResult === 'pending' && (
+            <p className="text-warning text-xs">{ta('verify_not_found')}</p>
+          )}
+          {linkResult === 'unavailable' && (
+            <p className="text-muted-foreground text-xs">{ta('verify_unavailable')}</p>
+          )}
+        </div>
+      </Modal>
+
+      {/* Floor and ceiling: the host stays in control of how far Luxel may move
+          their rates. Written straight to the pricing engine. */}
+      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title={ta('bounds_title')}>
+        <div className="grid gap-3">
+          <p className="text-muted-foreground text-sm">{ta('bounds_body')}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(
+              [
+                ['base', ta('bounds_base')],
+                ['min', ta('bounds_min')],
+                ['max', ta('bounds_max')],
+              ] as const
+            ).map(([field, label]) => (
+              <div key={field} className="grid gap-1.5">
+                <Label>{label}</Label>
+                <Input
+                  inputMode="numeric"
+                  value={bounds[field]}
+                  onChange={(e) =>
+                    setBounds((b) => ({ ...b, [field]: e.target.value.replace(/\D/g, '') }))
+                  }
+                  placeholder="—"
+                />
+              </div>
+            ))}
+          </div>
+          {boundsError && <p className="text-warning text-xs">{boundsError}</p>}
+          <Button
+            size="sm"
+            className="justify-self-start"
+            disabled={pending || !Object.values(bounds).some(Boolean)}
+            onClick={() =>
+              run(async () => {
+                const num = (v: string) => (v ? Number(v) : undefined);
+                const r = await updatePricingSettings({
+                  propertyId,
+                  base: num(bounds.base),
+                  min: num(bounds.min),
+                  max: num(bounds.max),
+                });
+                if (r.ok) {
+                  setBoundsError(null);
+                  setSettingsOpen(false);
+                } else {
+                  setBoundsError(
+                    ta(`bounds_error_${r.error === 'validation' ? 'range' : r.error}`),
+                  );
+                }
+              })
+            }
+          >
+            {ta('bounds_save')}
+          </Button>
+          <p className="text-muted-foreground text-xs">{ta('bounds_note')}</p>
         </div>
       </Modal>
     </div>

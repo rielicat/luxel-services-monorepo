@@ -2,7 +2,8 @@ import { redirect, notFound } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { fetchProperty } from '@/lib/host/queries';
-import { customerHospitableToken, listHospitableCalendar } from '@/lib/channels/hospitable';
+import { listHospitableCalendar } from '@/lib/channels/hospitable';
+import { hospitableAccess } from '@/lib/channels/scope';
 import { priceTurnover } from '@/lib/cleaning/price';
 import { devMockEnabled } from '@/lib/dev-mock';
 import { isClerkAdmin } from '@/lib/auth/admin';
@@ -41,7 +42,10 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   const today = santiagoToday();
   let liveDays: LiveDay[] | null = null;
   if (property.external_listing_id) {
-    const token = await customerHospitableToken(customer.id);
+    // The listing id comes from `fetchProperty`, already scoped to this owner,
+    // so reading its calendar through the central credential stays tenant-safe.
+    const access = await hospitableAccess(customer.id);
+    const token = access?.token ?? null;
     if (token) {
       const days = await listHospitableCalendar(
         token,

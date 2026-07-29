@@ -1,5 +1,5 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { customerHospitableToken } from '@/lib/channels/hospitable';
+import { hospitableAccess } from '@/lib/channels/scope';
 import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
 
 export const runtime = 'nodejs';
@@ -8,9 +8,14 @@ export const maxDuration = 300;
 
 /**
  * Scheduled sync (vercel.json cron, every 15 min): pulls reservations, calendar
- * and conversations for every connected account, auto-replying to new guest
- * messages. This is what keeps the AI interacting with Hospitable continuously
+ * and conversations for every managed account, auto-replying to new guest
+ * messages. This is what keeps the AI interacting with the channel continuously
  * without webhook access. Vercel sends `Authorization: Bearer ${CRON_SECRET}`.
+ *
+ * Two kinds of customer are synced: those with their own stored connection, and
+ * those Luxel manages through the central account (identified by having listings
+ * assigned to them). `hospitableAccess` resolves which, and the scope it returns
+ * keeps a central fetch filtered to that customer's assigned listings.
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -19,26 +24,34 @@ export async function GET(req: Request) {
   }
 
   const supabase = createSupabaseServiceRoleClient();
-  const { data: connections } = await supabase
-    .from('channel_connections')
-    .select('customer_id')
-    .eq('provider', 'hospitable')
-    .eq('status', 'connected');
+  const [{ data: connections }, { data: assigned }] = await Promise.all([
+    supabase
+      .from('channel_connections')
+      .select('customer_id')
+      .eq('provider', 'hospitable')
+      .eq('status', 'connected'),
+    supabase.from('listing_assignments').select('customer_id'),
+  ]);
 
-  const results: Array<{ customer: string; ok: boolean; replies?: number }> = [];
-  for (const c of connections ?? []) {
-    // Strict per-connection token: full syncs prune the mirror, so the env
-    // founder token must never substitute for another tenant's broken token.
-    const token = await customerHospitableToken(c.customer_id as string);
-    if (!token) {
-      results.push({ customer: c.customer_id as string, ok: false });
+  const customerIds = [
+    ...new Set([
+      ...(connections ?? []).map((c) => c.customer_id as string),
+      ...(assigned ?? []).map((a) => a.customer_id as string),
+    ]),
+  ];
+
+  const results: Array<{ customer: string; ok: boolean; scope?: string; replies?: number }> = [];
+  for (const customerId of customerIds) {
+    const access = await hospitableAccess(customerId);
+    if (!access) {
+      results.push({ customer: customerId, ok: false });
       continue;
     }
     try {
-      const r = await syncHospitableAccount(c.customer_id as string, token);
-      results.push({ customer: c.customer_id as string, ok: r.ok, replies: r.aiReplies });
+      const r = await syncHospitableAccount(customerId, access.token, new Date(), access.scope);
+      results.push({ customer: customerId, ok: r.ok, scope: access.scope, replies: r.aiReplies });
     } catch {
-      results.push({ customer: c.customer_id as string, ok: false });
+      results.push({ customer: customerId, ok: false, scope: access.scope });
     }
   }
   return Response.json({ ok: true, accounts: results.length, results });

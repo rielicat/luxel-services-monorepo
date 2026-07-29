@@ -4,12 +4,12 @@ import { auth } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { getPlan, type PlanRow } from '@/lib/plans';
 import { fetchProperties, fetchConnection, type HostConnection } from '@/lib/host/queries';
-import { customerHospitableToken, saveHospitableConnection } from '@/lib/channels/hospitable';
+import { saveHospitableConnection } from '@/lib/channels/hospitable';
+import { hospitableAccess } from '@/lib/channels/scope';
 import {
   reconcileHospitableProperties,
   syncHospitableAccount,
 } from '@/lib/channels/hospitable-sync';
-import { isClerkAdmin } from '@/lib/auth/admin';
 import { PropertiesClient, type PropertyRow } from './properties-client';
 
 export const dynamic = 'force-dynamic';
@@ -31,26 +31,28 @@ export default async function PropertiesPage() {
   let plan: PlanRow | null = null;
   let connection: HostConnection | null = null;
   let syncFailed = false;
+  let centralManaged = false;
   if (customer) {
     connection = await fetchConnection(customer.id);
-    // The grid is a strict mirror of Hospitable: on every load we pull the
-    // listing list live and reconcile (upsert + prune). Token resolution is
-    // tenant-safe by construction: a stored connection uses ITS token only (a
-    // decrypt failure surfaces as a sync error — never an env fallthrough), and
-    // the HOSPITABLE_API_TOKEN env bootstrap is released exclusively to Clerk
-    // admins (publicMetadata.role === 'admin' — managed in Clerk, no env
-    // allow-list), where it is persisted encrypted as that account's own
-    // connection.
-    const token = connection
-      ? await customerHospitableToken(customer.id)
-      : (await isClerkAdmin(userId))
-        ? (process.env.HOSPITABLE_API_TOKEN ?? null)
-        : null;
-    if (token) {
-      const r = await reconcileHospitableProperties(customer.id, token).catch(() => null);
+    // The grid is a strict mirror of the channel: on every load we pull the
+    // listing list live and reconcile (upsert + prune). Tenancy comes from
+    // `hospitableAccess`: a customer's own token is the boundary by itself,
+    // while Luxel's operator credential is filtered through the listing
+    // assignments — see lib/channels/scope.ts.
+    const access = await hospitableAccess(customer.id);
+    const token = access?.token ?? null;
+    centralManaged = access?.scope === 'central';
+    if (access) {
+      const r = await reconcileHospitableProperties(customer.id, token!, access.scope).catch(
+        () => null,
+      );
       syncFailed = !r?.ok;
-      if (r?.ok && !connection) {
-        await saveHospitableConnection(customer.id, token, r.accountLabel);
+      // Only a customer's OWN token is persisted as their connection. The
+      // central credential must never be copied into a customer row — it is
+      // Luxel's, and storing it there would make every listing it can reach
+      // look like that customer's own account.
+      if (r?.ok && !connection && access.scope === 'own') {
+        await saveHospitableConnection(customer.id, token!, r.accountLabel);
         connection = await fetchConnection(customer.id);
       }
       // Self-operating sync: reservations, guest messages and cleanings refresh
@@ -61,10 +63,14 @@ export default async function PropertiesPage() {
       const syncedAt = connection?.messages_synced_at
         ? new Date(connection.messages_synced_at).getTime()
         : 0;
-      if (r?.ok && connection && Date.now() - syncedAt > FULL_SYNC_STALE_MS) {
+      // Central-scope customers have no connection row of their own, so the
+      // staleness clock comes from the last property sync instead.
+      const eligible = access.scope === 'own' ? Boolean(connection) : true;
+      if (r?.ok && eligible && Date.now() - syncedAt > FULL_SYNC_STALE_MS) {
         const customerId = customer.id;
+        const scope = access.scope;
         after(async () => {
-          await syncHospitableAccount(customerId, token).catch(() => {});
+          await syncHospitableAccount(customerId, token!, new Date(), scope).catch(() => {});
         });
       }
     } else if (connection) {
@@ -83,6 +89,7 @@ export default async function PropertiesPage() {
       plan={plan}
       connection={connection}
       syncFailed={syncFailed}
+      centralManaged={centralManaged}
     />
   );
 }

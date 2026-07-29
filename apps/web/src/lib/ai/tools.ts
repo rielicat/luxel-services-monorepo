@@ -7,7 +7,8 @@ import { getDayAvailability } from '@/lib/availability';
 import { workingHoursStatus } from '@/lib/working-hours';
 import { airbnbTierPrice, type AirbnbTier } from '@/lib/plan-pricing';
 import { fetchProperties } from '@/lib/host/queries';
-import { customerHospitableToken, listHospitableCalendar } from '@/lib/channels/hospitable';
+import { listHospitableCalendar } from '@/lib/channels/hospitable';
+import { hospitableAccess } from '@/lib/channels/scope';
 
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 
@@ -316,7 +317,9 @@ async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
     };
   }
 
-  const token = await customerHospitableToken(ctx.customerId);
+  // Listings come from fetchProperties(customerId), so they are already this
+  // customer's — reading their calendars through the central credential is safe.
+  const token = (await hospitableAccess(ctx.customerId))?.token ?? null;
   const today = new Date();
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const from = iso(today);

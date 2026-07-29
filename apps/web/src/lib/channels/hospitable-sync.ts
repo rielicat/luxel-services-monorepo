@@ -12,7 +12,35 @@ import { suggestCleaningsFromCheckouts } from '@/lib/cleaning/schedule';
 import { autoConfirmSuggested } from '@/lib/cleaning/notify';
 import { checkinToken } from '@/lib/checkin/tokens';
 import { appUrl } from '@/lib/urls';
+import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
+
+/**
+ * The tenant filter for every central-credential fetch. With `own` scope the
+ * token itself is the boundary and the list passes through; with `central` it
+ * spans all managed hosts, so only listings ASSIGNED to this customer survive.
+ * Anything unassigned belongs to nobody and is invisible until an operator
+ * assigns it.
+ */
+async function scopeToCustomer<T extends { id: string }>(
+  customerId: string,
+  remote: T[],
+  scope: ChannelScope,
+): Promise<T[] | null> {
+  if (scope === 'own') {
+    // Everything an own token returns is theirs — record it so the assignment
+    // table stays the single authority on ownership even for self-connected
+    // hosts (otherwise the mirror and the tenant boundary drift apart).
+    for (const rp of remote) await claimListing(rp.id, customerId);
+    return remote;
+  }
+  const allowed = await allowedListingIds(customerId);
+  // null = the assignment read FAILED. Returning [] here would look identical
+  // to "assigned nothing" to every caller downstream; abort instead.
+  if (!allowed) return null;
+  const set = new Set(allowed);
+  return remote.filter((rp) => set.has(rp.id));
+}
 
 const DAY = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -189,9 +217,14 @@ async function upsertHospitableProperty(
  *  or a listing removed upstream — gets deleted. Every FK in the properties
  *  subtree is ON DELETE CASCADE (see 0010–0021 migrations), so children go too.
  *  Callers only reach this after a COMPLETE remote fetch
- *  (listHospitableProperties is complete-or-nothing), and an EMPTY remote set
- *  skips pruning entirely: wiping the whole tree off one "0 listings" response
- *  is a worse failure mode than briefly showing a listing that was removed. */
+ *  (listHospitableProperties is complete-or-nothing).
+ *
+ *  An EMPTY set NEVER prunes, in either scope: freeze, don't wipe. Emptiness is
+ *  ambiguous — a "0 listings" API response, a failed assignment read, or a
+ *  listing set that simply isn't in this account all look the same here, and
+ *  wiping a customer's whole subtree off any of them is far worse than briefly
+ *  showing a listing that went away. Offboarding deletes deliberately, via
+ *  `unassignListing`. */
 async function pruneToHospitable(
   supabase: Supabase,
   customerId: string,
@@ -224,9 +257,16 @@ export interface HospitableReconcileResult {
 export async function reconcileHospitableProperties(
   customerId: string,
   token: string,
+  scope: ChannelScope = 'own',
 ): Promise<HospitableReconcileResult> {
   const supabase = createSupabaseServiceRoleClient();
-  const remote = await listHospitableProperties(token);
+  const all = await listHospitableProperties(token);
+  if (!all) return { ok: false, properties: 0, accountLabel: null };
+  // Under the central credential the fetch spans every managed host, so the
+  // assignment table — not the token — decides what belongs to this customer.
+  // null means the assignment read failed: abort rather than act on a set we
+  // can't trust (an empty one would look like "owns nothing").
+  const remote = await scopeToCustomer(customerId, all, scope);
   if (!remote) return { ok: false, properties: 0, accountLabel: null };
   for (const rp of remote) {
     await upsertHospitableProperty(supabase, customerId, rp);
@@ -349,9 +389,22 @@ export async function syncHospitableAccount(
   customerId: string,
   token: string,
   now: Date = new Date(),
+  scope: ChannelScope = 'own',
 ): Promise<HospitableSyncResult> {
   const supabase = createSupabaseServiceRoleClient();
-  const remote = await listHospitableProperties(token);
+  const all = await listHospitableProperties(token);
+  if (!all)
+    return {
+      ok: false,
+      properties: 0,
+      reservations: 0,
+      cleanings: 0,
+      messagesImported: 0,
+      aiReplies: 0,
+    };
+  // Same tenant filter as the light reconcile: under the central credential a
+  // customer only ever gets the listings assigned to them.
+  const remote = await scopeToCustomer(customerId, all, scope);
   if (!remote)
     return {
       ok: false,
@@ -447,15 +500,20 @@ export async function syncHospitableAccount(
     remote.map((rp) => rp.id),
   );
 
-  await supabase
-    .from('channel_connections')
-    .update({
+  // Upsert, not update: a centrally-managed customer has no connection row of
+  // their own, and without one the watermark never advances — the full sync
+  // would re-run on every page load and no guest message would ever count as
+  // "new", so the AI would never reply. The row carries no token.
+  await supabase.from('channel_connections').upsert(
+    {
+      customer_id: customerId,
+      provider: 'hospitable',
       last_synced_at: new Date().toISOString(),
       messages_synced_at: new Date().toISOString(),
       status: 'connected',
-    })
-    .eq('customer_id', customerId)
-    .eq('provider', 'hospitable');
+    },
+    { onConflict: 'customer_id,provider' },
+  );
 
   return {
     ok: true,

@@ -88,11 +88,14 @@ export function PropertiesClient({
   plan,
   connection,
   syncFailed,
+  centralManaged = false,
 }: {
   initial: PropertyRow[];
   plan: Plan;
   connection: HostConnection | null;
   syncFailed?: boolean;
+  /** Luxel runs this host's channel account — they have no token to paste. */
+  centralManaged?: boolean;
 }) {
   const t = useTranslations('properties');
   return (
@@ -115,14 +118,14 @@ export function PropertiesClient({
           </div>
         )}
         <PlanBar plan={plan} />
-        {connection ? (
-          <ConnectionNote connection={connection} />
+        {connection || centralManaged ? (
+          connection && <ConnectionNote connection={connection} />
         ) : (
           <HospitableCard connection={connection} />
         )}
 
         {initial.length === 0 ? (
-          connection ? (
+          connection || centralManaged ? (
             <EmptyConnected />
           ) : (
             <Onboarding connected={false} />
