@@ -51,10 +51,11 @@ the Customer API. Could you share:
 - whether **Market Dashboards** can be provisioned or surfaced through any API, or whether hosts
   must always use your dashboard directly.
 
-One operational question while I have you: the PriceLabs ↔ Hospitable connection is an OAuth
-consent each host performs themselves. Is there any partner-initiated flow — an invite link or a
-programmatic provisioning step — or should we plan on guiding every host through the manual
-authorisation?
+One operational question while I have you: our hosts' listings all live inside a single
+Hospitable account that we own and operate — our clients never have a Hospitable login of their
+own. Can we connect that one Hospitable account to our PriceLabs account and manage every
+listing in it, and is there anything we should know about how you meter or attribute listings
+that arrive through one shared PMS connection?
 
 Happy to jump on a call. We're based in Santiago (UTC−4) and flexible on timing.
 

@@ -9,9 +9,9 @@
  * `costUsd` records that basis so a price change is a deliberate margin
  * decision instead of a guess.
  *
- * `needsPricelabs` marks add-ons that only work once the host has authorised
- * PriceLabs against their Hospitable account — a manual OAuth consent on
- * Hospitable's own page that no API can perform for them.
+ * `needsPricelabs` marks add-ons that only work once the listing is reachable
+ * from Luxel's PriceLabs account — i.e. after the host's Airbnb is connected to
+ * the central channel account and the listing has been detected there.
  *
  * `selfServe` false means we cannot deliver it inside Luxel (no public API);
  * the host uses it in PriceLabs' own dashboard.

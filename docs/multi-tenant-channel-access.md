@@ -46,47 +46,15 @@ Tenancy is enforced entirely on Luxel's side: `listing_assignments` maps each
 listing to exactly one customer, `scopeToCustomer` filters every central fetch to
 that set, and ownership is re-verified on every action.
 
-## Alternatives considered (NOT used)
+**The customer never visits the channel vendor.** No host-facing OAuth, no
+vendor login or consent screen, no token for them to paste. Luxel's app is the
+whole interface.
 
-### 1. OAuth per host — each host authorises Luxel at auth.hospitable.com
+## The one case that still needs `own` scope
 
-Rejected: it sends the customer to Hospitable's own login and consent screen,
-which this product deliberately never does. Kept here because it is the only path
-that yields per-host tokens with observable revocation, should the central model
-ever hit a wall. Needs approved-vendor status (partner typeform,
-`partners.hospitable.com`).
-
-|                   |                                                                                  |
-| ----------------- | -------------------------------------------------------------------------------- |
-| Authorize         | `https://auth.hospitable.com/oauth/authorize?client_id=…&response_type=code`     |
-| Token             | `POST https://auth.hospitable.com/oauth/token` (`grant_type=authorization_code`) |
-| Refresh           | same URL, `grant_type=refresh_token`                                             |
-| Auth code TTL     | 10 minutes                                                                       |
-| Access token TTL  | 12 hours                                                                         |
-| Refresh token TTL | 90 days — must refresh regularly or the host re-authorises                       |
-
-Why it fits: one token per host, a portal listing connected customers by uuid,
-one webhook endpoint for every tenant, and `integration.disconnected` events so
-revocation is observable. Also unlocks a one-click install from Hospitable's own
-Apps marketplace.
-
-### 2. Secondary user + one token per host account
-
-Luxel's ops identity is invited as a **full-access secondary user** (their May
-2026 changelog confirms full-access secondary users can mint API tokens), then
-mints a token **from inside that account's context**. Store it as that
-customer's own connection (`channel_connections`, encrypted) — i.e. `own` scope.
-
-Two hard gotchas:
-
-- **An email cannot be both a primary and a secondary user.** Provision a
-  dedicated ops identity that never owns its own Hospitable account.
-- **Property access is granted per property and new properties are not shared
-  automatically** — onboarding a host's new listing needs a manual re-share.
-
-Rejected for the same reason plus the operational cost: one token per account,
-per-property re-shares, and a dedicated ops identity that can never own its own
-Hospitable account.
+A host who already had their own channel connection keeps it: their stored token
+is their own boundary, and everything it returns is theirs. This is legacy
+support, not an onboarding path — new customers are always central.
 
 ## What this means for the code
 

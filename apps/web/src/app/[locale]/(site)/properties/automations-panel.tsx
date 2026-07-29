@@ -8,7 +8,6 @@ import {
   Pencil,
   LineChart,
   Plus,
-  ExternalLink,
   TriangleAlert,
   Check,
   SlidersHorizontal,
@@ -26,7 +25,6 @@ import { refreshPricingLink, updatePricingSettings } from './pricing-actions';
 import type { LiveDay } from './stays-timeline';
 
 const clp = (n: number) => `$${n.toLocaleString('es-CL')}`;
-const PRICING_SETUP_URL = '/api/go/pricing-setup';
 
 function Switch({
   on,
@@ -426,14 +424,6 @@ export function AutomationsPanel({
             <li>{ta('step_1')}</li>
             <li>{ta('step_2')}</li>
           </ol>
-          <a
-            href={PRICING_SETUP_URL}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="text-primary flex w-fit items-center gap-1.5 text-sm font-medium hover:underline"
-          >
-            <ExternalLink className="h-3.5 w-3.5" /> {ta('steps_cta')}
-          </a>
           <p className="text-muted-foreground text-xs">{ta('steps_help')}</p>
           <Button
             size="sm"
