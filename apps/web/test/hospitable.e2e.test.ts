@@ -119,7 +119,6 @@ let connectHospitable: (
   i: unknown,
 ) => Promise<{ ok: boolean; error?: string; properties?: number }>;
 let syncHospitable: () => Promise<{ ok: boolean; properties?: number; reservations?: number }>;
-let disconnectHospitable: () => Promise<{ ok: boolean }>;
 let decryptPII: (s: string) => string;
 let customerId: string;
 let apiCalls = 0;
@@ -191,7 +190,6 @@ beforeAll(async () => {
   connectHospitable = a.connectHospitable;
   const syncLib = await import('../src/lib/channels/hospitable-sync');
   syncHospitable = () => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN);
-  disconnectHospitable = a.disconnectHospitable;
   decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
@@ -561,9 +559,15 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(((await res2.json()) as { ignored?: boolean }).ignored).toBe(true);
   });
 
-  it('disconnect removes the connection and the strict token resolver goes dark', async () => {
+  it('removing the connection makes the strict token resolver go dark', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
-    expect((await disconnectHospitable()).ok).toBe(true);
+    // Offboarding is an operator action now (see scope.unassignListing) — there
+    // is no host-facing disconnect to call, so drop the row the way ops would.
+    await admin
+      .from('channel_connections')
+      .delete()
+      .eq('customer_id', customerId)
+      .eq('provider', 'hospitable');
     const { count } = await admin
       .from('channel_connections')
       .select('*', { count: 'exact', head: true })

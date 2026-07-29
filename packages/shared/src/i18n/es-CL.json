@@ -584,20 +584,12 @@
   },
   "hospitable": {
     "connect_title": "Conecta tu Airbnb",
-    "connect_body": "Sincroniza tus propiedades y reservas de Airbnb automáticamente. Pega el código de conexión que te entregó tu equipo Luxel; se guarda cifrado.",
-    "connect_cta": "Conectar Airbnb",
-    "connect_confirm": "Verificar y conectar",
-    "connecting": "Verificando…",
-    "cancel": "Cancelar",
-    "token_ph": "Pega tu código de conexión…",
-    "token_help": "Se valida y se almacena cifrado.",
-    "error_invalid": "El código no es válido o expiró. Pídele uno nuevo a tu equipo Luxel.",
-    "error_generic": "No pudimos conectar. Inténtalo de nuevo.",
+    "connect_body": "Te enviamos una invitación por correo, la aceptas en Airbnb y tus propiedades aparecen acá solas. No tienes que crear cuentas ni copiar códigos.",
+    "connect_cta": "Escríbenos para conectar",
     "connected_title": "Airbnb conectado",
     "last_sync": "Última sincronización: {date}",
     "never_synced": "Aún sin sincronizar",
-    "syncing_now": "Sincronizando…",
-    "disconnect": "Desconectar"
+    "syncing_now": "Sincronizando…"
   },
   "detail": {
     "back": "Mis propiedades",
@@ -638,14 +630,14 @@
   "onboarding": {
     "title": "Conecta tu propiedad en 3 pasos",
     "subtitle": "Tus propiedades no se crean a mano: se importan automáticamente desde tu cuenta de Airbnb.",
-    "s1_title": "Conecta tu Airbnb",
-    "s1_body": "Pega el código de conexión que te entregó tu equipo Luxel. Se guarda cifrado.",
+    "s1_title": "Te invitamos",
+    "s1_body": "Te enviamos la invitación y la aceptas desde Airbnb. Nada que instalar ni configurar.",
     "s2_title": "Importación automática",
     "s2_body": "Tus propiedades, reservas y calendario se sincronizan solos.",
     "s3_title": "Configura y listo",
     "s3_body": "Define el acceso (código o conserjería) y la info para huéspedes. La IA hace el resto.",
-    "help_pre": "¿No tienes tu código de conexión?",
-    "help_link": "Escríbenos y te lo enviamos"
+    "help_pre": "¿Quieres empezar ahora?",
+    "help_link": "Escríbenos y lo dejamos andando"
   },
   "ai": {
     "toggle_title": "Respuestas automáticas con IA",
@@ -834,5 +826,30 @@
     "window": "Ventana: {window}",
     "skipped": "Este aseo fue cancelado por el anfitrión.",
     "error": "No se pudo confirmar. Recarga la página e inténtalo de nuevo."
+  },
+  "assign": {
+    "title": "Asignar propiedades",
+    "subtitle": "Cada propiedad conectada pertenece a un solo cliente. Sin asignar, nadie la ve.",
+    "unclaimed_title": "Sin asignar",
+    "unclaimed_help": "Al conectar un Airbnb se importan todas sus propiedades. Asigna solo las que administramos; el resto queda invisible.",
+    "unclaimed_none": "Nada pendiente por asignar.",
+    "unclaimed_failed": "No pudimos leer las propiedades conectadas. Revisa la conexión de la cuenta central e inténtalo de nuevo.",
+    "pick_customer": "Elegir cliente…",
+    "assign": "Asignar",
+    "assigned_ok": "{name} asignada e importada.",
+    "assigned_fail": "No se pudo completar. Inténtalo de nuevo.",
+    "moved_ok": "Propiedad reasignada.",
+    "assigned_title": "Asignadas",
+    "assigned_help": "Quién ve qué hoy. Reasignar mueve la propiedad y todos sus datos al nuevo cliente.",
+    "assigned_none": "Aún no hay propiedades asignadas.",
+    "not_imported_yet": "aún sin importar",
+    "reassign": "Reasignar a…",
+    "offboard": "Dar de baja",
+    "offboard_title": "Dar de baja la propiedad",
+    "offboard_body": "Vas a quitar «{name}» de {customer}.",
+    "offboard_warning": "Se elimina también todo lo sincronizado: estadías, mensajes, aseos y enlaces de check-in. No se puede deshacer.",
+    "offboard_confirm": "Sí, dar de baja",
+    "offboard_ok": "Propiedad dada de baja.",
+    "cancel": "Cancelar"
   }
 }
