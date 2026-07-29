@@ -6,7 +6,12 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { isClerkAdmin } from '@/lib/auth/admin';
 import { listHospitableProperties } from '@/lib/channels/hospitable';
-import { assignListing, unassignListing, unassignedListingIds } from '@/lib/channels/scope';
+import {
+  assignListing,
+  hospitableAccess,
+  unassignListing,
+  unassignedListingIds,
+} from '@/lib/channels/scope';
 import { reconcileHospitableProperties } from '@/lib/channels/hospitable-sync';
 
 /**
@@ -45,7 +50,10 @@ export async function listUnclaimedListings(): Promise<{
   if (!token) return { ok: false };
   const remote = await listHospitableProperties(token);
   if (!remote) return { ok: false };
-  const free = new Set(await unassignedListingIds(remote.map((r) => r.id)));
+  const unassigned = await unassignedListingIds(remote.map((r) => r.id));
+  // A failed lookup must not render every OWNED listing as free to claim.
+  if (!unassigned) return { ok: false };
+  const free = new Set(unassigned);
   return {
     ok: true,
     listings: remote
@@ -119,43 +127,66 @@ export async function listAssignableCustomers(): Promise<{
 const AssignSchema = z.object({
   externalListingId: z.string().min(1).max(200),
   customerId: z.string().uuid(),
+  /** The owner the operator SAW; null = they saw it unassigned. Compare-and-set
+   *  against it, so a stale screen can't silently transfer someone's listing. */
+  expectedOwnerId: z.string().uuid().nullable(),
 });
 
 /** Hand a listing to a customer, then import it immediately so the operator can
  *  see the result instead of waiting for the next sync. */
 export async function assignListingToCustomer(
   input: unknown,
-): Promise<{ ok: boolean; imported?: number }> {
+): Promise<{ ok: boolean; imported?: number; importOk?: boolean; error?: string }> {
   const p = AssignSchema.safeParse(input);
-  if (!p.success) return { ok: false };
+  if (!p.success) return { ok: false, error: 'validation' };
   const userId = await requireAdmin();
   if (!userId) return { ok: false };
-  if (!(await assignListing(p.data.externalListingId, p.data.customerId, userId))) {
-    return { ok: false };
+  if (
+    !(await assignListing(
+      p.data.externalListingId,
+      p.data.customerId,
+      userId,
+      p.data.expectedOwnerId,
+    ))
+  ) {
+    return { ok: false, error: 'stale' };
   }
+
+  // Scope comes from `hospitableAccess`, never hard-coded: a legacy
+  // own-connected host's listings live outside the central account, so
+  // reconciling THEM under `central` would prune their whole subtree.
   let imported = 0;
-  const token = process.env.HOSPITABLE_API_TOKEN;
-  if (token) {
-    const r = await reconcileHospitableProperties(p.data.customerId, token, 'central').catch(
+  let importOk = true;
+  const access = await hospitableAccess(p.data.customerId);
+  if (access?.scope === 'central') {
+    const r = await reconcileHospitableProperties(p.data.customerId, access.token, 'central').catch(
       () => null,
     );
+    importOk = Boolean(r?.ok);
     imported = r?.properties ?? 0;
   }
   revalidatePath('/properties');
   revalidatePath('/admin/listings');
-  return { ok: true, imported };
+  return { ok: true, imported, importOk };
 }
 
 /** Offboard a listing: drops the assignment AND its mirrored data. Deliberate
  *  and irreversible — the sync never does this on its own. */
-export async function unassignListingFromCustomer(input: unknown): Promise<{ ok: boolean }> {
-  const p = z.object({ externalListingId: z.string().min(1).max(200) }).safeParse(input);
-  if (!p.success) return { ok: false };
+export async function unassignListingFromCustomer(
+  input: unknown,
+): Promise<{ ok: boolean; error?: string }> {
+  const p = z
+    .object({
+      externalListingId: z.string().min(1).max(200),
+      expectedCustomerId: z.string().uuid(),
+    })
+    .safeParse(input);
+  if (!p.success) return { ok: false, error: 'validation' };
   if (!(await requireAdmin())) return { ok: false };
-  const ok = await unassignListing(p.data.externalListingId);
+  const ok = await unassignListing(p.data.externalListingId, p.data.expectedCustomerId);
   if (ok) {
     revalidatePath('/properties');
     revalidatePath('/admin/listings');
   }
-  return { ok };
+  return ok ? { ok: true } : { ok: false, error: 'stale' };
 }

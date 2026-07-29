@@ -43,6 +43,7 @@ export default async function AdminListingsPage() {
         unclaimed={unclaimed.listings ?? []}
         unclaimedFailed={!unclaimed.ok}
         assigned={assigned.rows ?? []}
+        assignedFailed={!assigned.ok}
         customers={customers.customers ?? []}
       />
     </div>

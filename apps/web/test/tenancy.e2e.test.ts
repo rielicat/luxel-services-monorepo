@@ -50,8 +50,8 @@ vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: un
 
 let admin: ReturnType<typeof createClient>;
 let reconcile: (c: string, t: string, s?: 'own' | 'central') => Promise<{ ok: boolean }>;
-let assignListing: (e: string, c: string, by: string) => Promise<boolean>;
-let unassignListing: (e: string) => Promise<boolean>;
+let assignListing: (e: string, c: string, by: string, expected: string | null) => Promise<boolean>;
+let unassignListing: (e: string, expected: string) => Promise<boolean>;
 let hospitableAccess: (c: string) => Promise<{ token: string; scope: string } | null>;
 let resolvePricelabsRef: (c: string, p: string) => Promise<{ id: string } | null>;
 let customerA = '';
@@ -102,8 +102,8 @@ beforeAll(async () => {
     .single();
   customerB = b!.id as string;
 
-  await assignListing(LISTING_A, customerA, 'test');
-  await assignListing(LISTING_B, customerB, 'test');
+  await assignListing(LISTING_A, customerA, 'test', null);
+  await assignListing(LISTING_B, customerB, 'test', null);
 });
 
 afterAll(async () => {
@@ -207,7 +207,7 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
 
     // Re-assign, import, then unassign again: an empty scoped set must FREEZE
     // the mirror, never delete it. Offboarding is explicit (unassignListing).
-    await assignListing(LISTING_A, customerA, 'test');
+    await assignListing(LISTING_A, customerA, 'test', null);
     await reconcile(customerA, CENTRAL_TOKEN, 'central');
     await admin.from('listing_assignments').delete().eq('external_listing_id', LISTING_A);
     await reconcile(customerA, CENTRAL_TOKEN, 'central');
@@ -217,14 +217,24 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .eq('owner_id', customerA);
     expect(frozen!.map((r) => r.external_listing_id)).toEqual([LISTING_A]);
 
-    // …and the deliberate offboard does remove it.
-    await unassignListing(LISTING_A);
+    // An offboard compares against the assignment the operator saw, so with no
+    // row to match it refuses — that is the stale-click protection.
+    expect(await unassignListing(LISTING_A, customerA)).toBe(false);
+    const { data: kept } = await admin
+      .from('properties')
+      .select('external_listing_id')
+      .eq('owner_id', customerA);
+    expect(kept!.map((r) => r.external_listing_id)).toEqual([LISTING_A]);
+
+    // …and the deliberate offboard of a real assignment does remove it.
+    await assignListing(LISTING_A, customerA, 'test', null);
+    expect(await unassignListing(LISTING_A, customerA)).toBe(true);
     const { data: gone } = await admin
       .from('properties')
       .select('external_listing_id')
       .eq('owner_id', customerA);
     expect(gone ?? []).toHaveLength(0);
-    await assignListing(LISTING_A, customerA, 'test');
+    await assignListing(LISTING_A, customerA, 'test', null);
   });
 
   it('treats a stored operator credential as central, not as the customer’s own', async () => {

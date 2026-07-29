@@ -16,19 +16,24 @@ import {
 } from '../../properties/assignment-actions';
 
 const fmt = (iso: string) =>
-  new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', year: 'numeric' }).format(
-    new Date(iso),
-  );
+  new Intl.DateTimeFormat('es-CL', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'America/Santiago',
+  }).format(new Date(iso));
 
 export function AssignmentsManager({
   unclaimed,
   unclaimedFailed,
   assigned,
+  assignedFailed,
   customers,
 }: {
   unclaimed: UnclaimedListing[];
   unclaimedFailed: boolean;
   assigned: AssignedListing[];
+  assignedFailed: boolean;
   customers: AssignableCustomer[];
 }) {
   const t = useTranslations('assign');
@@ -37,6 +42,11 @@ export function AssignmentsManager({
   // Which customer each pending listing goes to, keyed by listing id.
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [confirmOff, setConfirmOff] = useState<AssignedListing | null>(null);
+  const [confirmMove, setConfirmMove] = useState<{
+    row: AssignedListing;
+    customerId: string;
+    label: string;
+  } | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
   const run = (fn: () => Promise<unknown>) =>
@@ -111,8 +121,17 @@ export function AssignmentsManager({
                       const r = await assignListingToCustomer({
                         externalListingId: l.externalListingId,
                         customerId: picked[l.externalListingId],
+                        expectedOwnerId: null,
                       });
-                      setNote(r.ok ? t('assigned_ok', { name: l.name }) : t('assigned_fail'));
+                      setNote(
+                        !r.ok
+                          ? r.error === 'stale'
+                            ? t('stale')
+                            : t('assigned_fail')
+                          : r.importOk
+                            ? t('assigned_ok', { name: l.name })
+                            : t('assigned_no_import', { name: l.name }),
+                      );
                     })
                   }
                 >
@@ -132,7 +151,12 @@ export function AssignmentsManager({
             <p className="text-muted-foreground text-xs">{t('assigned_help')}</p>
           </div>
 
-          {assigned.length === 0 && (
+          {assignedFailed && (
+            <p className="text-warning flex items-start gap-1.5 text-sm">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" /> {t('assigned_failed')}
+            </p>
+          )}
+          {!assignedFailed && assigned.length === 0 && (
             <p className="text-muted-foreground text-sm">{t('assigned_none')}</p>
           )}
 
@@ -158,13 +182,12 @@ export function AssignmentsManager({
                   onChange={(e) => {
                     const customerId = e.target.value;
                     if (!customerId) return;
-                    run(async () => {
-                      const r = await assignListingToCustomer({
-                        externalListingId: row.externalListingId,
-                        customerId,
-                      });
-                      setNote(r.ok ? t('moved_ok') : t('assigned_fail'));
+                    setConfirmMove({
+                      row,
+                      customerId,
+                      label: customers.find((c) => c.id === customerId)?.label ?? customerId,
                     });
+                    e.currentTarget.selectedIndex = 0;
                   }}
                   aria-label={t('reassign')}
                 >
@@ -191,6 +214,50 @@ export function AssignmentsManager({
         </CardContent>
       </Card>
 
+      {/* Transfers move the mirrored data — also never a one-keystroke action. */}
+      <Modal
+        open={confirmMove != null}
+        onClose={() => setConfirmMove(null)}
+        title={t('move_title')}
+      >
+        {confirmMove && (
+          <div className="grid gap-3">
+            <p className="text-sm">
+              {t('move_body', {
+                name: confirmMove.row.nickname ?? confirmMove.row.externalListingId,
+                from: confirmMove.row.customerLabel,
+                to: confirmMove.label,
+              })}
+            </p>
+            <p className="text-warning text-xs">{t('move_warning')}</p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                disabled={pending}
+                onClick={() =>
+                  run(async () => {
+                    const r = await assignListingToCustomer({
+                      externalListingId: confirmMove.row.externalListingId,
+                      customerId: confirmMove.customerId,
+                      expectedOwnerId: confirmMove.row.customerId,
+                    });
+                    setNote(
+                      r.ok ? t('moved_ok') : r.error === 'stale' ? t('stale') : t('assigned_fail'),
+                    );
+                    setConfirmMove(null);
+                  })
+                }
+              >
+                {t('move_confirm')}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmMove(null)}>
+                {t('cancel')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Offboarding deletes the mirrored data — never a one-click action. */}
       <Modal
         open={confirmOff != null}
@@ -214,8 +281,15 @@ export function AssignmentsManager({
                   run(async () => {
                     const r = await unassignListingFromCustomer({
                       externalListingId: confirmOff.externalListingId,
+                      expectedCustomerId: confirmOff.customerId,
                     });
-                    setNote(r.ok ? t('offboard_ok') : t('assigned_fail'));
+                    setNote(
+                      r.ok
+                        ? t('offboard_ok')
+                        : r.error === 'stale'
+                          ? t('stale')
+                          : t('assigned_fail'),
+                    );
                     setConfirmOff(null);
                   })
                 }

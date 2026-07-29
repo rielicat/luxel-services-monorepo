@@ -75,14 +75,18 @@ export async function allowedListingIds(customerId: string): Promise<string[] | 
 }
 
 /** Which of these listing ids are not assigned to anybody yet — the operator
- *  queue for onboarding a newly granted account. */
-export async function unassignedListingIds(remoteIds: string[]): Promise<string[]> {
+ *  queue for onboarding a newly granted account.
+ *
+ *  `null` means the read FAILED. Falling back to an empty "taken" set would
+ *  present every already-owned listing as free to claim. */
+export async function unassignedListingIds(remoteIds: string[]): Promise<string[] | null> {
   if (!remoteIds.length) return [];
   const supabase = createSupabaseServiceRoleClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('listing_assignments')
     .select('external_listing_id')
     .in('external_listing_id', remoteIds);
+  if (error) return null;
   const taken = new Set((data ?? []).map((r) => r.external_listing_id as string));
   return remoteIds.filter((id) => !taken.has(id));
 }
@@ -105,23 +109,40 @@ export async function claimListing(externalListingId: string, customerId: string
 
 /** Assign a listing to a customer. Caller MUST have verified operator rights.
  *  A transfer takes the mirror with it: leaving the previous owner's rows in
- *  place would keep them reading a listing they no longer hold. */
+ *  place would keep them reading a listing they no longer hold.
+ *
+ *  `expectedOwnerId` is what the operator SAW when they decided — `null` for
+ *  "it was unassigned". The write is a compare-and-set against it, so a screen
+ *  that went stale (someone else assigned it meanwhile) fails loudly instead of
+ *  silently transferring another customer's listing. */
 export async function assignListing(
   externalListingId: string,
   customerId: string,
   assignedBy: string,
+  expectedOwnerId: string | null,
 ): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase.from('listing_assignments').upsert(
-    {
-      external_listing_id: externalListingId,
-      customer_id: customerId,
-      assigned_at: new Date().toISOString(),
-      assigned_by: assignedBy,
-    },
-    { onConflict: 'external_listing_id' },
-  );
-  if (error) return false;
+  const row = {
+    external_listing_id: externalListingId,
+    customer_id: customerId,
+    assigned_at: new Date().toISOString(),
+    assigned_by: assignedBy,
+  };
+
+  if (expectedOwnerId === null) {
+    // Operator saw it unassigned: a plain insert fails if anyone claimed it.
+    const { error } = await supabase.from('listing_assignments').insert(row);
+    if (error) return false;
+  } else {
+    const { data, error } = await supabase
+      .from('listing_assignments')
+      .update(row)
+      .eq('external_listing_id', externalListingId)
+      .eq('customer_id', expectedOwnerId)
+      .select('external_listing_id');
+    if (error || !data?.length) return false;
+  }
+
   await supabase
     .from('properties')
     .delete()
@@ -131,14 +152,28 @@ export async function assignListing(
 }
 
 /** Offboarding: drop the assignment AND the mirror. Deleting a customer's data
- *  is deliberate — the sync never does it as a side effect of an empty filter. */
-export async function unassignListing(externalListingId: string): Promise<boolean> {
+ *  is deliberate — the sync never does it as a side effect of an empty filter.
+ *
+ *  `expectedCustomerId` is the owner the operator confirmed in the dialog. If
+ *  the row changed hands since the screen rendered, nothing is deleted — the
+ *  alternative is destroying a different customer's data on a stale click. */
+export async function unassignListing(
+  externalListingId: string,
+  expectedCustomerId: string,
+): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('listing_assignments')
     .delete()
-    .eq('external_listing_id', externalListingId);
-  if (error) return false;
-  await supabase.from('properties').delete().eq('external_listing_id', externalListingId);
+    .eq('external_listing_id', externalListingId)
+    .eq('customer_id', expectedCustomerId)
+    .select('external_listing_id');
+  if (error || !data?.length) return false;
+  // Scoped to the owner we just confirmed, never the listing globally.
+  await supabase
+    .from('properties')
+    .delete()
+    .eq('external_listing_id', externalListingId)
+    .eq('owner_id', expectedCustomerId);
   return true;
 }

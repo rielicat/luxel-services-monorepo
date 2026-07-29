@@ -109,11 +109,22 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
     expect((await actions.listAssignments()).ok).toBe(false);
     expect((await actions.listAssignableCustomers()).ok).toBe(false);
     expect(
-      (await actions.assignListingToCustomer({ externalListingId: LISTING, customerId: owner })).ok,
+      (
+        await actions.assignListingToCustomer({
+          externalListingId: LISTING,
+          customerId: owner,
+          expectedOwnerId: null,
+        })
+      ).ok,
     ).toBe(false);
-    expect((await actions.unassignListingFromCustomer({ externalListingId: LISTING })).ok).toBe(
-      false,
-    );
+    expect(
+      (
+        await actions.unassignListingFromCustomer({
+          externalListingId: LISTING,
+          expectedCustomerId: owner,
+        })
+      ).ok,
+    ).toBe(false);
 
     const { data } = await admin
       .from('listing_assignments')
@@ -133,8 +144,10 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
     const r = await actions.assignListingToCustomer({
       externalListingId: LISTING,
       customerId: owner,
+      expectedOwnerId: null,
     });
     expect(r.ok).toBe(true);
+    expect(r.importOk).toBe(true);
     // Imported immediately, so the operator sees the result without waiting.
     const { data: props } = await admin
       .from('properties')
@@ -158,8 +171,24 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
 
   it('a transfer moves the mirrored data to the new owner', async () => {
     process.env.TEST_ADMIN_ROLE = 'admin';
+    // A stale expectation must be refused rather than silently transferring.
     expect(
-      (await actions.assignListingToCustomer({ externalListingId: LISTING, customerId: other })).ok,
+      (
+        await actions.assignListingToCustomer({
+          externalListingId: LISTING,
+          customerId: other,
+          expectedOwnerId: other,
+        })
+      ).error,
+    ).toBe('stale');
+    expect(
+      (
+        await actions.assignListingToCustomer({
+          externalListingId: LISTING,
+          customerId: other,
+          expectedOwnerId: owner,
+        })
+      ).ok,
     ).toBe(true);
 
     const { data: gone } = await admin
@@ -178,9 +207,23 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
 
   it('an offboard deletes the assignment and the mirror', async () => {
     process.env.TEST_ADMIN_ROLE = 'admin';
-    expect((await actions.unassignListingFromCustomer({ externalListingId: LISTING })).ok).toBe(
-      true,
-    );
+    // Wrong expected owner → nothing is destroyed.
+    expect(
+      (
+        await actions.unassignListingFromCustomer({
+          externalListingId: LISTING,
+          expectedCustomerId: owner,
+        })
+      ).error,
+    ).toBe('stale');
+    expect(
+      (
+        await actions.unassignListingFromCustomer({
+          externalListingId: LISTING,
+          expectedCustomerId: other,
+        })
+      ).ok,
+    ).toBe(true);
 
     const { data: assignments } = await admin
       .from('listing_assignments')

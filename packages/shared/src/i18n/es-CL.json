@@ -850,6 +850,13 @@
     "offboard_warning": "Se elimina también todo lo sincronizado: estadías, mensajes, aseos y enlaces de check-in. No se puede deshacer.",
     "offboard_confirm": "Sí, dar de baja",
     "offboard_ok": "Propiedad dada de baja.",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "assigned_failed": "No pudimos leer las asignaciones. Recarga la página antes de hacer cambios.",
+    "assigned_no_import": "{name} asignada, pero la importación falló. Se reintenta en la próxima sincronización.",
+    "stale": "La propiedad cambió de dueño desde que cargaste la página. Recarga y revisa antes de reintentar.",
+    "move_title": "Reasignar propiedad",
+    "move_body": "Vas a mover «{name}» de {from} a {to}.",
+    "move_warning": "Se traslada todo lo sincronizado y {from} deja de verla.",
+    "move_confirm": "Sí, reasignar"
   }
 }
