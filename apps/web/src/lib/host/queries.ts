@@ -4,10 +4,11 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 /** One source of truth for the host property bundle used by the overview grid
  *  and the per-property detail page. */
 export const PROPERTY_SELECT =
-  'id, nickname, address, comuna, guest_info, external_listing_id, platform, base_nightly_clp, ai_enabled, price_optimization_enabled, ' +
+  'id, nickname, address, comuna, guest_info, external_listing_id, platform, base_nightly_clp, ai_enabled, price_optimization_enabled, pricelabs_status, ' +
   'bedrooms, bathrooms, picture_url, max_guests, beds, property_type, room_type, checkin_time, checkout_time, listed, amenities, house_rules, ' +
   'cleaning_managed_by, cleaning_auto_confirm, ' +
   'cleaning_contacts(id, name, email, whatsapp), ' +
+  'property_addons(addon, status), ' +
   'property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_whatsapp, concierge_email, concierge_hours, id_basis, id_disclosed), ' +
   'property_calendars(id, label, ical_url, last_synced_at), ' +
   'calendar_blocks(id, starts_on, ends_on, source, summary), ' +
@@ -24,6 +25,7 @@ function normalize(p: any) {
     calendar_blocks: p.calendar_blocks ?? [],
     cleanings: p.cleanings ?? [],
     cleaning_contacts: p.cleaning_contacts ?? [],
+    property_addons: p.property_addons ?? [],
     guest_threads: p.guest_threads ?? [],
   };
 }

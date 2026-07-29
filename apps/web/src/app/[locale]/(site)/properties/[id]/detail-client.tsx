@@ -23,6 +23,7 @@ import {
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
+import { ADDON_KEYS, type AddonKey } from '@/lib/addons/catalog';
 import { cn } from '@/lib/utils';
 import type { PropertyRow } from '../properties-client';
 import { AccessPanel } from '../access-panel';
@@ -187,6 +188,10 @@ export function PropertyDetailClient({
 
   const stays = buildStays(liveDays, property.calendar_blocks, today);
   const pricedStays = stays.filter((st) => st.revenueClp != null).slice(0, 6);
+  const activeAddons = (property.property_addons ?? [])
+    .filter((a) => a.status === 'active')
+    .map((a) => a.addon)
+    .filter((a): a is AddonKey => (ADDON_KEYS as readonly string[]).includes(a));
 
   // Metric drill-downs — every number explains itself on tap.
   type MetricId = 'revenue' | 'occupancy' | 'adr' | 'ai';
@@ -315,6 +320,8 @@ export function PropertyDetailClient({
         priceOptEnabled={property.price_optimization_enabled === true}
         guestInfo={property.guest_info}
         liveDays={liveDays}
+        activeAddons={activeAddons}
+        pricelabsStatus={property.pricelabs_status ?? 'off'}
       />
 
       {/* Metrics that matter to the owner — tap any for the full breakdown. */}

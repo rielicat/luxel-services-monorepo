@@ -55,6 +55,8 @@ export type PropertyRow = {
   base_nightly_clp: number | null;
   ai_enabled: boolean;
   price_optimization_enabled: boolean;
+  pricelabs_status: 'off' | 'pending_connection' | 'connected';
+  property_addons: { addon: string; status: string }[];
   bedrooms: number | null;
   bathrooms: number | null;
   picture_url: string | null;

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
+import { isAddonActive } from '@/lib/addons/store';
 import { draftGuestReply, type Draft } from '@/lib/ai/copilot';
 import { buildGrounding } from '@/lib/ai/grounding';
 
@@ -22,12 +23,19 @@ export async function setAiEnabled(input: unknown): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
-/** Opt-in switch for the second headline automation: price optimization. */
-export async function setPriceOptimization(input: unknown): Promise<{ ok: boolean }> {
+/** Opt-in switch for the second headline automation: price optimization.
+ *  It is a paid add-on, so enabling requires an active subscription for this
+ *  listing — the switch alone can never turn on something unpaid. */
+export async function setPriceOptimization(
+  input: unknown,
+): Promise<{ ok: boolean; error?: string }> {
   const p = z.object({ propertyId: z.string().uuid(), enabled: z.boolean() }).safeParse(input);
-  if (!p.success) return { ok: false };
+  if (!p.success) return { ok: false, error: 'validation' };
   const cid = await currentCustomerId();
   if (!cid || !(await ownsProperty(cid, p.data.propertyId))) return { ok: false };
+  if (p.data.enabled && !(await isAddonActive(p.data.propertyId, 'dynamic_pricing'))) {
+    return { ok: false, error: 'addon_required' };
+  }
   const supabase = createSupabaseServiceRoleClient();
   await supabase
     .from('properties')
