@@ -54,3 +54,6 @@ supabase/.temp/
 **/test-results/
 **/playwright-report/
 **/playwright/.cache/
+
+# Caveman-compression backups — git history is the real backup for tracked files.
+*.original.md
