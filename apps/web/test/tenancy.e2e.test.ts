@@ -237,6 +237,34 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
     await assignListing(LISTING_A, customerA, 'test', null);
   });
 
+  it('a tokenless watermark row is not a connection of the customer’s own', async () => {
+    // 0033 gives centrally-managed customers a tokenless row to hold the sync
+    // watermarks. Reading its presence as "they have their own connection" is
+    // what showed an unmanaged host a permanent "no pudimos sincronizar".
+    const { fetchConnection } = await import('../src/lib/host/queries');
+    await admin
+      .from('channel_connections')
+      .upsert(
+        { customer_id: customerB, provider: 'hospitable', status: 'connected' },
+        { onConflict: 'customer_id,provider' },
+      );
+    expect((await fetchConnection(customerB))?.has_token).toBe(false);
+
+    const { encryptPII } = await import('../src/lib/crypto/pii');
+    await admin
+      .from('channel_connections')
+      .update({ token_enc: encryptPII('tok_real_own_token_value_x') })
+      .eq('customer_id', customerB)
+      .eq('provider', 'hospitable');
+    expect((await fetchConnection(customerB))?.has_token).toBe(true);
+
+    await admin
+      .from('channel_connections')
+      .delete()
+      .eq('customer_id', customerB)
+      .eq('provider', 'hospitable');
+  });
+
   it('treats a stored operator credential as central, not as the customer’s own', async () => {
     // The pre-central admin bootstrap persisted the operator token as an "own"
     // connection. Read as `own`, it would bypass the assignment filter and

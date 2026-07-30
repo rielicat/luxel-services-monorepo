@@ -73,9 +73,16 @@ export default async function PropertiesPage() {
           await syncHospitableAccount(customerId, token!, new Date(), scope).catch(() => {});
         });
       }
-    } else if (connection) {
-      // A connection exists but its token can't be used → the mirror is stale.
+    } else if (connection?.has_token) {
+      // A real own connection whose token can't be used → the mirror is stale.
       syncFailed = true;
+    } else {
+      // No access and no credential of their own: this account simply isn't
+      // managed yet (or was offboarded). That is an onboarding state, not a
+      // failure — the tokenless watermark row must not masquerade as a
+      // connection, or the host sees "conectado" next to "no pudimos
+      // sincronizar" and can do nothing about either.
+      connection = null;
     }
     [properties, plan] = await Promise.all([
       fetchProperties(customer.id) as Promise<PropertyRow[]>,

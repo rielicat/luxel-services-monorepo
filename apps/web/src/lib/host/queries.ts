@@ -59,15 +59,23 @@ export interface HostConnection {
   account_label: string | null;
   last_synced_at: string | null;
   messages_synced_at: string | null;
+  /** Whether this row carries the customer's OWN credential. Centrally-managed
+   *  customers get a tokenless row purely to hold the sync watermarks (0033),
+   *  so its presence must never be read as "they have a connection of their
+   *  own" — that is what turned an unmanaged account into a permanent
+   *  "sync failed" banner. The token itself is never exposed. */
+  has_token: boolean;
 }
 
 export async function fetchConnection(customerId: string): Promise<HostConnection | null> {
   const supabase = createSupabaseServiceRoleClient();
   const { data } = await supabase
     .from('channel_connections')
-    .select('provider, status, account_label, last_synced_at, messages_synced_at')
+    .select('provider, status, account_label, last_synced_at, messages_synced_at, token_enc')
     .eq('customer_id', customerId)
     .eq('provider', 'hospitable')
     .maybeSingle();
-  return (data as HostConnection | null) ?? null;
+  if (!data) return null;
+  const { token_enc, ...rest } = data as Record<string, unknown>;
+  return { ...(rest as Omit<HostConnection, 'has_token'>), has_token: Boolean(token_enc) };
 }
