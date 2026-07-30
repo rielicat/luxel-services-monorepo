@@ -6,7 +6,6 @@ import { listHospitableCalendar } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
 import { priceTurnover } from '@/lib/cleaning/price';
 import { devMockEnabled } from '@/lib/dev-mock';
-import { isClerkAdmin } from '@/lib/auth/admin';
 import type { PropertyRow } from '../properties-client';
 import { PropertyDetailClient, type LiveDay } from './detail-client';
 
@@ -66,7 +65,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     }
   }
 
-  const [turnover, admin] = await Promise.all([priceTurnover(id), isClerkAdmin(userId)]);
+  const turnover = await priceTurnover(id);
 
   return (
     <PropertyDetailClient
@@ -75,7 +74,6 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       today={today}
       turnoverPrice={'priceClp' in turnover ? turnover.priceClp : null}
       showSim={devMockEnabled()}
-      isAdmin={admin}
     />
   );
 }

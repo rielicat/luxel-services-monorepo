@@ -2,11 +2,10 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { TriangleAlert, ExternalLink, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { TriangleAlert, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { updateAccess, createCheckinLink } from './actions';
+import { updateAccess } from './actions';
 
 export type AccessRow = {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
@@ -21,18 +20,10 @@ export type AccessRow = {
   id_disclosed: boolean;
 } | null;
 
-/** Check-in links are sent to each guest automatically when their reservation
- *  is imported — there is nothing to generate here. Admins get a preview
- *  button for debugging the guest-facing page. */
-export function AccessPanel({
-  propertyId,
-  access,
-  isAdmin = false,
-}: {
-  propertyId: string;
-  access: AccessRow;
-  isAdmin?: boolean;
-}) {
+/** Check-in links reach each guest automatically when their reservation is
+ *  imported — there is nothing to generate here. Operators inspect the
+ *  guest-facing page from /admin/debug instead. */
+export function AccessPanel({ propertyId, access }: { propertyId: string; access: AccessRow }) {
   const t = useTranslations('properties');
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -88,12 +79,6 @@ export function AccessPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-
-  const previewCheckin = () =>
-    start(async () => {
-      const r = await createCheckinLink(propertyId);
-      if (r.ok && r.token) window.open(`/checkin/${r.token}`, '_blank');
-    });
 
   return (
     <div className="grid gap-4">
@@ -229,18 +214,6 @@ export function AccessPanel({
           {!pending && saveError && <span className="text-warning">{t('save_error')}</span>}
         </span>
       </div>
-
-      {isAdmin && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="justify-self-start"
-          onClick={previewCheckin}
-          disabled={pending}
-        >
-          <ExternalLink className="mr-1.5 h-4 w-4" /> {t('preview_checkin')}
-        </Button>
-      )}
     </div>
   );
 }

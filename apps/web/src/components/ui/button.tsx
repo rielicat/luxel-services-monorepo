@@ -10,7 +10,6 @@ const buttonVariants = cva(
       variant: {
         default:
           'bg-primary text-primary-foreground shadow-soft hover:bg-primary/90 hover:shadow-lift hover:-translate-y-0.5',
-        lime: 'bg-lime text-lime-foreground shadow-soft hover:shadow-lift hover:-translate-y-0.5 hover:brightness-[1.03]',
         secondary:
           'bg-secondary text-secondary-foreground shadow-soft hover:bg-secondary/90 hover:shadow-lift hover:-translate-y-0.5',
         outline:

@@ -25,7 +25,7 @@ export default function CleaningServicePage() {
   return (
     <main>
       <ServiceHero title={t('title')} subtitle={t('subtitle')}>
-        <Button asChild variant="lime" size="xl">
+        <Button asChild variant="default" size="xl">
           <Link href="/calculator?service=cleaning">
             {t('cta_primary')} <ArrowRight className="ml-1 h-4 w-4" />
           </Link>

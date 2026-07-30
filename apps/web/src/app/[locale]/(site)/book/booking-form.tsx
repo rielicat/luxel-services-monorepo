@@ -415,7 +415,7 @@ export function BookingForm({
                   <RadioGroupItem id={`freq-${f}`} value={f} className="sr-only" />
                   {popular && (
                     <Badge
-                      variant="lime"
+                      variant="default"
                       className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px]"
                     >
                       {tc('popular')}

@@ -13,7 +13,7 @@ export function PricingTeaser() {
             {t('title')}
           </h2>
           <p className="text-primary-foreground/85 mx-auto mt-4 max-w-xl">{t('subtitle')}</p>
-          <Button asChild variant="lime" size="xl" className="mt-8">
+          <Button asChild variant="default" size="xl" className="mt-8">
             <Link href="/calculator">{t('cta')}</Link>
           </Button>
         </div>

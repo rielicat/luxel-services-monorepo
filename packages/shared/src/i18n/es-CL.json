@@ -35,7 +35,8 @@
     "services_airbnb_caption": "IA, precios y aseo — tarifa plana",
     "services_cleaning_caption": "Aseo profesional para tu espacio",
     "precios": "Precios",
-    "admin_listings": "Asignar propiedades"
+    "admin_listings": "Asignar propiedades",
+    "admin_debug": "Diagnóstico"
   },
   "landing": {
     "hero": {
@@ -510,7 +511,6 @@
     "method_none_body": "Lo configuro más tarde.",
     "id_advanced": "Requisitos de identidad (opcional)",
     "checkin_auto_note": "El enlace de check-in se envía solo a cada huésped al confirmarse su reserva — no tienes que hacer nada.",
-    "preview_checkin": "Ver check-in (admin)",
     "save_error": "No se pudo guardar — revisa tu conexión."
   },
   "cleaning": {

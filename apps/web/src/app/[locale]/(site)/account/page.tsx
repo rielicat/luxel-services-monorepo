@@ -100,7 +100,7 @@ export default async function CuentaPage() {
             </h1>
             <p className="text-muted-foreground max-w-xl text-sm sm:text-base">{t('subtitle')}</p>
           </div>
-          <Button asChild variant="lime" className="w-fit">
+          <Button asChild variant="default" className="w-fit">
             <Link href="/calculator">{t('new_quote')}</Link>
           </Button>
         </div>
@@ -124,7 +124,7 @@ export default async function CuentaPage() {
                   </Link>
                 </Button>
               ) : (
-                <Button asChild variant="lime" size="sm">
+                <Button asChild variant="default" size="sm">
                   <Link href="/properties">{t('airbnb.start')}</Link>
                 </Button>
               )}
@@ -138,7 +138,7 @@ export default async function CuentaPage() {
               }
               highlighted={activeSubs > 0}
             >
-              <Button asChild variant="lime" size="sm">
+              <Button asChild variant="default" size="sm">
                 <Link href="/book">{t('cleaning.book')}</Link>
               </Button>
               <Button asChild variant="outline" size="sm">

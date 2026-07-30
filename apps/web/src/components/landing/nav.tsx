@@ -40,7 +40,7 @@ export function Nav() {
           </ClerkLoading>
           <ClerkLoaded>
             <SignedIn>
-              <Button asChild variant="lime" size="sm">
+              <Button asChild variant="default" size="sm">
                 <Link href="/account">{t('plan')}</Link>
               </Button>
               <UserMenu />

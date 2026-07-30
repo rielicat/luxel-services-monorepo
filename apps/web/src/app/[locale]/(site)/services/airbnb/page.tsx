@@ -33,7 +33,7 @@ export default function AirbnbServicePage() {
           hl: (chunks) => <span className="text-primary font-semibold">{chunks}</span>,
         })}
       >
-        <Button asChild variant="lime" size="xl" className="w-full sm:w-auto">
+        <Button asChild variant="default" size="xl" className="w-full sm:w-auto">
           <Link href="/calculator?service=airbnb">{t('cta_primary')}</Link>
         </Button>
         <Button asChild variant="outline" size="xl" className="w-full sm:w-auto">
@@ -121,7 +121,12 @@ function Tier({
 
         {extra && <p className="text-muted-foreground mt-4 text-xs">{extra}</p>}
 
-        <Button asChild variant={featured ? 'lime' : 'outline'} size="lg" className="mt-6 w-full">
+        <Button
+          asChild
+          variant={featured ? 'default' : 'outline'}
+          size="lg"
+          className="mt-6 w-full"
+        >
           <Link href="/properties">
             {t('cta_start')} <ArrowRight className="ml-1 h-4 w-4" />
           </Link>

@@ -38,7 +38,7 @@ export type Widget =
     }
   | {
       kind: 'links';
-      actions: { label: string; href: string; style: 'lime' | 'primary' | 'outline' }[];
+      actions: { label: string; href: string; style: 'primary' | 'outline' }[];
     }
   | {
       kind: 'handoff';
@@ -52,18 +52,18 @@ export type Widget =
  *  the model from inventing URLs — it picks keys, we resolve label + href here. */
 const LINK_DESTINATIONS: Record<
   string,
-  { label: string; href: string; style: 'lime' | 'primary' | 'outline' }
+  { label: string; href: string; style: 'primary' | 'outline' }
 > = {
   airbnb_service: { label: 'Administración Airbnb', href: '/services/airbnb', style: 'primary' },
   cleaning_service: { label: 'Plan de Aseo', href: '/services/cleaning', style: 'primary' },
-  airbnb_quote: { label: 'Cotizar Airbnb', href: '/calculator?service=airbnb', style: 'lime' },
-  cleaning_quote: { label: 'Cotizar aseo', href: '/calculator?service=cleaning', style: 'lime' },
+  airbnb_quote: { label: 'Cotizar Airbnb', href: '/calculator?service=airbnb', style: 'primary' },
+  cleaning_quote: { label: 'Cotizar aseo', href: '/calculator?service=cleaning', style: 'primary' },
   start_trial: {
     label: 'Comenzar prueba de 14 días',
     href: '/calculator?service=airbnb',
-    style: 'lime',
+    style: 'primary',
   },
-  book: { label: 'Agendar aseo', href: '/book', style: 'lime' },
+  book: { label: 'Agendar aseo', href: '/book', style: 'primary' },
   pricing: { label: 'Ver precios', href: '/calculator', style: 'outline' },
   dashboard: { label: 'Ir a mi panel', href: '/account', style: 'outline' },
   properties: { label: 'Mis propiedades', href: '/properties', style: 'primary' },

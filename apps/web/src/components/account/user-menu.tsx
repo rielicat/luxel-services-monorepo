@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { LayoutDashboard, LogOut, UserRound, Home, Building2 } from 'lucide-react';
+import { LayoutDashboard, LogOut, UserRound, Home, Building2, Wrench } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -93,9 +93,14 @@ export function UserMenu() {
               {t('account')}
             </MenuLink>
             {isAdmin && (
-              <MenuLink href="/admin/listings" icon={Building2} onNavigate={() => setOpen(false)}>
-                {t('admin_listings')}
-              </MenuLink>
+              <>
+                <MenuLink href="/admin/listings" icon={Building2} onNavigate={() => setOpen(false)}>
+                  {t('admin_listings')}
+                </MenuLink>
+                <MenuLink href="/admin/debug" icon={Wrench} onNavigate={() => setOpen(false)}>
+                  {t('admin_debug')}
+                </MenuLink>
+              </>
             )}
           </nav>
           <div className="border-border/60 border-t p-1.5">

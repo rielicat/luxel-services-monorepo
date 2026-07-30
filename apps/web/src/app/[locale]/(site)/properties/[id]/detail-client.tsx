@@ -167,7 +167,6 @@ export function PropertyDetailClient({
   today,
   turnoverPrice,
   showSim,
-  isAdmin = false,
 }: {
   property: PropertyRow;
   liveDays: LiveDay[] | null;
@@ -175,7 +174,6 @@ export function PropertyDetailClient({
   today: string;
   turnoverPrice: number | null;
   showSim: boolean;
-  isAdmin?: boolean;
 }) {
   const t = useTranslations('detail');
   const s = stats(property, liveDays, today);
@@ -488,11 +486,7 @@ export function PropertyDetailClient({
           title={t('tab_access')}
           warn={accessUnconfigured}
         >
-          <AccessPanel
-            propertyId={property.id}
-            access={property.property_access}
-            isAdmin={isAdmin}
-          />
+          <AccessPanel propertyId={property.id} access={property.property_access} />
         </Section>
       </div>
     </div>

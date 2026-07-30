@@ -42,7 +42,7 @@ type AirbnbQuoteWidget = {
 };
 type LinksWidget = {
   kind: 'links';
-  actions: { label: string; href: string; style: 'lime' | 'primary' | 'outline' }[];
+  actions: { label: string; href: string; style: 'primary' | 'outline' }[];
 };
 type Widget = QuoteWidget | AvailabilityWidget | HandoffWidget | AirbnbQuoteWidget | LinksWidget;
 
@@ -291,8 +291,20 @@ export function ChatWidget() {
   return (
     <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
       {/* One cohesive agent surface: the composer is the docked bar; the
-          conversation expands above it (grid-rows trick animates the height). */}
-      <div className="bg-card/95 border-border shadow-lift ease-lux flex w-[680px] max-w-full flex-col overflow-hidden rounded-2xl border backdrop-blur">
+          conversation expands above it (grid-rows trick animates the height).
+          Frosted like the top bar, with a soft primary halo so the agent reads
+          as the live thing on the page rather than another card. */}
+      <div
+        className={cn(
+          'glass shadow-lift ease-lux relative flex w-[680px] max-w-full flex-col overflow-hidden rounded-2xl ring-1 transition-shadow duration-500',
+          'before:via-primary/50 before:pointer-events-none before:absolute before:inset-x-10 before:-top-px before:h-px before:bg-gradient-to-r before:from-transparent before:to-transparent',
+          // Collapsed it has to earn a glance; open it recedes so the
+          // conversation is the thing being read.
+          open
+            ? 'ring-primary/15'
+            : 'ring-primary/30 shadow-[0_8px_40px_-12px_hsl(var(--primary)/0.45)]',
+        )}
+      >
         <div
           className={cn(
             'ease-lux grid transition-[grid-template-rows] duration-300',
@@ -401,7 +413,15 @@ export function ChatWidget() {
             open && 'border-border/60 border-t',
           )}
         >
-          <LuxelMark className="ml-1 h-6 w-6 shrink-0" />
+          <span className="relative ml-1 flex shrink-0 items-center">
+            <LuxelMark className="h-6 w-6" />
+            {!open && (
+              <span
+                className="bg-success absolute -right-0.5 -top-0.5 h-2 w-2 animate-pulse rounded-full ring-2 ring-[hsl(var(--card))]"
+                aria-hidden
+              />
+            )}
+          </span>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -446,7 +466,7 @@ function WidgetCard({
           </p>
         )}
         <div className="mt-3 flex gap-2">
-          <Button asChild variant="lime" size="sm" className="flex-1">
+          <Button asChild variant="default" size="sm" className="flex-1">
             <Link
               href="/book"
               onClick={() => tryCapture('cta_clicked', { source: 'chat_quote', cta: 'agendar' })}
@@ -489,7 +509,7 @@ function WidgetCard({
             </div>
           ))}
         </div>
-        <Button asChild variant="lime" size="sm" className="mt-3 w-full">
+        <Button asChild variant="default" size="sm" className="mt-3 w-full">
           <Link
             href="/book"
             onClick={() =>
@@ -520,7 +540,7 @@ function WidgetCard({
         <p className="text-muted-foreground mt-0.5 text-xs font-medium">
           {t('airbnb_per_listing', { price: clp(widget.perListingClp) })} · {t('airbnb_commission')}
         </p>
-        <Button asChild variant="lime" size="sm" className="mt-3 w-full">
+        <Button asChild variant="default" size="sm" className="mt-3 w-full">
           <Link
             href="/calculator?service=airbnb"
             onClick={() => tryCapture('cta_clicked', { source: 'chat_airbnb', cta: 'trial' })}

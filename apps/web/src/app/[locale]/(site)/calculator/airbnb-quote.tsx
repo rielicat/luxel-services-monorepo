@@ -141,7 +141,7 @@ export function AirbnbQuote() {
             </ul>
           </div>
 
-          <Button asChild variant="lime" size="xl" className="w-full">
+          <Button asChild variant="default" size="xl" className="w-full">
             <Link href="/properties">
               {t('cta')} <ArrowRight className="ml-1 h-4 w-4" />
             </Link>

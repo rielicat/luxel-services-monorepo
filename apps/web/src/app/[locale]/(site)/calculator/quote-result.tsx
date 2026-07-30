@@ -86,7 +86,7 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
             <Sparkles className="text-secondary h-3.5 w-3.5" />
             {view.exact ? t('exact') : t('estimated')}
           </span>
-          {pct > 0 && <Badge variant="lime">−{pct}%</Badge>}
+          {pct > 0 && <Badge variant="default">−{pct}%</Badge>}
         </div>
 
         {/* Per-visit price */}
@@ -150,7 +150,7 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
           </p>
         )}
 
-        <Button asChild variant="lime" size="lg" className="mt-5 w-full">
+        <Button asChild variant="default" size="lg" className="mt-5 w-full">
           <Link href={bookHref as never}>
             <CalendarCheck className="h-4 w-4" /> {t('book_now')}
           </Link>

@@ -116,7 +116,7 @@ export default function AboutPage() {
             <p className="text-primary-foreground/85 mx-auto mt-3 max-w-md text-pretty">
               {t('cta_body')}
             </p>
-            <Button asChild variant="lime" size="xl" className="mt-8 shadow-lg">
+            <Button asChild variant="default" size="xl" className="mt-8 shadow-lg">
               <Link href="/calculator?service=airbnb">{t('cta_button')}</Link>
             </Button>
           </div>
