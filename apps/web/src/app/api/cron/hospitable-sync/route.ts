@@ -1,5 +1,6 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { hospitableAccess } from '@/lib/channels/scope';
+import { autoAssignListings } from '@/lib/channels/auto-assign';
 import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
 
 export const runtime = 'nodejs';
@@ -22,6 +23,10 @@ export async function GET(req: Request) {
   if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
     return new Response('Unauthorized', { status: 401 });
   }
+
+  // Attribute what we can before syncing: a listing that matches a customer's
+  // channel email becomes theirs here, so onboarding needs no operator step.
+  const auto = await autoAssignListings().catch(() => null);
 
   const supabase = createSupabaseServiceRoleClient();
   const [{ data: connections }, { data: assigned }] = await Promise.all([
@@ -54,5 +59,10 @@ export async function GET(req: Request) {
       results.push({ customer: customerId, ok: false, scope: access.scope });
     }
   }
-  return Response.json({ ok: true, accounts: results.length, results });
+  return Response.json({
+    ok: true,
+    autoAssigned: auto?.assigned ?? 0,
+    accounts: results.length,
+    results,
+  });
 }

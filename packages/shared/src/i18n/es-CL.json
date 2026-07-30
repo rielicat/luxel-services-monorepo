@@ -34,7 +34,8 @@
     "close": "Cerrar",
     "services_airbnb_caption": "IA, precios y aseo — tarifa plana",
     "services_cleaning_caption": "Aseo profesional para tu espacio",
-    "precios": "Precios"
+    "precios": "Precios",
+    "admin_listings": "Asignar propiedades"
   },
   "landing": {
     "hero": {
@@ -831,8 +832,8 @@
     "title": "Asignar propiedades",
     "subtitle": "Cada propiedad conectada pertenece a un solo cliente. Sin asignar, nadie la ve.",
     "unclaimed_title": "Sin asignar",
-    "unclaimed_help": "Al conectar un Airbnb se importan todas sus propiedades. Asigna solo las que administramos; el resto queda invisible.",
-    "unclaimed_none": "Nada pendiente por asignar.",
+    "unclaimed_help": "Al conectar un Airbnb se importan todas sus propiedades. Las que coinciden con el correo de un cliente se asignan solas; acá quedan solo las que necesitan revisión.",
+    "unclaimed_none": "Nada pendiente — todo quedó asignado automáticamente.",
     "unclaimed_failed": "No pudimos leer las propiedades conectadas. Revisa la conexión de la cuenta central e inténtalo de nuevo.",
     "pick_customer": "Elegir cliente…",
     "assign": "Asignar",

@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getTranslations } from 'next-intl/server';
 import { Building2 } from 'lucide-react';
 import { isClerkAdmin } from '@/lib/auth/admin';
+import { autoAssignListings } from '@/lib/channels/auto-assign';
 import {
   listUnclaimedListings,
   listAssignments,
@@ -21,6 +22,8 @@ export default async function AdminListingsPage() {
   if (!(await isClerkAdmin(userId))) notFound();
 
   const t = await getTranslations('assign');
+  // Resolve everything attributable before listing what's left for a human.
+  await autoAssignListings().catch(() => null);
   const [unclaimed, assigned, customers] = await Promise.all([
     listUnclaimedListings(),
     listAssignments(),

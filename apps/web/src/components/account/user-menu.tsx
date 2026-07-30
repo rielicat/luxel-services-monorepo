@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { LayoutDashboard, LogOut, UserRound, Home } from 'lucide-react';
+import { LayoutDashboard, LogOut, UserRound, Home, Building2 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +34,9 @@ export function UserMenu() {
     return <span className="bg-muted h-9 w-9 shrink-0 animate-pulse rounded-full" aria-hidden />;
   }
 
+  // Presentation only — /admin/* enforces this server-side (notFound for
+  // non-admins). Showing the link is not what grants access.
+  const isAdmin = user?.publicMetadata?.role === 'admin';
   const name = user?.fullName || user?.firstName || '';
   const email = user?.primaryEmailAddress?.emailAddress ?? '';
   const initials =
@@ -89,6 +92,11 @@ export function UserMenu() {
             <MenuLink href="/account/profile" icon={UserRound} onNavigate={() => setOpen(false)}>
               {t('account')}
             </MenuLink>
+            {isAdmin && (
+              <MenuLink href="/admin/listings" icon={Building2} onNavigate={() => setOpen(false)}>
+                {t('admin_listings')}
+              </MenuLink>
+            )}
           </nav>
           <div className="border-border/60 border-t p-1.5">
             <button

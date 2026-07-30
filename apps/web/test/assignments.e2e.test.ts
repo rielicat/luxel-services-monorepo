@@ -27,6 +27,25 @@ vi.mock('@clerk/nextjs/server', () => ({
 }));
 vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: unknown) => fn }));
 
+const LISTING_AUTO = 'd4444444-0000-0000-0000-00000000000d';
+const LISTING_UNKNOWN = 'e5555555-0000-0000-0000-00000000000e';
+
+const withListings = (id: string, email: string | null) => ({
+  ...remoteProperty,
+  id,
+  listings: [
+    {
+      platform: 'airbnb',
+      platform_id: `pl_${id}`,
+      platform_user_id: `431${id.slice(0, 3)}`,
+      platform_name: 'Host',
+      platform_email: email,
+    },
+    // Luxel's own bookkeeping channels carry no host identity.
+    { platform: 'manual', platform_id: 'm1', platform_user_id: 'manual_1', platform_email: null },
+  ],
+});
+
 const remoteProperty = {
   id: LISTING,
   name: 'Casa Operador',
@@ -60,7 +79,14 @@ beforeAll(async () => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url.startsWith('https://public.api.hospitable.com/')) {
       if (url.includes('/properties')) {
-        return Response.json({ data: [remoteProperty], links: { next: null } });
+        return Response.json({
+          data: [
+            remoteProperty,
+            withListings(LISTING_AUTO, 'owner@test.cl'),
+            withListings(LISTING_UNKNOWN, 'nobody@nowhere.cl'),
+          ],
+          links: { next: null },
+        });
       }
       return Response.json({ data: [], links: { next: null } });
     }
@@ -94,7 +120,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (!LIVE) return;
-  await admin.from('listing_assignments').delete().eq('external_listing_id', LISTING);
+  await admin
+    .from('listing_assignments')
+    .delete()
+    .in('external_listing_id', [LISTING, LISTING_AUTO, LISTING_UNKNOWN]);
   for (const id of [owner, other].filter(Boolean)) {
     await admin.from('properties').delete().eq('owner_id', id);
     await admin.from('customers').delete().eq('id', id);
@@ -103,6 +132,30 @@ afterAll(async () => {
 });
 
 describe.skipIf(!LIVE)('operator listing assignment', () => {
+  it('auto-assigns by channel email, and never guesses', async () => {
+    const { autoAssignListings } = await import('../src/lib/channels/auto-assign');
+    const r = await autoAssignListings();
+    expect(r.ok).toBe(true);
+    // owner@test.cl matches a customer → assigned without any operator step.
+    expect(r.assigned).toBe(1);
+
+    const { data } = await admin
+      .from('listing_assignments')
+      .select('external_listing_id, customer_id, assigned_by')
+      .in('external_listing_id', [LISTING, LISTING_AUTO, LISTING_UNKNOWN]);
+    expect(data).toHaveLength(1);
+    expect(data![0].external_listing_id).toBe(LISTING_AUTO);
+    expect(data![0].customer_id).toBe(owner);
+    expect(data![0].assigned_by).toBe('auto:channel_email');
+
+    // Unknown email and no-listings-metadata stay unassigned for a human.
+    expect(r.ambiguous).toBeGreaterThan(0);
+
+    // Idempotent: a second pass claims nothing new.
+    expect((await autoAssignListings()).assigned).toBe(0);
+    await admin.from('listing_assignments').delete().eq('external_listing_id', LISTING_AUTO);
+  });
+
   it('refuses every action for a non-admin', async () => {
     process.env.TEST_ADMIN_ROLE = 'member';
     expect((await actions.listUnclaimedListings()).ok).toBe(false);

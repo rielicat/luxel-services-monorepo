@@ -1,9 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Plug, CheckCircle2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { CheckCircle2 } from 'lucide-react';
 import type { HostConnection } from '@/lib/host/queries';
 
 /** Connected accounts sync themselves on every visit — no card, no buttons, and
@@ -27,33 +25,5 @@ export function ConnectionNote({ connection }: { connection: HostConnection }) {
           })
         : t('syncing_now')}
     </div>
-  );
-}
-
-/** Not connected yet. Luxel operates the channel account, so there is nothing
- *  for the host to paste or configure: we send the invitation, they accept it on
- *  Airbnb, and their listings show up here. */
-export function ConnectInviteCard() {
-  const t = useTranslations('hospitable');
-  const wa = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, '');
-  return (
-    <Card>
-      <CardContent className="grid gap-3 p-4">
-        <div className="flex items-start gap-2.5">
-          <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
-            <Plug className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold">{t('connect_title')}</p>
-            <p className="text-muted-foreground text-xs">{t('connect_body')}</p>
-          </div>
-        </div>
-        <Button size="sm" className="justify-self-start" asChild>
-          <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer noopener">
-            {t('connect_cta')}
-          </a>
-        </Button>
-      </CardContent>
-    </Card>
   );
 }

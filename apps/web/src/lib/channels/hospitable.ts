@@ -11,8 +11,20 @@ import { encryptPII, decryptPII } from '@/lib/crypto/pii';
 
 const BASE = 'https://public.api.hospitable.com/v2';
 
+export interface HospitableChannelListing {
+  platform: string | null;
+  platform_id?: string | null;
+  /** The channel-side host id this listing belongs to (Airbnb user id). */
+  platform_user_id?: string | null;
+  platform_name?: string | null;
+  /** The host's channel account email. `pat:read` scope only — present with
+   *  Luxel's operator token, and the key that attributes a listing to a client. */
+  platform_email?: string | null;
+}
+
 export interface HospitableProperty {
   id: string;
+  listings?: HospitableChannelListing[];
   name: string | null;
   public_name: string | null;
   picture?: string | null;
@@ -102,7 +114,9 @@ export async function listHospitableProperties(
   token: string,
 ): Promise<HospitableProperty[] | null> {
   const out: HospitableProperty[] = [];
-  let url: string | null = '/properties?per_page=100';
+  // `include=listings` carries platform_user_id / platform_email per channel —
+  // how a listing in the central account is attributed to a host client.
+  let url: string | null = '/properties?per_page=100&include=listings';
   for (let page = 0; url && page < 10; page++) {
     const r: Awaited<ReturnType<typeof hospGet<HospitableProperty>>> = await hospGet(token, url);
     if (!r.ok) return null;
