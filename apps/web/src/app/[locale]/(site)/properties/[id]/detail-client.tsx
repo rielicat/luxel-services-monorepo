@@ -167,6 +167,7 @@ export function PropertyDetailClient({
   today,
   turnoverPrice,
   showSim,
+  recommended,
 }: {
   property: PropertyRow;
   liveDays: LiveDay[] | null;
@@ -174,6 +175,8 @@ export function PropertyDetailClient({
   today: string;
   turnoverPrice: number | null;
   showSim: boolean;
+  /** Nightly recommendations from the pricing engine, by date. */
+  recommended?: Record<string, number> | null;
 }) {
   const t = useTranslations('detail');
   const s = stats(property, liveDays, today);
@@ -439,7 +442,13 @@ export function PropertyDetailClient({
             icon={CalendarDays}
             title={t('sec_stays')}
           >
-            <StaysTimeline stays={stays} cleanings={property.cleanings} today={today} />
+            <StaysTimeline
+              stays={stays}
+              cleanings={property.cleanings}
+              today={today}
+              liveDays={liveDays}
+              recommended={recommended}
+            />
           </Section>
 
           <Section

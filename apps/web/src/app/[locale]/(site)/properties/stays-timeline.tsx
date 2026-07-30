@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 import type { Block } from './properties-client';
@@ -106,12 +106,15 @@ export function buildStays(liveDays: LiveDay[] | null, blocks: Block[], today: s
 }
 
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-const MAX_MONTH_OFFSET = 3;
+/** Months rendered in the scroll column — the live calendar covers 90 days. */
+const MONTHS = 4;
 
 const monthLabel = (y: number, m: number) =>
   new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
     new Date(Date.UTC(y, m, 1)),
   );
+/** Compact money for a calendar cell: 166.450 → 166k. */
+const shortClp = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 
 type CleaningState = 'confirmed' | 'notified' | 'pending';
 const cleaningState = (c: Cleaning | undefined): CleaningState | null => {
@@ -120,23 +123,47 @@ const cleaningState = (c: Cleaning | undefined): CleaningState | null => {
   return c.status === 'scheduled' ? 'notified' : 'pending';
 };
 
-/** One small month grid instead of a wall of rows: reserved nights are shaded,
- *  check-out days carry a colored dot for their turnover's state, and tapping
- *  a stay opens its detail (dates, nights, real revenue when known). */
+/** A month's worth of cells, `null` padding the lead-in weekdays. */
+function monthCells(year: number, month: number): (string | null)[] {
+  const first = new Date(Date.UTC(year, month, 1));
+  const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const lead = (first.getUTCDay() + 6) % 7;
+  return [
+    ...Array.from({ length: lead }, () => null),
+    ...Array.from({ length: days }, (_, i) =>
+      new Date(Date.UTC(year, month, i + 1)).toISOString().slice(0, 10),
+    ),
+  ];
+}
+
+/**
+ * The calendar a host actually reads: months stacked in one scroll, each night
+ * carrying its published rate — the shape Airbnb trained them on.
+ *
+ * When price optimisation is on, the engine's recommendation sits under the
+ * published price wherever the two differ. Both numbers are real: published
+ * comes from the channel calendar, recommended from the pricing engine. A night
+ * with no data shows none.
+ */
 export function StaysTimeline({
   stays,
   cleanings,
   today,
+  liveDays,
+  recommended,
 }: {
   stays: Stay[];
   cleanings: Cleaning[];
   today: string;
+  /** Published nightly rates + availability, straight from the channel. */
+  liveDays?: LiveDay[] | null;
+  /** Engine recommendations by date, when the add-on is active and linked. */
+  recommended?: Record<string, number> | null;
 }) {
   const t = useTranslations('stays');
-  const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Stay | null>(null);
 
-  if (!stays.length) {
+  if (!stays.length && !liveDays?.length) {
     return (
       <div className="border-border text-muted-foreground grid justify-items-center gap-2 rounded-lg border border-dashed p-8 text-center text-sm">
         <CalendarDays className="h-6 w-6 opacity-50" />
@@ -147,101 +174,113 @@ export function StaysTimeline({
 
   const nightOf = new Map<string, Stay>();
   const checkoutOf = new Map<string, Stay>();
-  for (const s of stays) {
-    for (let d = s.from; d < s.to; d = addDays(d, 1)) nightOf.set(d, s);
-    checkoutOf.set(s.to, s);
+  for (const st of stays) {
+    for (let d = st.from; d < st.to; d = addDays(d, 1)) nightOf.set(d, st);
+    checkoutOf.set(st.to, st);
   }
+  const priceOf = new Map<string, number>();
+  for (const d of liveDays ?? []) if (d.priceClp != null) priceOf.set(d.date, d.priceClp);
   const cleaningFor = (date: string) =>
     cleanings.find((c) => c.cleaning_date === date && c.status !== 'skipped');
 
   const year = Number(today.slice(0, 4));
-  const month = Number(today.slice(5, 7)) - 1 + offset;
-  const first = new Date(Date.UTC(year, month, 1));
-  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  const lead = (first.getUTCDay() + 6) % 7;
-  const cells: (string | null)[] = [
-    ...Array.from({ length: lead }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, i) =>
-      new Date(Date.UTC(year, month, i + 1)).toISOString().slice(0, 10),
-    ),
-  ];
-
+  const month0 = Number(today.slice(5, 7)) - 1;
   const selCleaning = selected ? cleaningState(cleaningFor(selected.to)) : null;
+  const hasRecommendations = Boolean(recommended && Object.keys(recommended).length);
 
   return (
-    <div className="grid max-w-md gap-3">
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          aria-label="Mes anterior"
-          disabled={offset === 0}
-          onClick={() => setOffset((o) => Math.max(0, o - 1))}
-          className="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors disabled:opacity-30"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <p className="text-sm font-semibold capitalize">
-          {monthLabel(first.getUTCFullYear(), first.getUTCMonth())}
-        </p>
-        <button
-          type="button"
-          aria-label="Mes siguiente"
-          disabled={offset >= MAX_MONTH_OFFSET}
-          onClick={() => setOffset((o) => Math.min(MAX_MONTH_OFFSET, o + 1))}
-          className="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors disabled:opacity-30"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-y-0.5 text-center">
-        {WEEKDAYS.map((w, i) => (
-          <span key={i} className="text-muted-foreground pb-1 text-[10px] font-semibold">
-            {w}
-          </span>
-        ))}
-        {cells.map((date, i) => {
-          if (!date) return <span key={`x${i}`} />;
-          const stay = nightOf.get(date) ?? checkoutOf.get(date);
-          const night = nightOf.has(date);
-          const state = checkoutOf.has(date) ? cleaningState(cleaningFor(date)) : null;
-          return (
-            <button
-              key={date}
-              type="button"
-              disabled={!stay}
-              onClick={() => stay && setSelected(stay)}
-              className={cn(
-                'relative mx-auto grid h-8 w-full max-w-9 place-items-center text-xs tabular-nums transition-colors',
-                night && 'bg-primary/15',
-                night && (!nightOf.has(addDays(date, -1)) ? 'rounded-l-md' : ''),
-                night && (!nightOf.has(addDays(date, 1)) ? 'rounded-r-md' : ''),
-                !night && 'rounded-md',
-                stay && 'hover:bg-primary/25 cursor-pointer',
-                date === today && 'ring-primary/60 font-bold ring-1',
-                date < today && !stay && 'text-muted-foreground/50',
-              )}
-            >
-              {Number(date.slice(8, 10))}
-              {state && (
-                <span
-                  className={cn(
-                    'absolute bottom-0.5 h-1.5 w-1.5 rounded-full',
-                    state === 'confirmed' && 'bg-success',
-                    state === 'notified' && 'bg-secondary',
-                    state === 'pending' && 'bg-warning',
-                  )}
-                />
-              )}
-            </button>
-          );
-        })}
+    <div className="grid gap-3">
+      {/* One continuous scroll rather than paging month by month. */}
+      <div className="max-h-[26rem] overflow-y-auto pr-1">
+        <div className="grid gap-5">
+          {Array.from({ length: MONTHS }, (_, i) => {
+            const d = new Date(Date.UTC(year, month0 + i, 1));
+            const y = d.getUTCFullYear();
+            const m = d.getUTCMonth();
+            return (
+              <div key={`${y}-${m}`} className="grid gap-1.5">
+                <p className="bg-card/95 sticky top-0 z-10 py-1 text-sm font-semibold capitalize backdrop-blur">
+                  {monthLabel(y, m)}
+                </p>
+                <div className="grid grid-cols-7 gap-y-1 text-center">
+                  {WEEKDAYS.map((w, wi) => (
+                    <span key={wi} className="text-muted-foreground pb-1 text-[10px] font-semibold">
+                      {w}
+                    </span>
+                  ))}
+                  {monthCells(y, m).map((date, ci) => {
+                    if (!date) return <span key={`x${ci}`} />;
+                    const stay = nightOf.get(date) ?? checkoutOf.get(date);
+                    const night = nightOf.has(date);
+                    const state = checkoutOf.has(date) ? cleaningState(cleaningFor(date)) : null;
+                    const price = priceOf.get(date);
+                    const rec = recommended?.[date];
+                    const past = date < today;
+                    return (
+                      <button
+                        key={date}
+                        type="button"
+                        disabled={!stay}
+                        onClick={() => stay && setSelected(stay)}
+                        className={cn(
+                          'relative grid h-12 content-center gap-px px-0.5 text-center transition-colors',
+                          night && 'bg-primary/15',
+                          night && !nightOf.has(addDays(date, -1)) && 'rounded-l-md',
+                          night && !nightOf.has(addDays(date, 1)) && 'rounded-r-md',
+                          !night && 'rounded-md',
+                          stay && 'hover:bg-primary/25 cursor-pointer',
+                          date === today && 'ring-primary/60 ring-1',
+                          past && 'opacity-45',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'text-xs tabular-nums leading-none',
+                            date === today && 'font-bold',
+                          )}
+                        >
+                          {Number(date.slice(8, 10))}
+                        </span>
+                        {price != null && (
+                          <span className="text-muted-foreground text-[9px] tabular-nums leading-none">
+                            {shortClp(price)}
+                          </span>
+                        )}
+                        {rec != null && rec !== price && (
+                          <span className="text-primary text-[9px] font-semibold tabular-nums leading-none">
+                            {shortClp(rec)}
+                          </span>
+                        )}
+                        {state && (
+                          <span
+                            className={cn(
+                              'absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full',
+                              state === 'confirmed' && 'bg-success',
+                              state === 'notified' && 'bg-secondary',
+                              state === 'pending' && 'bg-warning',
+                            )}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
         <span className="flex items-center gap-1">
           <span className="bg-primary/15 h-2.5 w-2.5 rounded-sm" /> {t('legend_reserved')}
         </span>
+        <span className="flex items-center gap-1">{t('legend_price')}</span>
+        {hasRecommendations && (
+          <span className="text-primary flex items-center gap-1 font-medium">
+            <TrendingUp className="h-3 w-3" /> {t('legend_recommended')}
+          </span>
+        )}
         <span className="flex items-center gap-1">
           <span className="bg-success h-1.5 w-1.5 rounded-full" /> {t('legend_confirmed')}
         </span>

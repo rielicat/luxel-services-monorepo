@@ -816,7 +816,9 @@
     "legend_reserved": "Reservado",
     "legend_confirmed": "Aseo confirmado",
     "legend_notified": "Equipo avisado",
-    "legend_pending": "Por confirmar"
+    "legend_pending": "Por confirmar",
+    "legend_price": "Tarifa publicada",
+    "legend_recommended": "Sugerida por Luxel"
   },
   "crew": {
     "title": "Confirmación de aseo",

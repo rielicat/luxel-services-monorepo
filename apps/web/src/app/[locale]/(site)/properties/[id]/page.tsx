@@ -5,6 +5,8 @@ import { fetchProperty } from '@/lib/host/queries';
 import { listHospitableCalendar } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
 import { priceTurnover } from '@/lib/cleaning/price';
+import { resolvePricelabsRef } from '@/lib/pricelabs/link';
+import { getPricelabsPrices } from '@/lib/pricelabs/client';
 import { devMockEnabled } from '@/lib/dev-mock';
 import type { PropertyRow } from '../properties-client';
 import { PropertyDetailClient, type LiveDay } from './detail-client';
@@ -67,6 +69,21 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   const turnover = await priceTurnover(id);
 
+  // Engine recommendations for the same window, only when the paid add-on is
+  // active and the listing is linked — resolvePricelabsRef enforces both, and
+  // ownership. Absent data simply means the calendar shows published rates only.
+  let recommended: Record<string, number> | null = null;
+  const plRef = await resolvePricelabsRef(customer.id, id);
+  if (plRef) {
+    const rows = await getPricelabsPrices(plRef, today, plusDays(today, 90));
+    if (rows?.length) {
+      recommended = {};
+      for (const r of rows) {
+        if (r.price != null && r.price > 0) recommended[r.date] = Math.round(r.price);
+      }
+    }
+  }
+
   return (
     <PropertyDetailClient
       property={property}
@@ -74,6 +91,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       today={today}
       turnoverPrice={'priceClp' in turnover ? turnover.priceClp : null}
       showSim={devMockEnabled()}
+      recommended={recommended}
     />
   );
 }
