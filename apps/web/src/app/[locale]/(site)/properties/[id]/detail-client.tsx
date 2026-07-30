@@ -318,7 +318,7 @@ export function PropertyDetailClient({
       {/* What needs you, first — these are the only items asking for the host's
           time, so they precede the automations and the read-only metrics. */}
       {attention.length > 0 ? (
-        <div className="border-warning/30 bg-warning/10 mb-8 flex flex-wrap items-center gap-2 rounded-xl border p-3">
+        <div className="border-warning/30 bg-warning/10 mb-10 flex flex-wrap items-center gap-2 rounded-xl border p-3">
           {attention.map((a) => (
             <button
               key={a.id}
@@ -331,7 +331,7 @@ export function PropertyDetailClient({
           ))}
         </div>
       ) : (
-        <p className="text-success mb-8 flex items-center gap-1.5 text-sm font-medium">
+        <p className="text-success mb-10 flex items-center gap-1.5 text-sm font-medium">
           <CheckCircle2 className="h-4 w-4" /> {t('att_clear')}
         </p>
       )}
@@ -346,50 +346,45 @@ export function PropertyDetailClient({
         pricelabsStatus={property.pricelabs_status ?? 'off'}
       />
 
-      {/* Metrics that matter to the owner — tap any for the full breakdown. */}
-      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Metrics read as plain figures on the page, not four more boxes: the
+          number carries the weight, and dropping the borders removes four
+          competing frames from a page that already has cards for every
+          interactive surface. Still tappable for the breakdown. */}
+      <div className="border-border/60 mb-10 grid grid-cols-2 gap-x-6 gap-y-5 border-y py-5 lg:grid-cols-4">
         {metrics.map((m) => (
           <button
             key={m.id}
             type="button"
             onClick={() => setOpenMetric(m.id)}
-            className="text-left"
+            className="group text-left"
           >
-            <Card className="ease-lux hover:border-primary/30 hover:shadow-soft h-full transition-all">
-              <CardContent className="grid gap-1 p-3.5">
-                <span className="text-muted-foreground flex items-center justify-between gap-1.5 text-xs">
-                  <span className="flex items-center gap-1.5">
-                    <span className={cn('rounded-md p-1', m.tone)}>
-                      <m.icon className="h-3.5 w-3.5" />
-                    </span>
-                    {m.label}
-                  </span>
-                  <Info className="h-3 w-3 opacity-50" />
-                </span>
-                <span className="flex items-baseline gap-1.5">
-                  <span className="font-display text-xl font-semibold tabular-nums">{m.value}</span>
-                  {m.delta && m.delta.value !== 0 && (
-                    <span
-                      className={cn(
-                        'flex items-center gap-0.5 text-[11px] font-semibold tabular-nums',
-                        m.delta.value > 0 ? 'text-success' : 'text-warning',
-                      )}
-                    >
-                      {m.delta.value > 0 ? (
-                        <ArrowUpRight className="h-3 w-3" />
-                      ) : (
-                        <ArrowDownRight className="h-3 w-3" />
-                      )}
-                      {m.delta.label}
-                    </span>
+            <span className="text-muted-foreground group-hover:text-foreground flex items-center gap-1.5 text-xs transition-colors">
+              <m.icon className="h-3.5 w-3.5" /> {m.label}
+              <Info className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" />
+            </span>
+            <span className="mt-1 flex items-baseline gap-1.5">
+              <span className="font-display text-2xl font-semibold tabular-nums">{m.value}</span>
+              {m.delta && m.delta.value !== 0 && (
+                <span
+                  className={cn(
+                    'flex items-center gap-0.5 text-[11px] font-semibold tabular-nums',
+                    m.delta.value > 0 ? 'text-success' : 'text-warning',
                   )}
+                >
+                  {m.delta.value > 0 ? (
+                    <ArrowUpRight className="h-3 w-3" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3" />
+                  )}
+                  {m.delta.label}
                 </span>
-                <span className="text-muted-foreground text-xs">{m.sub}</span>
-              </CardContent>
-            </Card>
+              )}
+            </span>
+            <span className="text-muted-foreground mt-0.5 block text-xs">{m.sub}</span>
           </button>
         ))}
       </div>
+
       <Modal open={expanded != null} onClose={() => setOpenMetric(null)} title={expanded?.label}>
         {expanded && (
           <div className="grid gap-3">
@@ -432,10 +427,31 @@ export function PropertyDetailClient({
         )}
       </Modal>
 
-      <div className="grid gap-6">
-        {/* Calendar and access are both compact and roughly the same height, so
-            they share a row; cleanings and the inbox each want the full width. */}
+      <div className="grid gap-8">
+        {/* Turnovers and calendar answer the same question — what happens this
+            week — so they share a row, calendar on the right where the eye
+            lands last. Access and the inbox each take the full width. */}
         <div className="grid gap-6 lg:grid-cols-2">
+          <Section
+            sectionRef={(el) => {
+              refs.current.aseos = el;
+            }}
+            icon={Sparkles}
+            title={t('tab_cleaning')}
+            badge={s.suggestedCleanings}
+          >
+            <CleaningPanel
+              propertyId={property.id}
+              cleanings={property.cleanings}
+              turnoverPrice={turnoverPrice}
+              managedBy={property.cleaning_managed_by}
+              contacts={property.cleaning_contacts}
+              autoConfirm={property.cleaning_auto_confirm}
+              checkinTime={property.checkin_time}
+              checkoutTime={property.checkout_time}
+            />
+          </Section>
+
           <Section
             sectionRef={(el) => {
               refs.current.estadias = el;
@@ -451,37 +467,17 @@ export function PropertyDetailClient({
               recommended={recommended}
             />
           </Section>
-
-          <Section
-            sectionRef={(el) => {
-              refs.current.acceso = el;
-            }}
-            icon={KeyRound}
-            title={t('tab_access')}
-            warn={accessUnconfigured}
-          >
-            <AccessPanel propertyId={property.id} access={property.property_access} />
-          </Section>
         </div>
 
         <Section
           sectionRef={(el) => {
-            refs.current.aseos = el;
+            refs.current.acceso = el;
           }}
-          icon={Sparkles}
-          title={t('tab_cleaning')}
-          badge={s.suggestedCleanings}
+          icon={KeyRound}
+          title={t('tab_access')}
+          warn={accessUnconfigured}
         >
-          <CleaningPanel
-            propertyId={property.id}
-            cleanings={property.cleanings}
-            turnoverPrice={turnoverPrice}
-            managedBy={property.cleaning_managed_by}
-            contacts={property.cleaning_contacts}
-            autoConfirm={property.cleaning_auto_confirm}
-            checkinTime={property.checkin_time}
-            checkoutTime={property.checkout_time}
-          />
+          <AccessPanel propertyId={property.id} access={property.property_access} />
         </Section>
 
         <Section
@@ -521,8 +517,8 @@ function Section({
 }) {
   return (
     <Card ref={sectionRef} className="scroll-mt-24">
-      <CardContent className="grid gap-4 p-4 sm:p-5">
-        <div className="flex items-center gap-2.5">
+      <CardContent className="grid gap-5 p-5 sm:p-6">
+        <div className="flex items-center gap-2.5 pb-1">
           <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
             <Icon className="h-[18px] w-[18px]" />
           </span>

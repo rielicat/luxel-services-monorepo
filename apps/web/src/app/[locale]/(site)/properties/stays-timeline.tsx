@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
@@ -167,47 +167,71 @@ export function StaysTimeline({
 }) {
   const t = useTranslations('stays');
   const [selected, setSelected] = useState<Stay | null>(null);
-  // Rendered window [first, last] in months from the current one. Scrolling
-  // down appends; once the window is full the oldest month is unmounted and the
-  // scroll position compensated, so the view stays put and the DOM stays small.
+  // Rendered window [first, last] in months from the current one. Both ends
+  // load on demand: scrolling down appends, scrolling back up restores months
+  // that were dropped. Only WINDOW_MONTHS stay mounted, so the DOM never grows
+  // without bound.
   const [first, setFirst] = useState(0);
   const [last, setLast] = useState(INITIAL_MONTHS - 1);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const monthEls = useRef(new Map<number, HTMLDivElement | null>());
+  const bounds = useRef({ first: 0, last: INITIAL_MONTHS - 1 });
+  bounds.current = { first, last };
 
-  const setMonthEl = useCallback((i: number, el: HTMLDivElement | null) => {
-    monthEls.current.set(i, el);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  // Height/offset captured before a mutation that changes content ABOVE the
+  // viewport, so the correction can happen before paint instead of as a visible
+  // jump one frame later.
+  const anchor = useRef<{ height: number; top: number } | null>(null);
+
+  const captureAnchor = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) anchor.current = { height: el.scrollHeight, top: el.scrollTop };
   }, []);
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const a = anchor.current;
+    anchor.current = null;
+    if (!el || !a) return;
+    const delta = el.scrollHeight - a.height;
+    if (delta) el.scrollTop = a.top + delta;
+  }, [first]);
 
   useEffect(() => {
     const scroller = scrollRef.current;
-    const sentinel = sentinelRef.current;
-    if (!scroller || !sentinel) return;
+    const top = topRef.current;
+    const bottom = bottomRef.current;
+    if (!scroller) return;
+
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) setLast((l) => Math.min(l + 1, MAX_MONTHS - 1));
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const { first: f, last: l } = bounds.current;
+          if (e.target === bottom) {
+            if (l >= MAX_MONTHS - 1) continue;
+            setLast(l + 1);
+            // Trim the top only once the window is full, anchoring first so the
+            // removal is invisible.
+            if (l + 1 - f + 1 > WINDOW_MONTHS) {
+              captureAnchor();
+              setFirst(f + 1);
+            }
+          } else if (e.target === top) {
+            if (f <= 0) continue;
+            captureAnchor();
+            setFirst(f - 1);
+            if (l - (f - 1) + 1 > WINDOW_MONTHS) setLast(l - 1);
+          }
+        }
       },
-      { root: scroller, rootMargin: '240px' },
+      { root: scroller, rootMargin: '320px' },
     );
-    io.observe(sentinel);
+    if (top) io.observe(top);
+    if (bottom) io.observe(bottom);
     return () => io.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (last - first < WINDOW_MONTHS) return;
-    const scroller = scrollRef.current;
-    const oldest = monthEls.current.get(first);
-    if (!scroller || !oldest) return;
-    // Measure before unmounting; without the compensation, dropping a month
-    // above the viewport yanks the content upward mid-scroll.
-    const shed = oldest.offsetHeight;
-    monthEls.current.delete(first);
-    setFirst((f) => f + 1);
-    requestAnimationFrame(() => {
-      scroller.scrollTop = Math.max(0, scroller.scrollTop - shed);
-    });
-  }, [first, last]);
+  }, [captureAnchor]);
 
   if (!stays.length && !liveDays?.length) {
     return (
@@ -237,15 +261,19 @@ export function StaysTimeline({
   return (
     <div className="grid gap-3">
       {/* One continuous scroll rather than paging month by month. */}
-      <div ref={scrollRef} className="max-h-[26rem] overflow-y-auto pr-1">
-        <div className="grid gap-5">
+      <div
+        ref={scrollRef}
+        className="max-h-[28rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
+      >
+        <div className="grid gap-6">
+          {first > 0 && <div ref={topRef} className="h-1" aria-hidden />}
           {Array.from({ length: last - first + 1 }, (_, k) => {
             const i = first + k;
             const d = new Date(Date.UTC(year, month0 + i, 1));
             const y = d.getUTCFullYear();
             const m = d.getUTCMonth();
             return (
-              <div key={`${y}-${m}`} ref={(el) => setMonthEl(i, el)} className="grid gap-1.5">
+              <div key={`${y}-${m}`} className="grid gap-1.5">
                 <p className="bg-card/95 sticky top-0 z-10 py-1 text-sm font-semibold capitalize backdrop-blur">
                   {monthLabel(y, m)}
                 </p>
@@ -315,7 +343,7 @@ export function StaysTimeline({
               </div>
             );
           })}
-          {last < MAX_MONTHS - 1 && <div ref={sentinelRef} className="h-1" aria-hidden />}
+          {last < MAX_MONTHS - 1 && <div ref={bottomRef} className="h-1" aria-hidden />}
         </div>
       </div>
 
