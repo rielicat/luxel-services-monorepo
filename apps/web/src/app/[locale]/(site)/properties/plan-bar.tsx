@@ -15,7 +15,11 @@ function daysLeft(iso: string | null): number {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
 }
 
-export function PlanBar({ plan }: { plan: Plan }) {
+/** `billingReady` = a payment provider can actually charge. Without it,
+ *  `activateMyPlan` refuses server-side ('billing_not_configured'), so offering
+ *  "Activar plan" mid-trial rendered a button that silently did nothing — next
+ *  to a trial that was already running. */
+export function PlanBar({ plan, billingReady = false }: { plan: Plan; billingReady?: boolean }) {
   const t = useTranslations('hostplan');
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -38,7 +42,8 @@ export function PlanBar({ plan }: { plan: Plan }) {
             <p className="font-display font-semibold">{t('ai_name')}</p>
             <p className="text-muted-foreground text-xs">
               {!plan && t('price')}
-              {plan?.status === 'trialing' && t('trialing', { days: daysLeft(plan.trial_ends_at) })}
+              {plan?.status === 'trialing' &&
+                `${t('trialing', { days: daysLeft(plan.trial_ends_at) })} · ${t('trial_note')}`}
               {plan?.status === 'active' && t('active')}
               {plan?.status === 'cancelled' && t('cancelled')}
             </p>
@@ -80,7 +85,7 @@ export function PlanBar({ plan }: { plan: Plan }) {
           </div>
         ) : (
           <div className="flex gap-2">
-            {plan?.status === 'trialing' && (
+            {plan?.status === 'trialing' && billingReady && (
               <Button size="sm" disabled={pending} onClick={() => run(() => activateMyPlan())}>
                 {t('activate')}
               </Button>

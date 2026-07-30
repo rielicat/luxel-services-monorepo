@@ -431,15 +431,39 @@ export function PropertyDetailClient({
       )}
 
       <div className="grid gap-4">
-        <Section
-          sectionRef={(el) => {
-            refs.current.estadias = el;
-          }}
-          icon={CalendarDays}
-          title={t('sec_stays')}
-        >
-          <StaysTimeline stays={stays} cleanings={property.cleanings} today={today} />
-        </Section>
+        {/* Calendar and turnovers describe the same operational week, and both
+            are compact — they read better as one row than two full-width slabs. */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Section
+            sectionRef={(el) => {
+              refs.current.estadias = el;
+            }}
+            icon={CalendarDays}
+            title={t('sec_stays')}
+          >
+            <StaysTimeline stays={stays} cleanings={property.cleanings} today={today} />
+          </Section>
+
+          <Section
+            sectionRef={(el) => {
+              refs.current.aseos = el;
+            }}
+            icon={Sparkles}
+            title={t('tab_cleaning')}
+            badge={s.suggestedCleanings}
+          >
+            <CleaningPanel
+              propertyId={property.id}
+              cleanings={property.cleanings}
+              turnoverPrice={turnoverPrice}
+              managedBy={property.cleaning_managed_by}
+              contacts={property.cleaning_contacts}
+              autoConfirm={property.cleaning_auto_confirm}
+              checkinTime={property.checkin_time}
+              checkoutTime={property.checkout_time}
+            />
+          </Section>
+        </div>
 
         <Section
           sectionRef={(el) => {
@@ -453,26 +477,6 @@ export function PropertyDetailClient({
             propertyId={property.id}
             threads={property.guest_threads}
             showSim={showSim}
-          />
-        </Section>
-
-        <Section
-          sectionRef={(el) => {
-            refs.current.aseos = el;
-          }}
-          icon={Sparkles}
-          title={t('tab_cleaning')}
-          badge={s.suggestedCleanings}
-        >
-          <CleaningPanel
-            propertyId={property.id}
-            cleanings={property.cleanings}
-            turnoverPrice={turnoverPrice}
-            managedBy={property.cleaning_managed_by}
-            contacts={property.cleaning_contacts}
-            autoConfirm={property.cleaning_auto_confirm}
-            checkinTime={property.checkin_time}
-            checkoutTime={property.checkout_time}
           />
         </Section>
 

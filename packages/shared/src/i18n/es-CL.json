@@ -569,7 +569,8 @@
     "activate": "Activar plan",
     "winback_body": "Extiende tu prueba 30 días gratis.",
     "winback_extend": "Extender 30 días gratis",
-    "winback_confirm": "Cancelar de todas formas"
+    "winback_confirm": "Cancelar de todas formas",
+    "trial_note": "sin cobros hasta que lo confirmes"
   },
   "inbox": {
     "guest": "Huésped",

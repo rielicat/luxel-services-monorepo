@@ -89,6 +89,7 @@ export function PropertiesClient({
   connection,
   syncFailed,
   centralManaged = false,
+  billingReady = false,
 }: {
   initial: PropertyRow[];
   plan: Plan;
@@ -96,6 +97,8 @@ export function PropertiesClient({
   syncFailed?: boolean;
   /** Luxel runs this host's channel account — they have no token to paste. */
   centralManaged?: boolean;
+  /** A payment provider is wired and can charge. */
+  billingReady?: boolean;
 }) {
   const t = useTranslations('properties');
   return (
@@ -117,7 +120,7 @@ export function PropertiesClient({
             {t('sync_failed')}
           </div>
         )}
-        <PlanBar plan={plan} />
+        <PlanBar plan={plan} billingReady={billingReady} />
         {connection && <ConnectionNote connection={connection} />}
 
         {initial.length === 0 ? (
