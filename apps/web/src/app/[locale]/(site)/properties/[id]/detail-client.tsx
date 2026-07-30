@@ -315,41 +315,10 @@ export function PropertyDetailClient({
 
       <SlimHero property={property} aiOff={property.ai_enabled === false} />
 
-      {/* What needs you, first — these are the only items asking for the host's
-          time, so they precede the automations and the read-only metrics. */}
-      {attention.length > 0 ? (
-        <div className="border-warning/30 bg-warning/10 mb-10 flex flex-wrap items-center gap-2 rounded-xl border p-3">
-          {attention.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => scrollTo(a.id)}
-              className="bg-warning/15 text-warning hover:bg-warning/25 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-            >
-              <TriangleAlert className="h-3.5 w-3.5" /> {a.label}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="text-success mb-10 flex items-center gap-1.5 text-sm font-medium">
-          <CheckCircle2 className="h-4 w-4" /> {t('att_clear')}
-        </p>
-      )}
-
-      <AutomationsPanel
-        propertyId={property.id}
-        aiEnabled={property.ai_enabled !== false}
-        priceOptEnabled={property.price_optimization_enabled === true}
-        guestInfo={property.guest_info}
-        liveDays={liveDays}
-        activeAddons={activeAddons}
-        pricelabsStatus={property.pricelabs_status ?? 'off'}
-      />
-
-      {/* Metrics read as plain figures on the page, not four more boxes: the
-          number carries the weight, and dropping the borders removes four
-          competing frames from a page that already has cards for every
-          interactive surface. Still tappable for the breakdown. */}
+      {/* Status strip first — how the listing is doing, as plain figures rather
+          than four more boxes. The number carries the weight; dropping the
+          borders removes four competing frames. Still tappable for the
+          breakdown. */}
       <div className="border-border/60 mb-10 grid grid-cols-2 gap-x-6 gap-y-5 border-y py-5 lg:grid-cols-4">
         {metrics.map((m) => (
           <button
@@ -384,6 +353,37 @@ export function PropertyDetailClient({
           </button>
         ))}
       </div>
+
+      {/* Then what needs you: the only items asking for the host's time, ahead
+          of the controls. */}
+      {attention.length > 0 ? (
+        <div className="border-warning/30 bg-warning/10 mb-10 flex flex-wrap items-center gap-2 rounded-xl border p-3">
+          {attention.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => scrollTo(a.id)}
+              className="bg-warning/15 text-warning hover:bg-warning/25 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+            >
+              <TriangleAlert className="h-3.5 w-3.5" /> {a.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="text-success mb-10 flex items-center gap-1.5 text-sm font-medium">
+          <CheckCircle2 className="h-4 w-4" /> {t('att_clear')}
+        </p>
+      )}
+
+      <AutomationsPanel
+        propertyId={property.id}
+        aiEnabled={property.ai_enabled !== false}
+        priceOptEnabled={property.price_optimization_enabled === true}
+        guestInfo={property.guest_info}
+        liveDays={liveDays}
+        activeAddons={activeAddons}
+        pricelabsStatus={property.pricelabs_status ?? 'off'}
+      />
 
       <Modal open={expanded != null} onClose={() => setOpenMetric(null)} title={expanded?.label}>
         {expanded && (

@@ -524,7 +524,7 @@
     "contacts_title": "Personas que reciben el aviso",
     "contacts_none": "Aún no agregas a nadie — agrega al menos un correo para que reciban cada aseo.",
     "contact_unnamed": "Sin nombre",
-    "contact_add": "Agregar",
+    "contact_add": "Agregar persona",
     "contact_remove": "Quitar contacto",
     "window_note": "Ventana sugerida según tu anuncio: {window}.",
     "auto_title": "Confirmación automática",
@@ -540,7 +540,16 @@
     "confirm": "Confirmar",
     "skip": "Omitir",
     "show_all": "Ver todos los aseos ({n})",
-    "upcoming_title": "Próximos aseos"
+    "upcoming_title": "Próximos aseos",
+    "contact_modal_title": "Agregar a quien hace el aseo",
+    "contact_modal_body": "Le avisamos por correo cada vez que se agenda un aseo, con un enlace para confirmar su asistencia.",
+    "contact_email_hint": "Acá llega el aviso con el enlace de confirmación.",
+    "contact_name_ph": "Ej.: María González",
+    "contact_optional": "(opcional)",
+    "contact_save": "Agregar",
+    "contact_error_email": "Necesitamos un correo para poder avisarle.",
+    "contact_error": "No se pudo agregar. Inténtalo de nuevo.",
+    "cancel": "Cancelar"
   },
   "copilot": {
     "title": "Copiloto de mensajes",

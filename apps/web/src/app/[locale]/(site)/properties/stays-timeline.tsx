@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
@@ -106,13 +106,12 @@ export function buildStays(liveDays: LiveDay[] | null, blocks: Block[], today: s
 }
 
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-/** Months on screen at first paint. */
-const INITIAL_MONTHS = 3;
-/** Never keep more than this mounted: months scrolled past are dropped, so a
- *  long scroll can't grow into hundreds of live cells. */
-const WINDOW_MONTHS = 6;
-/** How far ahead the calendar goes at all. */
-const MAX_MONTHS = 24;
+/** Months rendered. All of them, always: mounting and unmounting during a
+ *  scroll is what made this feel rough — an IntersectionObserver firing mid
+ *  momentum, then a scrollTop write fighting the browser's own animation. A
+ *  year of cells is nothing to render, and `content-visibility` below skips the
+ *  paint work for the ones off screen, so scrolling is plain native scrolling. */
+const MONTHS = 12;
 
 const monthLabel = (y: number, m: number) =>
   new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
@@ -167,72 +166,6 @@ export function StaysTimeline({
 }) {
   const t = useTranslations('stays');
   const [selected, setSelected] = useState<Stay | null>(null);
-  // Rendered window [first, last] in months from the current one. Both ends
-  // load on demand: scrolling down appends, scrolling back up restores months
-  // that were dropped. Only WINDOW_MONTHS stay mounted, so the DOM never grows
-  // without bound.
-  const [first, setFirst] = useState(0);
-  const [last, setLast] = useState(INITIAL_MONTHS - 1);
-  const bounds = useRef({ first: 0, last: INITIAL_MONTHS - 1 });
-  bounds.current = { first, last };
-
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const topRef = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  // Height/offset captured before a mutation that changes content ABOVE the
-  // viewport, so the correction can happen before paint instead of as a visible
-  // jump one frame later.
-  const anchor = useRef<{ height: number; top: number } | null>(null);
-
-  const captureAnchor = useCallback(() => {
-    const el = scrollRef.current;
-    if (el) anchor.current = { height: el.scrollHeight, top: el.scrollTop };
-  }, []);
-
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    const a = anchor.current;
-    anchor.current = null;
-    if (!el || !a) return;
-    const delta = el.scrollHeight - a.height;
-    if (delta) el.scrollTop = a.top + delta;
-  }, [first]);
-
-  useEffect(() => {
-    const scroller = scrollRef.current;
-    const top = topRef.current;
-    const bottom = bottomRef.current;
-    if (!scroller) return;
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          const { first: f, last: l } = bounds.current;
-          if (e.target === bottom) {
-            if (l >= MAX_MONTHS - 1) continue;
-            setLast(l + 1);
-            // Trim the top only once the window is full, anchoring first so the
-            // removal is invisible.
-            if (l + 1 - f + 1 > WINDOW_MONTHS) {
-              captureAnchor();
-              setFirst(f + 1);
-            }
-          } else if (e.target === top) {
-            if (f <= 0) continue;
-            captureAnchor();
-            setFirst(f - 1);
-            if (l - (f - 1) + 1 > WINDOW_MONTHS) setLast(l - 1);
-          }
-        }
-      },
-      { root: scroller, rootMargin: '320px' },
-    );
-    if (top) io.observe(top);
-    if (bottom) io.observe(bottom);
-    return () => io.disconnect();
-  }, [captureAnchor]);
-
   if (!stays.length && !liveDays?.length) {
     return (
       <div className="border-border text-muted-foreground grid justify-items-center gap-2 rounded-lg border border-dashed p-8 text-center text-sm">
@@ -261,19 +194,19 @@ export function StaysTimeline({
   return (
     <div className="grid gap-3">
       {/* One continuous scroll rather than paging month by month. */}
-      <div
-        ref={scrollRef}
-        className="max-h-[28rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
-      >
+      <div className="max-h-[28rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
         <div className="grid gap-6">
-          {first > 0 && <div ref={topRef} className="h-1" aria-hidden />}
-          {Array.from({ length: last - first + 1 }, (_, k) => {
-            const i = first + k;
+          {Array.from({ length: MONTHS }, (_, i) => {
             const d = new Date(Date.UTC(year, month0 + i, 1));
             const y = d.getUTCFullYear();
             const m = d.getUTCMonth();
             return (
-              <div key={`${y}-${m}`} className="grid gap-1.5">
+              <div
+                key={`${y}-${m}`}
+                // Off-screen months cost nothing to paint; the reserved size
+                // keeps the scrollbar honest so the thumb never jumps.
+                className="grid gap-1.5 [contain-intrinsic-size:auto_19rem] [content-visibility:auto]"
+              >
                 <p className="bg-card/95 sticky top-0 z-10 py-1 text-sm font-semibold capitalize backdrop-blur">
                   {monthLabel(y, m)}
                 </p>
@@ -343,7 +276,6 @@ export function StaysTimeline({
               </div>
             );
           })}
-          {last < MAX_MONTHS - 1 && <div ref={bottomRef} className="h-1" aria-hidden />}
         </div>
       </div>
 
