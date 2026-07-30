@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
@@ -106,8 +106,13 @@ export function buildStays(liveDays: LiveDay[] | null, blocks: Block[], today: s
 }
 
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-/** Months rendered in the scroll column — the live calendar covers 90 days. */
-const MONTHS = 4;
+/** Months on screen at first paint. */
+const INITIAL_MONTHS = 3;
+/** Never keep more than this mounted: months scrolled past are dropped, so a
+ *  long scroll can't grow into hundreds of live cells. */
+const WINDOW_MONTHS = 6;
+/** How far ahead the calendar goes at all. */
+const MAX_MONTHS = 24;
 
 const monthLabel = (y: number, m: number) =>
   new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
@@ -162,6 +167,47 @@ export function StaysTimeline({
 }) {
   const t = useTranslations('stays');
   const [selected, setSelected] = useState<Stay | null>(null);
+  // Rendered window [first, last] in months from the current one. Scrolling
+  // down appends; once the window is full the oldest month is unmounted and the
+  // scroll position compensated, so the view stays put and the DOM stays small.
+  const [first, setFirst] = useState(0);
+  const [last, setLast] = useState(INITIAL_MONTHS - 1);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const monthEls = useRef(new Map<number, HTMLDivElement | null>());
+
+  const setMonthEl = useCallback((i: number, el: HTMLDivElement | null) => {
+    monthEls.current.set(i, el);
+  }, []);
+
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const sentinel = sentinelRef.current;
+    if (!scroller || !sentinel) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) setLast((l) => Math.min(l + 1, MAX_MONTHS - 1));
+      },
+      { root: scroller, rootMargin: '240px' },
+    );
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (last - first < WINDOW_MONTHS) return;
+    const scroller = scrollRef.current;
+    const oldest = monthEls.current.get(first);
+    if (!scroller || !oldest) return;
+    // Measure before unmounting; without the compensation, dropping a month
+    // above the viewport yanks the content upward mid-scroll.
+    const shed = oldest.offsetHeight;
+    monthEls.current.delete(first);
+    setFirst((f) => f + 1);
+    requestAnimationFrame(() => {
+      scroller.scrollTop = Math.max(0, scroller.scrollTop - shed);
+    });
+  }, [first, last]);
 
   if (!stays.length && !liveDays?.length) {
     return (
@@ -191,14 +237,15 @@ export function StaysTimeline({
   return (
     <div className="grid gap-3">
       {/* One continuous scroll rather than paging month by month. */}
-      <div className="max-h-[26rem] overflow-y-auto pr-1">
+      <div ref={scrollRef} className="max-h-[26rem] overflow-y-auto pr-1">
         <div className="grid gap-5">
-          {Array.from({ length: MONTHS }, (_, i) => {
+          {Array.from({ length: last - first + 1 }, (_, k) => {
+            const i = first + k;
             const d = new Date(Date.UTC(year, month0 + i, 1));
             const y = d.getUTCFullYear();
             const m = d.getUTCMonth();
             return (
-              <div key={`${y}-${m}`} className="grid gap-1.5">
+              <div key={`${y}-${m}`} ref={(el) => setMonthEl(i, el)} className="grid gap-1.5">
                 <p className="bg-card/95 sticky top-0 z-10 py-1 text-sm font-semibold capitalize backdrop-blur">
                   {monthLabel(y, m)}
                 </p>
@@ -268,6 +315,7 @@ export function StaysTimeline({
               </div>
             );
           })}
+          {last < MAX_MONTHS - 1 && <div ref={sentinelRef} className="h-1" aria-hidden />}
         </div>
       </div>
 

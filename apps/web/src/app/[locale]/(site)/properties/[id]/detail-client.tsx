@@ -299,7 +299,7 @@ export function PropertyDetailClient({
   ].filter(Boolean) as { id: SectionId; label: string }[];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
       <nav aria-label="breadcrumb" className="mb-5 flex items-center gap-1.5 text-sm">
         <Link
           href="/properties"
@@ -315,6 +315,27 @@ export function PropertyDetailClient({
 
       <SlimHero property={property} aiOff={property.ai_enabled === false} />
 
+      {/* What needs you, first — these are the only items asking for the host's
+          time, so they precede the automations and the read-only metrics. */}
+      {attention.length > 0 ? (
+        <div className="border-warning/30 bg-warning/10 mb-8 flex flex-wrap items-center gap-2 rounded-xl border p-3">
+          {attention.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => scrollTo(a.id)}
+              className="bg-warning/15 text-warning hover:bg-warning/25 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+            >
+              <TriangleAlert className="h-3.5 w-3.5" /> {a.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="text-success mb-8 flex items-center gap-1.5 text-sm font-medium">
+          <CheckCircle2 className="h-4 w-4" /> {t('att_clear')}
+        </p>
+      )}
+
       <AutomationsPanel
         propertyId={property.id}
         aiEnabled={property.ai_enabled !== false}
@@ -326,7 +347,7 @@ export function PropertyDetailClient({
       />
 
       {/* Metrics that matter to the owner — tap any for the full breakdown. */}
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {metrics.map((m) => (
           <button
             key={m.id}
@@ -411,30 +432,10 @@ export function PropertyDetailClient({
         )}
       </Modal>
 
-      {/* What needs you — actionable, or a quiet all-clear. */}
-      {attention.length > 0 ? (
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          {attention.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => scrollTo(a.id)}
-              className="bg-warning/15 text-warning hover:bg-warning/25 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-            >
-              <TriangleAlert className="h-3.5 w-3.5" /> {a.label}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="text-success mb-6 flex items-center gap-1.5 text-sm font-medium">
-          <CheckCircle2 className="h-4 w-4" /> {t('att_clear')}
-        </p>
-      )}
-
-      <div className="grid gap-4">
+      <div className="grid gap-6">
         {/* Calendar and access are both compact and roughly the same height, so
             they share a row; cleanings and the inbox each want the full width. */}
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           <Section
             sectionRef={(el) => {
               refs.current.estadias = el;

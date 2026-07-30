@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
  *  always answers immediately, whatever the channel API is doing. */
 export default function PropertiesLoading() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex items-center gap-2.5">
         <Skeleton className="h-11 w-11 rounded-xl" />
         <div className="grid gap-1.5">

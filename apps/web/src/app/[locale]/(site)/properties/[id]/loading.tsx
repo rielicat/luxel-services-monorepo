@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 /** Streamed instantly while the listing record + live calendar load. */
 export default function PropertyDetailLoading() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
       <Skeleton className="mb-4 h-4 w-32" />
 
       <Card className="mb-6 overflow-hidden">

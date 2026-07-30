@@ -1,16 +1,16 @@
 # Servicios Luxel — Brand Identity & Design System
 
 > "Fresh Teal + Lime" — clean, hygienic, modern, trustworthy, premium-but-accessible.
-> Color tokens here are source of truth for `apps/web/src/app/globals.css`. Prose
-> English; example UI copy es-CL.
+> The color tokens documented here are the source of truth for
+> `apps/web/src/app/globals.css`. Prose is English; example UI copy is es-CL.
 
 ---
 
 ## 1. Brand Essence
 
 **Essence:** _Light that leaves a space renewed._ Luxel makes cleanliness feel
-effortless, transparent, a bit premium — calm of walking into a freshly cleaned
-room, delivered by software that respects your time.
+effortless, transparent, and a little bit premium — the calm of walking into a
+freshly cleaned room, delivered by software that respects your time.
 
 **Personality (adjectives):** Fresh · Trustworthy · Effortless · Modern ·
 Warm-professional · Precise.
@@ -18,22 +18,22 @@ Warm-professional · Precise.
 **Positioning statement:**
 
 > For busy households, hosts, and small offices in Santiago who want a spotless
-> space without hassle of managing a cleaner, **Servicios Luxel** is the online
-> cleaning platform giving an honest price instantly and a service you can
-> schedule and trust — unlike informal WhatsApp referrals with opaque pricing and
-> no guarantee.
+> space without the hassle of managing a cleaner, **Servicios Luxel** is the
+> online cleaning platform that gives an honest price instantly and a service you
+> can schedule and trust — unlike informal WhatsApp referrals with opaque pricing
+> and no guarantee.
 
 ---
 
 ## 2. Voice & Tone
 
-**Voice:** Chilean, warm, clear. Speak like a competent friend who runs an
-excellent cleaning service — never corporate call center, never slangy to the
-point of unprofessional. Use **tú**, not **usted**. Short sentences. Honest about
-coverage, never oversell.
+**Voice:** Chilean, warm, and clear. We speak like a competent friend who happens
+to run an excellent cleaning service — never a corporate call center, never
+slangy to the point of unprofessional. We use **tú**, not **usted**. We keep
+sentences short. We are honest about coverage and never oversell.
 
-**Tone by context:** upbeat and confident on landing page; calm and precise in
-quote/booking flow; reassuring and human in error and support moments.
+**Tone by context:** upbeat and confident on the landing page; calm and precise in
+the quote/booking flow; reassuring and human in error and support moments.
 
 ### Do / Don't (es-CL example copy)
 
@@ -56,25 +56,26 @@ Never hardcode strings in components — all copy lives in
 
 ## 3. Name, Wordmark & Logo
 
-**"Luxel"** reads as **lux** (Latin for _light_) + modern product suffix. Light
-connotes clean, bright, hygienic, premium — the feeling of a freshly-cleaned
-space. Name is short, brandable, `.cl`-friendly (`serviciosluxel.cl`).
+**"Luxel"** reads as **lux** (Latin for _light_) + a modern product suffix. Light
+connotes clean, bright, hygienic, and premium — exactly the feeling of a
+freshly-cleaned space. The name is short, brandable, and `.cl`-friendly
+(`serviciosluxel.cl`).
 
 **Wordmark:** "Luxel" set in **Manrope**, semibold, tight tracking, with a
 **sparkle/shine mark** integrated near the "L" or replacing the dot energy of the
-"x". The sparkle (4-point shine / "destello") is the core motif — appears as
+"x". The sparkle (a 4-point shine / "destello") is the core motif — it appears as
 favicon, loading state, and success/confirmation micro-illustration.
 
-> **⚠️ All brand imagery below is a placeholder.** Current build ships CSS
+> **⚠️ All brand imagery below is a placeholder.** The current build ships CSS
 > gradients and a dotted-grid backdrop (`.bg-dot-grid`, `.bg-brand-glow` in
-> `globals.css`) in place of real art. Specs in §4 are generation-ready
+> `globals.css`) in place of real art. The specs in §4 are generation-ready
 > instructions for a designer or an image model.
 
 ---
 
 ## 4. Assets to Create Separately (placeholders today)
 
-Palette hexes for all assets:
+Palette hexes to use across all assets:
 Teal-700 `#0F766E` · Teal-500 `#14B8A6` · Deep ink `#0B3B39` · Lime `#D8F84B` ·
 Text-on-lime `#14532D` · Surface `#F6FBF9` · White `#FFFFFF`.
 
@@ -94,7 +95,7 @@ Text-on-lime `#14532D` · Surface `#F6FBF9` · White `#FFFFFF`.
   maskable PNG.
 - **Prompt/spec:** "The Luxel sparkle mark only, lime `#D8F84B` on a teal `#0F766E`
   rounded-square background, centered, high contrast, legible at 16px, no text,
-  flat." Icon identical across sizes.
+  flat." Keep the icon identical across sizes.
 
 ### 4.3 Hero background image / illustration
 
@@ -135,8 +136,9 @@ Text-on-lime `#14532D` · Surface `#F6FBF9` · White `#FFFFFF`.
 
 ## 5. Color System
 
-Colors stored in `globals.css` as **HSL channels** so Tailwind composes alpha via
-`hsl(var(--token) / <alpha>)`. Hex values below are rendered equivalents.
+Colors are stored in `globals.css` as **HSL channels** so Tailwind can compose
+alpha via `hsl(var(--token) / <alpha>)`. Hex values below are the rendered
+equivalents.
 
 ### Light mode
 
@@ -226,10 +228,10 @@ Enable `font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1` (already set on
 ## 7. Spacing, Radius, Elevation, Motion
 
 - **Spacing:** 4 px base scale (`4 · 8 · 12 · 16 · 24 · 32 · 48 · 64`). Section
-  vertical rhythm 64–96 px desktop, 40–56 px mobile.
+  vertical rhythm 64–96 px on desktop, 40–56 px on mobile.
 - **Radius:** base `--radius: 0.75rem` (12 px). Derived: buttons/inputs `0.75rem`,
   cards `1rem`, pills/badges full, chat bubbles `0.75rem`.
-- **Elevation / shadow:** shadows soft and teal-tinted, not neutral gray.
+- **Elevation / shadow:** keep shadows soft and teal-tinted, not neutral gray.
   - `sm` — resting cards: `0 1px 2px hsl(178 52% 11% / 0.06)`
   - `md` — hover/raised: `0 6px 20px hsl(178 52% 11% / 0.10)`
   - `lg` — chat panel / modals: `0 12px 40px hsl(178 52% 11% / 0.18)`
@@ -244,20 +246,20 @@ Enable `font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1` (already set on
 
 - **Buttons.** Primary = solid teal `primary` / white text. **High-intent CTAs**
   (Cotizar, Agendar, Pagar) = **lime `lime` background / deep-green
-  `lime-foreground` text** — lime reserved for the money-making action so it reads
-  as _the_ next step. Secondary = outline teal. Ghost for tertiary. Radius
+  `lime-foreground` text** — lime is reserved for the money-making action so it
+  reads as _the_ next step. Secondary = outline teal. Ghost for tertiary. Radius
   `0.75rem`, min height 44 px.
 - **Cards.** White (`card`) on tinted `background`, `border` hairline, `sm`
   shadow, `1rem` radius, 20–24 px padding. Quote-result and booking-summary cards
   use an `accent` (soft teal) header band.
-- **Inputs.** `input` border, `0.75rem` radius, focus = 2 px `ring` with soft
+- **Inputs.** `input` border, `0.75rem` radius, focus = 2 px `ring` with a soft
   offset. The m² **slider** uses a teal track with a lime-accented thumb.
 - **Badges.** Status badges map to semantic tokens: `pending` → muted, `confirmed`
   → primary, `in_progress` → secondary, `completed` → success, `cancelled` →
   destructive; `payment_status: paid` → success, `refunded` → warning.
 - **Chat widget "Lux".** Fixed bottom-right (`bottom-5 right-5`), 56 px teal FAB
   with the sparkle mark. Panel 360×480, `card` surface, `lg` shadow, `0.75rem`
-  radius. Bot bubbles `muted`; user bubbles `primary` right-aligned. Persistent
+  radius. Bot bubbles `muted`; user bubbles `primary` right-aligned. A persistent
   "Hablar con una persona por WhatsApp" affordance at the base. Streaming replies
   show a typing shimmer.
 
@@ -275,6 +277,6 @@ Enable `font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1` (already set on
   thumb, chat FAB, time-block selectors).
 - **Motion:** honor `prefers-reduced-motion` — disable the sparkle shine and panel
   scale animations.
-- **Semantics:** label every input (`aria-label`/`<label>`), announce quote results
-  and errors politely to screen readers, and ensure color-coded status badges also
-  carry a text label (never color alone).
+- **Semantics:** label every input (`aria-label`/`<label>`), announce quote
+  results and errors politely to screen readers, and ensure the color-coded status
+  badges also carry a text label (never color alone).

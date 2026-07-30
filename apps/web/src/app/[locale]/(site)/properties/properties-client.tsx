@@ -102,7 +102,7 @@ export function PropertiesClient({
 }) {
   const t = useTranslations('properties');
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex items-center gap-2.5">
         <span className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-xl">
           <Home className="h-6 w-6" />
@@ -113,7 +113,7 @@ export function PropertiesClient({
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-6">
         {syncFailed && (
           <div className="border-warning/30 bg-warning/10 text-warning flex items-start gap-2.5 rounded-xl border p-3.5 text-sm">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
