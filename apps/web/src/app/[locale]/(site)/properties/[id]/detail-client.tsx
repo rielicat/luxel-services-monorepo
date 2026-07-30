@@ -296,7 +296,7 @@ export function PropertyDetailClient({
   ].filter(Boolean) as { id: SectionId; label: string }[];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8">
       <nav aria-label="breadcrumb" className="mb-5 flex items-center gap-1.5 text-sm">
         <Link
           href="/properties"
@@ -429,8 +429,8 @@ export function PropertyDetailClient({
       )}
 
       <div className="grid gap-4">
-        {/* Calendar and turnovers describe the same operational week, and both
-            are compact — they read better as one row than two full-width slabs. */}
+        {/* Calendar and access are both compact and roughly the same height, so
+            they share a row; cleanings and the inbox each want the full width. */}
         <div className="grid gap-4 lg:grid-cols-2">
           <Section
             sectionRef={(el) => {
@@ -444,24 +444,35 @@ export function PropertyDetailClient({
 
           <Section
             sectionRef={(el) => {
-              refs.current.aseos = el;
+              refs.current.acceso = el;
             }}
-            icon={Sparkles}
-            title={t('tab_cleaning')}
-            badge={s.suggestedCleanings}
+            icon={KeyRound}
+            title={t('tab_access')}
+            warn={accessUnconfigured}
           >
-            <CleaningPanel
-              propertyId={property.id}
-              cleanings={property.cleanings}
-              turnoverPrice={turnoverPrice}
-              managedBy={property.cleaning_managed_by}
-              contacts={property.cleaning_contacts}
-              autoConfirm={property.cleaning_auto_confirm}
-              checkinTime={property.checkin_time}
-              checkoutTime={property.checkout_time}
-            />
+            <AccessPanel propertyId={property.id} access={property.property_access} />
           </Section>
         </div>
+
+        <Section
+          sectionRef={(el) => {
+            refs.current.aseos = el;
+          }}
+          icon={Sparkles}
+          title={t('tab_cleaning')}
+          badge={s.suggestedCleanings}
+        >
+          <CleaningPanel
+            propertyId={property.id}
+            cleanings={property.cleanings}
+            turnoverPrice={turnoverPrice}
+            managedBy={property.cleaning_managed_by}
+            contacts={property.cleaning_contacts}
+            autoConfirm={property.cleaning_auto_confirm}
+            checkinTime={property.checkin_time}
+            checkoutTime={property.checkout_time}
+          />
+        </Section>
 
         <Section
           sectionRef={(el) => {
@@ -476,17 +487,6 @@ export function PropertyDetailClient({
             threads={property.guest_threads}
             showSim={showSim}
           />
-        </Section>
-
-        <Section
-          sectionRef={(el) => {
-            refs.current.acceso = el;
-          }}
-          icon={KeyRound}
-          title={t('tab_access')}
-          warn={accessUnconfigured}
-        >
-          <AccessPanel propertyId={property.id} access={property.property_access} />
         </Section>
       </div>
     </div>

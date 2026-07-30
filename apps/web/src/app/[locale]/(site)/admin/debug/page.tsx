@@ -19,7 +19,7 @@ export default async function AdminDebugPage() {
   const [probes, properties] = await Promise.all([runProbes(), listDebugProperties()]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex items-center gap-2.5">
         <span className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-xl">
           <Wrench className="h-6 w-6" />
