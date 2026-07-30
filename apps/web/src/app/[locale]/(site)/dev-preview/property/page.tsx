@@ -138,11 +138,51 @@ const property = {
   ],
 } as unknown as PropertyRow;
 
-export default function PreviewPropertyPage() {
+/** `?access=` swaps the access state — the empty-code case is a silent failure
+ *  in production, so it needs to be reachable here. */
+const ACCESS = {
+  keyless: {
+    method: 'keyless',
+    require_id: false,
+    keyless_code: '4821',
+    keyless_instructions: 'Piso 4, depto B — el teclado está a la derecha',
+    concierge_name: null,
+    concierge_whatsapp: null,
+    concierge_email: null,
+    concierge_hours: null,
+    id_basis: null,
+    id_disclosed: false,
+  },
+  missing: {
+    method: 'keyless',
+    require_id: false,
+    keyless_code: null,
+    keyless_instructions: null,
+    concierge_name: null,
+    concierge_whatsapp: null,
+    concierge_email: null,
+    concierge_hours: null,
+    id_basis: null,
+    id_disclosed: false,
+  },
+  none: null,
+} as const;
+
+export default async function PreviewPropertyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ access?: keyof typeof ACCESS }>;
+}) {
   if (process.env.NODE_ENV === 'production') notFound();
+  const { access } = await searchParams;
   return (
     <PropertyDetailClient
-      property={property}
+      property={
+        {
+          ...property,
+          property_access: ACCESS[access ?? 'keyless'] ?? null,
+        } as unknown as PropertyRow
+      }
       liveDays={liveDays}
       today={TODAY}
       turnoverPrice={38000}

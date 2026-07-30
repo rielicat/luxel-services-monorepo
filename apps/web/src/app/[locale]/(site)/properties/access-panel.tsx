@@ -118,19 +118,43 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
         )}
       </div>
 
+      {/* The code is a property attribute, not a per-stay chore: no channel or
+          lock integration can issue one, so the host types their keypad code
+          once and Luxel is the thing that delivers it. Say so — an unlabelled
+          box next to "el código se entrega solo" reads as a broken promise. */}
       {s.method === 'keyless' && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <Label>{t('keyless_code')}</Label>
-            <Input value={s.keylessCode} onChange={(e) => upd('keylessCode', e.target.value)} />
+        <div className="border-border grid gap-3 rounded-lg border p-3">
+          <p className="text-muted-foreground text-xs">{t('keyless_help')}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="keyless-code">{t('keyless_code')}</Label>
+              <Input
+                id="keyless-code"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="4821"
+                value={s.keylessCode}
+                onChange={(e) => upd('keylessCode', e.target.value)}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="keyless-where">
+                {t('keyless_where')}{' '}
+                <span className="text-muted-foreground font-normal">{t('optional')}</span>
+              </Label>
+              <Input
+                id="keyless-where"
+                placeholder={t('keyless_where_ph')}
+                value={s.keylessInstructions}
+                onChange={(e) => upd('keylessInstructions', e.target.value)}
+              />
+            </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label>{t('keyless_instructions')}</Label>
-            <Input
-              value={s.keylessInstructions}
-              onChange={(e) => upd('keylessInstructions', e.target.value)}
-            />
-          </div>
+          {!s.keylessCode.trim() && (
+            <p className="text-warning flex items-start gap-1.5 text-xs">
+              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {t('keyless_missing')}
+            </p>
+          )}
         </div>
       )}
 

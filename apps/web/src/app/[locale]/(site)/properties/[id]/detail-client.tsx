@@ -181,7 +181,12 @@ export function PropertyDetailClient({
   const t = useTranslations('detail');
   const s = stats(property, liveDays, today);
   const accessUnconfigured =
-    !property.property_access?.method || property.property_access.method === 'physical_none';
+    !property.property_access?.method ||
+    property.property_access.method === 'physical_none' ||
+    // Keyless with no code renders the guest an empty check-in page — a silent
+    // failure the host only hears about from the guest at the door.
+    (property.property_access.method === 'keyless' &&
+      !property.property_access.keyless_code?.trim());
 
   const refs = useRef<Partial<Record<SectionId, HTMLDivElement | null>>>({});
   const scrollTo = (id: SectionId) =>
