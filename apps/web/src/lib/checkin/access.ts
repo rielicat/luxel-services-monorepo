@@ -46,25 +46,8 @@ export function hasDeliverableAccess(a: AccessInfo | null): boolean {
   return false;
 }
 
-/** Plain-text access for the channel thread. The guest reads this in the
- *  Airbnb app, which is the one channel we know reaches them — email needs
- *  Resend configured and an address they actually typed. */
-export function accessMessage(a: AccessInfo, place: string): string {
-  if (a.method === 'keyless') {
-    return [
-      `¡Hola! Te compartimos el acceso a ${place}.`,
-      a.keylessCode ? `Código: ${a.keylessCode}` : null,
-      a.keylessInstructions,
-      '¿Algún problema al entrar? Respóndenos por aquí.',
-    ]
-      .filter(Boolean)
-      .join('\n');
-  }
-  const who = a.conciergeName ?? 'la conserjería del edificio';
-  const hours = a.conciergeHours ? ` (${a.conciergeHours})` : '';
-  return [
-    `¡Hola! Te compartimos el acceso a ${place}.`,
-    `Retira la llave con ${who}${hours} presentando tu documento.`,
-    '¿Algún problema al entrar? Respóndenos por aquí.',
-  ].join('\n');
-}
+// There is deliberately no helper that renders access as a channel message.
+// Anything written into the guest thread is re-imported as a `host` message and
+// replayed to the AI as grounding for later guests, so a door code sent that way
+// leaks to everyone who books afterwards. Access is revealed behind the token on
+// the check-in page; the thread only ever carries a link. See reminders.ts.
