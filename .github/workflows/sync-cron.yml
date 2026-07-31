@@ -1,0 +1,56 @@
+name: Sync cron
+
+# Drives /api/cron/hospitable-sync, which imports reservations, sends check-in
+# links, suggests cleanings and lets the AI answer new guest messages.
+#
+# This lives here and not in vercel.json on purpose: the Hobby plan rejects
+# sub-daily crons, and a rejected vercel.json silently blocks EVERY deploy of
+# luxel-web (see c64c945). Daily is also too coarse — a same-day booking would
+# get no check-in link before the guest arrives.
+#
+# Add two repo secrets to enable it; until then the job skips green:
+#   APP_CRON_URL  — https://<prod-host>/api/cron/hospitable-sync
+#   CRON_SECRET   — must equal the CRON_SECRET env var set on Vercel
+#
+# Caveat worth knowing: GitHub's scheduler is best-effort and can run 10-60 min
+# late under load, and it auto-disables after 60 days with no repo activity.
+# Treat this as "runs about every half hour", never as a hard deadline.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: sync-cron
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guard — require APP_CRON_URL
+        id: guard
+        env:
+          URL: ${{ secrets.APP_CRON_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "::notice::APP_CRON_URL not set — skipping. Add it to enable scheduled sync."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger sync
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          URL: ${{ secrets.APP_CRON_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' --max-time 300 \
+            -H "Authorization: Bearer $SECRET" "$URL")
+          # Body can name a customer id, so print only the shape, never the payload.
+          echo "HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::sync returned HTTP $code"
+            exit 1
+          fi
+          python3 -c "import json;d=json.load(open('/tmp/out.json'));print('accounts',d.get('accounts'),'autoAssigned',d.get('autoAssigned'),'ok',[r.get('ok') for r in d.get('results',[])])"

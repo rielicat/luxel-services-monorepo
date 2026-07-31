@@ -15,13 +15,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { submitCheckin, type AccessInfo } from './actions';
+import { submitCheckin } from './actions';
+import type { AccessInfo } from '@/lib/checkin/access';
 
 interface Props {
   token: string;
   propertyName: string;
   requireId: boolean;
   alreadyDone: boolean;
+  /** Access for a stay already checked in, so returning to the link re-reveals
+   *  it. Null while the stay is pending, or once the stay is over. */
+  access?: AccessInfo | null;
 }
 
 type Companion = { fullName: string; docType: string; docNumber: string };
@@ -68,11 +72,58 @@ function DocFields({
   );
 }
 
-export function CheckinForm({ token, propertyName, requireId, alreadyDone }: Props) {
+/** The one place access is rendered to a guest, so the keyless and concierge
+ *  shapes can never drift apart between the two surfaces that show them. */
+function AccessCard({ access, t }: { access: AccessInfo | null; t: (k: string) => string }) {
+  if (!access) return null;
+  const shell = 'border-primary/30 bg-primary/5 grid gap-1.5 rounded-xl border p-4 text-center';
+  const heading =
+    'text-muted-foreground flex items-center justify-center gap-1.5 text-xs font-medium uppercase tracking-wide';
+
+  if (access.method === 'keyless' && (access.keylessCode || access.keylessInstructions)) {
+    return (
+      <div className={shell}>
+        <p className={heading}>
+          <KeyRound className="h-3.5 w-3.5" /> {t('access_title')}
+        </p>
+        {access.keylessCode && (
+          <p className="font-display text-3xl font-bold tracking-[0.3em]">{access.keylessCode}</p>
+        )}
+        {access.keylessInstructions && (
+          <p className="text-muted-foreground text-sm">{access.keylessInstructions}</p>
+        )}
+      </div>
+    );
+  }
+
+  if (access.method === 'physical_concierge') {
+    return (
+      <div className={shell}>
+        <p className={heading}>
+          <ConciergeBell className="h-3.5 w-3.5" /> {t('access_title')}
+        </p>
+        <p className="text-sm">
+          {t('access_concierge')
+            .replace('{name}', access.conciergeName ?? t('access_concierge_generic'))
+            .replace('{hours}', access.conciergeHours ?? '24/7')}
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
+export function CheckinForm({
+  token,
+  propertyName,
+  requireId,
+  alreadyDone,
+  access: initialAccess = null,
+}: Props) {
   const t = useTranslations('checkin');
   const [step, setStep] = useState<1 | 2>(1);
   const [done, setDone] = useState(alreadyDone);
-  const [access, setAccess] = useState<AccessInfo | null>(null);
+  const [access, setAccess] = useState<AccessInfo | null>(initialAccess);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -146,35 +197,7 @@ export function CheckinForm({ token, propertyName, requireId, alreadyDone }: Pro
             <p className="text-muted-foreground text-sm">{t('done_body')}</p>
           </div>
 
-          {access?.method === 'keyless' && (access.keylessCode || access.keylessInstructions) && (
-            <div className="border-primary/30 bg-primary/5 grid gap-1.5 rounded-xl border p-4 text-center">
-              <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-xs font-medium uppercase tracking-wide">
-                <KeyRound className="h-3.5 w-3.5" /> {t('access_title')}
-              </p>
-              {access.keylessCode && (
-                <p className="font-display text-3xl font-bold tracking-[0.3em]">
-                  {access.keylessCode}
-                </p>
-              )}
-              {access.keylessInstructions && (
-                <p className="text-muted-foreground text-sm">{access.keylessInstructions}</p>
-              )}
-            </div>
-          )}
-
-          {access?.method === 'physical_concierge' && (
-            <div className="border-primary/30 bg-primary/5 grid gap-1.5 rounded-xl border p-4 text-center">
-              <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-xs font-medium uppercase tracking-wide">
-                <ConciergeBell className="h-3.5 w-3.5" /> {t('access_title')}
-              </p>
-              <p className="text-sm">
-                {t('access_concierge', {
-                  name: access.conciergeName ?? t('access_concierge_generic'),
-                  hours: access.conciergeHours ?? '24/7',
-                })}
-              </p>
-            </div>
-          )}
+          <AccessCard access={access} t={t} />
         </CardContent>
       </Card>
     );
@@ -183,6 +206,15 @@ export function CheckinForm({ token, propertyName, requireId, alreadyDone }: Pro
   return (
     <Card>
       <CardContent className="p-6">
+        {/* The stay has started and the host asks for no documents, so the
+            access shows before the form — a guest at the door should never have
+            to fill anything in to get inside. The form stays below for the
+            details the host still wants. */}
+        {access && (
+          <div className="mb-5">
+            <AccessCard access={access} t={t} />
+          </div>
+        )}
         <div className="mb-5 flex items-start gap-2">
           <KeyRound className="text-primary mt-0.5 h-5 w-5 shrink-0" />
           <div className="min-w-0 flex-1">

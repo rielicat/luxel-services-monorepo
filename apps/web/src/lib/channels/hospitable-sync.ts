@@ -11,6 +11,7 @@ import {
 import { suggestCleaningsFromCheckouts } from '@/lib/cleaning/schedule';
 import { autoConfirmSuggested } from '@/lib/cleaning/notify';
 import { checkinToken } from '@/lib/checkin/tokens';
+import { remindAndDeliverAccess } from '@/lib/checkin/reminders';
 import { appUrl } from '@/lib/urls';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
@@ -70,16 +71,35 @@ async function sendCheckinLinksForNewReservations(
   // calendar_blocks refresh, and only runs after a successful reservations
   // fetch, so an API failure can never mass-revoke.
   const uids = accepted.map((r) => `hosp:${r.id}`);
-  let revoke = supabase
+  const notInList = (q: ReturnType<typeof revokeBase>) =>
+    uids.length ? q.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`) : q;
+  function revokeBase() {
+    return supabase
+      .from('checkins')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('property_id', propertyId)
+      .like('reservation_uid', 'hosp:%')
+      .is('revoked_at', null);
+  }
+  // Mark first, delete second. A submitted check-in is retained for compliance,
+  // so deletion cannot be what stops its link working — without the stamp, a
+  // guest whose reservation was cancelled keeps a live view of the property's
+  // current access code.
+  await notInList(revokeBase());
+  let purge = supabase
     .from('checkins')
     .delete()
     .eq('property_id', propertyId)
     .like('reservation_uid', 'hosp:%')
-    .is('submitted_at', null);
+    .is('submitted_at', null)
+    // Rows that already messaged a guest keep their send-once watermarks;
+    // deleting and re-creating one would message that guest all over again.
+    .is('reminded_at', null)
+    .is('access_sent_at', null);
   if (uids.length) {
-    revoke = revoke.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`);
+    purge = purge.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`);
   }
-  await revoke;
+  await purge;
 
   const { data: prop } = await supabase
     .from('properties')
@@ -108,10 +128,32 @@ async function sendCheckinLinksForNewReservations(
         // resend with its already-issued token.
         const { data: existing } = await supabase
           .from('checkins')
-          .select('token, notified_at, notify_result')
+          .select('token, notified_at, notify_result, arrival_date, departure_date')
           .eq('reservation_uid', uid)
           .maybeSingle();
-        if (!existing || existing.notified_at || existing.notify_result) continue;
+        if (!existing) continue;
+
+        // Guests move their dates. calendar_blocks is refreshed wholesale every
+        // sync but this row was written once at insert, so a moved stay would
+        // keep nudging and revealing access against dates that are no longer
+        // true — including after the guest has already left. Re-arm both passes
+        // when the arrival actually moves.
+        const arrival = r.arrival_date.slice(0, 10);
+        const departure = r.departure_date.slice(0, 10);
+        if (existing.arrival_date !== arrival || existing.departure_date !== departure) {
+          await supabase
+            .from('checkins')
+            .update({
+              arrival_date: arrival,
+              departure_date: departure,
+              ...(existing.arrival_date !== arrival
+                ? { reminded_at: null, access_sent_at: null, access_claim_at: null }
+                : {}),
+            })
+            .eq('reservation_uid', uid);
+        }
+
+        if (existing.notified_at || existing.notify_result) continue;
         linkToken = existing.token as string;
       } else if (backfill) {
         continue; // anchor seeded, nothing sent — booked before the feature
@@ -469,6 +511,16 @@ export async function syncHospitableAccount(
         token,
         propertyId,
         accepted,
+        santiagoDate(now),
+      );
+
+      // 2c) Guests who never opened that link still have to get in: nudge the
+      // day before, deliver access on arrival day.
+      await remindAndDeliverAccess(
+        supabase,
+        token,
+        propertyId,
+        new Map(accepted.map((r) => [`hosp:${r.id}`, r.id])),
         santiagoDate(now),
       );
     }

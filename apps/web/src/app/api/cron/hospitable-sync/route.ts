@@ -8,10 +8,14 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 /**
- * Scheduled sync (vercel.json cron, every 15 min): pulls reservations, calendar
- * and conversations for every managed account, auto-replying to new guest
- * messages. This is what keeps the AI interacting with the channel continuously
- * without webhook access. Vercel sends `Authorization: Bearer ${CRON_SECRET}`.
+ * Scheduled sync: pulls reservations, calendar and conversations for every
+ * managed account, auto-replying to new guest messages. This is what keeps the
+ * AI interacting with the channel continuously without webhook access.
+ *
+ * Driven by .github/workflows/sync-cron.yml (~every 30 min), NOT by vercel.json
+ * — a sub-daily cron there is rejected on Hobby and silently blocks every
+ * deploy. The caller sends `Authorization: Bearer ${CRON_SECRET}`; when
+ * CRON_SECRET is unset the route is open, so set it in production.
  *
  * Two kinds of customer are synced: those with their own stored connection, and
  * those Luxel manages through the central account (identified by having listings

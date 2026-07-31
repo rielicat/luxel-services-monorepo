@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { encryptPII, last4 } from '@/lib/crypto/pii';
 import { notifyCheckin } from '@/lib/checkin/notify';
+import { ACCESS_COLUMNS, shapeAccess, type AccessInfo } from '@/lib/checkin/access';
 
 // No Chilean law mandates a fixed retention for guest ID, so we purpose-bound it:
 // kept for the stay + a dispute/chargeback window, then a job deletes it.
@@ -28,16 +29,10 @@ const Schema = z.object({
   consent: z.literal(true),
 });
 
-/** What the confirmation screen needs for a zero-friction arrival: the access
- *  details, revealed immediately after a valid submit (and also emailed). */
-export interface AccessInfo {
-  method: 'keyless' | 'physical_concierge' | 'physical_none';
-  keylessCode: string | null;
-  keylessInstructions: string | null;
-  conciergeName: string | null;
-  conciergeHours: string | null;
-}
-
+// No re-export of AccessInfo here: a 'use server' module may only export async
+// functions, and a type re-export makes Turbopack drop EVERY export from the
+// file — which silently takes the whole check-in page down at runtime.
+// Consumers import the type from '@/lib/checkin/access' directly.
 type Result = { ok: boolean; error?: string; access?: AccessInfo };
 
 export async function submitCheckin(input: unknown): Promise<Result> {
@@ -67,9 +62,7 @@ export async function submitCheckin(input: unknown): Promise<Result> {
   // must carry a document; otherwise documents are optional.
   const { data: access } = await supabase
     .from('property_access')
-    .select(
-      'method, keyless_code, keyless_instructions, concierge_name, concierge_hours, require_id',
-    )
+    .select(ACCESS_COLUMNS)
     .eq('property_id', checkin.property_id)
     .maybeSingle();
   const everyone = [
@@ -128,19 +121,5 @@ export async function submitCheckin(input: unknown): Promise<Result> {
 
   await notifyCheckin(checkin.id);
 
-  return {
-    ok: true,
-    access: access
-      ? {
-          method: access.method as AccessInfo['method'],
-          keylessCode: access.method === 'keyless' ? (access.keyless_code ?? null) : null,
-          keylessInstructions:
-            access.method === 'keyless' ? (access.keyless_instructions ?? null) : null,
-          conciergeName:
-            access.method === 'physical_concierge' ? (access.concierge_name ?? null) : null,
-          conciergeHours:
-            access.method === 'physical_concierge' ? (access.concierge_hours ?? null) : null,
-        }
-      : undefined,
-  };
+  return { ok: true, access: shapeAccess(access) ?? undefined };
 }

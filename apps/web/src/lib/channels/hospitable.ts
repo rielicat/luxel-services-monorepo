@@ -138,7 +138,10 @@ export async function listHospitableReservations(
     `/reservations?properties%5B%5D=${encodeURIComponent(propertyId)}&start_date=${startDate}&end_date=${endDate}&per_page=100`;
   for (let page = 0; url && page < 10; page++) {
     const r: Awaited<ReturnType<typeof hospGet<HospitableReservation>>> = await hospGet(token, url);
-    if (!r.ok) return page === 0 ? null : out;
+    // Any page failing means the set is incomplete. Returning a partial list
+    // would read as "these are all the reservations", and callers prune against
+    // it — a half-read page would revoke live guests' check-in links.
+    if (!r.ok) return null;
     out.push(...(r.data ?? []));
     url = r.nextUrl ?? null;
   }
