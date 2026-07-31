@@ -8,48 +8,48 @@ compare it against the Vercel and GitHub dashboards yourself.
 Four separate places hold configuration. A variable in the wrong one has no
 effect and fails silently:
 
-| Where | Holds |
-| --- | --- |
-| Vercel project `luxel-web` | the customer site and all API routes |
-| Vercel project `luxel-admin` | the operator panel |
-| GitHub repo secrets | CI, migrations, infrastructure, the sync schedule |
-| Cloudflare Worker `luxel-whatsapp` | the WhatsApp bridge (`wrangler secret`) |
+| Where                              | Holds                                             |
+| ---------------------------------- | ------------------------------------------------- |
+| Vercel project `luxel-web`         | the customer site and all API routes              |
+| Vercel project `luxel-admin`       | the operator panel                                |
+| GitHub repo secrets                | CI, migrations, infrastructure, the sync schedule |
+| Cloudflare Worker `luxel-whatsapp` | the WhatsApp bridge (`wrangler secret`)           |
 
 ## Vercel — `luxel-web`
 
 ### Required: the app does not work without these
 
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | database endpoint |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser-side database key (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) |
-| `SUPABASE_SERVICE_ROLE_KEY` | server-side database key (or `SUPABASE_SECRET_KEY`); every server action needs it |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | sign-in |
-| `CLERK_SECRET_KEY` | session verification |
-| `LUXEL_PII_KEY` | encrypts guest identity documents at rest; check-in storage fails without it |
+| Variable                            | Purpose                                                                           |
+| ----------------------------------- | --------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`          | database endpoint                                                                 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | browser-side database key (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)             |
+| `SUPABASE_SERVICE_ROLE_KEY`         | server-side database key (or `SUPABASE_SECRET_KEY`); every server action needs it |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | sign-in                                                                           |
+| `CLERK_SECRET_KEY`                  | session verification                                                              |
+| `LUXEL_PII_KEY`                     | encrypts guest identity documents at rest; check-in storage fails without it      |
 
 ### Feature gates: absent means the feature is silently off
 
-| Variable | Absent behaviour |
-| --- | --- |
-| `OPENAI_API_KEY` | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces. |
-| `OPENAI_MODEL` | optional; defaults to `gpt-4o-mini` |
-| `HOSPITABLE_API_TOKEN` | no properties import; the central-account model depends on this |
-| `CRON_SECRET` | **the sync endpoint accepts unauthenticated requests** — see the security note below |
-| `RESEND_API_KEY` + `RESEND_FROM` | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent |
-| `PRICELABS_API_KEY` | price optimisation reports unavailable |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only |
-| `HOSPITABLE_WEBHOOK_SECRET` | inbound webhooks rejected; the app relies on polling alone |
-| `CLERK_WEBHOOK_SECRET` | Clerk events not ingested |
-| `NEXT_PUBLIC_APP_URL` | falls back to the hardcoded `https://serviciosluxel.cl`. Correct in production **by luck** — on a preview deployment, guest check-in links point at production instead of the preview. |
+| Variable                                           | Absent behaviour                                                                                                                                                                       |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces.                                                                                           |
+| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                                                                                                    |
+| `HOSPITABLE_API_TOKEN`                             | no properties import; the central-account model depends on this                                                                                                                        |
+| `CRON_SECRET`                                      | **the sync endpoint accepts unauthenticated requests** — see the security note below                                                                                                   |
+| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent                                                                             |
+| `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                                                                                                 |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                                                                                                |
+| `HOSPITABLE_WEBHOOK_SECRET`                        | inbound webhooks rejected; the app relies on polling alone                                                                                                                             |
+| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                                              |
+| `NEXT_PUBLIC_APP_URL`                              | falls back to the hardcoded `https://serviciosluxel.cl`. Correct in production **by luck** — on a preview deployment, guest check-in links point at production instead of the preview. |
 
 ### Payments — only what the chosen provider needs
 
-| Provider | Variables |
-| --- | --- |
+| Provider    | Variables                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------- |
 | MercadoPago | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`, `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` |
-| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` |
-| Transbank | `TRANSBANK_API_KEY`, `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_ENV` |
+| Stripe      | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`             |
+| Transbank   | `TRANSBANK_API_KEY`, `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_ENV`                                |
 
 With none of them set, the plan bar reports `billing_not_configured` and hides
 the activate button, which is intended rather than broken.
@@ -74,13 +74,13 @@ Local development only, never set in production: `LUXEL_DEV_MOCK`,
 
 ## GitHub — repository secrets
 
-| Secret | Used by | Absent behaviour |
-| --- | --- | --- |
-| `APP_CRON_URL` | `sync-cron.yml` | job skips green — nothing syncs on a schedule |
-| `CRON_SECRET` | `sync-cron.yml` | must equal the Vercel value or the endpoint returns 401 |
-| `SUPABASE_DB_URL` | `db-migrate.yml` | migrations never reach production |
-| `VERCEL_API_TOKEN`, `VERCEL_TEAM_ID` | `infra-vercel.yml` | Pulumi cannot manage projects |
-| `CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `PULUMI_CONFIG_PASSPHRASE` | `infra.yml` | DNS and email routing not managed |
+| Secret                                                                                         | Used by            | Absent behaviour                                        |
+| ---------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------- |
+| `APP_CRON_URL`                                                                                 | `sync-cron.yml`    | job skips green — nothing syncs on a schedule           |
+| `CRON_SECRET`                                                                                  | `sync-cron.yml`    | must equal the Vercel value or the endpoint returns 401 |
+| `SUPABASE_DB_URL`                                                                              | `db-migrate.yml`   | migrations never reach production                       |
+| `VERCEL_API_TOKEN`, `VERCEL_TEAM_ID`                                                           | `infra-vercel.yml` | Pulumi cannot manage projects                           |
+| `CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `PULUMI_CONFIG_PASSPHRASE` | `infra.yml`        | DNS and email routing not managed                       |
 
 `GITHUB_TOKEN` is injected automatically; do not create it.
 
@@ -97,7 +97,9 @@ The guard in `apps/web/src/app/api/cron/hospitable-sync/route.ts` reads:
 
 ```ts
 const secret = process.env.CRON_SECRET;
-if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) { /* 401 */ }
+if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
+  /* 401 */
+}
 ```
 
 When `CRON_SECRET` is unset the condition short-circuits and every request is
