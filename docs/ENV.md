@@ -30,18 +30,18 @@ effect and fails silently:
 
 ### Feature gates: absent means the feature is silently off
 
-| Variable                                           | Absent behaviour                                                                                                                                                                       |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces.                                                                                           |
-| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                                                                                                    |
-| `HOSPITABLE_API_TOKEN`                             | no properties import; the central-account model depends on this                                                                                                                        |
-| `CRON_SECRET`                                      | **the sync endpoint accepts unauthenticated requests** — see the security note below                                                                                                   |
-| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent                                                                             |
-| `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                                                                                                 |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                                                                                                |
-| `HOSPITABLE_WEBHOOK_SECRET`                        | inbound webhooks rejected; the app relies on polling alone                                                                                                                             |
-| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                                              |
-| `NEXT_PUBLIC_APP_URL`                              | falls back to the hardcoded `https://serviciosluxel.cl`. Correct in production **by luck** — on a preview deployment, guest check-in links point at production instead of the preview. |
+| Variable                                           | Absent behaviour                                                                                           |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces.               |
+| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                        |
+| `HOSPITABLE_API_TOKEN`                             | no properties import; the central-account model depends on this                                            |
+| `CRON_SECRET`                                      | **the sync endpoint accepts unauthenticated requests** — see the security note below                       |
+| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent |
+| `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                     |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                    |
+| `HOSPITABLE_WEBHOOK_SECRET`                        | inbound webhooks rejected; the app relies on polling alone                                                 |
+| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                  |
+| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.        |
 
 ### Payments — only what the chosen provider needs
 
@@ -91,6 +91,22 @@ Set with `wrangler secret put`, not in Vercel:
 `WHATSAPP_APP_SECRET`, `INTERNAL_SEND_TOKEN` (must match the web value),
 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `LUXEL_OPERATOR_WHATSAPP`.
 
+## Outbound link origin
+
+Check-in and crew-confirmation links land in an Airbnb thread or an email, where
+there is no page context, so they need an absolute origin rather than a relative
+path. `appUrl()` derives it from Vercel's own system variables — there is
+deliberately no variable for you to set:
+
+| Deployment | Resolves to                                                          |
+| ---------- | -------------------------------------------------------------------- |
+| production | `VERCEL_PROJECT_PRODUCTION_URL`, falling back to `serviciosluxel.cl` |
+| preview    | `VERCEL_URL` — the preview links to itself, never to production      |
+| local      | `http://localhost:3000`                                              |
+
+Production never falls through to localhost, so a project with Vercel's system
+variables disabled still cannot mail a guest a link to their own machine.
+
 ## Security note on `CRON_SECRET`
 
 The guard in `apps/web/src/app/api/cron/hospitable-sync/route.ts` reads:
@@ -111,7 +127,7 @@ scheduler calls the route.
 
 - `.env.example` omits `OPENAI_API_KEY`, `OPENAI_MODEL`, `CRON_SECRET`,
   `HOSPITABLE_API_TOKEN`, `HOSPITABLE_WEBHOOK_SECRET`, `PRICELABS_API_KEY`,
-  `RESEND_API_KEY`, `RESEND_FROM`, `LUXEL_PII_KEY`, `NEXT_PUBLIC_APP_URL`,
+  `RESEND_API_KEY`, `RESEND_FROM`, `LUXEL_PII_KEY`,
   `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `WHATSAPP_WORKER_SEND_URL`, `INTERNAL_SEND_TOKEN`, `LUXEL_ADMIN_ORG_ID`,
   `LUXEL_ADMIN_ORG_SLUG`.
