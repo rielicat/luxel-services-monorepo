@@ -2,7 +2,7 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { draftGuestReply } from '@/lib/ai/copilot';
 import { buildGrounding } from '@/lib/ai/grounding';
-import { getChannelProvider } from './provider';
+import { getMessageSender } from './provider';
 import { hospitableTokenForCustomer } from './hospitable';
 
 export type InboundResult = {
@@ -117,13 +117,9 @@ export async function handleInboundMessage(input: {
   if (channel === 'hospitable') {
     token = await hospitableTokenForCustomer((property?.owner_id as string | undefined) ?? null);
   }
-  const extId = await getChannelProvider(channel).send(
-    input.externalThreadId ?? null,
-    draft.draft,
-    {
-      token,
-    },
-  );
+  const extId = await getMessageSender(channel).send(input.externalThreadId ?? null, draft.draft, {
+    token,
+  });
   await supabase.from('guest_messages').insert({
     thread_id: thread.id,
     direction: 'out',

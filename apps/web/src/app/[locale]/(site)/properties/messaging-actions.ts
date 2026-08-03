@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
-import { getChannelProvider } from '@/lib/channels/provider';
+import { getMessageSender } from '@/lib/channels/provider';
 import { hospitableTokenForCustomer } from '@/lib/channels/hospitable';
 import { handleInboundMessage } from '@/lib/channels/pipeline';
 import { devMockEnabled } from '@/lib/dev-mock';
@@ -54,7 +54,7 @@ export async function hostReply(input: unknown): Promise<{ ok: boolean }> {
   if (!t) return { ok: false };
   const supabase = createSupabaseServiceRoleClient();
   const token = t.channel === 'hospitable' ? await hospitableTokenForCustomer(cid) : null;
-  const extId = await getChannelProvider(t.channel).send(t.external_thread_id, p.data.body, {
+  const extId = await getMessageSender(t.channel).send(t.external_thread_id, p.data.body, {
     token,
   });
   await supabase.from('guest_messages').insert({
