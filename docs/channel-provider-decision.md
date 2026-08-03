@@ -148,6 +148,47 @@ inquiries, which matters for an auto-reply product. Two defects to price in:
 4. Only then build the provider abstraction. The interface is worth building
    regardless — see below.
 
+## Verified against a live Beds24 account (2026-08-02)
+
+Imported the real Airbnb listing with `POST /channels/airbnb`,
+`action: importAsNewProperty`, **`connect: "none"`** — which brings the listing in
+as a Beds24 property WITHOUT making Beds24 authoritative for the live calendar.
+The example in their docs uses `connect: "full"`, which would have handed over
+availability and rates on a listing actively taking bookings.
+
+| Check                       | Result                                                                   |
+| --------------------------- | ------------------------------------------------------------------------ |
+| auth                        | ok; access token `expiresIn` 86400s, not the 3600 the spec example shows |
+| `/properties`               | 1 row; carries `account`, `currency`, `checkInStart/End`, `checkOutEnd`  |
+| `/bookings`                 | 13 rows — the real reservations                                          |
+| `/inventory/rooms/calendar` | prices present; `includeX` flags are REQUIRED or the body is empty       |
+| `/bookings/messages`        | HTTP 200 (not 403) — reachable on this account                           |
+
+Findings that change the adapter:
+
+- **`apiReference` is the Airbnb confirmation code** (e.g. `HMKK4JSJZB`), with
+  `apiSource: "Airbnb"` and `apiSourceId: 46`. Hospitable exposes the same code
+  as `code`. This is the cross-provider stay key, so a cutover map can be built
+  from an identifier Airbnb owns rather than by matching on dates.
+- **`airbnbUserId` (431503103) is the cross-provider HOST key.** Hospitable
+  reports the identical value as `platform_user_id`. Attribution should key on
+  this, not on `platform_email` — Beds24 exposes no host email at all
+  (`airbnbUser` carries only `airbnbUserId`, `firstName`, `picture`).
+- **The calendar is range-compressed**: `{from, to, numAvail, minStay, price1}`
+  spanning many nights, not one row per night. The adapter must expand ranges.
+- **`price1` is whole currency units** (166450 CLP). Hospitable returned cents.
+  A copied ÷100 would show prices 100x too low.
+- **No guest email addresses** on Airbnb bookings; phone is present. The guest
+  thread remains the only dependable way to reach a guest.
+- Booking `status` is Beds24's own vocabulary (`new`), not the OTA's — which is
+  why `ReservationState` is normalised in the contract rather than passed through.
+
+Still unresolved: with `connect: "none"` there is no live channel link, so no
+message threads sync and `/bookings/messages` returns 0 rows. A 200 proves the
+endpoint exists on a TRIAL, which is the full product — it does not prove the
+Channel Management Only plan includes it. That still needs the written answer in
+`beds24-questions.md`.
+
 ## The durable lesson
 
 The expensive part of this migration is not the client. It is that
