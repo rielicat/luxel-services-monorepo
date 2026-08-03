@@ -1,5 +1,6 @@
 import 'server-only';
 import { sendHospitableMessage } from './hospitable';
+import { providerApiKey } from './credentials';
 
 /**
  * Channel-provider abstraction (the migrate-off seam from the pivot brief). The
@@ -21,7 +22,7 @@ export interface ChannelProvider {
 const hospitable: ChannelProvider = {
   name: 'hospitable',
   async send(externalThreadId, body, opts) {
-    const token = opts?.token ?? process.env.HOSPITABLE_API_TOKEN;
+    const token = opts?.token ?? providerApiKey();
     if (!token || !externalThreadId) return null;
     return sendHospitableMessage(token, externalThreadId, body);
   },

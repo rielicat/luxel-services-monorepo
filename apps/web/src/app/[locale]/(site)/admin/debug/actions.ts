@@ -9,6 +9,7 @@ import { listHospitableProperties } from '@/lib/channels/hospitable';
 import { listPricelabsListings, pricelabsConfigured } from '@/lib/pricelabs/client';
 import { autoAssignListings } from '@/lib/channels/auto-assign';
 import { appUrl } from '@/lib/urls';
+import { providerApiKey } from '@/lib/channels/credentials';
 
 /**
  * Operator debug bench. Everything here exercises a real integration or mints a
@@ -29,9 +30,9 @@ export async function runProbes(): Promise<{ ok: boolean; probes?: ProbeResult[]
   if (!(await requireAdmin())) return { ok: false };
   const probes: ProbeResult[] = [];
 
-  const channelToken = process.env.HOSPITABLE_API_TOKEN;
+  const channelToken = providerApiKey();
   if (!channelToken) {
-    probes.push({ name: 'channel', ok: false, detail: 'HOSPITABLE_API_TOKEN sin configurar' });
+    probes.push({ name: 'channel', ok: false, detail: 'PROVIDER_API_KEY sin configurar' });
   } else {
     const remote = await listHospitableProperties(channelToken);
     probes.push({

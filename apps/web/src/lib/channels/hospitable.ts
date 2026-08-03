@@ -1,6 +1,7 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { encryptPII, decryptPII } from '@/lib/crypto/pii';
+import { providerApiKey } from './credentials';
 
 /**
  * Hospitable Public API v2 client. SaaS model: each host connects their OWN
@@ -304,5 +305,5 @@ export async function hospitableTokenForCustomer(
       }
     }
   }
-  return process.env.HOSPITABLE_API_TOKEN ?? null;
+  return providerApiKey();
 }

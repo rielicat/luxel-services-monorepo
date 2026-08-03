@@ -30,18 +30,18 @@ effect and fails silently:
 
 ### Feature gates: absent means the feature is silently off
 
-| Variable                                           | Absent behaviour                                                                                           |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces.               |
-| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                        |
-| `HOSPITABLE_API_TOKEN`                             | no properties import; the central-account model depends on this                                            |
-| `CRON_SECRET`                                      | **the sync endpoint accepts unauthenticated requests** — see the security note below                       |
-| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent |
-| `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                     |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                    |
-| `HOSPITABLE_WEBHOOK_SECRET`                        | inbound webhooks rejected; the app relies on polling alone                                                 |
-| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                  |
-| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.        |
+| Variable                                           | Absent behaviour                                                                                                 |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces.                     |
+| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                              |
+| `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN` |
+| `CRON_SECRET`                                      | **the sync endpoint accepts unauthenticated requests** — see the security note below                             |
+| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
+| `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                          |
+| `HOSPITABLE_WEBHOOK_SECRET`                        | inbound webhooks rejected; the app relies on polling alone                                                       |
+| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                        |
+| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.              |
 
 ### Payments — only what the chosen provider needs
 
@@ -126,7 +126,7 @@ scheduler calls the route.
 ## Known drift
 
 - `.env.example` omits `OPENAI_API_KEY`, `OPENAI_MODEL`, `CRON_SECRET`,
-  `HOSPITABLE_API_TOKEN`, `HOSPITABLE_WEBHOOK_SECRET`, `PRICELABS_API_KEY`,
+  `PROVIDER_API_KEY`, `HOSPITABLE_WEBHOOK_SECRET`, `PRICELABS_API_KEY`,
   `RESEND_API_KEY`, `RESEND_FROM`, `LUXEL_PII_KEY`,
   `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `WHATSAPP_WORKER_SEND_URL`, `INTERNAL_SEND_TOKEN`, `LUXEL_ADMIN_ORG_ID`,

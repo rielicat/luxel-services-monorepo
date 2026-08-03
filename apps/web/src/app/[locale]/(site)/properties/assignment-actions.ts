@@ -13,6 +13,7 @@ import {
   unassignedListingIds,
 } from '@/lib/channels/scope';
 import { reconcileHospitableProperties } from '@/lib/channels/hospitable-sync';
+import { providerApiKey } from '@/lib/channels/credentials';
 
 /**
  * Operator onboarding for the central account. When a host authorises their
@@ -46,7 +47,7 @@ export async function listUnclaimedListings(): Promise<{
   listings?: UnclaimedListing[];
 }> {
   if (!(await requireAdmin())) return { ok: false };
-  const token = process.env.HOSPITABLE_API_TOKEN;
+  const token = providerApiKey();
   if (!token) return { ok: false };
   const remote = await listHospitableProperties(token);
   if (!remote) return { ok: false };

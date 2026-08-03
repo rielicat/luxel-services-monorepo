@@ -2,6 +2,7 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { listHospitableProperties, type HospitableProperty } from './hospitable';
 import { assignListing, unassignedListingIds } from './scope';
+import { providerApiKey } from './credentials';
 
 /**
  * Attribution without an operator.
@@ -28,7 +29,7 @@ function ownerEmails(rp: HospitableProperty): string[] {
 export type AutoAssignResult = { ok: boolean; assigned: number; ambiguous: number };
 
 export async function autoAssignListings(): Promise<AutoAssignResult> {
-  const token = process.env.HOSPITABLE_API_TOKEN;
+  const token = providerApiKey();
   if (!token) return { ok: false, assigned: 0, ambiguous: 0 };
 
   const remote = await listHospitableProperties(token);

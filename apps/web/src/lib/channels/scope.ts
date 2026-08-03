@@ -1,6 +1,7 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { decryptPII } from '@/lib/crypto/pii';
+import { providerApiKey } from './credentials';
 
 /**
  * Channel access scope — the tenant boundary for the Hospitable mirror.
@@ -46,7 +47,7 @@ async function ownConnectionToken(customerId: string): Promise<string | null> {
  * set, and the strict mirror would have nothing to keep.
  */
 export async function hospitableAccess(customerId: string): Promise<ChannelAccess | null> {
-  const central = process.env.HOSPITABLE_API_TOKEN ?? null;
+  const central = providerApiKey();
   const own = await ownConnectionToken(customerId);
   // A stored token that IS the operator credential is Luxel's, not this
   // customer's — the pre-central admin bootstrap persisted it as an "own"
