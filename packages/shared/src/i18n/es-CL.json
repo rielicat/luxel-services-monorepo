@@ -597,7 +597,7 @@
     "all_handled": "Todo respondido — la IA está al día con tus huéspedes.",
     "toggle_all": "Ver todas las conversaciones ({n})"
   },
-  "hospitable": {
+  "channel": {
     "connect_title": "Conecta tu Airbnb",
     "connect_body": "Te enviamos una invitación por correo, la aceptas en Airbnb y tus propiedades aparecen acá solas. No tienes que crear cuentas ni copiar códigos.",
     "connect_cta": "Escríbenos para conectar",

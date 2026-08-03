@@ -9,7 +9,7 @@ import type { HostConnection } from '@/lib/host/queries';
  *  a one-tap icon. A host who tapped it deleted their own listing assignments
  *  and orphaned the account, with no self-service way back. */
 export function ConnectionNote({ connection }: { connection: HostConnection }) {
-  const t = useTranslations('hospitable');
+  const t = useTranslations('channel');
   return (
     <div className="text-muted-foreground flex items-center gap-1.5 px-1 text-xs">
       <CheckCircle2 className="text-success h-3.5 w-3.5" />

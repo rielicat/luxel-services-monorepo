@@ -18,7 +18,7 @@ import {
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlanBar, type Plan } from './plan-bar';
-import { ConnectionNote } from './hospitable-card';
+import { ConnectionNote } from './connection-note';
 import type { HostConnection } from '@/lib/host/queries';
 import type { AccessRow } from './access-panel';
 import type { Cleaning } from './cleaning-panel';

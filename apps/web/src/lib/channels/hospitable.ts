@@ -4,10 +4,17 @@ import { encryptPII, decryptPII } from '@/lib/crypto/pii';
 import { providerApiKey } from './credentials';
 
 /**
- * Hospitable Public API v2 client. SaaS model: each host connects their OWN
- * Hospitable account with a Personal Access Token, stored encrypted per customer
- * in channel_connections (env HOSPITABLE_API_TOKEN is only a founder/dev
- * fallback). Shapes verified against the live API (2026-07).
+ * Hospitable Public API v2 client — the CURRENT provider adapter.
+ *
+ * Deliberately still named for the vendor it speaks to: the wire format, the
+ * base URL and every field shape below are Hospitable's. Generic names on a
+ * vendor-specific client are how a codebase ends up claiming one thing and
+ * doing another. Provider-neutral naming belongs on the seams around it —
+ * PROVIDER_API_KEY, /api/cron/sync — not here.
+ *
+ * The operator credential resolves through providerApiKey(); a per-customer
+ * token in channel_connections takes precedence and marks that customer as
+ * own-scope. Shapes verified against the live API (2026-07).
  */
 
 const BASE = 'https://public.api.hospitable.com/v2';

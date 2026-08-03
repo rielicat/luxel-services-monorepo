@@ -109,7 +109,7 @@ variables disabled still cannot mail a guest a link to their own machine.
 
 ## Security note on `CRON_SECRET`
 
-The guard in `apps/web/src/app/api/cron/hospitable-sync/route.ts` reads:
+The guard in `apps/web/src/app/api/cron/sync/route.ts` reads:
 
 ```ts
 const secret = process.env.CRON_SECRET;

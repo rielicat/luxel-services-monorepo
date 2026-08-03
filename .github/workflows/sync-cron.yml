@@ -1,6 +1,6 @@
 name: Sync cron
 
-# Drives /api/cron/hospitable-sync, which imports reservations, sends check-in
+# Drives /api/cron/sync, which imports reservations, sends check-in
 # links, suggests cleanings and lets the AI answer new guest messages.
 #
 # This lives here and not in vercel.json on purpose: the Hobby plan rejects
@@ -9,7 +9,7 @@ name: Sync cron
 # get no check-in link before the guest arrives.
 #
 # Add two repo secrets to enable it; until then the job skips green:
-#   APP_CRON_URL  — https://<prod-host>/api/cron/hospitable-sync
+#   APP_CRON_URL  — https://<prod-host>/api/cron/sync
 #   CRON_SECRET   — must equal the CRON_SECRET env var set on Vercel
 #
 # Caveat worth knowing: GitHub's scheduler is best-effort and can run 10-60 min
