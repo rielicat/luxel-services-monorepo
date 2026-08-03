@@ -1,0 +1,120 @@
+# Channel provider — decision record
+
+Research date: 2026-08-02. Every vendor claim below is from primary documentation.
+Figures marked UNVERIFIED need a sales call or a live API key.
+
+## The constraint that outranks vendor choice
+
+Airbnb allows **one** connected PMS or channel manager per Airbnb account, and a
+**co-host cannot connect software** — only the listing owner can.
+
+- Hostex: "Each Airbnb account only allows authorizing one PMS."
+- Channex: "If there is already another channel manager or PMS connected to
+  Airbnb the connection will not complete."
+- Hostaway: "Airbnb doesn't allow software to connect to their API via a co-host.
+  It can only be connected by the account/listing owner."
+
+Two consequences for the business, independent of which vendor wins:
+
+1. Every host must personally run the connect flow on their own owner account.
+   Onboarding cannot be fully automated, and it has a real drop-off point.
+2. A host already using another PMS must disconnect it first. The pitch is
+   "replace your PMS", not "add a tool".
+
+Hospitable's "invite hosts" flow worked without Luxel being a co-host. That is an
+unusual capability, not the norm — which is why the move away from it costs more
+than the price difference suggests.
+
+## The seven requirements
+
+| #   | Requirement                                                                   |
+| --- | ----------------------------------------------------------------------------- |
+| R1  | List listings with identity sufficient to attribute each to one host customer |
+| R2  | Reservations with arrival/departure and a stable id                           |
+| R3  | Nightly calendar: availability and published price                            |
+| R4  | Read the guest message thread                                                 |
+| R5  | Send into that thread, delivered to the guest on Airbnb                       |
+| R6  | Webhooks preferred, polling acceptable                                        |
+| R7  | Central account, or per-host scoped access — never the host's password        |
+
+R5 is the eliminator. Check-in link delivery and AI replies both depend on it.
+
+## Scored
+
+| Vendor        | R5                                                             | ~Cost at 10 listings       | Verdict                                         |
+| ------------- | -------------------------------------------------------------- | -------------------------- | ----------------------------------------------- |
+| **Beds24**    | yes — `POST /bookings/messages`, per-channel Airbnb mime types | **~EUR 29**                | Best fit, one open question                     |
+| **Hostex**    | yes                                                            | ~USD 49–70                 | Viable fallback, two real defects               |
+| Hospitable    | yes — running in production today                              | ~USD 30–40                 | The incumbent; works                            |
+| Guesty Pro    | yes                                                            | UNVERIFIED, sales-gated    | 13-month term; see below                        |
+| Hostaway      | yes — `communicationType: "channel"`                           | USD 250–1,000, sales-gated | Full PMS overlap, no API-only SKU               |
+| Uplisting     | reply-only to existing threads                                 | ~USD 1,000 across hosts    | USD 100/mo floor **per host account**           |
+| Channex       | yes, paid per-property add-on                                  | ~USD 140 (USD 130 floor)   | Certification requires being a rate-pushing PMS |
+| Airbnb direct | yes, but access blocked                                        | n/a                        | "We are not accepting new access requests"      |
+
+## Why Guesty is the wrong shape here
+
+Technically it works. Commercially it is the most expensive way to lose
+flexibility:
+
+- **13-month initial term**, auto-renewing 12 months, 30 days' notice to exit
+  (ToS 4.1). Early termination fee = minimum monthly fee x remaining months (4.4).
+- Pro pricing is entirely unpublished. A contractual Minimum Monthly Fee (3.3)
+  sets a dollar floor regardless of listing count.
+- USD 3 minimum per reservation, USD 1/month per listing that books nothing,
+  USD 3 per cancellation (3.10–3.12). On a USD 150–250 Santiago stay the "1%" is
+  USD 1.50–2.50, so the floor binds — an effective 1.2–2%.
+- **No per-listing host identity.** Attribution must be rebuilt on Guesty `Owner`
+  objects; there is no `platform_email` equivalent.
+- **The host-invite flow is UI-only.** No API. Onboarding stays manual forever.
+- Open question for their partnerships team: does reselling a branded product on
+  top of Guesty count as sublicensing under §12? Customer terms may not cover it.
+
+## Recommendation
+
+**Beds24 primary, Hostex fallback**, pending one test each.
+
+Beds24 is cheapest by a wide margin, sells a channel-management-only plan that
+matches what this product actually needs, and its messaging endpoint is confirmed
+in the OpenAPI spec rather than inferred. Open questions:
+
+- Does the channel-management-only plan include `/bookings/messages`? The quoted
+  plan excludes "Guest Management" and nobody has confirmed what that covers.
+  **This decides everything.**
+- Refresh tokens expire after 30 days of disuse. Every host connection must be
+  exercised monthly or it drops silently — that is a scheduled job to own.
+- `/properties` is Beta, `/properties/rooms` and `/organizations/users` are
+  "Coming soon", `/accounts` is Alpha. The multi-host surfaces are the least
+  mature ones.
+
+Hostex is self-serve and cheap, and its conversations model covers pre-booking
+inquiries, which matters for an auto-reply product. Two defects to price in:
+
+- Send is **non-idempotent and returns no message id**; on timeout the vendor
+  cannot say whether the guest received it. Their own advice is to retry and
+  accept duplicates, so a dedupe layer keyed on content plus a time window is
+  mandatory, not optional.
+- Their built-in AI writes into the same thread as `HostGPT`. Without suppression
+  our AI will reply to theirs.
+
+## What to do before writing migration code
+
+1. Answer the Beds24 "Guest Management" question in writing.
+2. Prove R5 live on a trial account: post a message and confirm it lands in a real
+   Airbnb thread. Documentation is not proof.
+3. Confirm whether a Guesty contract has already been signed. A 13-month term with
+   a multiplied early-termination fee changes the decision from "pick the best" to
+   "make the one we are committed to work".
+4. Only then build the provider abstraction. The interface is worth building
+   regardless — see below.
+
+## The durable lesson
+
+The expensive part of this migration is not the client. It is that
+`checkins.reservation_uid` stores `hosp:<id>`, `properties.external_listing_id`
+holds Hospitable UUIDs, and `listing_assignments` — the tenant boundary — is keyed
+on those UUIDs. Provider identity leaked into the data model.
+
+Whatever wins, the fix is the same: one interface, adapters named for the vendor
+they speak to, and provider-neutral keys in the database. The seams renamed in
+`a0de257` are the start of that.
