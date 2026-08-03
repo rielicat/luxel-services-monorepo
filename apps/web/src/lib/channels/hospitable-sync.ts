@@ -117,6 +117,7 @@ async function sendCheckinLinksForNewReservations(
         token: linkToken,
         status: 'pending',
         reservation_uid: uid,
+        confirmation_code: r.code || null,
         arrival_date: r.arrival_date.slice(0, 10),
         departure_date: r.departure_date.slice(0, 10),
         ...(backfill ? { notify_result: { hospitable: 'skipped_backfill' } } : {}),
@@ -128,7 +129,9 @@ async function sendCheckinLinksForNewReservations(
         // resend with its already-issued token.
         const { data: existing } = await supabase
           .from('checkins')
-          .select('token, notified_at, notify_result, arrival_date, departure_date')
+          .select(
+            'token, notified_at, notify_result, arrival_date, departure_date, confirmation_code',
+          )
           .eq('reservation_uid', uid)
           .maybeSingle();
         if (!existing) continue;
@@ -140,12 +143,17 @@ async function sendCheckinLinksForNewReservations(
         // when the arrival actually moves.
         const arrival = r.arrival_date.slice(0, 10);
         const departure = r.departure_date.slice(0, 10);
-        if (existing.arrival_date !== arrival || existing.departure_date !== departure) {
+        if (
+          existing.arrival_date !== arrival ||
+          existing.departure_date !== departure ||
+          (r.code && !existing.confirmation_code)
+        ) {
           await supabase
             .from('checkins')
             .update({
               arrival_date: arrival,
               departure_date: departure,
+              ...(r.code ? { confirmation_code: r.code } : {}),
               ...(existing.arrival_date !== arrival
                 ? { reminded_at: null, access_sent_at: null, access_claim_at: null }
                 : {}),
@@ -498,6 +506,9 @@ export async function syncHospitableAccount(
             ends_on: r.departure_date.slice(0, 10),
             source: 'import',
             summary: `Airbnb ${r.code}`,
+            // The OTA's own code — the one identifier that survives a change of
+            // PMS. Kept in a real column, not only in the summary above.
+            confirmation_code: r.code || null,
             external_uid: `hosp:${r.id}`,
           })),
         );
