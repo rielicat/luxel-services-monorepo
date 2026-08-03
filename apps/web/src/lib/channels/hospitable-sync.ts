@@ -15,6 +15,7 @@ import { remindAndDeliverAccess } from '@/lib/checkin/reminders';
 import { appUrl } from '@/lib/urls';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
+import { pruneWouldWipeEverything } from './relink';
 
 /**
  * The tenant filter for every central-credential fetch. With `own` scope the
@@ -281,6 +282,26 @@ async function pruneToHospitable(
   remoteIds: string[],
 ): Promise<void> {
   if (!remoteIds.length) return;
+
+  // A remote set that shares NOTHING with what is stored is not a list of
+  // removals — it is a different account, or a different provider. Pruning on it
+  // deletes the customer's entire subtree while reporting success, which is
+  // exactly what a provider switch looks like from in here.
+  const { data: existing } = await supabase
+    .from('properties')
+    .select('external_listing_id')
+    .eq('owner_id', customerId)
+    .not('external_listing_id', 'is', null);
+  const storedIds = (existing ?? []).map((r) => r.external_listing_id as string);
+  if (pruneWouldWipeEverything(storedIds, remoteIds)) {
+    console.warn('sync.prune_skipped_disjoint', {
+      customerId,
+      stored: storedIds.length,
+      remote: remoteIds.length,
+    });
+    return;
+  }
+
   await supabase
     .from('properties')
     .delete()

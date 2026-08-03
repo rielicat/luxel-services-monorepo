@@ -35,6 +35,7 @@ effect and fails silently:
 | `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces.                     |
 | `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                              |
 | `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN` |
+| `BEDS24_REFRESH_TOKEN`                             | the Beds24 mirror does not run. Dies after 30 days unused — the scheduled sync is what keeps it alive            |
 | `CRON_SECRET`                                      | **the sync endpoint accepts unauthenticated requests** — see the security note below                             |
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
 | `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
