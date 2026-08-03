@@ -41,16 +41,16 @@ R5 is the eliminator. Check-in link delivery and AI replies both depend on it.
 
 ## Scored
 
-| Vendor        | R5                                                             | ~Cost at 10 listings       | Verdict                                         |
-| ------------- | -------------------------------------------------------------- | -------------------------- | ----------------------------------------------- |
-| **Beds24**    | yes — `POST /bookings/messages`, per-channel Airbnb mime types | **~EUR 29**                | Best fit, one open question                     |
-| **Hostex**    | yes                                                            | ~USD 49–70                 | Viable fallback, two real defects               |
-| Hospitable    | yes — running in production today                              | ~USD 30–40                 | The incumbent; works                            |
-| Guesty Pro    | yes                                                            | UNVERIFIED, sales-gated    | 13-month term; see below                        |
-| Hostaway      | yes — `communicationType: "channel"`                           | USD 250–1,000, sales-gated | Full PMS overlap, no API-only SKU               |
-| Uplisting     | reply-only to existing threads                                 | ~USD 1,000 across hosts    | USD 100/mo floor **per host account**           |
-| Channex       | yes, paid per-property add-on                                  | ~USD 140 (USD 130 floor)   | Certification requires being a rate-pushing PMS |
-| Airbnb direct | yes, but access blocked                                        | n/a                        | "We are not accepting new access requests"      |
+| Vendor        | R5                                                             | ~Cost at 10 listings       | Verdict                                          |
+| ------------- | -------------------------------------------------------------- | -------------------------- | ------------------------------------------------ |
+| **Beds24**    | yes — `POST /bookings/messages`, per-channel Airbnb mime types | **~EUR 29**                | Best fit, one open question                      |
+| **Hostex**    | yes                                                            | ~USD 49–70                 | Viable fallback, two real defects                |
+| Hospitable    | yes — running in production today                              | ~USD 30–40                 | The incumbent; works                             |
+| Guesty Pro    | yes                                                            | UNVERIFIED, sales-gated    | 13-month term; see below                         |
+| Hostaway      | yes — `communicationType: "channel"`                           | USD 250–1,000, sales-gated | Full PMS overlap, no API-only SKU                |
+| Uplisting     | reply-only to existing threads                                 | ~USD 1,000 across hosts    | USD 100/mo floor **per host account**            |
+| Channex       | yes, paid per-property add-on                                  | ~USD 140 (USD 130 floor)   | Best tenancy model; blocked by ARI certification |
+| Airbnb direct | yes, but access blocked                                        | n/a                        | "We are not accepting new access requests"       |
 
 ## Why Guesty is the wrong shape here
 
@@ -69,6 +69,46 @@ flexibility:
 - **The host-invite flow is UI-only.** No API. Onboarding stays manual forever.
 - Open question for their partnerships team: does reselling a branded product on
   top of Guesty count as sublicensing under §12? Customer terms may not cover it.
+
+## Channex — the near miss, and the condition that would change it
+
+Channex is the best-behaved vendor in the set and still the wrong one, so the
+reason matters.
+
+What it gets right, better than anyone else here:
+
+- **Tenancy is solved properly.** The "Copy Link" flow lets a host authorise
+  Channex's Airbnb OAuth app themselves, landing the connection in the operator's
+  account: "If you have no access to the Airbnb account but need to setup on
+  behalf of the host. Copy the link and provide to them." No password handover,
+  no co-host requirement.
+- Pricing is fully published. No minimum property count, no fixed term, 30 days'
+  notice, no setup or certification fee, free staging with no sales call.
+- Messaging is confirmed OTA-routed: `POST /api/v1/message_threads/:id/messages`.
+
+Two things disqualify it for this product as it stands.
+
+**1. Certification presumes you are a rate-management PMS.** Production access
+requires a live screenshare: "We ask you to perform several actions… ('change
+this price to 250 and this min-stay to 3'). We watch the Channex API calls fire
+from your real update paths in real time." Pre-flight requires an ARI change
+detector — "not a polling loop" — an outbox queue, retry/backoff and a rate
+mapping layer. Building a facade to pass is explicitly rejected: a "certification
+UI built solely to trigger the test events" fails, because "We read your code
+during review."
+
+**2. Connecting makes Luxel the pricing authority.** Once connected, Airbnb
+listing prices "are now **not** editable in Airbnb". `GET /api/v1/restrictions`
+returns the values _Channex holds and pushes_, not an independent read of what
+Airbnb publishes. That removes the published-versus-recommended comparison the
+property calendar is built on, because there is no longer a published price the
+product did not set.
+
+**The condition that flips this:** if Luxel decides to own pricing end to end —
+PriceLabs recommends, Luxel pushes, Channex distributes — the ARI machinery stops
+being overhead and becomes the product, certification becomes a milestone rather
+than a wall, and USD 130 + ~USD 1/unit is cheap for owning the whole stack. That
+is a decision about what business this is, not a vendor comparison.
 
 ## Recommendation
 
