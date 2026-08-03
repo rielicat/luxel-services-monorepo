@@ -2,6 +2,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { hospitableAccess } from '@/lib/channels/scope';
 import { autoAssignListings } from '@/lib/channels/auto-assign';
 import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
+import { syncBeds24Account } from '@/lib/channels/beds24-sync';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,9 +29,16 @@ export async function GET(req: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  // Attribute what we can before syncing: a listing that matches a customer's
-  // channel email becomes theirs here, so onboarding needs no operator step.
-  const auto = await autoAssignListings().catch(() => null);
+  // Beds24 takes over the moment its credential exists. The Hospitable path
+  // stays as the fallback rather than being deleted: it is the only thing that
+  // works for any customer still on a live Hospitable connection.
+  const beds24Token = process.env.BEDS24_REFRESH_TOKEN;
+
+  // Attribution reads Hospitable's listings[].platform_email, which Beds24 does
+  // not expose — and calling it while that subscription is inactive just burns a
+  // request for a 402. Skip it when Beds24 is driving; assignment is an operator
+  // action there until attribution moves onto airbnbUserId.
+  const auto = beds24Token ? null : await autoAssignListings().catch(() => null);
 
   const supabase = createSupabaseServiceRoleClient();
   const [{ data: connections }, { data: assigned }] = await Promise.all([
@@ -49,22 +57,61 @@ export async function GET(req: Request) {
     ]),
   ];
 
-  const results: Array<{ customer: string; ok: boolean; scope?: string; replies?: number }> = [];
+  const results: Array<{
+    customer: string;
+    ok: boolean;
+    provider?: string;
+    scope?: string;
+    replies?: number;
+    relinked?: number;
+    unmatched?: number;
+    reason?: string;
+  }> = [];
+
   for (const customerId of customerIds) {
+    if (beds24Token) {
+      try {
+        const r = await syncBeds24Account(customerId, beds24Token, new Date());
+        results.push({
+          customer: customerId,
+          ok: r.ok,
+          provider: 'beds24',
+          relinked: r.relinked,
+          unmatched: r.unmatched.length,
+          reason: r.reason,
+        });
+      } catch {
+        results.push({ customer: customerId, ok: false, provider: 'beds24' });
+      }
+      continue;
+    }
+
     const access = await hospitableAccess(customerId);
     if (!access) {
-      results.push({ customer: customerId, ok: false });
+      results.push({ customer: customerId, ok: false, provider: 'hospitable' });
       continue;
     }
     try {
       const r = await syncHospitableAccount(customerId, access.token, new Date(), access.scope);
-      results.push({ customer: customerId, ok: r.ok, scope: access.scope, replies: r.aiReplies });
+      results.push({
+        customer: customerId,
+        ok: r.ok,
+        provider: 'hospitable',
+        scope: access.scope,
+        replies: r.aiReplies,
+      });
     } catch {
-      results.push({ customer: customerId, ok: false, scope: access.scope });
+      results.push({
+        customer: customerId,
+        ok: false,
+        provider: 'hospitable',
+        scope: access.scope,
+      });
     }
   }
   return Response.json({
     ok: true,
+    provider: beds24Token ? 'beds24' : 'hospitable',
     autoAssigned: auto?.assigned ?? 0,
     accounts: results.length,
     results,
