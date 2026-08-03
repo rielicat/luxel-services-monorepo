@@ -85,9 +85,16 @@ export interface ChannelListing {
   address: string | null;
   checkinTime: string | null;
   checkoutTime: string | null;
+  /** ISO 4217, from the provider. Calendar prices are in THIS currency, not
+   *  assumed CLP — providers report in whatever the listing is set to. */
+  currency: string | null;
   /** Everything else, verbatim, for the adapter's own mapping. */
   raw: unknown;
 }
+
+/** Normalised across providers, because cancellation drives revocation of a
+ *  guest's door-code link. A raw vendor string cannot be branched on safely. */
+export type ReservationState = 'confirmed' | 'cancelled' | 'pending' | 'unknown';
 
 export interface ChannelReservation {
   ref: ChannelRef;
@@ -95,17 +102,41 @@ export interface ChannelReservation {
   /** ISO date, not datetime — stays are day-grained everywhere in this product. */
   arrivalDate: string;
   departureDate: string;
-  status: string | null;
+  state: ReservationState;
+  /** The provider's raw status, for diagnosis only. */
+  rawStatus: string | null;
+  /**
+   * The OTA's own confirmation code (Airbnb's HM… code). The ONLY identifier
+   * that survives a change of provider, because the vendor's reservation id does
+   * not. Capturing it while still on the current provider is what makes a
+   * cutover map possible later; today it survives only inside a display string.
+   */
+  confirmationCode: string | null;
   guestName: string | null;
 }
 
+/**
+ * Three states, not a boolean.
+ *
+ * `reserved` and `blocked` are both unavailable and mean opposite things to the
+ * host. Occupancy, 30-day revenue, stay reconstruction and the figure the AI
+ * concierge quotes all key on RESERVED specifically. Collapsing them would count
+ * a host's renovation block as a booking and sum the asking price of nights
+ * nobody paid for — wrong money, shown under a label promising real rates.
+ */
+export type DayState = 'open' | 'reserved' | 'blocked';
+
 export interface ChannelCalendarDay {
   date: string;
-  available: boolean;
+  state: DayState;
   /** Whole currency units, never cents — adapters normalise. Null when the
-   *  provider has no price for that night. */
-  priceClp: number | null;
+   *  provider has no price for that night. Currency comes from the listing;
+   *  do not assume CLP, since providers bill and report in their own. */
+  price: number | null;
   minStay: number | null;
+  /** The provider's own word for why, kept verbatim for diagnosis. Never
+   *  branched on — that is what `state` is for. */
+  reason?: string | null;
 }
 
 export interface ChannelMessage {
@@ -119,7 +150,8 @@ export interface ChannelMessage {
 export interface RateUpdate {
   from: string;
   to: string;
-  priceClp?: number;
+  /** In the listing's currency — see ChannelListing.currency. */
+  price?: number;
   minStay?: number;
   available?: boolean;
 }

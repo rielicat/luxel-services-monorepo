@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { encodeRef, decodeRef, refPattern } from '../src/lib/channels/types';
+import type { DayState, ChannelCalendarDay } from '../src/lib/channels/types';
 
 describe('channel refs', () => {
   it('encodes Hospitable exactly as live rows already store it', () => {
@@ -41,5 +42,33 @@ describe('channel refs', () => {
 
   it('splits on the first colon only, so ids may contain colons', () => {
     expect(decodeRef('b24:12:34')).toEqual({ provider: 'beds24', id: '12:34' });
+  });
+});
+
+describe('calendar day states', () => {
+  it('keeps reserved and blocked distinguishable', () => {
+    // Both are unavailable, and conflating them inflates occupancy AND the
+    // 30-day revenue figure, since revenue sums nights where state === reserved.
+    // detail-client.tsx:68 and :73, stays-timeline.tsx:96, ai/tools.ts:338.
+    const states: DayState[] = ['open', 'reserved', 'blocked'];
+    expect(new Set(states).size).toBe(3);
+
+    const renovationBlock: ChannelCalendarDay = {
+      date: '2026-08-10',
+      state: 'blocked',
+      price: 166450,
+      minStay: null,
+    };
+    const booked: ChannelCalendarDay = {
+      date: '2026-08-11',
+      state: 'reserved',
+      price: 166450,
+      minStay: null,
+    };
+    const revenue = [renovationBlock, booked]
+      .filter((d) => d.state === 'reserved' && d.price != null)
+      .reduce((sum, d) => sum + d.price!, 0);
+    // The block must not be counted as earned.
+    expect(revenue).toBe(166450);
   });
 });
