@@ -5,6 +5,8 @@ import {
   listHospitableReservations,
   listHospitableMessages,
   sendHospitableMessage,
+  toChannelListing,
+  toChannelReservation,
   type HospitableProperty,
   type HospitableReservation,
 } from './hospitable';
@@ -15,7 +17,14 @@ import { remindAndDeliverAccess } from '@/lib/checkin/reminders';
 import { appUrl } from '@/lib/urls';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
-import { pruneWouldWipeEverything } from './relink';
+import { pruneWouldWipeEverything, relinkByConfirmationCode } from './relink';
+import { encodeRef, refPattern, type ChannelReservation } from './types';
+
+/** The stored form of a Hospitable id. Never string-concatenated at call sites:
+ *  these values are what prunes and revocations match on, so the prefix lives in
+ *  exactly one place. */
+const ref = (id: string) => encodeRef({ provider: 'hospitable', id });
+const HOSP = refPattern('hospitable');
 
 /**
  * The tenant filter for every central-credential fetch. With `own` scope the
@@ -71,7 +80,7 @@ async function sendCheckinLinksForNewReservations(
   // Revoke links whose reservation no longer exists upstream — mirrors the
   // calendar_blocks refresh, and only runs after a successful reservations
   // fetch, so an API failure can never mass-revoke.
-  const uids = accepted.map((r) => `hosp:${r.id}`);
+  const uids = accepted.map((r) => ref(r.id));
   const notInList = (q: ReturnType<typeof revokeBase>) =>
     uids.length ? q.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`) : q;
   function revokeBase() {
@@ -79,7 +88,7 @@ async function sendCheckinLinksForNewReservations(
       .from('checkins')
       .update({ revoked_at: new Date().toISOString() })
       .eq('property_id', propertyId)
-      .like('reservation_uid', 'hosp:%')
+      .like('reservation_uid', HOSP)
       .is('revoked_at', null);
   }
   // Mark first, delete second. A submitted check-in is retained for compliance,
@@ -91,7 +100,7 @@ async function sendCheckinLinksForNewReservations(
     .from('checkins')
     .delete()
     .eq('property_id', propertyId)
-    .like('reservation_uid', 'hosp:%')
+    .like('reservation_uid', HOSP)
     .is('submitted_at', null)
     // Rows that already messaged a guest keep their send-once watermarks;
     // deleting and re-creating one would message that guest all over again.
@@ -111,7 +120,7 @@ async function sendCheckinLinksForNewReservations(
   for (const r of accepted) {
     try {
       if (r.arrival_date.slice(0, 10) < today) continue;
-      const uid = `hosp:${r.id}`;
+      const uid = ref(r.id);
       let linkToken = checkinToken();
       const { error } = await supabase.from('checkins').insert({
         property_id: propertyId,
@@ -204,6 +213,8 @@ export interface HospitableSyncResult {
   cleanings: number;
   messagesImported: number;
   aiReplies: number;
+  /** Properties re-keyed off a previous provider's ids this pass. */
+  relinked: number;
 }
 
 type Supabase = ReturnType<typeof createSupabaseServiceRoleClient>;
@@ -312,6 +323,69 @@ async function pruneToHospitable(
     .delete()
     .eq('owner_id', customerId)
     .not('external_listing_id', 'in', `(${remoteIds.map((id) => `"${id}"`).join(',')})`);
+}
+
+/**
+ * Repairs a mirror still keyed on a PREVIOUS provider's ids.
+ *
+ * `pruneToHospitable`'s disjoint guard is the floor — it stops a provider switch
+ * destroying the subtree by freezing it. This is the repair: it re-keys the
+ * properties, the tenant boundary and the check-in rows onto the active
+ * provider's ids, matching on the OTA confirmation code, which is the only
+ * identifier that survives a change of PMS.
+ *
+ * Runs against the UNSCOPED listing set on purpose. listing_assignments is what
+ * needs re-keying, so filtering by it first would match nothing. On the steady
+ * path — every stored id present remotely — it costs one query and returns.
+ */
+async function relinkStrayProperties(
+  supabase: Supabase,
+  customerId: string,
+  token: string,
+  all: HospitableProperty[],
+  now: Date,
+): Promise<number> {
+  if (!all.length) return 0;
+  const { data: stored } = await supabase
+    .from('properties')
+    .select('external_listing_id')
+    .eq('owner_id', customerId)
+    .not('external_listing_id', 'is', null);
+  const remoteIds = new Set(all.map((rp) => rp.id));
+  if (!(stored ?? []).some((p) => !remoteIds.has(p.external_listing_id as string))) return 0;
+
+  // Only now is the extra fetch earned. The window is wider than the mirror's,
+  // because the bridging code may sit on a stay that has long since ended.
+  const from = iso(new Date(now.getTime() - 400 * DAY));
+  const to = iso(new Date(now.getTime() + 400 * DAY));
+  const byListing = new Map<string, ChannelReservation[]>();
+  for (const rp of all) {
+    const res = await listHospitableReservations(token, rp.id, from, to);
+    // Incomplete reads as "no evidence", and no evidence leaves a property
+    // unmatched — which is exactly the state the next prune acts on. Abort.
+    if (!res) return 0;
+    byListing.set(
+      rp.id,
+      res.map((r) => toChannelReservation(r, rp.id)),
+    );
+  }
+
+  const r = await relinkByConfirmationCode(
+    supabase,
+    customerId,
+    'hospitable',
+    all.map(toChannelListing),
+    byListing,
+  );
+  if (r.relinked || r.unmatched.length) {
+    console.warn('sync.relink', {
+      customerId,
+      relinked: r.relinked,
+      checkinsMoved: r.checkinsMoved,
+      unmatched: r.unmatched.length,
+    });
+  }
+  return r.relinked;
 }
 
 export interface HospitableReconcileResult {
@@ -450,7 +524,7 @@ async function syncConversations(
  * Full sync of a customer's Hospitable account into Luxel:
  *  1) properties → upsert into `properties` (matched by external_listing_id),
  *  2) accepted reservations (-60d … +400d) → `calendar_blocks` (source 'import',
- *     external_uid 'hosp:<code>', full-refresh of the hosp: namespace so
+ *     external_uid encodeRef(reservation), full-refresh of that namespace so
  *     cancellations disappear),
  *  3) refresh check-out-driven cleaning suggestions per property.
  * The reservation's conversation id is kept on the block summary side-table-free
@@ -472,7 +546,14 @@ export async function syncHospitableAccount(
       cleanings: 0,
       messagesImported: 0,
       aiReplies: 0,
+      relinked: 0,
     };
+
+  // BEFORE scoping: the assignments the scope filter reads may themselves still
+  // hold a previous provider's ids, in which case scoping first would return an
+  // empty set and the account would look abandoned.
+  const relinked = await relinkStrayProperties(supabase, customerId, token, all, now);
+
   // Same tenant filter as the light reconcile: under the central credential a
   // customer only ever gets the listings assigned to them.
   const remote = await scopeToCustomer(customerId, all, scope);
@@ -484,6 +565,7 @@ export async function syncHospitableAccount(
       cleanings: 0,
       messagesImported: 0,
       aiReplies: 0,
+      relinked,
     };
 
   // Watermark: null = first sync → import all history silently, no auto-replies.
@@ -518,7 +600,7 @@ export async function syncHospitableAccount(
         .from('calendar_blocks')
         .delete()
         .eq('property_id', propertyId)
-        .like('external_uid', 'hosp:%');
+        .like('external_uid', HOSP);
       if (accepted.length) {
         await supabase.from('calendar_blocks').insert(
           accepted.map((r) => ({
@@ -530,7 +612,7 @@ export async function syncHospitableAccount(
             // The OTA's own code — the one identifier that survives a change of
             // PMS. Kept in a real column, not only in the summary above.
             confirmation_code: r.code || null,
-            external_uid: `hosp:${r.id}`,
+            external_uid: ref(r.id),
           })),
         );
       }
@@ -552,7 +634,7 @@ export async function syncHospitableAccount(
         supabase,
         token,
         propertyId,
-        new Map(accepted.map((r) => [`hosp:${r.id}`, r.id])),
+        new Map(accepted.map((r) => [ref(r.id), r.id])),
         santiagoDate(now),
       );
     }
@@ -606,5 +688,6 @@ export async function syncHospitableAccount(
     cleanings: cleaningCount,
     messagesImported,
     aiReplies,
+    relinked,
   };
 }

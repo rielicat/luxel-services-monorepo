@@ -1,7 +1,7 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ChannelListing, ChannelReservation, ProviderId } from './types';
-import { encodeRef, refPattern } from './types';
+import { encodeRef } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Supabase = SupabaseClient<any, 'public', any>;
@@ -15,9 +15,10 @@ type Supabase = SupabaseClient<any, 'public', any>;
  * whole subtree — access codes, cleaning history, guest check-in records, add-on
  * config — cascades away while the sync reports success.
  *
- * The bridge is the OTA's own confirmation code, which both providers report for
- * the same physical stay (Hospitable `code`, Beds24 `apiReference`). It belongs
- * to Airbnb, so it is stable across a change of PMS in a way no vendor id is.
+ * The bridge is the OTA's own confirmation code, which every provider reports
+ * for the same physical stay (Hospitable calls it `code`). It belongs to Airbnb,
+ * so it is stable across a change of PMS in a way no vendor id is — which is why
+ * the mirror captures it on every sync even while only one provider exists.
  *
  * This NEVER guesses. A property is re-keyed only when a stay recorded against
  * it carries a confirmation code that the incoming listing also reports. No
@@ -93,13 +94,50 @@ export async function relinkByConfirmationCode(
 
     const oldExternalId = property.external_listing_id as string;
 
-    // The tenant boundary moves with the property, or the customer loses access
-    // to their own listing on the next scoped fetch.
-    await supabase
+    // Who already holds the incoming listing id? external_listing_id is the
+    // PRIMARY KEY of listing_assignments, so this is not a hypothetical: a blind
+    // re-key collides, and a swallowed collision would leave the property moved
+    // while the tenant boundary stayed behind.
+    const { data: held, error: heldError } = await supabase
       .from('listing_assignments')
-      .update({ external_listing_id: matched.listingId })
-      .eq('external_listing_id', oldExternalId)
-      .eq('customer_id', customerId);
+      .select('customer_id')
+      .eq('external_listing_id', matched.listingId)
+      .maybeSingle();
+    if (heldError) {
+      result.unmatched.push(oldExternalId);
+      continue;
+    }
+
+    if (held && held.customer_id !== customerId) {
+      // The incoming listing is ANOTHER customer's. Re-keying would hand this
+      // customer a listing they do not own — the one outcome worse than not
+      // migrating at all.
+      result.unmatched.push(oldExternalId);
+      continue;
+    }
+
+    // The tenant boundary moves with the property, or the customer loses access
+    // to their own listing on the next scoped fetch. A boundary that cannot be
+    // moved means the property must not be moved either.
+    if (held) {
+      // Already assigned here — the boundary is already where it should be, so
+      // retire the stale row rather than collide with it.
+      await supabase
+        .from('listing_assignments')
+        .delete()
+        .eq('external_listing_id', oldExternalId)
+        .eq('customer_id', customerId);
+    } else {
+      const { error } = await supabase
+        .from('listing_assignments')
+        .update({ external_listing_id: matched.listingId })
+        .eq('external_listing_id', oldExternalId)
+        .eq('customer_id', customerId);
+      if (error) {
+        result.unmatched.push(oldExternalId);
+        continue;
+      }
+    }
 
     await supabase
       .from('properties')
@@ -139,19 +177,4 @@ export function pruneWouldWipeEverything(storedIds: string[], remoteIds: string[
   if (!storedIds.length || !remoteIds.length) return false;
   const remote = new Set(remoteIds);
   return !storedIds.some((id) => remote.has(id));
-}
-
-/** Rows still carrying a previous provider's namespace after a relink — useful
- *  for an operator to see what did not migrate. */
-export async function staleNamespaceCount(
-  supabase: Supabase,
-  propertyId: string,
-  previous: ProviderId,
-): Promise<number> {
-  const { count } = await supabase
-    .from('checkins')
-    .select('*', { count: 'exact', head: true })
-    .eq('property_id', propertyId)
-    .like('reservation_uid', refPattern(previous));
-  return count ?? 0;
 }

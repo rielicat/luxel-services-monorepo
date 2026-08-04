@@ -559,6 +559,139 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(((await res2.json()) as { ignored?: boolean }).ignored).toBe(true);
   });
 
+  it('re-keys a mirror left on a previous provider instead of deleting it', async () => {
+    // The migration path, proven against the live sync. A mirror whose ids come
+    // from another provider shares NOTHING with the remote set, so without the
+    // relink the property is either frozen forever or pruned away — and every
+    // access code, cleaning record and guest check-in hangs off that row by id.
+    const STRAY = `oldprov-${nodeCrypto.randomUUID()}`;
+    await admin.from('listing_assignments').delete().eq('customer_id', customerId);
+    await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
+    const { data: prop } = await admin
+      .from('properties')
+      .insert({
+        owner_id: customerId,
+        nickname: 'Depto Pre-Migración',
+        external_listing_id: STRAY,
+        platform: 'airbnb',
+      })
+      .select('id')
+      .single();
+    const propertyId = prop!.id as string;
+    await admin
+      .from('listing_assignments')
+      .insert({ external_listing_id: STRAY, customer_id: customerId, assigned_by: 'test' });
+    // The bridge: this stay's Airbnb confirmation code is one Hospitable also
+    // reports (res-1). Nothing else ties the two namespaces together.
+    const notifiedAt = new Date('2026-08-01T12:00:00Z').toISOString();
+    await admin.from('checkins').insert({
+      property_id: propertyId,
+      token: 'relink-keepme',
+      status: 'pending',
+      reservation_uid: `oldprov:${nodeCrypto.randomUUID()}`,
+      confirmation_code: 'HMRSHPJXAE',
+      arrival_date: '2027-03-03',
+      departure_date: '2027-03-05',
+      notified_at: notifiedAt,
+    });
+
+    expect((await syncHospitable()).ok).toBe(true);
+
+    // THE assertion: same row id. A delete-and-recreate would change it, and
+    // every child row would have cascaded away first.
+    const { data: after } = await admin
+      .from('properties')
+      .select('id, external_listing_id')
+      .eq('owner_id', customerId)
+      .single();
+    expect(after!.id).toBe(propertyId);
+    expect(after!.external_listing_id).toBe(HOSP_PROPERTY_ID);
+
+    // The tenant boundary moved with it, or the customer loses their own listing.
+    const { data: asg } = await admin
+      .from('listing_assignments')
+      .select('external_listing_id')
+      .eq('customer_id', customerId);
+    expect(asg!.map((a) => a.external_listing_id)).toEqual([HOSP_PROPERTY_ID]);
+
+    const { data: ci } = await admin
+      .from('checkins')
+      .select('token, reservation_uid, notified_at')
+      .eq('token', 'relink-keepme')
+      .single();
+    // A guest holding the link is unaffected by the migration…
+    expect(ci!.reservation_uid).toBe('hosp:res-1');
+    // …and the send-once watermark carried over, so nobody is messaged twice.
+    expect(new Date(ci!.notified_at as string).toISOString()).toBe(notifiedAt);
+    expect(SENT.filter((s) => s.reservationId === 'res-1')).toHaveLength(0);
+
+    await admin.from('listing_assignments').delete().eq('customer_id', customerId);
+  });
+
+  it('refuses to re-key onto a listing another customer already holds', async () => {
+    // external_listing_id is the PRIMARY KEY of listing_assignments, so the
+    // incoming id may already be spoken for. Moving the property anyway would
+    // hand this customer someone else's listing — worse than not migrating.
+    const STRAY = `oldprov-${nodeCrypto.randomUUID()}`;
+    await admin.from('listing_assignments').delete().eq('customer_id', customerId);
+    await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
+    const { data: stranger } = await admin
+      .from('customers')
+      .insert({ clerk_user_id: `test-stranger-${nodeCrypto.randomUUID()}`, email: 'other@test.cl' })
+      .select('id')
+      .single();
+    await admin.from('listing_assignments').insert([
+      { external_listing_id: HOSP_PROPERTY_ID, customer_id: stranger!.id, assigned_by: 'test' },
+      { external_listing_id: STRAY, customer_id: customerId, assigned_by: 'test' },
+    ]);
+
+    const { data: prop } = await admin
+      .from('properties')
+      .insert({
+        owner_id: customerId,
+        nickname: 'Depto Ajeno',
+        external_listing_id: STRAY,
+        platform: 'airbnb',
+      })
+      .select('id')
+      .single();
+    await admin.from('checkins').insert({
+      property_id: prop!.id,
+      token: 'relink-refuse',
+      status: 'pending',
+      reservation_uid: `oldprov:${nodeCrypto.randomUUID()}`,
+      confirmation_code: 'HMRSHPJXAE',
+      arrival_date: '2027-03-03',
+      departure_date: '2027-03-05',
+    });
+
+    // Central scope, because that is the only mode where one account's listings
+    // span several customers and this collision is reachable.
+    const syncLib = await import('../src/lib/channels/hospitable-sync');
+    const r = await syncLib.syncHospitableAccount(customerId, FAKE_TOKEN, new Date(), 'central');
+    expect(r.ok).toBe(true);
+    expect(r.relinked).toBe(0);
+
+    const { data: after } = await admin
+      .from('properties')
+      .select('id, external_listing_id')
+      .eq('owner_id', customerId)
+      .single();
+    // Not moved — and, just as important, not deleted either.
+    expect(after!.id).toBe(prop!.id);
+    expect(after!.external_listing_id).toBe(STRAY);
+
+    const { data: held } = await admin
+      .from('listing_assignments')
+      .select('customer_id')
+      .eq('external_listing_id', HOSP_PROPERTY_ID)
+      .single();
+    expect(held!.customer_id).toBe(stranger!.id);
+
+    await admin.from('customers').delete().eq('id', stranger!.id);
+    await admin.from('listing_assignments').delete().eq('customer_id', customerId);
+  });
+
   it('removing the connection makes the strict token resolver go dark', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
     // Offboarding is an operator action now (see scope.unassignListing) — there

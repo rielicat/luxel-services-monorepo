@@ -3,16 +3,22 @@ import 'server-only';
 /**
  * The provider-agnostic channel contract.
  *
- * Written after migrating providers twice in one month. The lesson was not that
- * the client was hard to replace — it was that provider identity had leaked into
- * the DATA: `hosp:` prefixes on reservation ids, vendor UUIDs in
- * external_listing_id, and a tenant boundary keyed on both. So this file owns
- * two things: the operations every provider must offer, and the reference format
- * that keeps vendor identity explicit instead of string-concatenated at call
- * sites.
+ * Written after nearly migrating providers. The lesson was not that the client
+ * was hard to replace — it was that provider identity had leaked into the DATA:
+ * `hosp:` prefixes on reservation ids, vendor UUIDs in external_listing_id, and
+ * a tenant boundary keyed on both. So this file owns two things: the reference
+ * format that keeps vendor identity explicit instead of string-concatenated at
+ * call sites, and the plugin shape the scheduled sync drives.
+ *
+ * ADDING A PROVIDER is four edits and no rewrite:
+ *   1. a member of `ProviderId` and its prefix in `REF_PREFIX` below,
+ *   2. an adapter module implementing `ChannelPlugin`,
+ *   3. one line in `./registry.ts`,
+ *   4. the `provider` check constraint in supabase/migrations/0018.
+ * Nothing outside those four knows the vendor's name.
  */
 
-export type ProviderId = 'hospitable' | 'beds24' | 'channex';
+export type ProviderId = 'hospitable';
 
 /**
  * A reference to something living in a provider's system. Stored as
@@ -23,11 +29,10 @@ export interface ChannelRef {
   id: string;
 }
 
-/** Legacy prefix kept because live rows use it. `hosp:` predates this type. */
+/** `hosp:` predates this type and is what live rows contain — it is data, not a
+ *  naming choice, so it cannot be tidied. */
 const REF_PREFIX: Record<ProviderId, string> = {
   hospitable: 'hosp',
-  beds24: 'b24',
-  channex: 'cnx',
 };
 const PREFIX_TO_PROVIDER = Object.fromEntries(
   Object.entries(REF_PREFIX).map(([p, prefix]) => [prefix, p as ProviderId]),
@@ -38,7 +43,9 @@ export function encodeRef(ref: ChannelRef): string {
 }
 
 /** Null for anything unrecognised — an unknown prefix must never be guessed at,
- *  because callers use these to decide what to prune. */
+ *  because callers use these to decide what to prune. A ref left behind by a
+ *  provider that is no longer registered decodes to null, so a prune scoped to
+ *  the active provider cannot match it. */
 export function decodeRef(stored: string): ChannelRef | null {
   const sep = stored.indexOf(':');
   if (sep <= 0) return null;
@@ -54,42 +61,45 @@ export function refPattern(provider: ProviderId): string {
 }
 
 /**
- * What a provider can actually do. Read from the UI, not assumed: on a
- * push-model channel manager the calendar returns the prices WE pushed, so
- * "published vs recommended" is a meaningless comparison and the property
- * calendar must not pretend otherwise.
+ * Channel access scope — the tenant boundary for the mirror.
+ *
+ *  - `own`     the customer's own stored connection. Everything it returns is
+ *              theirs by definition.
+ *  - `central` Luxel's operator credential. What it returns is NOT theirs by
+ *              default, so callers MUST intersect with `allowedListingIds` and
+ *              may never import or prune outside it.
+ */
+export type ChannelScope = 'own' | 'central';
+export interface ChannelAccess {
+  token: string;
+  scope: ChannelScope;
+}
+
+/**
+ * What a provider can actually do. Every flag here gates a real branch — a
+ * capability nothing reads is a comment pretending to be code.
  */
 export interface ChannelCapabilities {
   /** Can post into the guest thread on the OTA. Without it the product's
    *  check-in delivery and AI replies do not function at all. */
   sendsGuestMessages: boolean;
-  /** The nightly price read back is what the OTA publishes, NOT merely what we
-   *  last pushed. False on push-authoritative channel managers. */
-  readsPublishedPrice: boolean;
-  /** Accepts nightly rate/availability writes. */
-  writesRates: boolean;
   /** Carries a per-listing host identity usable for auto-attribution. When
-   *  false, assignment is operator-asserted rather than derived. */
+   *  false, assignment is operator-asserted and `autoAssign` is not called. */
   hasHostIdentity: boolean;
   /** Delivers webhooks; when false the sync must poll. */
   webhooks: boolean;
 }
 
+/**
+ * A listing, normalised. Only the fields the provider-agnostic machinery
+ * actually reads — the vendor's full shape stays in its own adapter.
+ */
 export interface ChannelListing {
   ref: ChannelRef;
   name: string | null;
   /** The host's own identity on the channel, when the provider exposes it.
    *  Null means attribution must be asserted by an operator. */
   hostEmail: string | null;
-  listed: boolean;
-  address: string | null;
-  checkinTime: string | null;
-  checkoutTime: string | null;
-  /** ISO 4217, from the provider. Calendar prices are in THIS currency, not
-   *  assumed CLP — providers report in whatever the listing is set to. */
-  currency: string | null;
-  /** Everything else, verbatim, for the adapter's own mapping. */
-  raw: unknown;
 }
 
 /** Normalised across providers, because cancellation drives revocation of a
@@ -103,96 +113,47 @@ export interface ChannelReservation {
   arrivalDate: string;
   departureDate: string;
   state: ReservationState;
-  /** The provider's raw status, for diagnosis only. */
-  rawStatus: string | null;
   /**
    * The OTA's own confirmation code (Airbnb's HM… code). The ONLY identifier
    * that survives a change of provider, because the vendor's reservation id does
    * not. Capturing it while still on the current provider is what makes a
-   * cutover map possible later; today it survives only inside a display string.
+   * cutover possible at all — see `./relink.ts`.
    */
   confirmationCode: string | null;
-  guestName: string | null;
 }
 
-/**
- * Three states, not a boolean.
- *
- * `reserved` and `blocked` are both unavailable and mean opposite things to the
- * host. Occupancy, 30-day revenue, stay reconstruction and the figure the AI
- * concierge quotes all key on RESERVED specifically. Collapsing them would count
- * a host's renovation block as a booking and sum the asking price of nights
- * nobody paid for — wrong money, shown under a label promising real rates.
- */
-export type DayState = 'open' | 'reserved' | 'blocked';
-
-export interface ChannelCalendarDay {
-  date: string;
-  state: DayState;
-  /** Whole currency units, never cents — adapters normalise. Null when the
-   *  provider has no price for that night. Currency comes from the listing;
-   *  do not assume CLP, since providers bill and report in their own. */
-  price: number | null;
-  minStay: number | null;
-  /** The provider's own word for why, kept verbatim for diagnosis. Never
-   *  branched on — that is what `state` is for. */
-  reason?: string | null;
-}
-
-export interface ChannelMessage {
-  ref: ChannelRef;
-  body: string | null;
-  fromGuest: boolean;
-  createdAt: string;
-}
-
-/** One nightly write. Inclusive `from`, inclusive `to`. */
-export interface RateUpdate {
-  from: string;
-  to: string;
-  /** In the listing's currency — see ChannelListing.currency. */
-  price?: number;
-  minStay?: number;
-  available?: boolean;
-}
-
-export interface PushResult {
+/** What one customer's mirror pass produced, in terms no vendor owns. */
+export interface ChannelSyncOutcome {
   ok: boolean;
-  /** Provider-side identifier for the write, when one is returned — used to
-   *  make a retry idempotent. Null when the provider gives nothing back. */
-  ref: string | null;
-  error?: string;
+  properties: number;
+  reservations: number;
+  /** Guest messages the AI answered during this pass. */
+  replies: number;
+  /** Properties re-keyed from a previous provider's ids onto this one's. */
+  relinked: number;
 }
 
 /**
- * Every read returns `T[] | null`, and null means INCOMPLETE, never empty.
+ * One channel provider, as a plugin.
  *
- * This is the single most important rule in the file. The mirror prunes rows
- * absent from a provider response, so a partial list read as complete deletes a
- * host's access codes, cleaning history and guest data. Adapters must return
- * null on any failed page rather than a truncated array.
+ * The seam is deliberately drawn around the whole MIRROR PASS rather than around
+ * a set of REST calls. Replacing a provider is not "swap the HTTP client" — the
+ * expensive parts are attribution, tenant scoping, and knowing which reservation
+ * has already had a guest messaged. A plugin owns all of it and reports back in
+ * `ChannelSyncOutcome`; the scheduler below it knows nothing about any vendor.
  */
-export interface ChannelProvider {
+export interface ChannelPlugin {
   readonly id: ProviderId;
   readonly capabilities: ChannelCapabilities;
 
-  listListings(): Promise<ChannelListing[] | null>;
-  listReservations(
-    listing: ChannelRef,
-    fromDate: string,
-    toDate: string,
-  ): Promise<ChannelReservation[] | null>;
-  listCalendar(
-    listing: ChannelRef,
-    fromDate: string,
-    toDate: string,
-  ): Promise<ChannelCalendarDay[] | null>;
-  listMessages(reservation: ChannelRef): Promise<ChannelMessage[] | null>;
+  /** How this customer's listings are reachable, or null if they are not. */
+  access(customerId: string): Promise<ChannelAccess | null>;
 
-  /** Returns the provider's message id, or null if the send failed. Callers
-   *  treat null as "not delivered" and retry within a bounded window. */
-  sendMessage(reservation: ChannelRef, body: string): Promise<string | null>;
+  /** One full mirror pass for one customer. Must never prune off an incomplete
+   *  read — see the `T[] | null` rule in the adapter. */
+  sync(customerId: string, access: ChannelAccess, now: Date): Promise<ChannelSyncOutcome>;
 
-  /** Present only when `capabilities.writesRates`. */
-  pushRates?(listing: ChannelRef, updates: RateUpdate[]): Promise<PushResult>;
+  /** Attribute unassigned listings to customers from the channel's own host
+   *  identity. Present only when `capabilities.hasHostIdentity`. */
+  autoAssign?(): Promise<{ assigned: number } | null>;
 }

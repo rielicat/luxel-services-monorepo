@@ -1,5 +1,6 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { handleInboundMessage } from '@/lib/channels/pipeline';
+import { encodeRef } from '@/lib/channels/types';
 import { devMockEnabled } from '@/lib/dev-mock';
 
 export const runtime = 'nodejs';
@@ -53,7 +54,7 @@ async function resolveProperty(
     const { data: b } = await supabase
       .from('calendar_blocks')
       .select('property_id')
-      .eq('external_uid', `hosp:${reservationId}`)
+      .eq('external_uid', encodeRef({ provider: 'hospitable', id: reservationId }))
       .maybeSingle();
     if (b) return b.property_id as string;
   }

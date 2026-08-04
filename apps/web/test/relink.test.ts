@@ -9,7 +9,8 @@ import { pruneWouldWipeEverything } from '../src/lib/channels/relink';
 
 describe('pruneWouldWipeEverything', () => {
   it('flags a provider switch — no overlap between stored and remote', () => {
-    // The real case: stored rows carry Hospitable UUIDs, Beds24 returns 345504.
+    // The real case: stored rows carry Hospitable UUIDs, the incoming provider
+    // keys on integers. Nothing overlaps, and nothing was actually removed.
     // Pruning here deletes the property and cascades to access codes, cleaning
     // history and guest check-in records while the sync reports success.
     const stored = ['a6eb2c65-0000-4000-8000-000000000001'];

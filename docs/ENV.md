@@ -35,7 +35,7 @@ effect and fails silently:
 | `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces.                     |
 | `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                              |
 | `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN` |
-| `BEDS24_REFRESH_TOKEN`                             | the Beds24 mirror does not run. Dies after 30 days unused — the scheduled sync is what keeps it alive            |
+| `CHANNEL_PROVIDER`                                 | optional; defaults to `hospitable`, the only registered plugin. An unregistered value returns HTTP 500           |
 | `CRON_SECRET`                                      | **the sync endpoint accepts unauthenticated requests** — see the security note below                             |
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
 | `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
@@ -126,6 +126,10 @@ scheduler calls the route.
 
 ## Known drift
 
+- `supabase/migrations/0018` still allows `'beds24'` in the `channel_connections.provider`
+  check constraint. It is an applied migration and no row uses the value;
+  rewriting applied history costs more than the residue. A new provider adds
+  itself there — see the four-edit list in `apps/web/src/lib/channels/types.ts`.
 - `.env.example` omits `OPENAI_API_KEY`, `OPENAI_MODEL`, `CRON_SECRET`,
   `PROVIDER_API_KEY`, `HOSPITABLE_WEBHOOK_SECRET`, `PRICELABS_API_KEY`,
   `RESEND_API_KEY`, `RESEND_FROM`, `LUXEL_PII_KEY`,

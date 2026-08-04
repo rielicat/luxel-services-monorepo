@@ -1,8 +1,5 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { hospitableAccess } from '@/lib/channels/scope';
-import { autoAssignListings } from '@/lib/channels/auto-assign';
-import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
-import { syncBeds24Account } from '@/lib/channels/beds24-sync';
+import { activeChannelPlugin, registeredProviderIds } from '@/lib/channels/registry';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,10 +15,11 @@ export const maxDuration = 300;
  * deploy. The caller sends `Authorization: Bearer ${CRON_SECRET}`; when
  * CRON_SECRET is unset the route is open, so set it in production.
  *
- * Two kinds of customer are synced: those with their own stored connection, and
- * those Luxel manages through the central account (identified by having listings
- * assigned to them). `hospitableAccess` resolves which, and the scope it returns
- * keeps a central fetch filtered to that customer's assigned listings.
+ * No vendor is named anywhere in this file. The active plugin resolves the
+ * credential and owns the mirror pass; this route only decides WHO to sync and
+ * reports what came back. Two kinds of customer qualify: those with their own
+ * stored connection, and those Luxel manages through the central account
+ * (identified by having listings assigned to them).
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -29,32 +27,34 @@ export async function GET(req: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  // Which provider drives the mirror is an EXPLICIT choice, never inferred from
-  // which credential happens to be present. Selecting by credential means a
-  // token added for a local experiment silently switches production onto a
-  // different provider — and the mirror is keyed per provider, so that is a
-  // data event, not a config change. Default is the incumbent.
-  const active = (process.env.CHANNEL_PROVIDER ?? 'hospitable').trim().toLowerCase();
-  const beds24Token = active === 'beds24' ? process.env.BEDS24_REFRESH_TOKEN : null;
-  if (active === 'beds24' && !beds24Token) {
+  const selected = activeChannelPlugin();
+  if (!selected.ok) {
+    // Loud, not a fallback: the mirror is keyed per provider, so syncing with
+    // the wrong one is a data event rather than a misconfiguration.
     return Response.json(
-      { ok: false, error: 'CHANNEL_PROVIDER=beds24 but BEDS24_REFRESH_TOKEN is unset' },
+      {
+        ok: false,
+        error: `CHANNEL_PROVIDER="${selected.requested}" is not a registered channel plugin`,
+        registered: registeredProviderIds(),
+      },
       { status: 500 },
     );
   }
+  const plugin = selected.plugin;
 
-  // Attribution reads Hospitable's listings[].platform_email, which Beds24 does
-  // not expose — and calling it while that subscription is inactive just burns a
-  // request for a 402. Skip it when Beds24 is driving; assignment is an operator
-  // action there until attribution moves onto airbnbUserId.
-  const auto = beds24Token ? null : await autoAssignListings().catch(() => null);
+  // Attribution needs a per-listing host identity; a plugin without one leaves
+  // assignment to the operator screen.
+  const auto =
+    plugin.capabilities.hasHostIdentity && plugin.autoAssign
+      ? await plugin.autoAssign().catch(() => null)
+      : null;
 
   const supabase = createSupabaseServiceRoleClient();
   const [{ data: connections }, { data: assigned }] = await Promise.all([
     supabase
       .from('channel_connections')
       .select('customer_id')
-      .eq('provider', 'hospitable')
+      .eq('provider', plugin.id)
       .eq('status', 'connected'),
     supabase.from('listing_assignments').select('customer_id'),
   ]);
@@ -69,58 +69,36 @@ export async function GET(req: Request) {
   const results: Array<{
     customer: string;
     ok: boolean;
-    provider?: string;
     scope?: string;
     replies?: number;
     relinked?: number;
-    unmatched?: number;
     reason?: string;
   }> = [];
 
+  const now = new Date();
   for (const customerId of customerIds) {
-    if (beds24Token) {
-      try {
-        const r = await syncBeds24Account(customerId, beds24Token, new Date());
-        results.push({
-          customer: customerId,
-          ok: r.ok,
-          provider: 'beds24',
-          relinked: r.relinked,
-          unmatched: r.unmatched.length,
-          reason: r.reason,
-        });
-      } catch {
-        results.push({ customer: customerId, ok: false, provider: 'beds24' });
-      }
-      continue;
-    }
-
-    const access = await hospitableAccess(customerId);
+    const access = await plugin.access(customerId);
     if (!access) {
-      results.push({ customer: customerId, ok: false, provider: 'hospitable' });
+      results.push({ customer: customerId, ok: false, reason: 'no_access' });
       continue;
     }
     try {
-      const r = await syncHospitableAccount(customerId, access.token, new Date(), access.scope);
+      const r = await plugin.sync(customerId, access, now);
       results.push({
         customer: customerId,
         ok: r.ok,
-        provider: 'hospitable',
         scope: access.scope,
-        replies: r.aiReplies,
+        replies: r.replies,
+        relinked: r.relinked,
       });
     } catch {
-      results.push({
-        customer: customerId,
-        ok: false,
-        provider: 'hospitable',
-        scope: access.scope,
-      });
+      results.push({ customer: customerId, ok: false, scope: access.scope, reason: 'threw' });
     }
   }
+
   return Response.json({
     ok: true,
-    provider: active,
+    provider: plugin.id,
     autoAssigned: auto?.assigned ?? 0,
     accounts: results.length,
     results,

@@ -2,23 +2,20 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { decryptPII } from '@/lib/crypto/pii';
 import { providerApiKey } from './credentials';
+import type { ChannelAccess, ChannelScope } from './types';
 
 /**
- * Channel access scope — the tenant boundary for the Hospitable mirror.
+ * The tenant boundary for the Hospitable mirror.
  *
  * A Hospitable token is scoped to ONE account (verified against their API spec:
  * "These tokens are scoped to your Hospitable account only", and no endpoint
  * takes an account parameter). Luxel manages hosts centrally, so a token alone
  * cannot say what a customer may see: `scope` says how to read what it returns.
  *
- *  - `own`     the customer's own stored connection. Everything it returns is
- *              theirs by definition.
- *  - `central` Luxel's operator credential. What it returns is NOT theirs by
- *              default, so callers MUST intersect with `allowedListingIds` and
- *              may never import or prune outside it.
+ * The scope vocabulary itself is provider-neutral and lives in ./types.ts — any
+ * plugin faces the same central-versus-own question.
  */
-export type ChannelScope = 'own' | 'central';
-export type ChannelAccess = { token: string; scope: ChannelScope };
+export type { ChannelAccess, ChannelScope };
 
 /** The customer's own stored Hospitable connection, or null. Never falls back
  *  to the operator credential — that decision belongs to the caller. */

@@ -2,6 +2,7 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { encryptPII, decryptPII } from '@/lib/crypto/pii';
 import { providerApiKey } from './credentials';
+import type { ChannelListing, ChannelReservation, ReservationState } from './types';
 
 /**
  * Hospitable Public API v2 client — the CURRENT provider adapter.
@@ -244,6 +245,44 @@ export async function sendHospitableMessage(
   } catch {
     return null;
   }
+}
+
+/**
+ * Vendor shape → the provider-agnostic contract.
+ *
+ * Only what the provider-neutral machinery reads (`./relink.ts`). The mirror
+ * itself still consumes the raw shapes directly, because a Hospitable property
+ * carries far more than any contract should pretend every provider has.
+ */
+export function toChannelListing(rp: HospitableProperty): ChannelListing {
+  const airbnb = (rp.listings ?? []).find((l) => l.platform === 'airbnb' && l.platform_email);
+  return {
+    ref: { provider: 'hospitable', id: rp.id },
+    name: rp.name ?? rp.public_name ?? null,
+    hostEmail: airbnb?.platform_email?.trim().toLowerCase() ?? null,
+  };
+}
+
+function toState(r: HospitableReservation): ReservationState {
+  const raw = String(r.reservation_status?.current?.category ?? r.status ?? '').toLowerCase();
+  if (['accepted', 'active', 'confirmed'].includes(raw)) return 'confirmed';
+  if (raw.includes('cancel') || raw.includes('denied')) return 'cancelled';
+  if (raw.includes('request') || raw.includes('pending')) return 'pending';
+  return 'unknown';
+}
+
+export function toChannelReservation(
+  r: HospitableReservation,
+  listingId: string,
+): ChannelReservation {
+  return {
+    ref: { provider: 'hospitable', id: r.id },
+    listingRef: { provider: 'hospitable', id: listingId },
+    arrivalDate: r.arrival_date.slice(0, 10),
+    departureDate: r.departure_date.slice(0, 10),
+    state: toState(r),
+    confirmationCode: r.code || null,
+  };
 }
 
 /** Stores a customer's token encrypted. */
