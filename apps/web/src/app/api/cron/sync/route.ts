@@ -29,10 +29,19 @@ export async function GET(req: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  // Beds24 takes over the moment its credential exists. The Hospitable path
-  // stays as the fallback rather than being deleted: it is the only thing that
-  // works for any customer still on a live Hospitable connection.
-  const beds24Token = process.env.BEDS24_REFRESH_TOKEN;
+  // Which provider drives the mirror is an EXPLICIT choice, never inferred from
+  // which credential happens to be present. Selecting by credential means a
+  // token added for a local experiment silently switches production onto a
+  // different provider — and the mirror is keyed per provider, so that is a
+  // data event, not a config change. Default is the incumbent.
+  const active = (process.env.CHANNEL_PROVIDER ?? 'hospitable').trim().toLowerCase();
+  const beds24Token = active === 'beds24' ? process.env.BEDS24_REFRESH_TOKEN : null;
+  if (active === 'beds24' && !beds24Token) {
+    return Response.json(
+      { ok: false, error: 'CHANNEL_PROVIDER=beds24 but BEDS24_REFRESH_TOKEN is unset' },
+      { status: 500 },
+    );
+  }
 
   // Attribution reads Hospitable's listings[].platform_email, which Beds24 does
   // not expose — and calling it while that subscription is inactive just burns a
@@ -111,7 +120,7 @@ export async function GET(req: Request) {
   }
   return Response.json({
     ok: true,
-    provider: beds24Token ? 'beds24' : 'hospitable',
+    provider: active,
     autoAssigned: auto?.assigned ?? 0,
     accounts: results.length,
     results,

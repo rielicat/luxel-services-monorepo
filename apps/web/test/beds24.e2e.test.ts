@@ -84,11 +84,18 @@ describe.skipIf(!LIVE)('beds24 adapter (live account)', () => {
   });
 
   it('reads a per-night calendar with real prices', async () => {
-    const days = await provider.listCalendar(listings![0].ref, '2026-08-03', '2026-08-10');
+    // Relative to today, never hardcoded: a fixed date silently changes meaning
+    // as it slides into the past, and the provider stops returning it.
+    const day = 86_400_000;
+    const from = new Date(Date.now() + day).toISOString().slice(0, 10);
+    const to = new Date(Date.now() + 8 * day).toISOString().slice(0, 10);
+    const days = await provider.listCalendar(listings![0].ref, from, to);
     expect(days).not.toBeNull();
-    // One entry per night, not per range.
+    // One entry per night across the requested window, not one per range.
     expect(days!.length).toBe(8);
     expect(new Set(days!.map((d) => d.date)).size).toBe(8);
+    expect(days![0].date).toBe(from);
+    expect(days![days!.length - 1].date).toBe(to);
     const priced = days!.filter((d) => d.price != null);
     expect(priced.length).toBeGreaterThan(0);
     // Sanity: a Santiago nightly rate in CLP is five or six figures. If this

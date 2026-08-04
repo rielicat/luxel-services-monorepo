@@ -110,7 +110,36 @@ being overhead and becomes the product, certification becomes a milestone rather
 than a wall, and USD 130 + ~USD 1/unit is cheap for owning the whole stack. That
 is a decision about what business this is, not a vendor comparison.
 
-## Recommendation
+## Decision (2026-08-03): Hospitable now, Channex at scale
+
+Beds24 was built, verified against a live account, and set aside. The evidence
+accumulated in one direction:
+
+- The multi-host surfaces are exactly the immature ones — `/properties` Beta,
+  `/accounts` Alpha, `/organizations/users` "Coming soon".
+- No per-listing host identity, so attribution becomes a permanent operator step.
+- Refresh tokens die after 30 days idle; an idle host connection lapses silently.
+- Guest messaging on the discounted plan was never confirmed.
+- **No picture write endpoint in API V2 at all**, which also strands the
+  video-to-listing feature — its photographs have no API path to the guest.
+
+Channex is the destination once pricing is owned end to end: its Copy Link flow
+solves tenancy without password handover, pricing is published with no minimum
+and no term, and the ARI certification that disqualified it stops being a wall
+the moment Luxel is the one pushing rates.
+
+Hospitable is the short-term answer because it works and the mirror is already
+keyed to it. Note its subscription is currently INACTIVE (every endpoint returns
+`402 Subscription not active`), and Airbnb permits one PMS per account — so
+returning to it means reactivating billing AND disconnecting Beds24 from Airbnb
+first.
+
+Nothing built for Beds24 is wasted. The provider contract, the confirmation-code
+capture, the disjoint-set prune guard and `relinkByConfirmationCode` are all
+provider-agnostic, and the Channex migration reuses the relink verbatim. The
+Beds24 adapter stays as a working reference implementation.
+
+## Earlier recommendation (superseded)
 
 **Beds24 primary, Hostex fallback**, pending one test each.
 
