@@ -692,6 +692,77 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     await admin.from('listing_assignments').delete().eq('customer_id', customerId);
   });
 
+  it('a reservation webhook mirrors the booking without any scheduled pass', async () => {
+    // The whole point of webhooks: a new booking lands in the mirror and its
+    // guest gets a check-in link because Hospitable said so, not because a
+    // timer happened to fire.
+    await connectHospitable({ token: FAKE_TOKEN }); // first sync backfills silently
+    SENT.length = 0;
+    // Backfill seeded anchors for both current reservations; drop one so the
+    // event has something genuinely new to deliver, as a real booking would.
+    await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
+    // The debounce collapses bursts, and connect just stamped last_synced_at.
+    await admin
+      .from('channel_connections')
+      .update({ last_synced_at: new Date(Date.now() - 120_000).toISOString() })
+      .eq('customer_id', customerId);
+
+    const { POST } = await import('../src/app/api/channels/[provider]/route');
+    const res = await POST(
+      new Request('http://localhost/api/channels/hospitable', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reservation.created',
+          data: { property_id: HOSP_PROPERTY_ID, reservation: { id: 'res-2' } },
+        }),
+      }),
+      { params: Promise.resolve({ provider: 'hospitable' }) },
+    );
+    const json = (await res.json()) as { ok: boolean; action: string; resync: string };
+    expect(res.status).toBe(200); // anything else and Hospitable redelivers
+    expect(json.ok).toBe(true);
+    expect(json.resync).toBe('syncing');
+
+    // The link went out for the new booking, and only that one.
+    expect(SENT.filter((s) => s.body.includes('/checkin/')).map((s) => s.reservationId)).toEqual([
+      'res-2',
+    ]);
+
+    // A second event moments later collapses into the first pass.
+    const again = await POST(
+      new Request('http://localhost/api/channels/hospitable', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reservation.changed',
+          data: { property_id: HOSP_PROPERTY_ID },
+        }),
+      }),
+      { params: Promise.resolve({ provider: 'hospitable' }) },
+    );
+    expect(((await again.json()) as { resync: string }).resync).toBe('debounced');
+  });
+
+  it('acks an event for a listing no tenant owns instead of guessing one', async () => {
+    // An unassigned listing has no owner to sync. Picking one would put a
+    // stranger's booking in a customer's account; 200 stops the redelivery.
+    const { POST } = await import('../src/app/api/channels/[provider]/route');
+    const res = await POST(
+      new Request('http://localhost/api/channels/hospitable', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'property.created',
+          data: { id: `unowned-${nodeCrypto.randomUUID()}` },
+        }),
+      }),
+      { params: Promise.resolve({ provider: 'hospitable' }) },
+    );
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { resync: string }).resync).toBe('unassigned');
+  });
+
   it('removing the connection makes the strict token resolver go dark', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
     // Offboarding is an operator action now (see scope.unassignListing) — there

@@ -1,24 +1,46 @@
-name: Sync cron
+name: Daily reconcile
 
-# Drives /api/cron/sync, which imports reservations, sends check-in
-# links, suggests cleanings and lets the AI answer new guest messages.
+# Webhooks are the mechanism. This is the backstop, and it is deliberately
+# DAILY rather than every half hour.
 #
-# This lives here and not in vercel.json on purpose: the Hobby plan rejects
-# sub-daily crons, and a rejected vercel.json silently blocks EVERY deploy of
-# luxel-web (see c64c945). Daily is also too coarse — a same-day booking would
-# get no check-in link before the guest arrives.
+# Hospitable v2 pushes reservation.created / reservation.changed / property.* /
+# message.created to /api/channels/hospitable and retries a failed delivery 5
+# times with backoff out to six hours, so bookings, cancellations, date moves
+# and guest messages arrive in seconds. None of that needs polling for.
+#
+# What no event can ever deliver, and what this run is actually for:
+#   - the day-before check-in nudge and the arrival-day access message. Nothing
+#     happens upstream at 08:00 on arrival day; the trigger is the calendar.
+#   - cleaning suggestions and auto-confirmation off checkout dates.
+#   - attribution of listings nobody has claimed yet — a webhook for an
+#     unassigned listing is acked and dropped, because there is no tenant to
+#     sync and guessing one would put a stranger's booking in an account.
+#   - reconciliation: an event says what happened, never what silently stopped
+#     existing, and after five failed retries it is gone for good.
+# All of that is day-grained, so once a day at 08:00 Santiago is the right rate.
+#
+# ⚠ REQUIRES the webhook to be registered in Hospitable (Apps > Webhooks, at
+# https://<prod-host>/api/channels/hospitable?secret=$HOSPITABLE_WEBHOOK_SECRET).
+# There is no API to create one — it is a dashboard action. Without it this
+# daily run is the ONLY path, and a same-day booking gets no check-in link
+# before the guest arrives.
+#
+# Lives here and not in vercel.json because the Hobby plan rejects sub-daily
+# crons and a rejected vercel.json silently blocks EVERY deploy of luxel-web
+# (see c64c945). Daily would now be accepted there, but moving it is a separate
+# change with a deploy-breaking failure mode — not worth bundling.
 #
 # Add two repo secrets to enable it; until then the job skips green:
 #   APP_CRON_URL  — https://<prod-host>/api/cron/sync
 #   CRON_SECRET   — must equal the CRON_SECRET env var set on Vercel
 #
-# Caveat worth knowing: GitHub's scheduler is best-effort and can run 10-60 min
-# late under load, and it auto-disables after 60 days with no repo activity.
-# Treat this as "runs about every half hour", never as a hard deadline.
+# GitHub's scheduler is best-effort and can run 10-60 min late, and it
+# auto-disables after 60 days with no repo activity. The catch-up window in the
+# reminder pass (CATCHUP_DAYS) exists because of exactly that.
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '0 12 * * *' # 08:00 America/Santiago (09:00 during their winter)
   workflow_dispatch: {}
 
 concurrency:
@@ -35,11 +57,11 @@ jobs:
           URL: ${{ secrets.APP_CRON_URL }}
         run: |
           if [ -z "$URL" ]; then
-            echo "::notice::APP_CRON_URL not set — skipping. Add it to enable scheduled sync."
+            echo "::notice::APP_CRON_URL not set — skipping. Add it to enable the daily reconcile."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Trigger sync
+      - name: Trigger reconcile
         if: steps.guard.outputs.skip != 'true'
         env:
           URL: ${{ secrets.APP_CRON_URL }}
@@ -50,7 +72,7 @@ jobs:
           # Body can name a customer id, so print only the shape, never the payload.
           echo "HTTP $code"
           if [ "$code" != "200" ]; then
-            echo "::error::sync returned HTTP $code"
+            echo "::error::reconcile returned HTTP $code"
             exit 1
           fi
           python3 -c "import json;d=json.load(open('/tmp/out.json'));print('accounts',d.get('accounts'),'autoAssigned',d.get('autoAssigned'),'ok',[r.get('ok') for r in d.get('results',[])])"

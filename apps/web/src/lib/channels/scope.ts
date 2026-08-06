@@ -72,6 +72,25 @@ export async function allowedListingIds(customerId: string): Promise<string[] | 
   return (data ?? []).map((r) => r.external_listing_id as string);
 }
 
+/**
+ * Which customer owns this listing, for routing an inbound channel event.
+ *
+ * The assignment table is the authority, and there is deliberately NO fallback
+ * to `properties.owner_id`: the mirror follows assignment, so a row that
+ * disagrees is stale, and trusting it would deliver another tenant's event.
+ * Null means nobody has claimed the listing yet — the operator-queue state,
+ * which the scheduled reconcile resolves via attribution.
+ */
+export async function customerForListing(externalListingId: string): Promise<string | null> {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data } = await supabase
+    .from('listing_assignments')
+    .select('customer_id')
+    .eq('external_listing_id', externalListingId)
+    .maybeSingle();
+  return (data?.customer_id as string | undefined) ?? null;
+}
+
 /** Which of these listing ids are not assigned to anybody yet — the operator
  *  queue for onboarding a newly granted account.
  *

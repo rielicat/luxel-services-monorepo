@@ -6,13 +6,18 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 /**
- * Scheduled sync: pulls reservations, calendar and conversations for every
- * managed account, auto-replying to new guest messages. This is what keeps the
- * AI interacting with the channel continuously without webhook access.
+ * The daily reconcile — a backstop, NOT the mechanism.
  *
- * Driven by .github/workflows/sync-cron.yml (~every 30 min), NOT by vercel.json
- * — a sub-daily cron there is rejected on Hobby and silently blocks every
- * deploy. The caller sends `Authorization: Bearer ${CRON_SECRET}`; when
+ * Events arrive by webhook at /api/channels/hospitable within seconds, so this
+ * exists only for the work no event can carry: the day-before nudge and the
+ * arrival-day access message (triggered by the calendar, not by anything
+ * upstream), cleaning suggestions off checkout dates, attribution of listings
+ * nobody has claimed, and detecting what silently stopped existing — which a
+ * stream of events, by construction, never reports.
+ *
+ * Driven by .github/workflows/sync-cron.yml (daily, 08:00 Santiago), NOT by
+ * vercel.json — a sub-daily cron there is rejected on Hobby and silently blocks
+ * every deploy. The caller sends `Authorization: Bearer ${CRON_SECRET}`; when
  * CRON_SECRET is unset the route is open, so set it in production.
  *
  * No vendor is named anywhere in this file. The active plugin resolves the

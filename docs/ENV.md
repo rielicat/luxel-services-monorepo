@@ -40,7 +40,7 @@ effect and fails silently:
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
 | `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
 | `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                          |
-| `HOSPITABLE_WEBHOOK_SECRET`                        | inbound webhooks rejected; the app relies on polling alone                                                       |
+| `HOSPITABLE_WEBHOOK_SECRET`                        | webhook endpoint accepts unsigned posts; set it and put it in the registered webhook URL                         |
 | `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                        |
 | _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.              |
 

@@ -23,9 +23,11 @@ export const hospitablePlugin: ChannelPlugin = {
     // listings[].platform_email carries the host's own channel account, which
     // is what makes attribution automatic rather than an operator step.
     hasHostIdentity: true,
-    // /v2/webhooks is 404 at PAT tier, so the scheduled sync is what runs; a
-    // configured webhook is a bonus, never the mechanism relied on.
-    webhooks: false,
+    // v2 pushes reservation.*, property.*, message.* and review.created, and
+    // retries a failed delivery 5 times out to six hours. The 404 on
+    // /v2/webhooks means there is no API to CREATE one — registration is a
+    // dashboard action (Apps > Webhooks), not a missing capability.
+    webhooks: true,
   },
 
   access(customerId: string): Promise<ChannelAccess | null> {
