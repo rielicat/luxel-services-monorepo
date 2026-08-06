@@ -14,7 +14,8 @@ import 'server-only';
  *   1. a member of `ProviderId` and its prefix in `REF_PREFIX` below,
  *   2. an adapter module implementing `ChannelPlugin`,
  *   3. one line in `./registry.ts`,
- *   4. the `provider` check constraint in supabase/migrations/0018.
+ *   4. the `provider` check constraint — narrowed in migrations/0036, so widen
+ *      it in a new migration rather than editing an applied one.
  * Nothing outside those four knows the vendor's name.
  */
 

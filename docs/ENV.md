@@ -126,10 +126,6 @@ scheduler calls the route.
 
 ## Known drift
 
-- `supabase/migrations/0018` still allows `'beds24'` in the `channel_connections.provider`
-  check constraint. It is an applied migration and no row uses the value;
-  rewriting applied history costs more than the residue. A new provider adds
-  itself there — see the four-edit list in `apps/web/src/lib/channels/types.ts`.
 - `.env.example` omits `OPENAI_API_KEY`, `OPENAI_MODEL`, `CRON_SECRET`,
   `PROVIDER_API_KEY`, `HOSPITABLE_WEBHOOK_SECRET`, `PRICELABS_API_KEY`,
   `RESEND_API_KEY`, `RESEND_FROM`, `LUXEL_PII_KEY`,
