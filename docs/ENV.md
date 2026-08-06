@@ -40,7 +40,8 @@ effect and fails silently:
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
 | `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
 | `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                          |
-| `HOSPITABLE_WEBHOOK_SECRET`                        | **the webhook endpoint accepts anything posted to it** — self-generated, must match the registered URL           |
+| `HOSPITABLE_WEBHOOK_SECRET`                        | header auth off; Hospitable still authorises by source IP — see "Inbound webhook access"                         |
+| `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                    |
 | `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                        |
 | _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.              |
 
@@ -108,32 +109,40 @@ deliberately no variable for you to set:
 Production never falls through to localhost, so a project with Vercel's system
 variables disabled still cannot mail a guest a link to their own machine.
 
-## The Hospitable webhook secret
+## Inbound webhook access
 
-`HOSPITABLE_WEBHOOK_SECRET` is a value you generate — the vendor does not issue
-one, and publishes no signature scheme:
-
-```bash
-openssl rand -hex 32
-```
-
-The same value goes in two places: the `luxel-web` env var, and the URL
-registered at **Hospitable → Apps → Webhooks**:
+Register the endpoint with **no secret in the URL**:
 
 ```
-https://<prod-host>/api/channels/hospitable?secret=<value>
+https://<prod-host>/api/channels/hospitable
 ```
 
-It has to be the query string there. Their webhook form offers only **Name** and
-**URL** — no custom headers, no signing key. The route prefers the
-`x-luxel-webhook-secret` header when one is present, because a query string is
-recorded in access logs, but nothing Hospitable sends can carry it; that path
-exists for our own tooling and manual replays.
+A query string is written to access logs, so it is not a place to put a
+credential — and Hospitable's webhook form offers only **Name** and **URL**
+anyway, no custom headers and no signing key.
 
-When the variable is unset the route performs **no check at all**. That is the
-local-development default and a production hole: a forged event triggers an
-account sync and AI replies into real guest threads. Their deliveries come from
-`38.80.170.0/24` if the query-string exposure ever needs closing at the edge.
+Two ways in, either sufficient:
+
+| Mechanism                                                     | For                                                                |
+| ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `x-luxel-webhook-secret` header = `HOSPITABLE_WEBHOOK_SECRET` | our own tooling and manual replays — Hospitable cannot set headers |
+| source IP within `HOSPITABLE_WEBHOOK_IPS`                     | Hospitable's own deliveries                                        |
+
+`HOSPITABLE_WEBHOOK_SECRET` is a value you generate (`openssl rand -hex 32`);
+the vendor does not issue one. `HOSPITABLE_WEBHOOK_IPS` defaults to their
+published `38.80.170.0/24` and exists so that a sender-range change is a config
+fix rather than a deploy. On Vercel the source IP is trustworthy: they overwrite
+`x-forwarded-for` and "do not forward external IPs… to prevent IP spoofing".
+
+With neither a secret configured nor any platform header present — local
+development — the route is open, because there is nothing to check against.
+Production always has one or the other.
+
+**Neither of these is what protects the guest threads.** The handler takes no
+content from the payload at all: an event names a reservation, and the thread is
+read back from Hospitable with our own credential before anything is stored or
+answered. A forged event costs an API call, not a fabricated message in a
+guest's inbox and in the AI's grounding. See `lib/channels/webhook-auth.ts`.
 
 ## Security note on `CRON_SECRET`
 

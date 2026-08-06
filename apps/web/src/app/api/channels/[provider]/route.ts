@@ -3,7 +3,8 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { handleInboundMessage } from '@/lib/channels/pipeline';
 import { encodeRef } from '@/lib/channels/types';
 import { customerForListing, hospitableAccess } from '@/lib/channels/scope';
-import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
+import { ingestThread, syncHospitableAccount } from '@/lib/channels/hospitable-sync';
+import { authorizeWebhook } from '@/lib/channels/webhook-auth';
 import { devMockEnabled } from '@/lib/dev-mock';
 
 export const runtime = 'nodejs';
@@ -20,6 +21,11 @@ export const maxDuration = 300;
  * hours. Webhooks are registered in their dashboard (Apps > Webhooks) — there is
  * no API to create one — so an account with none configured still gets the
  * scheduled pass and nothing else changes for it.
+ *
+ * NOTHING here trusts the payload's contents. An event names a reservation or a
+ * property and that is all it is read for; every value acted on is fetched back
+ * from Hospitable with our own credential. That is what makes the endpoint safe
+ * to expose, rather than a secret pasted into the URL — see ./webhook-auth.ts.
  */
 
 /** Events that mean the mirror is out of date for one account. Everything here
@@ -45,17 +51,17 @@ const RESYNC_DEBOUNCE_MS = 30_000;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WebhookPayload = any;
 
+/**
+ * Identifiers ONLY.
+ *
+ * The message body, sender type and guest name are not returned, on purpose: a
+ * field that does not exist cannot be trusted by accident later. Everything
+ * acted on is read back from Hospitable — see the `message.created` branch.
+ */
 function extractHospitable(
   payload: WebhookPayload,
   action: string,
-): {
-  reservationId: string | null;
-  propertyExternalId: string | null;
-  body: string | null;
-  senderType: string | null;
-  messageId: string | null;
-  guestName: string | null;
-} {
+): { reservationId: string | null; propertyExternalId: string | null } {
   const d = payload?.data ?? payload ?? {};
   const msg = d.message ?? d;
   return {
@@ -64,10 +70,6 @@ function extractHospitable(
     // listing id rather than a nested reference.
     propertyExternalId:
       d.property_id ?? d.property?.id ?? (action.startsWith('property.') ? (d.id ?? null) : null),
-    body: typeof msg.body === 'string' ? msg.body : null,
-    senderType: msg.sender_type ?? null,
-    messageId: msg.id ?? null,
-    guestName: msg.sender?.first_name ?? d.guest?.first_name ?? null,
   };
 }
 
@@ -198,24 +200,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
   }
 
   if (provider === 'hospitable') {
-    // Shared-secret gate. Hospitable publishes no signature scheme, so this is
-    // the only thing distinguishing a real delivery from anyone who guessed the
-    // URL — and a forged event triggers an account sync and AI replies into
-    // real guest threads. Unset means NO check at all; set it in production.
-    //
-    // Header first, because a query string is recorded in access logs. But
-    // Hospitable's webhook form offers only Name and URL — no custom headers —
-    // so their own deliveries necessarily arrive on the query parameter. The
-    // header is for callers that can send one: our tooling, manual replays, and
-    // whatever provider comes next.
-    //
-    // They also deliver from 38.80.170.0/24, which is a second factor available
-    // at the edge if the query-string exposure ever needs closing properly.
-    const secret = process.env.HOSPITABLE_WEBHOOK_SECRET;
-    if (secret) {
-      const given =
-        req.headers.get('x-luxel-webhook-secret') ?? new URL(req.url).searchParams.get('secret');
-      if (given !== secret) return new Response('Unauthorized', { status: 401 });
+    // Header secret or Hospitable's published source range — never a secret in
+    // the URL, which a query string would write into every access log.
+    const auth = authorizeWebhook(req.headers);
+    if (!auth.ok) {
+      // Loud, because the realistic cause is their sender range moving, and the
+      // symptom would otherwise be "events quietly stopped" until someone
+      // noticed the mirror was a day stale.
+      console.warn('webhook.rejected', { provider, ip: auth.ip });
+      return new Response('Unauthorized', { status: 401 });
     }
 
     const payload = await req.json().catch(() => null);
@@ -229,21 +222,46 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
       return Response.json({ ok: r.ok, action, resync: r.reason });
     }
 
-    // Only guest-authored messages trigger the pipeline; everything else is a no-op ack.
-    if (!ev.body || ev.senderType !== 'guest') return Response.json({ ok: true, ignored: true });
+    if (action !== 'message.created' || !ev.reservationId) {
+      return Response.json({ ok: true, ignored: true });
+    }
 
+    // The payload's body, sender and guest name are deliberately UNUSED. Acting
+    // on them would let anyone who reaches this endpoint put words in a guest's
+    // mouth: the AI answers in the real Airbnb thread, and the invented message
+    // is stored and replayed as grounding to every later guest of the property.
+    // The event tells us which thread changed; Hospitable tells us what it says.
     const propertyId = await resolveProperty(ev.reservationId, ev.propertyExternalId);
     if (!propertyId) return Response.json({ ok: true, ignored: true, reason: 'unmapped' });
 
-    const r = await handleInboundMessage({
-      propertyId,
-      channel: 'hospitable',
-      externalThreadId: ev.reservationId,
-      guestName: ev.guestName,
-      body: ev.body,
-      externalMessageId: ev.messageId,
+    const listingId = await resolveListingId(ev.reservationId, ev.propertyExternalId);
+    const customerId = listingId ? await customerForListing(listingId) : null;
+    if (!customerId) return Response.json({ ok: true, ignored: true, reason: 'unassigned' });
+
+    const access = await hospitableAccess(customerId);
+    if (!access) return Response.json({ ok: true, ignored: true, reason: 'no_access' });
+
+    const supabase = createSupabaseServiceRoleClient();
+    const { data: conn } = await supabase
+      .from('channel_connections')
+      .select('messages_synced_at')
+      .eq('customer_id', customerId)
+      .eq('provider', 'hospitable')
+      .maybeSingle();
+    // Same watermark the scheduled pass uses: null means this account has never
+    // synced, so its history imports silently instead of the AI answering
+    // threads that went cold months ago.
+    const watermark = (conn?.messages_synced_at as string | null) ?? null;
+
+    const reservationId = ev.reservationId;
+    await afterResponse(async () => {
+      try {
+        await ingestThread(supabase, access.token, propertyId, reservationId, watermark);
+      } catch {
+        // The daily reconcile is the retry.
+      }
     });
-    return Response.json({ ok: r.ok, action: r.action });
+    return Response.json({ ok: true, action, ingesting: true });
   }
 
   return new Response('Unknown provider', { status: 404 });

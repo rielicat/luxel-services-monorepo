@@ -20,10 +20,10 @@ name: Daily reconcile
 # All of that is day-grained, so once a day at 08:00 Santiago is the right rate.
 #
 # ⚠ REQUIRES the webhook to be registered in Hospitable (Apps > Webhooks, at
-# https://<prod-host>/api/channels/hospitable?secret=$HOSPITABLE_WEBHOOK_SECRET).
-# There is no API to create one — it is a dashboard action. Without it this
-# daily run is the ONLY path, and a same-day booking gets no check-in link
-# before the guest arrives.
+# https://<prod-host>/api/channels/hospitable — no secret in the URL; the
+# endpoint authorises on their published source range). There is no API to
+# create one, it is a dashboard action. Without it this daily run is the ONLY
+# path, and a same-day booking gets no check-in link before the guest arrives.
 #
 # Lives here and not in vercel.json because the Hobby plan rejects sub-daily
 # crons and a rejected vercel.json silently blocks EVERY deploy of luxel-web

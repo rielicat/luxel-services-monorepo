@@ -440,6 +440,92 @@ export async function reconcileHospitableProperties(
  * watermark run through the auto-reply pipeline, so connecting an account never
  * blasts replies at old threads.
  */
+/**
+ * Imports one reservation's thread and runs anything genuinely new past the
+ * watermark through the AI.
+ *
+ * Exported because the webhook needs exactly this and must NOT take the message
+ * from the event payload. A `message.created` body is attacker-controlled if
+ * anyone reaches the endpoint, and a forged one would be answered by the AI in
+ * a real Airbnb thread AND stored as grounding replayed to later guests. The
+ * event says only WHICH thread to look at; the content comes from Hospitable,
+ * read back with our own credential.
+ */
+export async function ingestThread(
+  supabase: Supabase,
+  token: string,
+  propertyId: string,
+  reservationId: string,
+  watermark: string | null,
+): Promise<{ imported: number; replies: number }> {
+  let imported = 0;
+  let replies = 0;
+
+  const messages = await listHospitableMessages(token, reservationId);
+  if (!messages?.length) return { imported, replies };
+  const guestName = messages.find((m) => m.sender_type === 'guest')?.sender?.first_name ?? null;
+
+  // One thread per reservation; created here so history imports land somewhere.
+  const { data: thread } = await supabase
+    .from('guest_threads')
+    .upsert(
+      {
+        property_id: propertyId,
+        channel: 'hospitable',
+        external_thread_id: reservationId,
+        guest_name: guestName,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'property_id,channel,external_thread_id' },
+    )
+    .select('id')
+    .single();
+  if (!thread) return { imported, replies };
+
+  const { data: existing } = await supabase
+    .from('guest_messages')
+    .select('external_id')
+    .eq('thread_id', thread.id)
+    .not('external_id', 'is', null);
+  const seen = new Set((existing ?? []).map((m) => m.external_id as string));
+
+  const ordered = [...messages].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  for (const m of ordered) {
+    if (!m.body || seen.has(m.id)) continue;
+    const isGuest = m.sender_type === 'guest';
+    const isNew = watermark !== null && m.created_at > watermark;
+
+    if (isGuest && isNew) {
+      const res = await handleInboundMessage({
+        propertyId,
+        channel: 'hospitable',
+        externalThreadId: reservationId,
+        guestName,
+        body: m.body,
+        externalMessageId: m.id,
+      });
+      if (res.action === 'sent') replies++;
+      imported++;
+    } else {
+      // Idempotent against the (thread_id, external_id) unique index —
+      // concurrent syncs can't double-import history.
+      await supabase.from('guest_messages').upsert(
+        {
+          thread_id: thread.id,
+          direction: isGuest ? 'in' : 'out',
+          source: isGuest ? 'guest' : 'host',
+          body: m.body,
+          external_id: m.id,
+        },
+        { onConflict: 'thread_id,external_id', ignoreDuplicates: true },
+      );
+      imported++;
+    }
+    seen.add(m.id);
+  }
+  return { imported, replies };
+}
+
 async function syncConversations(
   supabase: Supabase,
   token: string,
@@ -454,68 +540,9 @@ async function syncConversations(
   const active = reservations.filter((r) => r.departure_date.slice(0, 10) >= recentCutoff);
 
   for (const r of active) {
-    const messages = await listHospitableMessages(token, r.id);
-    if (!messages?.length) continue;
-    const guestName = messages.find((m) => m.sender_type === 'guest')?.sender?.first_name ?? null;
-
-    // One thread per reservation; created here so history imports land somewhere.
-    const { data: thread } = await supabase
-      .from('guest_threads')
-      .upsert(
-        {
-          property_id: propertyId,
-          channel: 'hospitable',
-          external_thread_id: r.id,
-          guest_name: guestName,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'property_id,channel,external_thread_id' },
-      )
-      .select('id')
-      .single();
-    if (!thread) continue;
-
-    const { data: existing } = await supabase
-      .from('guest_messages')
-      .select('external_id')
-      .eq('thread_id', thread.id)
-      .not('external_id', 'is', null);
-    const seen = new Set((existing ?? []).map((m) => m.external_id as string));
-
-    const ordered = [...messages].sort((a, b) => a.created_at.localeCompare(b.created_at));
-    for (const m of ordered) {
-      if (!m.body || seen.has(m.id)) continue;
-      const isGuest = m.sender_type === 'guest';
-      const isNew = watermark !== null && m.created_at > watermark;
-
-      if (isGuest && isNew) {
-        const res = await handleInboundMessage({
-          propertyId,
-          channel: 'hospitable',
-          externalThreadId: r.id,
-          guestName,
-          body: m.body,
-          externalMessageId: m.id,
-        });
-        if (res.action === 'sent') replies++;
-        imported++;
-      } else {
-        // Idempotent against the (thread_id, external_id) unique index —
-        // concurrent syncs can't double-import history.
-        await supabase.from('guest_messages').upsert(
-          {
-            thread_id: thread.id,
-            direction: isGuest ? 'in' : 'out',
-            source: isGuest ? 'guest' : 'host',
-            body: m.body,
-            external_id: m.id,
-          },
-          { onConflict: 'thread_id,external_id', ignoreDuplicates: true },
-        );
-        imported++;
-      }
-      seen.add(m.id);
-    }
+    const one = await ingestThread(supabase, token, propertyId, r.id, watermark);
+    imported += one.imported;
+    replies += one.replies;
   }
   return { imported, replies };
 }
