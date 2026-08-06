@@ -40,7 +40,7 @@ effect and fails silently:
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
 | `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
 | `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                          |
-| `HOSPITABLE_WEBHOOK_SECRET`                        | webhook endpoint accepts unsigned posts; set it and put it in the registered webhook URL                         |
+| `HOSPITABLE_WEBHOOK_SECRET`                        | **the webhook endpoint accepts anything posted to it** — self-generated, must match the registered URL           |
 | `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                        |
 | _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.              |
 
@@ -107,6 +107,33 @@ deliberately no variable for you to set:
 
 Production never falls through to localhost, so a project with Vercel's system
 variables disabled still cannot mail a guest a link to their own machine.
+
+## The Hospitable webhook secret
+
+`HOSPITABLE_WEBHOOK_SECRET` is a value you generate — the vendor does not issue
+one, and publishes no signature scheme:
+
+```bash
+openssl rand -hex 32
+```
+
+The same value goes in two places: the `luxel-web` env var, and the URL
+registered at **Hospitable → Apps → Webhooks**:
+
+```
+https://<prod-host>/api/channels/hospitable?secret=<value>
+```
+
+It has to be the query string there. Their webhook form offers only **Name** and
+**URL** — no custom headers, no signing key. The route prefers the
+`x-luxel-webhook-secret` header when one is present, because a query string is
+recorded in access logs, but nothing Hospitable sends can carry it; that path
+exists for our own tooling and manual replays.
+
+When the variable is unset the route performs **no check at all**. That is the
+local-development default and a production hole: a forged event triggers an
+account sync and AI replies into real guest threads. Their deliveries come from
+`38.80.170.0/24` if the query-string exposure ever needs closing at the edge.
 
 ## Security note on `CRON_SECRET`
 

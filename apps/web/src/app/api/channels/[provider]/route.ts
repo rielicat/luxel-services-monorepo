@@ -198,13 +198,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
   }
 
   if (provider === 'hospitable') {
-    // Shared-secret gate (set the same value in the Hospitable webhook URL).
-    // Their docs publish no signature scheme; they do send from 38.80.170.0/24,
-    // which is a second factor available at the edge if it is ever wanted.
+    // Shared-secret gate. Hospitable publishes no signature scheme, so this is
+    // the only thing distinguishing a real delivery from anyone who guessed the
+    // URL — and a forged event triggers an account sync and AI replies into
+    // real guest threads. Unset means NO check at all; set it in production.
+    //
+    // Header first, because a query string is recorded in access logs. But
+    // Hospitable's webhook form offers only Name and URL — no custom headers —
+    // so their own deliveries necessarily arrive on the query parameter. The
+    // header is for callers that can send one: our tooling, manual replays, and
+    // whatever provider comes next.
+    //
+    // They also deliver from 38.80.170.0/24, which is a second factor available
+    // at the edge if the query-string exposure ever needs closing properly.
     const secret = process.env.HOSPITABLE_WEBHOOK_SECRET;
     if (secret) {
       const given =
-        new URL(req.url).searchParams.get('secret') ?? req.headers.get('x-luxel-webhook-secret');
+        req.headers.get('x-luxel-webhook-secret') ?? new URL(req.url).searchParams.get('secret');
       if (given !== secret) return new Response('Unauthorized', { status: 401 });
     }
 

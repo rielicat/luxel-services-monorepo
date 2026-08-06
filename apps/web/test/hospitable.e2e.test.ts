@@ -16,6 +16,11 @@ const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 process.env.TEST_CLERK_ID = `test-hosp-${nodeCrypto.randomUUID()}`;
 process.env.LUXEL_PII_KEY = nodeCrypto.randomBytes(32).toString('hex');
 delete process.env.HOSPITABLE_API_TOKEN; // per-customer tokens only — no env fallback
+// The webhook gate is enforced only when this is set, so a developer who has it
+// in .env.local would 401 every webhook test here for reasons unrelated to the
+// code. Ambient config must not decide what these assert; the gate has its own
+// test below, which sets and clears the value itself.
+delete process.env.HOSPITABLE_WEBHOOK_SECRET;
 delete process.env.OPENAI_API_KEY;
 process.env.LUXEL_DEV_MOCK = '1'; // dev-mock AI so auto-replies are deterministic
 
@@ -742,6 +747,48 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       { params: Promise.resolve({ provider: 'hospitable' }) },
     );
     expect(((await again.json()) as { resync: string }).resync).toBe('debounced');
+  });
+
+  it('rejects a forged webhook, and accepts the secret by header or query', async () => {
+    // Without this gate anyone who guesses the URL can trigger an account sync
+    // and AI replies into real guest threads. Hospitable publishes no signature
+    // scheme, so this shared secret is the whole of the authentication.
+    const { POST } = await import('../src/app/api/channels/[provider]/route');
+    const post = (init: { query?: string; header?: string }) =>
+      POST(
+        new Request(`http://localhost/api/channels/hospitable${init.query ?? ''}`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            ...(init.header ? { 'x-luxel-webhook-secret': init.header } : {}),
+          },
+          body: JSON.stringify({ action: 'property.changed', data: { id: 'whatever' } }),
+        }),
+        { params: Promise.resolve({ provider: 'hospitable' }) },
+      );
+
+    process.env.HOSPITABLE_WEBHOOK_SECRET = 'sekret-under-test';
+    try {
+      expect((await post({})).status).toBe(401); // nothing presented
+      expect((await post({ query: '?secret=wrong' })).status).toBe(401);
+      expect((await post({ header: 'wrong' })).status).toBe(401);
+
+      // Hospitable's webhook form has only Name and URL, so their deliveries
+      // can only ever carry it here.
+      expect((await post({ query: '?secret=sekret-under-test' })).status).toBe(200);
+      // Header is preferred for callers that can send one — it stays out of logs.
+      expect((await post({ header: 'sekret-under-test' })).status).toBe(200);
+      // A correct header is not undone by junk in the query string.
+      expect((await post({ header: 'sekret-under-test', query: '?secret=wrong' })).status).toBe(
+        200,
+      );
+    } finally {
+      delete process.env.HOSPITABLE_WEBHOOK_SECRET;
+    }
+
+    // Unset means the gate is off entirely — the documented, deliberate default
+    // for local dev, and the reason production must set it.
+    expect((await post({})).status).toBe(200);
   });
 
   it('acks an event for a listing no tenant owns instead of guessing one', async () => {
