@@ -8,12 +8,12 @@ compare it against the Vercel and GitHub dashboards yourself.
 Four separate places hold configuration. A variable in the wrong one has no
 effect and fails silently:
 
-| Where                              | Holds                                             |
-| ---------------------------------- | ------------------------------------------------- |
-| Vercel project `luxel-web`         | the customer site and all API routes              |
-| Vercel project `luxel-admin`       | the operator panel                                |
-| GitHub repo secrets                | CI, migrations, infrastructure, the sync schedule |
-| Cloudflare Worker `luxel-whatsapp` | the WhatsApp bridge (`wrangler secret`)           |
+| Where                              | Holds                                   |
+| ---------------------------------- | --------------------------------------- |
+| Vercel project `luxel-web`         | the customer site and all API routes    |
+| Vercel project `luxel-admin`       | the operator panel                      |
+| GitHub repo secrets                | CI, migrations, infrastructure          |
+| Cloudflare Worker `luxel-whatsapp` | the WhatsApp bridge (`wrangler secret`) |
 
 ## Vercel — `luxel-web`
 
@@ -76,13 +76,11 @@ Local development only, never set in production: `LUXEL_DEV_MOCK`,
 
 ## GitHub — repository secrets
 
-| Secret                                                                                         | Used by            | Absent behaviour                                        |
-| ---------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------- |
-| `APP_CRON_URL`                                                                                 | `sync-cron.yml`    | job skips green — nothing syncs on a schedule           |
-| `CRON_SECRET`                                                                                  | `sync-cron.yml`    | must equal the Vercel value or the endpoint returns 401 |
-| `SUPABASE_DB_URL`                                                                              | `db-migrate.yml`   | migrations never reach production                       |
-| `VERCEL_API_TOKEN`, `VERCEL_TEAM_ID`                                                           | `infra-vercel.yml` | Pulumi cannot manage projects                           |
-| `CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `PULUMI_CONFIG_PASSPHRASE` | `infra.yml`        | DNS and email routing not managed                       |
+| Secret                                                                                         | Used by            | Absent behaviour                  |
+| ---------------------------------------------------------------------------------------------- | ------------------ | --------------------------------- |
+| `SUPABASE_DB_URL`                                                                              | `db-migrate.yml`   | migrations never reach production |
+| `VERCEL_API_TOKEN`, `VERCEL_TEAM_ID`                                                           | `infra-vercel.yml` | Pulumi cannot manage projects     |
+| `CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `PULUMI_CONFIG_PASSPHRASE` | `infra.yml`        | DNS and email routing not managed |
 
 `GITHUB_TOKEN` is injected automatically; do not create it.
 
@@ -143,6 +141,30 @@ content from the payload at all: an event names a reservation, and the thread is
 read back from Hospitable with our own credential before anything is stored or
 answered. A forged event costs an API call, not a fabricated message in a
 guest's inbox and in the AI's grounding. See `lib/channels/webhook-auth.ts`.
+
+## The daily reconcile
+
+Scheduled by Vercel itself, from `apps/web/vercel.json`:
+
+```json
+{ "crons": [{ "path": "/api/cron/sync", "schedule": "0 12 * * *" }] }
+```
+
+There is no `APP_CRON_URL` and no GitHub secret. Vercel GETs the production
+deployment directly and sends `Authorization: Bearer $CRON_SECRET` automatically
+when that variable exists on the project, so `CRON_SECRET` is set in exactly one
+place with no second copy to drift.
+
+⚠️ **Once per day, never more.** Hobby rejects a sub-daily expression, and a
+rejected `vercel.json` fails deployment creation outright — that once blocked
+every `luxel-web` deploy for weeks while the site served a stale build
+(`c64c945`). Anything needing finer granularity belongs on a webhook, which is
+where all event-driven work now lives.
+
+On Hobby the run lands anywhere inside the given hour (12:00–12:59 UTC, so
+08:00–08:59 Santiago), and delivery is best effort — a run can be missed or
+delivered twice. The pass is idempotent and reconciliation-based for that
+reason.
 
 ## Security note on `CRON_SECRET`
 

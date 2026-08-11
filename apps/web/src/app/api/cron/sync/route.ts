@@ -15,10 +15,20 @@ export const maxDuration = 300;
  * nobody has claimed, and detecting what silently stopped existing — which a
  * stream of events, by construction, never reports.
  *
- * Driven by .github/workflows/sync-cron.yml (daily, 08:00 Santiago), NOT by
- * vercel.json — a sub-daily cron there is rejected on Hobby and silently blocks
- * every deploy. The caller sends `Authorization: Bearer ${CRON_SECRET}`; when
- * CRON_SECRET is unset the route is open, so set it in production.
+ * Driven by Vercel's own scheduler (apps/web/vercel.json, `0 12 * * *` — 08:00
+ * Santiago). There is no external caller and no URL to configure: Vercel GETs
+ * the production deployment directly, and sends `Authorization: Bearer
+ * ${CRON_SECRET}` automatically when that variable exists on the project. When
+ * it is unset the route is open, so set it in production.
+ *
+ * ⚠ ONCE PER DAY, not more. Hobby rejects a sub-daily expression and a rejected
+ * vercel.json fails deployment creation outright — which once blocked every
+ * luxel-web deploy for weeks while the site silently served a stale build (see
+ * c64c945). Anything needing finer granularity belongs on a webhook.
+ *
+ * Vercel cron delivery is best effort: a run can be missed, or delivered twice.
+ * Everything below is idempotent (send-once anchors, upserts, catch-up windows)
+ * for that reason.
  *
  * No vendor is named anywhere in this file. The active plugin resolves the
  * credential and owns the mirror pass; this route only decides WHO to sync and
