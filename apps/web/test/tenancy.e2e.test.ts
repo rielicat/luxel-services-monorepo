@@ -17,7 +17,13 @@ const CENTRAL_TOKEN = `tok_central_${nodeCrypto.randomBytes(12).toString('hex')}
 const LISTING_A = 'a1111111-0000-0000-0000-00000000000a';
 const LISTING_B = 'b2222222-0000-0000-0000-00000000000b';
 
-process.env.HOSPITABLE_API_TOKEN = CENTRAL_TOKEN;
+// The code prefers PROVIDER_API_KEY, so set THAT — setting only the legacy name
+// left a real .env.local value winning and every assertion here describing the
+// developer's machine rather than the code. Both are pinned so neither ambient
+// value leaks in.
+const RETIRED_TOKEN = `tok_retired_${nodeCrypto.randomBytes(12).toString('hex')}`;
+process.env.PROVIDER_API_KEY = CENTRAL_TOKEN;
+process.env.HOSPITABLE_API_TOKEN = RETIRED_TOKEN;
 process.env.TEST_CLERK_ID = `test-tenant-a-${nodeCrypto.randomUUID()}`;
 
 const remoteProperty = (id: string, name: string) => ({
@@ -280,6 +286,36 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       { onConflict: 'customer_id,provider' },
     );
     expect((await hospitableAccess(customerA))?.scope).toBe('central');
+
+    // …and still central when the credential has been ROTATED and the row holds
+    // the PREVIOUS operator token. Comparing against only the active value would
+    // reclassify this as the customer's own connection, bypassing the assignment
+    // filter and mirroring every listing the operator account can reach into
+    // this one tenant.
+    await admin.from('channel_connections').upsert(
+      {
+        customer_id: customerA,
+        provider: 'hospitable',
+        token_enc: encryptPII(RETIRED_TOKEN),
+        status: 'connected',
+      },
+      { onConflict: 'customer_id,provider' },
+    );
+    expect((await hospitableAccess(customerA))?.scope).toBe('central');
+
+    // A genuine customer token is still their own — the guard must not swallow
+    // every stored connection.
+    await admin.from('channel_connections').upsert(
+      {
+        customer_id: customerA,
+        provider: 'hospitable',
+        token_enc: encryptPII('tok_a_real_customer_token'),
+        status: 'connected',
+      },
+      { onConflict: 'customer_id,provider' },
+    );
+    expect((await hospitableAccess(customerA))?.scope).toBe('own');
+
     await admin
       .from('channel_connections')
       .delete()

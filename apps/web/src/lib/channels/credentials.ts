@@ -17,3 +17,22 @@ export function providerApiKey(): string | null {
 /** Names checked, most-preferred first — for operator diagnostics that need to
  *  tell someone WHICH variable to set. */
 export const PROVIDER_KEY_NAMES = ['PROVIDER_API_KEY', 'HOSPITABLE_API_TOKEN'] as const;
+
+/**
+ * Every value currently configured as an operator credential, most-preferred
+ * first — normally one, two during a rotation.
+ *
+ * `hospitableAccess` decides tenancy scope by asking "is this stored token
+ * Luxel's or the customer's?", and comparing against only the ACTIVE value gets
+ * that wrong the moment the credential rotates: a legacy row holding the
+ * PREVIOUS operator token stops matching, is reclassified as the customer's
+ * own, and so bypasses the assignment filter — mirroring every listing the
+ * operator account can reach into that one tenant. Keeping the old variable set
+ * for the duration of a rotation closes that window.
+ */
+export function operatorCredentials(): string[] {
+  const seen = [process.env.PROVIDER_API_KEY, process.env.HOSPITABLE_API_TOKEN].filter(
+    (v): v is string => Boolean(v),
+  );
+  return [...new Set(seen)];
+}

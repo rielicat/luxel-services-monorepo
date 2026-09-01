@@ -66,8 +66,27 @@ export async function relinkByConfirmationCode(
       .select('id, reservation_uid, confirmation_code')
       .eq('property_id', property.id)
       .not('confirmation_code', 'is', null);
+
+    // Check-ins alone are NOT enough evidence. They are created only for future
+    // stays and purged once a reservation leaves the remote window, so a
+    // property whose upcoming stays have all happened carries no code at all —
+    // and no evidence means unmatched, which is precisely the state the next
+    // prune acts on. calendar_blocks keeps one row per accepted reservation for
+    // the whole window and was backfilled with codes by migration 0035, so it
+    // is the durable record of which stays this property has hosted.
+    const { data: blocks } = await supabase
+      .from('calendar_blocks')
+      .select('confirmation_code')
+      .eq('property_id', property.id)
+      .not('confirmation_code', 'is', null);
+
     const myCodes = new Set(
-      (mine ?? []).map((c) => String(c.confirmation_code).trim()).filter(Boolean),
+      [
+        ...(mine ?? []).map((c) => c.confirmation_code),
+        ...(blocks ?? []).map((b) => b.confirmation_code),
+      ]
+        .map((c) => String(c).trim())
+        .filter(Boolean),
     );
     if (!myCodes.size) {
       result.unmatched.push(property.external_listing_id as string);

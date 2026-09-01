@@ -682,6 +682,59 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     await admin.from('listing_assignments').delete().eq('customer_id', customerId);
   });
 
+  it('re-keys from calendar_blocks alone, once the check-ins are long gone', async () => {
+    // The realistic production cutover. Check-ins exist only for future stays
+    // and are purged as reservations leave the window, so a property connected
+    // months ago carries none — while calendar_blocks still holds a code for
+    // every accepted reservation. Evidence has to come from both, or a mirror
+    // with nothing but past stays goes unmatched and the next prune acts on it.
+    const STRAY = `oldprov-${nodeCrypto.randomUUID()}`;
+    await admin.from('listing_assignments').delete().eq('customer_id', customerId);
+    await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
+    const { data: prop } = await admin
+      .from('properties')
+      .insert({
+        owner_id: customerId,
+        nickname: 'Depto Sin Checkins',
+        external_listing_id: STRAY,
+        platform: 'airbnb',
+      })
+      .select('id')
+      .single();
+    await admin
+      .from('listing_assignments')
+      .insert({ external_listing_id: STRAY, customer_id: customerId, assigned_by: 'test' });
+
+    // A past stay: block retains the code, no check-in row survives.
+    await admin.from('calendar_blocks').insert({
+      property_id: prop!.id,
+      starts_on: '2026-01-10',
+      ends_on: '2026-01-12',
+      source: 'import',
+      summary: 'Airbnb HMRSHPJXAE',
+      confirmation_code: 'HMRSHPJXAE',
+      external_uid: `oldprov:${nodeCrypto.randomUUID()}`,
+    });
+    const { count: checkins } = await admin
+      .from('checkins')
+      .select('*', { count: 'exact', head: true })
+      .eq('property_id', prop!.id);
+    expect(checkins).toBe(0); // the whole point: no check-in evidence at all
+
+    const r = await syncHospitable();
+    expect(r.ok).toBe(true);
+
+    const { data: after } = await admin
+      .from('properties')
+      .select('id, external_listing_id')
+      .eq('owner_id', customerId)
+      .single();
+    expect(after!.id).toBe(prop!.id); // survived, not deleted and recreated
+    expect(after!.external_listing_id).toBe(HOSP_PROPERTY_ID);
+
+    await admin.from('listing_assignments').delete().eq('customer_id', customerId);
+  });
+
   it('refuses to re-key onto a listing another customer already holds', async () => {
     // external_listing_id is the PRIMARY KEY of listing_assignments, so the
     // incoming id may already be spoken for. Moving the property anyway would

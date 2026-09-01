@@ -1,7 +1,7 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { decryptPII } from '@/lib/crypto/pii';
-import { providerApiKey } from './credentials';
+import { operatorCredentials, providerApiKey } from './credentials';
 import type { ChannelAccess, ChannelScope } from './types';
 
 /**
@@ -46,11 +46,16 @@ async function ownConnectionToken(customerId: string): Promise<string | null> {
 export async function hospitableAccess(customerId: string): Promise<ChannelAccess | null> {
   const central = providerApiKey();
   const own = await ownConnectionToken(customerId);
-  // A stored token that IS the operator credential is Luxel's, not this
+  // A stored token that IS an operator credential is Luxel's, not this
   // customer's — the pre-central admin bootstrap persisted it as an "own"
   // connection. Treating it as `own` would bypass the assignment filter and
   // mirror every reachable listing into that one tenant.
-  if (own && own !== central) return { token: own, scope: 'own' };
+  //
+  // Compared against EVERY configured operator value, not just the active one:
+  // a rotation would otherwise silently reclassify a legacy row holding the
+  // previous token as the customer's own.
+  const operator = new Set(operatorCredentials());
+  if (own && !operator.has(own)) return { token: own, scope: 'own' };
   if (!central) return null;
   const assigned = await allowedListingIds(customerId);
   return assigned?.length ? { token: central, scope: 'central' } : null;

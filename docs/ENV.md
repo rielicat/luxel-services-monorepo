@@ -17,6 +17,13 @@ effect and fails silently:
 
 ## Vercel — `luxel-web`
 
+> **Local development: env files live in `apps/web/`, not the monorepo root.**
+> Next loads `.env` / `.env.local` from the app directory only, so a variable
+> placed in the repository root `.env` is invisible to the app AND to the test
+> suite. It fails quietly rather than loudly: `providerApiKey()` falls through to
+> the legacy `HOSPITABLE_API_TOKEN`, so the symptom is a stale credential and a
+> `402`, not a missing-variable error. The root `.env` is for the Supabase CLI.
+
 ### Required: the app does not work without these
 
 | Variable                            | Purpose                                                                           |
