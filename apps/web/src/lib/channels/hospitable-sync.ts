@@ -13,7 +13,9 @@ import {
 import { suggestCleaningsFromCheckouts } from '@/lib/cleaning/schedule';
 import { autoConfirmSuggested } from '@/lib/cleaning/notify';
 import { checkinToken } from '@/lib/checkin/tokens';
-import { remindAndDeliverAccess } from '@/lib/checkin/reminders';
+import { bookingMessage } from '@/lib/checkin/copy';
+import { resolveGuestLang } from '@/lib/checkin/lang';
+import { notifyCleaningCrewOfBooking } from '@/lib/cleaning/booking-notify';
 import { appUrl } from '@/lib/urls';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
@@ -60,10 +62,23 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 const santiagoDate = (d: Date) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d);
 
+/** ISO 639-1 as Airbnb reports it, or null. Stored raw rather than narrowed to
+ *  what we translate: an unsupported language still tells the page to fall back
+ *  to English instead of Spanish. */
+const languageOf = (r: HospitableReservation): string | null => {
+  const code = (r.guest?.language ?? r.conversation_language ?? '')
+    .trim()
+    .toLowerCase()
+    .slice(0, 2);
+  return /^[a-z]{2}$/.test(code) ? code : null;
+};
+
 /** The check-in link is part of the reservation, not a button: each newly
  *  imported future reservation gets one message with its tokenized link, and a
  *  reservation that disappears upstream (cancellation) gets its unsubmitted
- *  link revoked. The unique `reservation_uid` makes the send once-only.
+ *  link revoked. The unique `reservation_uid` makes the send once-only, and the
+ *  cleaning crew hears about the booking from the same place, so the two can
+ *  never drift apart.
  *
  *  Guests who booked before this feature existed must NEVER be messaged: the
  *  first sync that sees a property seeds anchors for its current reservations
@@ -101,11 +116,7 @@ async function sendCheckinLinksForNewReservations(
     .delete()
     .eq('property_id', propertyId)
     .like('reservation_uid', HOSP)
-    .is('submitted_at', null)
-    // Rows that already messaged a guest keep their send-once watermarks;
-    // deleting and re-creating one would message that guest all over again.
-    .is('reminded_at', null)
-    .is('access_sent_at', null);
+    .is('submitted_at', null);
   if (uids.length) {
     purge = purge.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`);
   }
@@ -113,7 +124,7 @@ async function sendCheckinLinksForNewReservations(
 
   const { data: prop } = await supabase
     .from('properties')
-    .select('nickname, checkin_links_backfilled_at')
+    .select('checkin_links_backfilled_at')
     .eq('id', propertyId)
     .maybeSingle();
   const backfill = prop != null && prop.checkin_links_backfilled_at == null;
@@ -121,6 +132,7 @@ async function sendCheckinLinksForNewReservations(
     try {
       if (r.arrival_date.slice(0, 10) < today) continue;
       const uid = ref(r.id);
+      const lang = languageOf(r);
       let linkToken = checkinToken();
       const { error } = await supabase.from('checkins').insert({
         property_id: propertyId,
@@ -130,6 +142,9 @@ async function sendCheckinLinksForNewReservations(
         confirmation_code: r.code || null,
         arrival_date: r.arrival_date.slice(0, 10),
         departure_date: r.departure_date.slice(0, 10),
+        guest_language: lang,
+        guest_first_name: r.guest?.first_name ?? null,
+        expected_guests: r.guests?.total ?? null,
         ...(backfill ? { notify_result: { hospitable: 'skipped_backfill' } } : {}),
       });
       if (error) {
@@ -140,7 +155,7 @@ async function sendCheckinLinksForNewReservations(
         const { data: existing } = await supabase
           .from('checkins')
           .select(
-            'token, notified_at, notify_result, arrival_date, departure_date, confirmation_code',
+            'token, notified_at, notify_result, arrival_date, departure_date, confirmation_code, guest_language',
           )
           .eq('reservation_uid', uid)
           .maybeSingle();
@@ -148,15 +163,15 @@ async function sendCheckinLinksForNewReservations(
 
         // Guests move their dates. calendar_blocks is refreshed wholesale every
         // sync but this row was written once at insert, so a moved stay would
-        // keep nudging and revealing access against dates that are no longer
-        // true — including after the guest has already left. Re-arm both passes
-        // when the arrival actually moves.
+        // keep revealing access against dates that are no longer true —
+        // including after the guest has already left.
         const arrival = r.arrival_date.slice(0, 10);
         const departure = r.departure_date.slice(0, 10);
         if (
           existing.arrival_date !== arrival ||
           existing.departure_date !== departure ||
-          (r.code && !existing.confirmation_code)
+          (r.code && !existing.confirmation_code) ||
+          (lang && !existing.guest_language)
         ) {
           await supabase
             .from('checkins')
@@ -164,9 +179,7 @@ async function sendCheckinLinksForNewReservations(
               arrival_date: arrival,
               departure_date: departure,
               ...(r.code ? { confirmation_code: r.code } : {}),
-              ...(existing.arrival_date !== arrival
-                ? { reminded_at: null, access_sent_at: null, access_claim_at: null }
-                : {}),
+              ...(lang && !existing.guest_language ? { guest_language: lang } : {}),
             })
             .eq('reservation_uid', uid);
         }
@@ -180,13 +193,18 @@ async function sendCheckinLinksForNewReservations(
       const sent = await sendHospitableMessage(
         hospToken,
         r.id,
-        `¡Hola! Gracias por tu reserva en ${prop?.nickname ?? 'nuestro alojamiento'}. Para agilizar tu llegada, completa tu check-in online aquí: ${url}`,
+        bookingMessage(resolveGuestLang(lang, null), {
+          url,
+          arrival: r.arrival_date.slice(0, 10),
+          departure: r.departure_date.slice(0, 10),
+        }),
       );
       if (sent) {
         await supabase
           .from('checkins')
           .update({ notified_at: new Date().toISOString(), notify_result: { hospitable: 'sent' } })
           .eq('reservation_uid', uid);
+        await notifyCleaningCrewOfBooking(supabase, uid);
       } else {
         await supabase
           .from('checkins')
@@ -253,6 +271,7 @@ async function upsertHospitableProperty(
     listed: rp.listed ?? true,
     amenities: rp.amenities ?? null,
     house_rules: rp.house_rules ?? null,
+    listing_details: rp.details ?? null,
     updated_at: new Date().toISOString(),
   };
 
@@ -645,23 +664,16 @@ export async function syncHospitableAccount(
       }
       reservationCount += accepted.length;
 
-      // 2b) Every NEW future reservation gets its check-in link sent into the
-      // guest thread automatically — send-once, anchored on the reservation uid.
+      // 2b) Every NEW future reservation gets its booking message — the
+      // registration link, in the guest's language — and its cleaning crew
+      // hears about it; send-once, anchored on the reservation uid. Everything
+      // time-based after this point (reminder, check-in details at T-3,
+      // check-out, review) is Hospitable's own message rules, not ours.
       await sendCheckinLinksForNewReservations(
         supabase,
         token,
         propertyId,
         accepted,
-        santiagoDate(now),
-      );
-
-      // 2c) Guests who never opened that link still have to get in: nudge the
-      // day before, deliver access on arrival day.
-      await remindAndDeliverAccess(
-        supabase,
-        token,
-        propertyId,
-        new Map(accepted.map((r) => [ref(r.id), r.id])),
         santiagoDate(now),
       );
     }

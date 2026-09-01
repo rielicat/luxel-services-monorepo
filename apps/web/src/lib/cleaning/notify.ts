@@ -41,7 +41,11 @@ export async function notifyCleaningScheduled(
         .select('cleaning_date, confirm_token')
         .eq('id', cleaningId)
         .maybeSingle(),
-      supabase.from('cleaning_contacts').select('name, email').eq('property_id', propertyId),
+      supabase
+        .from('property_contacts')
+        .select('name, email')
+        .eq('property_id', propertyId)
+        .eq('role', 'cleaning'),
     ]);
     if (!prop || !cleaning) return;
     const where = [prop.address, prop.comuna].filter(Boolean).join(', ');

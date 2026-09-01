@@ -48,6 +48,7 @@ export function hasDeliverableAccess(a: AccessInfo | null): boolean {
 
 // There is deliberately no helper that renders access as a channel message.
 // Anything written into the guest thread is re-imported as a `host` message and
-// replayed to the AI as grounding for later guests, so a door code sent that way
-// leaks to everyone who books afterwards. Access is revealed behind the token on
-// the check-in page; the thread only ever carries a link. See reminders.ts.
+// replayed to the AI as grounding for later guests. The check-in details that DO
+// reach the thread come from Hospitable's own rule (3 days before arrival) and
+// are redacted out of grounding in lib/ai/grounding.ts; our own messages only
+// ever carry the link, and this page reveals access behind the token.

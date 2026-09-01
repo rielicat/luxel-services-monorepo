@@ -1,7 +1,6 @@
 'use server';
 
 import { z } from 'zod';
-import nodeCrypto from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
@@ -23,8 +22,8 @@ const StaffSchema = z.object({
   autoConfirm: z.boolean().optional(),
 });
 
-/** Who runs the turnovers: Luxel's crew, or the host's own people (managed as
- *  a notify list via add/removeCleaningContact). */
+/** Who runs the turnovers: Luxel's crew, or the host's own people. The notify
+ *  list itself lives in property_contacts (see ./contact-actions.ts). */
 export async function updateCleaningStaff(input: unknown): Promise<{ ok: boolean }> {
   const p = StaffSchema.safeParse(input);
   if (!p.success) return { ok: false };
@@ -40,75 +39,6 @@ export async function updateCleaningStaff(input: unknown): Promise<{ ok: boolean
     })
     .eq('id', p.data.propertyId);
   if (error) return { ok: false };
-  revalidatePath('/properties');
-  return { ok: true };
-}
-
-const ContactSchema = z.object({
-  propertyId: z.string().uuid(),
-  name: z.string().max(120).optional(),
-  email: z.union([z.string().email().max(120), z.literal('')]).optional(),
-  whatsapp: z.string().max(30).optional(),
-});
-
-export async function addCleaningContact(
-  input: unknown,
-): Promise<{ ok: boolean; id?: string; error?: string }> {
-  const p = ContactSchema.safeParse(input);
-  if (!p.success) return { ok: false, error: 'validation' };
-  const email = p.data.email?.trim() || null;
-  const whatsapp = p.data.whatsapp?.trim() || null;
-  // Notifications go out by email — a contact without one would silently
-  // never be notified while the UI claims "equipo avisado".
-  if (!email) return { ok: false, error: 'email_required' };
-  const cid = await currentCustomerId();
-  if (!cid || !(await ownsProperty(cid, p.data.propertyId))) return { ok: false };
-  const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from('cleaning_contacts')
-    .insert({
-      property_id: p.data.propertyId,
-      name: p.data.name?.trim() || null,
-      email,
-      whatsapp,
-    })
-    .select('id')
-    .single();
-  if (error) return { ok: false };
-  revalidatePath('/properties');
-  return { ok: true, id: data.id as string };
-}
-
-export async function removeCleaningContact(input: unknown): Promise<{ ok: boolean }> {
-  const p = z
-    .object({ propertyId: z.string().uuid(), contactId: z.string().uuid() })
-    .safeParse(input);
-  if (!p.success) return { ok: false };
-  const cid = await currentCustomerId();
-  if (!cid || !(await ownsProperty(cid, p.data.propertyId))) return { ok: false };
-  const supabase = createSupabaseServiceRoleClient();
-  await supabase
-    .from('cleaning_contacts')
-    .delete()
-    .eq('id', p.data.contactId)
-    .eq('property_id', p.data.propertyId);
-
-  // The removed person still holds confirm links for pending cleanings —
-  // rotate those tokens (killing their links) and re-notify whoever remains.
-  const { data: pendingRows } = await supabase
-    .from('cleanings')
-    .select('id')
-    .eq('property_id', p.data.propertyId)
-    .eq('status', 'scheduled')
-    .is('crew_confirmed_at', null);
-  for (const row of pendingRows ?? []) {
-    await supabase
-      .from('cleanings')
-      .update({ confirm_token: nodeCrypto.randomUUID() })
-      .eq('id', row.id);
-    await notifyCleaningScheduled(supabase, p.data.propertyId, row.id as string);
-  }
-
   revalidatePath('/properties');
   return { ok: true };
 }

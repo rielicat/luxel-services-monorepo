@@ -26,14 +26,14 @@ effect and fails silently:
 
 ### Required: the app does not work without these
 
-| Variable                            | Purpose                                                                           |
-| ----------------------------------- | --------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`          | database endpoint                                                                 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | browser-side database key (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)             |
-| `SUPABASE_SERVICE_ROLE_KEY`         | server-side database key (or `SUPABASE_SECRET_KEY`); every server action needs it |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | sign-in                                                                           |
-| `CLERK_SECRET_KEY`                  | session verification                                                              |
-| `LUXEL_PII_KEY`                     | encrypts guest identity documents at rest; check-in storage fails without it      |
+| Variable                            | Purpose                                                                                                                    |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`          | database endpoint                                                                                                          |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | browser-side database key (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)                                                      |
+| `SUPABASE_SERVICE_ROLE_KEY`         | server-side database key (or `SUPABASE_SECRET_KEY`); every server action needs it                                          |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | sign-in                                                                                                                    |
+| `CLERK_SECRET_KEY`                  | session verification                                                                                                       |
+| `LUXEL_PII_KEY`                     | encrypts guest identity documents at rest and decrypts them for the conserje's WhatsApp; check-in storage fails without it |
 
 ### Feature gates: absent means the feature is silently off
 
@@ -43,10 +43,9 @@ effect and fails silently:
 | `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                              |
 | `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN` |
 | `CHANNEL_PROVIDER`                                 | optional; defaults to `hospitable`, the only registered plugin. An unregistered value returns HTTP 500           |
-| `CRON_SECRET`                                      | **the daily reconcile refuses every request and does nothing** — it fails closed                                 |
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
 | `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                          |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp: conserjes and the cleaning crew are reached by email only where they have one                       |
 | `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                    |
 | `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                        |
 | _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.              |
@@ -95,7 +94,9 @@ Local development only, never set in production: `LUXEL_DEV_MOCK`,
 Set with `wrangler secret put`, not in Vercel:
 `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`,
 `WHATSAPP_APP_SECRET`, `INTERNAL_SEND_TOKEN` (must match the web value),
-`SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `LUXEL_OPERATOR_WHATSAPP`.
+`SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `LUXEL_OPERATOR_WHATSAPP`. The two crew
+templates below must exist and be approved on the same WhatsApp Business
+account.
 
 ## Outbound link origin
 
@@ -140,50 +141,62 @@ back from Hospitable with our own credential before anything is stored or
 answered. A forged event costs an API call, not a fabricated message in a
 guest's inbox and in the AI's grounding. See `lib/channels/webhook-auth.ts`.
 
-## The daily reconcile
+## Scheduled guest messages
 
-Scheduled by Vercel itself, from `apps/web/vercel.json`:
+There is no scheduler in this codebase. Everything a guest receives on a
+timer — the registration reminder, the check-in details three days before
+arrival (door code, wifi, parking, building rules), the check-out-day message
+and the review request — is a **message rule in Hospitable's own dashboard**
+(Inbox → Rules), with the property-specific values as Hospitable custom codes.
+Nothing to deploy: no `CRON_SECRET`, no `vercel.json`, no cron route.
 
-```json
-{ "crons": [{ "path": "/api/cron/sync", "schedule": "0 12 * * *" }] }
+The app sends exactly one guest message itself: the booking message with the
+registration link, in the guest's language (`lib/checkin/copy.ts`), from the
+`reservation.created` webhook. The cleaning crew hears about the booking at the
+same moment; the conserjes hear when the registration is submitted.
+
+## WhatsApp to the crew
+
+Crew messages are **Meta-approved utility templates**. A business-initiated
+WhatsApp to someone who has not written to us in the last 24 hours must be one —
+the Cloud API rejects free text — and that is every conserje and every cleaner,
+every time. The worker maps an intent to a template name (`TEMPLATES` in
+`workers/whatsapp/src/index.ts`); register both in Meta Business Manager,
+category _Utility_, language `es`, with these bodies. Parameters may not
+contain newlines, so the guest list arrives as one line.
+
+`luxel_conserje_llegada` — sent when a guest completes registration:
+
+```
+📅 Estadía: {{1}}
+🏠 Departamento: {{2}}
+📍 Dirección: {{3}}
+🚗 Estacionamiento: {{4}}
+
+HUÉSPEDES ({{5}})
+{{6}}
 ```
 
-There is no `APP_CRON_URL` and no GitHub secret. Vercel GETs the production
-deployment directly and sends `Authorization: Bearer $CRON_SECRET` automatically
-when that variable exists on the project, so `CRON_SECRET` is set in exactly one
-place with no second copy to drift.
+`luxel_aseo_nueva_reserva` — sent when a booking is created:
 
-⚠️ **Once per day, never more.** Hobby rejects a sub-daily expression, and a
-rejected `vercel.json` fails deployment creation outright — that once blocked
-every `luxel-web` deploy for weeks while the site served a stale build
-(`c64c945`). Anything needing finer granularity belongs on a webhook, which is
-where all event-driven work now lives.
+```
+🧹 Nueva reserva — {{1}}
 
-On Hobby the run lands anywhere inside the given hour (12:00–12:59 UTC, so
-08:00–08:59 Santiago), and delivery is best effort — a run can be missed or
-delivered twice. The pass is idempotent and reconciliation-based for that
-reason.
-
-## Security note on `CRON_SECRET`
-
-The guard in `apps/web/src/app/api/cron/sync/route.ts` reads:
-
-```ts
-const secret = process.env.CRON_SECRET;
-if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
-  /* 401 */
-}
+📅 Estadía: {{2}}
+🏠 Departamento: {{3}}
+📍 Dirección: {{4}}
+👥 Huéspedes: {{5}}
+🗓️ Check-out (aseo): {{6}}
 ```
 
-It fails **closed**: with `CRON_SECRET` unset the route refuses every request
-and the daily pass does nothing, which shows up as a 401 in the Vercel cron log.
-That is deliberate — the pass is not read-only, it sends messages into guest
-threads and triggers AI replies, so an unconfigured endpoint must not be an open
-one. Vercel supplies the header automatically once the variable exists.
+Until a template is approved the send fails, the outcome is recorded on the
+check-in (`notify_result`, recipients only), and a contact with an email gets
+that instead. Recipients are `property_contacts` rows (role `concierge` or
+`cleaning`), managed per property in `/properties`.
 
 ## Known drift
 
-- `.env.example` omits `OPENAI_API_KEY`, `OPENAI_MODEL`, `CRON_SECRET`,
+- `.env.example` omits `OPENAI_API_KEY`, `OPENAI_MODEL`,
   `PROVIDER_API_KEY`, `PRICELABS_API_KEY`,
   `RESEND_API_KEY`, `RESEND_FROM`, `LUXEL_PII_KEY`,
   `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,

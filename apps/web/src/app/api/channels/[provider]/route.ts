@@ -2,8 +2,10 @@ import { after } from 'next/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { handleInboundMessage } from '@/lib/channels/pipeline';
 import { encodeRef } from '@/lib/channels/types';
-import { customerForListing, hospitableAccess } from '@/lib/channels/scope';
-import { ingestThread, syncHospitableAccount } from '@/lib/channels/hospitable-sync';
+import { customerForListing } from '@/lib/channels/scope';
+import { ingestThread } from '@/lib/channels/hospitable-sync';
+import { channelPlugin } from '@/lib/channels/registry';
+import type { ChannelPlugin } from '@/lib/channels/types';
 import { authorizeWebhook } from '@/lib/channels/webhook-auth';
 import { devMockEnabled } from '@/lib/dev-mock';
 
@@ -12,15 +14,17 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 /**
- * Inbound channel events — the PRIMARY path, with the scheduled reconcile as a
- * backstop rather than the mechanism.
+ * Inbound channel events — THE mechanism. There is no scheduled pass: anything
+ * time-based a guest receives (the reminder, the check-in details three days
+ * out, the check-out and review messages) is Hospitable's own message rules,
+ * and everything event-shaped arrives here.
  *
  * Hospitable v2 fires `reservation.created`, `reservation.changed`,
  * `property.created|changed|deleted|merged`, `message.created` and
  * `review.created`, retrying a failed delivery 5 times with backoff out to six
  * hours. Webhooks are registered in their dashboard (Apps > Webhooks) — there is
- * no API to create one — so an account with none configured still gets the
- * scheduled pass and nothing else changes for it.
+ * no API to create one. An account with none configured still mirrors when its
+ * host opens /properties, which syncs whenever the last pass is stale.
  *
  * NOTHING here trusts the payload's contents. An event names a reservation or a
  * property and that is all it is read for; every value acted on is fetched back
@@ -42,7 +46,8 @@ const RESYNC_ACTIONS = new Set([
 /** A burst of events for one account collapses into a single pass. The window
  *  is short because the cost of an extra sync is a few API calls, while the
  *  cost of skipping one is a guest who never gets their check-in link — and
- *  anything this does drop is what the daily reconcile exists to catch. */
+ *  anything this does drop is caught by the next event for the account, or by
+ *  the host opening /properties. */
 const RESYNC_DEBOUNCE_MS = 30_000;
 
 // Defensive extraction over Hospitable's webhook envelope ({action, data}) —
@@ -140,17 +145,24 @@ async function afterResponse(task: () => Promise<void>): Promise<void> {
 }
 
 /** Re-mirrors one customer's account in response to an event. Returns the
- *  reason it did not, when it did not. */
+ *  reason it did not, when it did not. Vendor-agnostic: the plugin resolves the
+ *  credential and owns the mirror pass. */
 async function resyncForEvent(
+  plugin: ChannelPlugin,
   reservationId: string | null,
   propertyExternalId: string | null,
 ): Promise<{ ok: boolean; reason?: string }> {
   const listingId = await resolveListingId(reservationId, propertyExternalId);
   if (!listingId) return { ok: true, reason: 'unidentified' };
 
-  // Unassigned means no tenant owns it yet. Attribution is the scheduled pass's
-  // job; guessing an owner here would put a listing in the wrong account.
-  const customerId = await customerForListing(listingId);
+  // Unassigned means no tenant owns it yet. The event that announces a listing
+  // is the moment to attribute it — from the channel's own host identity, never
+  // by guessing, which would put a listing in the wrong account.
+  let customerId = await customerForListing(listingId);
+  if (!customerId && plugin.capabilities.hasHostIdentity && plugin.autoAssign) {
+    await plugin.autoAssign().catch(() => null);
+    customerId = await customerForListing(listingId);
+  }
   if (!customerId) return { ok: true, reason: 'unassigned' };
 
   const supabase = createSupabaseServiceRoleClient();
@@ -163,15 +175,16 @@ async function resyncForEvent(
   const last = conn?.last_synced_at ? Date.parse(conn.last_synced_at as string) : 0;
   if (last && Date.now() - last < RESYNC_DEBOUNCE_MS) return { ok: true, reason: 'debounced' };
 
-  const access = await hospitableAccess(customerId);
+  const access = await plugin.access(customerId);
   if (!access) return { ok: true, reason: 'no_access' };
 
   await afterResponse(async () => {
     try {
-      await syncHospitableAccount(customerId, access.token, new Date(), access.scope);
+      await plugin.sync(customerId, access, new Date());
     } catch {
-      // The daily reconcile is the retry. Throwing here would only make
-      // Hospitable redeliver an event we already accepted.
+      // The next event for this account, or the host opening /properties, is
+      // the retry. Throwing here would only make Hospitable redeliver an event
+      // we already accepted.
     }
   });
   return { ok: true, reason: 'syncing' };
@@ -200,8 +213,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
   }
 
   if (provider === 'hospitable') {
-    // Header secret or Hospitable's published source range — never a secret in
-    // the URL, which a query string would write into every access log.
+    const plugin = channelPlugin(provider);
+    if (!plugin) return new Response('Unknown provider', { status: 404 });
+
+    // Hospitable's published source range — never a secret in the URL, which a
+    // query string would write into every access log.
     const auth = authorizeWebhook(req.headers);
     if (!auth.ok) {
       // Loud, because the realistic cause is their sender range moving, and the
@@ -218,7 +234,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
     const ev = extractHospitable(payload, action);
 
     if (RESYNC_ACTIONS.has(action)) {
-      const r = await resyncForEvent(ev.reservationId, ev.propertyExternalId);
+      const r = await resyncForEvent(plugin, ev.reservationId, ev.propertyExternalId);
       return Response.json({ ok: r.ok, action, resync: r.reason });
     }
 
@@ -238,7 +254,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
     const customerId = listingId ? await customerForListing(listingId) : null;
     if (!customerId) return Response.json({ ok: true, ignored: true, reason: 'unassigned' });
 
-    const access = await hospitableAccess(customerId);
+    const access = await plugin.access(customerId);
     if (!access) return Response.json({ ok: true, ignored: true, reason: 'no_access' });
 
     const supabase = createSupabaseServiceRoleClient();
@@ -248,7 +264,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
       .eq('customer_id', customerId)
       .eq('provider', 'hospitable')
       .maybeSingle();
-    // Same watermark the scheduled pass uses: null means this account has never
+    // Same watermark the mirror pass uses: null means this account has never
     // synced, so its history imports silently instead of the AI answering
     // threads that went cold months ago.
     const watermark = (conn?.messages_synced_at as string | null) ?? null;
@@ -258,7 +274,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
       try {
         await ingestThread(supabase, access.token, propertyId, reservationId, watermark);
       } catch {
-        // The daily reconcile is the retry.
+        // The next sync of this account imports the thread; nothing is lost.
       }
     });
     return Response.json({ ok: true, action, ingesting: true });

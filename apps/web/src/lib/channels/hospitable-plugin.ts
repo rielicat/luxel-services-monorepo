@@ -7,11 +7,11 @@ import { autoAssignListings } from './auto-assign';
 /**
  * Hospitable, as a plugin.
  *
- * This file is the ONLY place that ties the vendor's modules to the scheduler.
- * Everything below it (`hospitable.ts`, `hospitable-sync.ts`) is deliberately
- * named for the vendor it speaks to; everything above it (`./registry.ts`, the
- * cron route) never learns the name. Swapping providers means writing a sibling
- * of this file, not touching either side.
+ * This file is the ONLY place that ties the vendor's modules to the machinery
+ * that drives them. Everything below it (`hospitable.ts`, `hospitable-sync.ts`)
+ * is deliberately named for the vendor it speaks to; everything above it
+ * (`./registry.ts`, the webhook route's resync) never learns the name. Swapping
+ * providers means writing a sibling of this file, not touching either side.
  */
 export const hospitablePlugin: ChannelPlugin = {
   id: 'hospitable',

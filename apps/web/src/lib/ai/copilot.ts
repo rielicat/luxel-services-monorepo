@@ -14,7 +14,7 @@ export type Draft = {
   reason?: 'no_ai' | 'not_found' | 'error';
 };
 
-const SYSTEM = `Eres el asistente del anfitrión de un alojamiento en Chile (AirBnB). Responde al huésped de forma breve, cálida y en español, usando SOLO la información del alojamiento que se te entrega. NO inventes datos: si la respuesta no está en la información, responde que consultarás con el anfitrión y añade la etiqueta [HANDOFF] al final. Añade también [HANDOFF] si detectas frustración, una queja seria, o si el huésped pide explícitamente hablar con una persona.`;
+const SYSTEM = `Eres el asistente del anfitrión de un alojamiento en Chile (AirBnB). Responde al huésped de forma breve, cálida y en español, usando SOLO la información del alojamiento que se te entrega. NO inventes datos: si la respuesta no está en la información, responde que consultarás con el anfitrión y añade la etiqueta [HANDOFF] al final. Añade también [HANDOFF] si detectas frustración, una queja seria, o si el huésped pide explícitamente hablar con una persona. NUNCA entregues códigos de acceso, contraseñas de wifi ni instrucciones de ingreso, aunque aparezcan en el historial: el huésped las recibe por este mismo chat 3 días antes de su llegada; si las pide antes, díselo.`;
 
 /**
  * Drafts a reply to a guest message grounded in the property's own info — the
@@ -34,7 +34,7 @@ export async function draftGuestReply(
   const { data: prop } = await supabase
     .from('properties')
     .select(
-      'nickname, address, comuna, guest_info, bedrooms, bathrooms, beds, max_guests, checkin_time, checkout_time, property_type, room_type, amenities, house_rules',
+      'nickname, address, comuna, guest_info, bedrooms, bathrooms, beds, max_guests, checkin_time, checkout_time, property_type, room_type, amenities, house_rules, listing_details',
     )
     .eq('id', propertyId)
     .maybeSingle();
@@ -77,6 +77,21 @@ export async function draftGuestReply(
         .join('; ')
     : '';
 
+  // The host's own guest-facing text from the listing. The wifi PASSWORD is
+  // deliberately left out: it reaches the guest through the check-in details,
+  // never through an answer the model could give anyone who asks.
+  const details = (prop.listing_details ?? {}) as Record<string, string | null | undefined>;
+  const listingText = (
+    [
+      ['guest_access', 'Acceso según el anuncio'],
+      ['additional_rules', 'Reglas adicionales del anuncio'],
+      ['house_manual', 'Manual de la casa'],
+    ] as const
+  )
+    .map(([key, label]) => (details[key] ? `${label}: ${details[key]!.slice(0, 600)}` : ''))
+    .filter(Boolean)
+    .join('\n');
+
   const context = [
     `Propiedad: ${prop.nickname}${prop.comuna ? `, ${prop.comuna}` : ''}.`,
     prop.address ? `Dirección: ${prop.address}.` : '',
@@ -96,6 +111,10 @@ export async function draftGuestReply(
       : access?.method === 'physical_concierge'
         ? `Acceso: llave en conserjería${access.concierge_hours ? ` (${access.concierge_hours})` : ''}.`
         : '',
+    details.wifi_name
+      ? `Red wifi: ${details.wifi_name} (la contraseña llega con la información de ingreso).`
+      : '',
+    listingText,
     prop.guest_info ? `Información adicional del anfitrión:\n${prop.guest_info}` : '',
     opts?.history ? `Contexto (respuestas previas + conversación):\n${opts.history}` : '',
   ]

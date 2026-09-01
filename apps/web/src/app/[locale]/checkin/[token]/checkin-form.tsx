@@ -138,6 +138,8 @@ export function CheckinForm({
     consent: false,
   });
   const [companions, setCompanions] = useState<Companion[]>([]);
+  const [parking, setParking] = useState<'' | 'yes' | 'no'>('');
+  const [plate, setPlate] = useState('');
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setF((p) => ({
       ...p,
@@ -168,6 +170,8 @@ export function CheckinForm({
             docType: c.docNumber.trim() ? (c.docType as 'rut') : undefined,
             docNumber: c.docNumber.trim() || undefined,
           })),
+        parking: parking ? parking === 'yes' : undefined,
+        vehiclePlate: parking === 'yes' && plate.trim() ? plate.trim() : undefined,
         consent: f.consent as true,
       });
       if (r.ok) {
@@ -206,15 +210,6 @@ export function CheckinForm({
   return (
     <Card>
       <CardContent className="p-6">
-        {/* The stay has started and the host asks for no documents, so the
-            access shows before the form — a guest at the door should never have
-            to fill anything in to get inside. The form stays below for the
-            details the host still wants. */}
-        {access && (
-          <div className="mb-5">
-            <AccessCard access={access} t={t} />
-          </div>
-        )}
         <div className="mb-5 flex items-start gap-2">
           <KeyRound className="text-primary mt-0.5 h-5 w-5 shrink-0" />
           <div className="min-w-0 flex-1">
@@ -368,6 +363,41 @@ export function CheckinForm({
             >
               <UserPlus className="mr-1.5 h-4 w-4" /> {t('add_companion')}
             </Button>
+
+            {/* The conserje's message carries whether a car is coming — the
+                building's parking is what they get asked about at the gate. */}
+            <div className="grid gap-2">
+              <p className="font-medium">{t('parking')}</p>
+              <div className="flex gap-2">
+                {(['yes', 'no'] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setParking(v)}
+                    className={`rounded-lg border px-4 py-2 text-sm transition-colors ${
+                      parking === v
+                        ? 'border-primary/50 bg-accent/60 font-medium'
+                        : 'border-border hover:border-primary/30'
+                    }`}
+                  >
+                    {t(v === 'yes' ? 'parking_yes' : 'parking_no')}
+                  </button>
+                ))}
+              </div>
+              {parking === 'yes' && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ci-plate">{t('plate')}</Label>
+                  <Input
+                    id="ci-plate"
+                    value={plate}
+                    onChange={(e) => setPlate(e.target.value)}
+                    placeholder={t('plate_ph')}
+                    autoCapitalize="characters"
+                    className="sm:max-w-xs"
+                  />
+                </div>
+              )}
+            </div>
 
             <label className="flex items-start gap-2 text-sm">
               <input

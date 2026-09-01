@@ -18,6 +18,9 @@ process.env.LUXEL_PII_KEY = nodeCrypto.randomBytes(32).toString('hex');
 delete process.env.HOSPITABLE_API_TOKEN; // per-customer tokens only — no env fallback
 delete process.env.OPENAI_API_KEY;
 process.env.LUXEL_DEV_MOCK = '1'; // dev-mock AI so auto-replies are deterministic
+// Crew WhatsApp goes through the worker bridge; capture what it is asked to send.
+process.env.WHATSAPP_WORKER_SEND_URL = 'http://worker.test/send';
+process.env.INTERNAL_SEND_TOKEN = 'test-internal-token';
 
 const FAKE_TOKEN = `tok_${nodeCrypto.randomBytes(24).toString('hex')}`;
 const HOSP_PROPERTY_ID = 'a6eb2c65-1e45-43a8-9cde-000000000001';
@@ -70,6 +73,8 @@ const RESERVATIONS_PAYLOAD = {
       departure_date: '2027-03-05T00:00:00-04:00',
       reservation_status: { current: { category: 'accepted' } },
       status: 'accepted',
+      conversation_language: 'es',
+      guest: { first_name: 'Ana', language: 'es' },
     },
     {
       id: 'res-2',
@@ -77,8 +82,15 @@ const RESERVATIONS_PAYLOAD = {
       platform: 'airbnb',
       arrival_date: '2027-03-10T00:00:00-04:00',
       departure_date: '2027-03-14T00:00:00-04:00',
+      check_in: '2027-03-10T15:00:00-04:00',
+      check_out: '2027-03-14T11:00:00-04:00',
       reservation_status: { current: { category: 'accepted' } },
       status: 'accepted',
+      guests: { total: 3 },
+      // Real shape: Airbnb reports the guest's language; the booking message
+      // and the check-in page follow it.
+      conversation_language: 'pt',
+      guest: { first_name: 'Matheus', language: 'pt' },
     },
     {
       id: 'res-3',
@@ -108,6 +120,7 @@ let MESSAGES: Array<{
   sender?: { first_name?: string };
 }> = [];
 const SENT: Array<{ reservationId: string; body: string }> = [];
+const WA_SENDS: Array<{ to?: string; template?: { kind: string; params: string[] } }> = [];
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
@@ -128,6 +141,10 @@ beforeAll(async () => {
   const realFetch = globalThis.fetch.bind(globalThis);
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    if (url === 'http://worker.test/send') {
+      WA_SENDS.push(JSON.parse((init?.body as string) ?? '{}'));
+      return Response.json({ wamid: 'wamid.test' });
+    }
     if (url.startsWith('https://public.api.hospitable.com/')) {
       apiCalls++;
       const auth = new Headers(init?.headers).get('authorization') ?? '';
@@ -217,6 +234,7 @@ afterEach(async () => {
   await admin.from('listing_assignments').delete().eq('customer_id', customerId);
   MESSAGES = [];
   SENT.length = 0;
+  WA_SENDS.length = 0;
   PROPERTIES_MODE = 'normal';
 });
 
@@ -803,6 +821,18 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     // Backfill seeded anchors for both current reservations; drop one so the
     // event has something genuinely new to deliver, as a real booking would.
     await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
+    // The property's cleaning crew — told about every new booking.
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('external_listing_id', HOSP_PROPERTY_ID)
+      .single();
+    await admin.from('property_contacts').insert({
+      property_id: prop!.id,
+      role: 'cleaning',
+      name: 'Aseo',
+      whatsapp: '+56 9 5555 1234',
+    });
     // The debounce collapses bursts, and connect just stamped last_synced_at.
     await admin
       .from('channel_connections')
@@ -826,9 +856,41 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(json.ok).toBe(true);
     expect(json.resync).toBe('syncing');
 
-    // The link went out for the new booking, and only that one.
+    // The link went out for the new booking, and only that one — in the guest's
+    // language (Airbnb says Portuguese), in the host's own words.
     expect(SENT.filter((s) => s.body.includes('/checkin/')).map((s) => s.reservationId)).toEqual([
       'res-2',
+    ]);
+    const booking = SENT.find((s) => s.reservationId === 'res-2')!;
+    expect(booking.body.startsWith('Obrigado por reservar com a gente de')).toBe(true);
+    const { data: row } = await admin
+      .from('checkins')
+      .select('guest_language, guest_first_name, expected_guests, crew_notified_at')
+      .eq('reservation_uid', 'hosp:res-2')
+      .single();
+    expect(row).toMatchObject({
+      guest_language: 'pt',
+      guest_first_name: 'Matheus',
+      expected_guests: 3,
+    });
+    expect(row!.crew_notified_at).toBeTruthy();
+
+    // And the cleaning crew heard about it — once, over WhatsApp, as a template.
+    // (The free-text sends alongside are the operator's "Nuevo aseo" pings for
+    // the Luxel-managed turnovers this sync auto-confirmed.)
+    const templates = WA_SENDS.filter((s) => s.template);
+    expect(templates).toHaveLength(1);
+    expect(templates[0]).toMatchObject({
+      to: '56955551234',
+      template: { kind: 'cleaning_booking' },
+    });
+    expect(templates[0]!.template!.params).toEqual([
+      'JOSÉ MANUEL INFANTE 1045 - DPTO 401',
+      'del 10 de marzo al 14 de marzo',
+      'JOSÉ MANUEL INFANTE 1045 - DPTO 401',
+      'José Manuel Infante 1045, Providencia',
+      '3',
+      '14 de marzo 11:00',
     ]);
 
     // A second event moments later collapses into the first pass.

@@ -64,7 +64,15 @@ let worker: Worker;
 let humanPOST: (req: Request) => Promise<Response>;
 let pollGET: (req: Request) => Promise<Response>;
 let admin: ReturnType<typeof createClient>;
-let metaSends: Array<{ to: string; body: string }> = [];
+type MetaPayload = {
+  type?: string;
+  template?: {
+    name: string;
+    language: { code: string };
+    components: Array<{ parameters: Array<{ text: string }> }>;
+  };
+};
+let metaSends: Array<{ to: string; body: string; payload: MetaPayload }> = [];
 let metaShouldFail = false;
 const createdWamids: string[] = [];
 
@@ -154,7 +162,7 @@ beforeAll(async () => {
     }
     if (url.startsWith('https://graph.facebook.com/')) {
       const parsed = init?.body ? JSON.parse(init.body as string) : {};
-      metaSends.push({ to: parsed.to, body: parsed.text?.body ?? '' });
+      metaSends.push({ to: parsed.to, body: parsed.text?.body ?? '', payload: parsed });
       if (metaShouldFail) return new Response('upstream error', { status: 502 });
       const id = `wamid.${nodeCrypto.randomBytes(6).toString('hex')}`;
       return new Response(JSON.stringify({ messages: [{ id }] }), {
@@ -510,5 +518,60 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
       .eq('session_id', sid)
       .eq('metadata->>kind', 'human');
     expect(count).toBe(1);
+  });
+  it('sends an approved template to any number, with parameters a template accepts', async () => {
+    const res = await worker.fetch(
+      new Request(WORKER_SEND_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-luxel-internal-token': SEND_TOKEN },
+        body: JSON.stringify({
+          to: '+56 9 8765 4321',
+          template: {
+            kind: 'concierge_arrival',
+            params: [
+              'del 29 de agosto al 02 de septiembre',
+              'Depto. 204',
+              'Calle 1045',
+              'sí',
+              '2',
+              'Ana · 11.111.111-1\nBeto · 22.222.222-2',
+            ],
+          },
+        }),
+      }),
+      workerEnv,
+      ctx,
+    );
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { wamid: string }).wamid).toMatch(/^wamid\./);
+    const last = metaSends.at(-1)!;
+    expect(last.to).toBe('56987654321');
+    expect(last.payload.type).toBe('template');
+    expect(last.payload.template?.name).toBe('luxel_conserje_llegada');
+    expect(last.payload.template?.language.code).toBe('es');
+    const texts = last.payload.template!.components[0]!.parameters.map((p) => p.text);
+    expect(texts).toHaveLength(6);
+    // Meta rejects a newline inside a parameter; the guest list arrives as one line.
+    expect(texts[5]).toBe('Ana · 11.111.111-1 · Beto · 22.222.222-2');
+  });
+
+  it('refuses a template it does not know, and a send with nowhere to go', async () => {
+    const send = (body: unknown, env: Record<string, unknown> = workerEnv) =>
+      worker.fetch(
+        new Request(WORKER_SEND_URL, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-luxel-internal-token': SEND_TOKEN },
+          body: JSON.stringify(body),
+        }),
+        env,
+        ctx,
+      );
+    expect(
+      (await send({ to: '+56 9 8765 4321', template: { kind: 'made_up', params: [] } })).status,
+    ).toBe(400);
+    expect(
+      (await send({ text: 'hola' }, { ...workerEnv, LUXEL_OPERATOR_WHATSAPP: undefined })).status,
+    ).toBe(400);
+    expect(metaSends).toHaveLength(0);
   });
 });

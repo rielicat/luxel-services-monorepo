@@ -3,19 +3,12 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Check, X, Building2, UserRound, Plus, Trash2, Clock } from 'lucide-react';
+import { Check, X, Building2, UserRound, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
-import {
-  setCleaningStatus,
-  updateCleaningStaff,
-  addCleaningContact,
-  removeCleaningContact,
-} from './cleaning-actions';
-import type { CleaningContact } from './properties-client';
+import { setCleaningStatus, updateCleaningStaff } from './cleaning-actions';
+import { ContactList, type PropertyContact } from './contact-list';
 
 export type Cleaning = {
   id: string;
@@ -49,7 +42,7 @@ export function CleaningPanel({
   cleanings: Cleaning[];
   turnoverPrice: number | null;
   managedBy: 'luxel' | 'own';
-  contacts: CleaningContact[];
+  contacts: PropertyContact[];
   autoConfirm: boolean;
   checkinTime: string | null;
   checkoutTime: string | null;
@@ -59,9 +52,6 @@ export function CleaningPanel({
   const [pending, start] = useTransition();
   const [mode, setMode] = useState<'luxel' | 'own'>(managedBy);
   const [auto, setAuto] = useState(autoConfirm);
-  const [draft, setDraft] = useState({ name: '', email: '', whatsapp: '' });
-  const [addOpen, setAddOpen] = useState(false);
-  const [draftError, setDraftError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
   const run = (fn: () => Promise<unknown>) =>
@@ -78,18 +68,6 @@ export function CleaningPanel({
         ...(nextAuto != null ? { autoConfirm: nextAuto } : {}),
       }),
     );
-
-  const addContact = () =>
-    run(async () => {
-      const r = await addCleaningContact({ propertyId, ...draft });
-      if (r.ok) {
-        setDraft({ name: '', email: '', whatsapp: '' });
-        setDraftError(null);
-        setAddOpen(false);
-      } else {
-        setDraftError(r.error === 'email_required' ? t('contact_error_email') : t('contact_error'));
-      }
-    });
 
   // The turnover window comes straight from the listing's real times.
   const window = checkoutTime && checkinTime ? `${checkoutTime}–${checkinTime}` : null;
@@ -131,118 +109,19 @@ export function CleaningPanel({
         ))}
       </div>
 
-      {/* The notify list: who gets told, one row each. Adding someone is a form,
-          and a form belongs in a dialog — three inputs wedged into a narrow
-          column made the primary case (see who is on the list) hard to read. */}
-      {mode === 'own' && (
-        <div className="border-border grid gap-2 rounded-lg border p-3">
-          <p className="text-xs font-semibold">{t('contacts_title')}</p>
-          {contacts.length === 0 && (
-            <p className="text-muted-foreground text-xs">{t('contacts_none')}</p>
-          )}
-          {contacts.map((c) => (
-            <div
-              key={c.id}
-              className="bg-muted/40 flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-sm"
-            >
-              <span className="min-w-0 truncate">
-                <span className="font-medium">{c.name || t('contact_unnamed')}</span>
-                <span className="text-muted-foreground ml-1.5 text-xs">
-                  {[c.email, c.whatsapp].filter(Boolean).join(' · ')}
-                </span>
-              </span>
-              <button
-                type="button"
-                aria-label={t('contact_remove')}
-                disabled={pending}
-                onClick={() => run(() => removeCleaningContact({ propertyId, contactId: c.id }))}
-                className="text-muted-foreground hover:text-warning shrink-0 rounded-md p-1 transition-colors"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-          <Button
-            size="sm"
-            variant="outline"
-            className="justify-self-start"
-            disabled={pending}
-            onClick={() => {
-              setDraftError(null);
-              setAddOpen(true);
-            }}
-          >
-            <Plus className="mr-1 h-3.5 w-3.5" /> {t('contact_add')}
-          </Button>
-        </div>
-      )}
-
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title={t('contact_modal_title')}>
-        {/* One column, labels above fields, required marked, primary action last
-            — and Enter submits, so the keyboard path works. */}
-        <form
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            addContact();
-          }}
-        >
-          <p className="text-muted-foreground text-sm">{t('contact_modal_body')}</p>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="crew-email">
-              {t('staff_email')} <span className="text-warning">*</span>
-            </Label>
-            <Input
-              id="crew-email"
-              type="email"
-              autoFocus
-              required
-              value={draft.email}
-              onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
-              placeholder="persona@correo.cl"
-              aria-describedby="crew-email-hint"
-            />
-            <p id="crew-email-hint" className="text-muted-foreground text-xs">
-              {t('contact_email_hint')}
-            </p>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="crew-name">{t('staff_name')}</Label>
-            <Input
-              id="crew-name"
-              value={draft.name}
-              onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-              placeholder={t('contact_name_ph')}
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="crew-wa">
-              {t('staff_whatsapp')}{' '}
-              <span className="text-muted-foreground font-normal">{t('contact_optional')}</span>
-            </Label>
-            <Input
-              id="crew-wa"
-              value={draft.whatsapp}
-              onChange={(e) => setDraft((d) => ({ ...d, whatsapp: e.target.value }))}
-              placeholder="+56 9 1234 5678"
-            />
-          </div>
-
-          {draftError && <p className="text-warning text-sm">{draftError}</p>}
-
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={pending || !draft.email.trim()}>
-              {t('contact_save')}
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setAddOpen(false)}>
-              {t('cancel')}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {/* Who is told about every new booking, one row each — whichever mode,
+          because a host running their own crew and Luxel running it both need
+          the people who show up to know the dates. */}
+      <div className="border-border rounded-lg border p-3">
+        <ContactList
+          propertyId={propertyId}
+          role="cleaning"
+          contacts={contacts}
+          title={t('contacts_title')}
+          body={t('contacts_body')}
+          addTitle={t('contact_modal_title')}
+        />
+      </div>
 
       {/* Zero-busywork default: cleanings confirm and notify themselves. */}
       <div className="flex items-center justify-between gap-3">

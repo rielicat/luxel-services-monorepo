@@ -6,6 +6,7 @@ import { TriangleAlert, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateAccess } from './actions';
+import { ContactList, type PropertyContact } from './contact-list';
 
 export type AccessRow = {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
@@ -13,17 +14,26 @@ export type AccessRow = {
   keyless_code: string | null;
   keyless_instructions: string | null;
   concierge_name: string | null;
-  concierge_whatsapp: string | null;
-  concierge_email: string | null;
   concierge_hours: string | null;
   id_basis: string | null;
   id_disclosed: boolean;
+  unit: string | null;
 } | null;
 
 /** Check-in links reach each guest automatically when their reservation is
  *  imported — there is nothing to generate here. Operators inspect the
  *  guest-facing page from /admin/debug instead. */
-export function AccessPanel({ propertyId, access }: { propertyId: string; access: AccessRow }) {
+export function AccessPanel({
+  propertyId,
+  access,
+  contacts,
+}: {
+  propertyId: string;
+  access: AccessRow;
+  /** The building's conserjes — notified on every completed registration,
+   *  whatever the access method: a keyless building still has a front desk. */
+  contacts: PropertyContact[];
+}) {
   const t = useTranslations('properties');
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -33,9 +43,8 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
     keylessCode: access?.keyless_code ?? '',
     keylessInstructions: access?.keyless_instructions ?? '',
     conciergeName: access?.concierge_name ?? '',
-    conciergeWhatsapp: access?.concierge_whatsapp ?? '',
-    conciergeEmail: access?.concierge_email ?? '',
     conciergeHours: access?.concierge_hours ?? '',
+    unit: access?.unit ?? '',
     requireId: access?.require_id ?? false,
     idBasis: access?.id_basis ?? '',
     idDisclosed: access?.id_disclosed ?? false,
@@ -171,24 +180,31 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
               onChange={(e) => upd('conciergeHours', e.target.value)}
             />
           </div>
-          <div className="grid gap-1.5">
-            <Label>{t('concierge_whatsapp')}</Label>
-            <Input
-              value={s.conciergeWhatsapp}
-              onChange={(e) => upd('conciergeWhatsapp', e.target.value)}
-              placeholder="+56 9 ..."
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label>{t('concierge_email')}</Label>
-            <Input
-              type="email"
-              value={s.conciergeEmail}
-              onChange={(e) => upd('conciergeEmail', e.target.value)}
-            />
-          </div>
         </div>
       )}
+
+      {/* Hospitable's listing carries the street, not the apartment. The unit
+          is what the conserje and the cleaning crew are told. */}
+      <div className="border-border grid gap-3 rounded-lg border p-3">
+        <div className="grid gap-1.5 sm:max-w-xs">
+          <Label htmlFor="unit">{t('unit')}</Label>
+          <Input
+            id="unit"
+            placeholder={t('unit_ph')}
+            value={s.unit}
+            onChange={(e) => upd('unit', e.target.value)}
+          />
+          <p className="text-muted-foreground text-xs">{t('unit_help')}</p>
+        </div>
+        <ContactList
+          propertyId={propertyId}
+          role="concierge"
+          contacts={contacts}
+          title={t('concierge_title')}
+          body={t('concierge_body')}
+          addTitle={t('concierge_add_title')}
+        />
+      </div>
 
       <div className="grid gap-2">
         <label className="flex items-start gap-2 text-sm">

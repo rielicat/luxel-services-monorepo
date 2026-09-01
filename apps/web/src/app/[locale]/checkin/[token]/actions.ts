@@ -5,6 +5,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { encryptPII, last4 } from '@/lib/crypto/pii';
 import { notifyCheckin } from '@/lib/checkin/notify';
 import { ACCESS_COLUMNS, shapeAccess, type AccessInfo } from '@/lib/checkin/access';
+import { accessWindowOpen, santiagoToday } from '@/lib/checkin/window';
 
 // No Chilean law mandates a fixed retention for guest ID, so we purpose-bound it:
 // kept for the stay + a dispute/chargeback window, then a job deletes it.
@@ -26,6 +27,8 @@ const Schema = z.object({
   docNumber: z.string().min(3).max(40).optional(),
   nationality: z.string().max(60).optional(),
   companions: z.array(GuestSchema).max(29).default([]),
+  parking: z.boolean().optional(),
+  vehiclePlate: z.string().max(12).optional(),
   consent: z.literal(true),
 });
 
@@ -43,16 +46,14 @@ export async function submitCheckin(input: unknown): Promise<Result> {
 
   const { data: checkin } = await supabase
     .from('checkins')
-    .select('id, status, property_id, departure_date')
+    .select('id, status, property_id, arrival_date, departure_date')
     .eq('token', d.token)
     .maybeSingle();
   if (!checkin) return { ok: false, error: 'not_found' };
   if (checkin.status !== 'pending') return { ok: false, error: 'already_submitted' };
   // Auto-issued links die with the stay: after departure the token is inert,
   // so a leaked or stale link can never surface access info later.
-  const todaySantiago = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Santiago',
-  }).format(new Date());
+  const todaySantiago = santiagoToday();
   if (checkin.departure_date && todaySantiago > (checkin.departure_date as string)) {
     return { ok: false, error: 'expired' };
   }
@@ -83,6 +84,9 @@ export async function submitCheckin(input: unknown): Promise<Result> {
       guest_phone: d.guestPhone ?? null,
       party_size: everyone.length,
       arrival_at: d.arrivalAt ?? null,
+      parking: d.parking ?? null,
+      vehicle_plate:
+        d.parking && d.vehiclePlate?.trim() ? d.vehiclePlate.trim().toUpperCase() : null,
       submitted_at: now.toISOString(),
     })
     .eq('id', checkin.id);
@@ -121,5 +125,8 @@ export async function submitCheckin(input: unknown): Promise<Result> {
 
   await notifyCheckin(checkin.id);
 
-  return { ok: true, access: shapeAccess(access) ?? undefined };
+  // Reveal only inside the window Hospitable's rule uses to send the details
+  // (3 days before arrival); earlier, the page says when they will arrive.
+  const reveal = accessWindowOpen(checkin.arrival_date as string | null, todaySantiago);
+  return { ok: true, access: reveal ? (shapeAccess(access) ?? undefined) : undefined };
 }

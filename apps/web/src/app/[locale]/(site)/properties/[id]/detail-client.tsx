@@ -450,7 +450,7 @@ export function PropertyDetailClient({
               cleanings={property.cleanings}
               turnoverPrice={turnoverPrice}
               managedBy={property.cleaning_managed_by}
-              contacts={property.cleaning_contacts}
+              contacts={property.property_contacts.filter((c) => c.role === 'cleaning')}
               autoConfirm={property.cleaning_auto_confirm}
               checkinTime={property.checkin_time}
               checkoutTime={property.checkout_time}
@@ -482,7 +482,11 @@ export function PropertyDetailClient({
           title={t('tab_access')}
           warn={accessUnconfigured}
         >
-          <AccessPanel propertyId={property.id} access={property.property_access} />
+          <AccessPanel
+            propertyId={property.id}
+            access={property.property_access}
+            contacts={property.property_contacts.filter((c) => c.role === 'concierge')}
+          />
         </Section>
 
         <Section

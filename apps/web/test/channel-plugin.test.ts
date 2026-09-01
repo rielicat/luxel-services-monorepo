@@ -1,8 +1,8 @@
 /**
  * The plugin seam. These assertions are what make "swap the provider later"
- * true rather than aspirational: the scheduler resolves a plugin by id, a wrong
- * id fails loudly instead of falling back, and the capability flags that gate
- * real branches are actually declared.
+ * true rather than aspirational: the webhook route resolves a plugin by id, a
+ * wrong id fails loudly instead of falling back, and the capability flags that
+ * gate real branches are actually declared.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import {
@@ -13,10 +13,7 @@ import {
 } from '../src/lib/channels/registry';
 
 const original = process.env.CHANNEL_PROVIDER;
-const originalCron = process.env.CRON_SECRET;
 afterEach(() => {
-  if (originalCron === undefined) delete process.env.CRON_SECRET;
-  else process.env.CRON_SECRET = originalCron;
   if (original === undefined) delete process.env.CHANNEL_PROVIDER;
   else process.env.CHANNEL_PROVIDER = original;
 });
@@ -49,34 +46,12 @@ describe('channel plugin registry', () => {
     expect(activeChannelPlugin().ok).toBe(true);
   });
 
-  it('makes the sync route refuse to run on an unregistered provider', async () => {
-    // The guard has to hold at the ROUTE, not just in the registry: a sync that
-    // proceeded under the wrong provider would mirror the wrong ids into a
-    // customer's rows and then prune against them.
-    process.env.CHANNEL_PROVIDER = 'beds24';
-    process.env.CRON_SECRET = 'cron-secret-under-test';
-    const { GET } = await import('../src/app/api/cron/sync/route');
-    const res = await GET(
-      new Request('http://localhost/api/cron/sync', {
-        headers: { authorization: 'Bearer cron-secret-under-test' },
-      }),
-    );
-    expect(res.status).toBe(500);
-    const body = (await res.json()) as { ok: boolean; registered: string[] };
-    expect(body.ok).toBe(false);
-    expect(body.registered).toEqual(['hospitable']);
-
-    // Fails closed: no secret configured means the endpoint refuses, rather
-    // than accepting anyone who knows the path. It sends guest messages.
-    delete process.env.CRON_SECRET;
-    expect((await GET(new Request('http://localhost/api/cron/sync'))).status).toBe(401);
-  });
-
   it('declares the capabilities that gate real behaviour', () => {
     const p = channelPlugin('hospitable')!;
     // Without this the product has no check-in delivery and no AI replies.
     expect(p.capabilities.sendsGuestMessages).toBe(true);
-    // hasHostIdentity is what the cron route reads before calling autoAssign.
+    // hasHostIdentity is what the webhook route reads before calling autoAssign
+    // on an event for a listing no tenant owns yet.
     expect(p.capabilities.hasHostIdentity).toBe(true);
     expect(typeof p.autoAssign).toBe('function');
   });

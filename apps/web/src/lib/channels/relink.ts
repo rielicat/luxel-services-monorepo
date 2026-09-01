@@ -166,7 +166,7 @@ export async function relinkByConfirmationCode(
 
     // Re-key check-ins IN PLACE rather than letting a second namespace appear
     // beside the first. The token stays valid, so a guest holding a link keeps
-    // it; notified_at, reminded_at and access_sent_at carry over, so nobody is
+    // it; notified_at and crew_notified_at carry over, so nobody is
     // messaged twice; submitted_at carries over, so compliance records survive.
     for (const row of mine ?? []) {
       const code = String(row.confirmation_code).trim();

@@ -4,6 +4,8 @@
  * Routes:
  *   GET  /webhook  → Meta verification handshake (`hub.challenge`)
  *   POST /webhook  → inbound message events; HMAC-SHA256 signature verified before parsing
+ *   POST /send     → outbound, from the web app only (shared token): free text to the
+ *                    operator, or an approved template to a conserje / cleaner
  *
  * Behavior:
  *   - Verifies the Meta `x-hub-signature-256` header (constant-time compare)
@@ -26,8 +28,8 @@ export interface Env {
   SUPABASE_SECRET_KEY: string;
   // Operator/team number (E.164) whose replies bridge back into the web chat.
   LUXEL_OPERATOR_WHATSAPP?: string;
-  // Shared secret the Next.js app presents to POST /send (forward a chat message
-  // to the operator). Set via `wrangler secret put INTERNAL_SEND_TOKEN`.
+  // Shared secret the Next.js app presents to POST /send. Set via
+  // `wrangler secret put INTERNAL_SEND_TOKEN`.
   INTERNAL_SEND_TOKEN?: string;
   // Optional Cloudflare rate-limit binding backstopping /send if the shared token
   // ever leaks (declared in wrangler.toml). Absent locally/in tests → skipped.
@@ -229,10 +231,32 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Sends a text to the operator via the WhatsApp Cloud API; returns the wamid. */
-async function sendToOperator(env: Env, text: string): Promise<string | null> {
-  const to = env.LUXEL_OPERATOR_WHATSAPP?.replace(/[^\d]/g, '');
-  if (!to || !env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) return null;
+/**
+ * Meta template names, by the intent the web app sends. Utility templates the
+ * operator registers once in Meta Business Manager, language `es`. A
+ * business-initiated message to someone who has not written to us in the last
+ * 24 hours MUST be a template — the Cloud API rejects free text — and that is
+ * every conserje and every cleaner, every time.
+ */
+const TEMPLATES: Record<string, string> = {
+  concierge_arrival: 'luxel_conserje_llegada',
+  cleaning_booking: 'luxel_aseo_nueva_reserva',
+};
+const TEMPLATE_LANG = 'es';
+
+/** Template parameters may not contain newlines, tabs or 4+ consecutive spaces. */
+function templateParam(s: string): string {
+  return (
+    s
+      .replace(/[\r\n\t]+/g, ' · ')
+      .replace(/ {4,}/g, ' ')
+      .trim()
+      .slice(0, 1024) || '—'
+  );
+}
+
+async function graphSend(env: Env, payload: Record<string, unknown>): Promise<string | null> {
+  if (!env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) return null;
   try {
     const res = await fetch(
       `https://graph.facebook.com/v21.0/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -242,12 +266,7 @@ async function sendToOperator(env: Env, text: string): Promise<string | null> {
           authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to,
-          type: 'text',
-          text: { body: text.slice(0, 4000), preview_url: false },
-        }),
+        body: JSON.stringify({ messaging_product: 'whatsapp', ...payload }),
       },
     );
     if (!res.ok) return null;
@@ -258,30 +277,75 @@ async function sendToOperator(env: Env, text: string): Promise<string | null> {
   }
 }
 
-/** Internal route the Next.js app calls to forward a chat message to the operator.
- *  Authenticated by a shared secret so the endpoint can't be abused directly. */
+/** Free text — only lands inside an open 24h customer-service window. */
+function sendText(env: Env, to: string, text: string): Promise<string | null> {
+  return graphSend(env, {
+    to,
+    type: 'text',
+    text: { body: text.slice(0, 4000), preview_url: false },
+  });
+}
+
+function sendTemplate(
+  env: Env,
+  to: string,
+  name: string,
+  params: string[],
+): Promise<string | null> {
+  return graphSend(env, {
+    to,
+    type: 'template',
+    template: {
+      name,
+      language: { code: TEMPLATE_LANG },
+      components: [
+        { type: 'body', parameters: params.map((p) => ({ type: 'text', text: templateParam(p) })) },
+      ],
+    },
+  });
+}
+
+/**
+ * Internal route the Next.js app calls to send WhatsApp: a free-text forward to
+ * the operator (no `to`), or a template to any number (`to` + `template`).
+ * Authenticated by a shared secret so the endpoint cannot be abused directly.
+ */
 async function handleSend(req: Request, env: Env): Promise<Response> {
   const token = req.headers.get('x-luxel-internal-token');
   if (!env.INTERNAL_SEND_TOKEN || !token || !timingSafeEqual(token, env.INTERNAL_SEND_TOKEN)) {
     return new Response('Unauthorized', { status: 401 });
   }
-  // Defense-in-depth: the token is deployed across the whole web fleet, so cap
-  // sends globally (one operator destination) in case it ever leaks.
-  if (env.SEND_LIMITER) {
-    const { success } = await env.SEND_LIMITER.limit({ key: 'operator-send' });
-    if (!success) return new Response('Too Many Requests', { status: 429 });
-  }
-  let body: { text?: string };
+  let body: { to?: unknown; text?: unknown; template?: { kind?: unknown; params?: unknown } };
   try {
-    body = (await req.json()) as { text?: string };
+    body = (await req.json()) as typeof body;
   } catch {
     return Response.json({ error: 'bad_json' }, { status: 400 });
   }
-  const text = (body.text ?? '').trim();
-  if (!text) return Response.json({ error: 'empty' }, { status: 400 });
+  const to =
+    typeof body.to === 'string' && body.to.trim()
+      ? body.to.replace(/[^\d]/g, '')
+      : (env.LUXEL_OPERATOR_WHATSAPP?.replace(/[^\d]/g, '') ?? '');
+  if (!to) return Response.json({ error: 'no_destination' }, { status: 400 });
 
-  const wamid = await sendToOperator(env, text);
-  return Response.json({ wamid });
+  // Defense-in-depth: the token is deployed across the whole web fleet, so cap
+  // sends per destination in case it ever leaks.
+  if (env.SEND_LIMITER) {
+    const { success } = await env.SEND_LIMITER.limit({ key: `send:${to}` });
+    if (!success) return new Response('Too Many Requests', { status: 429 });
+  }
+
+  if (body.template) {
+    const name = TEMPLATES[String(body.template.kind ?? '')];
+    const params = Array.isArray(body.template.params)
+      ? body.template.params.map((p) => String(p ?? ''))
+      : null;
+    if (!name || !params) return Response.json({ error: 'bad_template' }, { status: 400 });
+    return Response.json({ wamid: await sendTemplate(env, to, name, params) });
+  }
+
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) return Response.json({ error: 'empty' }, { status: 400 });
+  return Response.json({ wamid: await sendText(env, to, text) });
 }
 
 export default {

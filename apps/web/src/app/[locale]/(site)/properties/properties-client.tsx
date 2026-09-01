@@ -22,6 +22,7 @@ import { ConnectionNote } from './connection-note';
 import type { HostConnection } from '@/lib/host/queries';
 import type { AccessRow } from './access-panel';
 import type { Cleaning } from './cleaning-panel';
+import type { PropertyContact } from './contact-list';
 import type { Thread } from './messaging-panel';
 
 export type Feed = {
@@ -37,13 +38,6 @@ export type Block = {
   source: 'import' | 'manual';
   summary: string | null;
 };
-export type CleaningContact = {
-  id: string;
-  name: string | null;
-  email: string | null;
-  whatsapp: string | null;
-};
-
 export type PropertyRow = {
   id: string;
   nickname: string;
@@ -75,7 +69,7 @@ export type PropertyRow = {
   } | null;
   cleaning_managed_by: 'luxel' | 'own';
   cleaning_auto_confirm: boolean;
-  cleaning_contacts: CleaningContact[];
+  property_contacts: PropertyContact[];
   property_access: AccessRow;
   property_calendars: Feed[];
   calendar_blocks: Block[];

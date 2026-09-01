@@ -11,7 +11,7 @@ import type { ChannelListing, ChannelReservation, ReservationState } from './typ
  * base URL and every field shape below are Hospitable's. Generic names on a
  * vendor-specific client are how a codebase ends up claiming one thing and
  * doing another. Provider-neutral naming belongs on the seams around it —
- * PROVIDER_API_KEY, /api/cron/sync — not here.
+ * PROVIDER_API_KEY, the plugin registry — not here.
  *
  * The operator credential resolves through providerApiKey(); a per-customer
  * token in channel_connections takes precedence and marks that customer as
@@ -69,7 +69,22 @@ export interface HospitableProperty {
     smoking_allowed?: boolean | null;
     events_allowed?: boolean | null;
   } | null;
+  /** `include=details`. Free text the host wrote for guests, wifi included —
+   *  mirrored for the AI's context and never echoed into a thread by us. */
+  details?: HospitableListingDetails | null;
   calendar_restricted?: boolean | null;
+}
+
+export interface HospitableListingDetails {
+  space_overview?: string | null;
+  guest_access?: string | null;
+  house_manual?: string | null;
+  other_details?: string | null;
+  additional_rules?: string | null;
+  neighborhood_description?: string | null;
+  getting_around?: string | null;
+  wifi_name?: string | null;
+  wifi_password?: string | null;
 }
 
 export interface HospitableReservation {
@@ -78,10 +93,25 @@ export interface HospitableReservation {
   platform: string | null;
   arrival_date: string;
   departure_date: string;
+  /** Full timestamps carrying the listing's times, e.g. 2026-08-04T15:00:00-04:00. */
+  check_in?: string | null;
+  check_out?: string | null;
   status: string | null;
   reservation_status?: { current?: { category?: string | null } | null } | null;
   guests?: { total?: number | null } | null;
   conversation_id?: string | null;
+  /** ISO 639-1 of the thread, as Airbnb reports it. */
+  conversation_language?: string | null;
+  /** `include=guest`. The language decides which copy the guest receives and
+   *  which language their check-in page opens in. */
+  guest?: {
+    id?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    email?: string | null;
+    language?: string | null;
+    phone_numbers?: string[] | null;
+  } | null;
 }
 
 async function hospGet<T>(
@@ -125,7 +155,8 @@ export async function listHospitableProperties(
   const out: HospitableProperty[] = [];
   // `include=listings` carries platform_user_id / platform_email per channel —
   // how a listing in the central account is attributed to a host client.
-  let url: string | null = '/properties?per_page=100&include=listings';
+  // `details` is the host's guest-facing text (wifi, access, rules) for the AI.
+  let url: string | null = '/properties?per_page=100&include=listings,details';
   for (let page = 0; url && page < 10; page++) {
     const r: Awaited<ReturnType<typeof hospGet<HospitableProperty>>> = await hospGet(token, url);
     if (!r.ok) return null;
@@ -144,7 +175,7 @@ export async function listHospitableReservations(
 ): Promise<HospitableReservation[] | null> {
   const out: HospitableReservation[] = [];
   let url: string | null =
-    `/reservations?properties%5B%5D=${encodeURIComponent(propertyId)}&start_date=${startDate}&end_date=${endDate}&per_page=100`;
+    `/reservations?properties%5B%5D=${encodeURIComponent(propertyId)}&start_date=${startDate}&end_date=${endDate}&per_page=100&include=guest`;
   for (let page = 0; url && page < 10; page++) {
     const r: Awaited<ReturnType<typeof hospGet<HospitableReservation>>> = await hospGet(token, url);
     // Any page failing means the set is incomplete. Returning a partial list
