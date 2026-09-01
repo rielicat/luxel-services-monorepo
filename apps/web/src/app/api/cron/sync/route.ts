@@ -18,8 +18,9 @@ export const maxDuration = 300;
  * Driven by Vercel's own scheduler (apps/web/vercel.json, `0 12 * * *` — 08:00
  * Santiago). There is no external caller and no URL to configure: Vercel GETs
  * the production deployment directly, and sends `Authorization: Bearer
- * ${CRON_SECRET}` automatically when that variable exists on the project. When
- * it is unset the route is open, so set it in production.
+ * ${CRON_SECRET}` automatically when that variable exists on the project. With
+ * it unset the route refuses every request, so the daily pass does nothing at
+ * all until it is set — visible in the Vercel cron log as a 401.
  *
  * ⚠ ONCE PER DAY, not more. Hobby rejects a sub-daily expression and a rejected
  * vercel.json fails deployment creation outright — which once blocked every
@@ -37,8 +38,18 @@ export const maxDuration = 300;
  * (identified by having listings assigned to them).
  */
 export async function GET(req: Request) {
+  // Fails CLOSED. An unset secret used to mean "no check at all", which on an
+  // endpoint that messages guests and triggers AI replies is an open door
+  // wearing the costume of a default. Vercel sends this header automatically
+  // once CRON_SECRET exists on the project, so the configured path is one
+  // variable in one place — and the unconfigured path refuses rather than
+  // inviting anyone who guesses the URL to sync every account.
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!secret) {
+    console.error('cron.secret_missing — refusing to run; set CRON_SECRET on the project');
+    return new Response('Unauthorized', { status: 401 });
+  }
+  if (req.headers.get('authorization') !== `Bearer ${secret}`) {
     return new Response('Unauthorized', { status: 401 });
   }
 

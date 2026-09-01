@@ -24,7 +24,8 @@ export async function POST(req: Request) {
   if (!parsed.success) return Response.json({ ok: false }, { status: 400 });
 
   const h = req.headers;
-  const ip = (h.get('x-forwarded-for') ?? h.get('x-real-ip') ?? '').split(',')[0]?.trim() || null;
+  // The caller's IP is deliberately not read. Country is coarse enough to be
+  // useful without identifying anyone; an address is not.
   const userAgent = h.get('user-agent');
   const country = h.get('x-vercel-ip-country') ?? h.get('cf-ipcountry');
 
@@ -56,7 +57,6 @@ export async function POST(req: Request) {
         properties: e.properties,
         userAgent,
         country,
-        ip,
         source: 'web',
       }),
     ),

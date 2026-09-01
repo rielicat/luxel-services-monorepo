@@ -43,11 +43,10 @@ effect and fails silently:
 | `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                              |
 | `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN` |
 | `CHANNEL_PROVIDER`                                 | optional; defaults to `hospitable`, the only registered plugin. An unregistered value returns HTTP 500           |
-| `CRON_SECRET`                                      | **the sync endpoint accepts unauthenticated requests** — see the security note below                             |
+| `CRON_SECRET`                                      | **the daily reconcile refuses every request and does nothing** — it fails closed                                 |
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
 | `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
 | `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp; crew notifications fall back to email only                                                          |
-| `HOSPITABLE_WEBHOOK_SECRET`                        | header auth off; Hospitable still authorises by source IP — see "Inbound webhook access"                         |
 | `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                    |
 | `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                        |
 | _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.              |
@@ -66,8 +65,8 @@ the activate button, which is intended rather than broken.
 ### Optional
 
 `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`,
-`NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`, `LUXEL_ANALYTICS_SALT`,
-`NEXT_PUBLIC_WHATSAPP_NUMBER`, `CLERK_JWT_TEMPLATE_NAME`,
+`NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`,
+`NEXT_PUBLIC_WHATSAPP_NUMBER`,
 `LUXEL_WORKING_DAYS`, `LUXEL_WORKING_OPEN`, `LUXEL_WORKING_CLOSE`,
 `NEXT_PUBLIC_CLERK_SIGN_IN_URL`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL`,
 `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`,
@@ -116,36 +115,28 @@ variables disabled still cannot mail a guest a link to their own machine.
 
 ## Inbound webhook access
 
-Register the endpoint with **no secret in the URL**:
+Register the endpoint with **no secret of any kind**:
 
 ```
 https://<prod-host>/api/channels/hospitable
 ```
 
-A query string is written to access logs, so it is not a place to put a
-credential — and Hospitable's webhook form offers only **Name** and **URL**
-anyway, no custom headers and no signing key.
+There is nowhere to put one. Hospitable's webhook form offers only **Name** and
+**URL** — no custom headers, no signing key — and a query string is written to
+access logs on every delivery, so it is not a place for a credential.
 
-Two ways in, either sufficient:
+Deliveries are authorised by **source IP** against `HOSPITABLE_WEBHOOK_IPS`,
+which defaults to Hospitable's published `38.80.170.0/24`. The variable exists
+so a change to their sender range is a config fix rather than a deploy. On
+Vercel the address is trustworthy: they overwrite `x-forwarded-for` and "do not
+forward external IPs… to prevent IP spoofing".
 
-| Mechanism                                                     | For                                                                |
-| ------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `x-luxel-webhook-secret` header = `HOSPITABLE_WEBHOOK_SECRET` | our own tooling and manual replays — Hospitable cannot set headers |
-| source IP within `HOSPITABLE_WEBHOOK_IPS`                     | Hospitable's own deliveries                                        |
+With no platform headers at all — local development — the route is open, because
+there is no address to check against. Anything deployed always has one.
 
-`HOSPITABLE_WEBHOOK_SECRET` is a value you generate (`openssl rand -hex 32`);
-the vendor does not issue one. `HOSPITABLE_WEBHOOK_IPS` defaults to their
-published `38.80.170.0/24` and exists so that a sender-range change is a config
-fix rather than a deploy. On Vercel the source IP is trustworthy: they overwrite
-`x-forwarded-for` and "do not forward external IPs… to prevent IP spoofing".
-
-With neither a secret configured nor any platform header present — local
-development — the route is open, because there is nothing to check against.
-Production always has one or the other.
-
-**Neither of these is what protects the guest threads.** The handler takes no
-content from the payload at all: an event names a reservation, and the thread is
-read back from Hospitable with our own credential before anything is stored or
+**That check is not what protects the guest threads.** The handler takes no
+content from the payload: an event names a reservation, and the thread is read
+back from Hospitable with our own credential before anything is stored or
 answered. A forged event costs an API call, not a fabricated message in a
 guest's inbox and in the AI's grounding. See `lib/channels/webhook-auth.ts`.
 
@@ -184,15 +175,16 @@ if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
 }
 ```
 
-When `CRON_SECRET` is unset the condition short-circuits and every request is
-accepted. A sync is not read-only: it sends messages into guest threads and
-triggers AI replies. Treat this variable as required in production, whichever
-scheduler calls the route.
+It fails **closed**: with `CRON_SECRET` unset the route refuses every request
+and the daily pass does nothing, which shows up as a 401 in the Vercel cron log.
+That is deliberate — the pass is not read-only, it sends messages into guest
+threads and triggers AI replies, so an unconfigured endpoint must not be an open
+one. Vercel supplies the header automatically once the variable exists.
 
 ## Known drift
 
 - `.env.example` omits `OPENAI_API_KEY`, `OPENAI_MODEL`, `CRON_SECRET`,
-  `PROVIDER_API_KEY`, `HOSPITABLE_WEBHOOK_SECRET`, `PRICELABS_API_KEY`,
+  `PROVIDER_API_KEY`, `PRICELABS_API_KEY`,
   `RESEND_API_KEY`, `RESEND_FROM`, `LUXEL_PII_KEY`,
   `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `WHATSAPP_WORKER_SEND_URL`, `INTERNAL_SEND_TOKEN`, `LUXEL_ADMIN_ORG_ID`,

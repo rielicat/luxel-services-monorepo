@@ -16,11 +16,6 @@ const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 process.env.TEST_CLERK_ID = `test-hosp-${nodeCrypto.randomUUID()}`;
 process.env.LUXEL_PII_KEY = nodeCrypto.randomBytes(32).toString('hex');
 delete process.env.HOSPITABLE_API_TOKEN; // per-customer tokens only — no env fallback
-// The webhook gate is enforced only when this is set, so a developer who has it
-// in .env.local would 401 every webhook test here for reasons unrelated to the
-// code. Ambient config must not decide what these assert; the gate has its own
-// test below, which sets and clears the value itself.
-delete process.env.HOSPITABLE_WEBHOOK_SECRET;
 delete process.env.OPENAI_API_KEY;
 process.env.LUXEL_DEV_MOCK = '1'; // dev-mock AI so auto-replies are deterministic
 
@@ -851,15 +846,18 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(((await again.json()) as { resync: string }).resync).toBe('debounced');
   });
 
-  it('authorises by header or source IP, and never by a secret in the URL', async () => {
+  it('authorises on source IP alone, never on a secret', async () => {
+    // Hospitable's webhook form has only Name and URL — no header, no signing
+    // key — so their published sender range is the only thing that can identify
+    // a delivery. A query-string secret is not an option: it would be written to
+    // access logs on every request.
     const { POST } = await import('../src/app/api/channels/[provider]/route');
-    const post = (init: { query?: string; header?: string; ip?: string }) =>
+    const post = (init: { query?: string; ip?: string }) =>
       POST(
         new Request(`http://localhost/api/channels/hospitable${init.query ?? ''}`, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
-            ...(init.header ? { 'x-luxel-webhook-secret': init.header } : {}),
             ...(init.ip ? { 'x-vercel-forwarded-for': init.ip } : {}),
           },
           body: JSON.stringify({ action: 'property.changed', data: { id: 'whatever' } }),
@@ -867,28 +865,16 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
         { params: Promise.resolve({ provider: 'hospitable' }) },
       );
 
-    process.env.HOSPITABLE_WEBHOOK_SECRET = 'sekret-under-test';
-    try {
-      expect((await post({ ip: '1.2.3.4' })).status).toBe(401); // nothing presented
-      expect((await post({ header: 'wrong', ip: '1.2.3.4' })).status).toBe(401);
-      // The old scheme, deliberately no longer honoured: a query string is
-      // written to access logs, so it must not be a credential.
-      expect((await post({ query: '?secret=sekret-under-test', ip: '1.2.3.4' })).status).toBe(401);
-
-      expect((await post({ header: 'sekret-under-test', ip: '1.2.3.4' })).status).toBe(200);
-      // Hospitable cannot send a header — their webhook form has only Name and
-      // URL — so their deliveries authorise on the published sender range.
-      expect((await post({ ip: '38.80.170.42' })).status).toBe(200);
-      expect((await post({ ip: '38.80.171.42' })).status).toBe(401); // adjacent /24
-    } finally {
-      delete process.env.HOSPITABLE_WEBHOOK_SECRET;
-    }
-
-    // No secret and no platform headers is local development, where there is
-    // nothing to check against. Production always has one or the other.
-    expect((await post({})).status).toBe(200);
-    // …but an identifiable caller from outside the range is still refused.
+    expect((await post({ ip: '38.80.170.42' })).status).toBe(200);
+    expect((await post({ ip: '38.80.170.0' })).status).toBe(200);
+    expect((await post({ ip: '38.80.170.255' })).status).toBe(200);
+    expect((await post({ ip: '38.80.171.42' })).status).toBe(401); // adjacent /24
     expect((await post({ ip: '203.0.113.9' })).status).toBe(401);
+    // No secret is honoured anywhere, in any position.
+    expect((await post({ query: '?secret=anything', ip: '203.0.113.9' })).status).toBe(401);
+
+    // No platform headers at all is local development — nothing to check.
+    expect((await post({})).status).toBe(200);
   });
 
   it('acks an event for a listing no tenant owns instead of guessing one', async () => {

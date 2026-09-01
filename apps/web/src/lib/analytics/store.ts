@@ -1,5 +1,4 @@
 import 'server-only';
-import { createHash } from 'crypto';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
 export interface EventInput {
@@ -14,16 +13,18 @@ export interface EventInput {
   properties?: Record<string, unknown> | null;
   userAgent?: string | null;
   country?: string | null;
-  ip?: string | null;
   source?: 'web' | 'server' | 'whatsapp';
 }
 
-/** One-way hash so we can count uniques without storing raw IPs. */
-function hashIp(ip?: string | null): string | null {
-  if (!ip) return null;
-  const salt = process.env.LUXEL_ANALYTICS_SALT ?? 'luxel-analytics';
-  return createHash('sha256').update(`${ip}:${salt}`).digest('hex').slice(0, 32);
-}
+/*
+ * Visitor IPs are not collected, hashed or stored.
+ *
+ * They used to be salted-hashed into analytics_events.ip_hash, which nothing
+ * ever read — write-only data derived from personal information. A truncated
+ * SHA-256 of an IPv4 address is reversible by brute force anyway (the whole
+ * space is 2^32), so the hash was not the protection it looked like. The
+ * minimising fix is to stop taking the IP at all rather than to salt it better.
+ */
 
 /**
  * Record an event into our owned store (analytics_events). Never throws —
@@ -44,7 +45,6 @@ export async function recordEvent(e: EventInput): Promise<void> {
       properties: e.properties ?? null,
       user_agent: e.userAgent ? e.userAgent.slice(0, 300) : null,
       country: e.country ?? null,
-      ip_hash: hashIp(e.ip),
       source: e.source ?? 'web',
     });
   } catch {

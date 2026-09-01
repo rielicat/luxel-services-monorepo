@@ -3,22 +3,22 @@ import 'server-only';
 /**
  * Who is allowed to post an inbound channel event.
  *
- * Deliberately NOT a secret in the URL. A query string is written to access
- * logs, and Hospitable's webhook form offers only Name and URL — no custom
- * header, no signing key — so a URL secret would be a long-lived bearer
- * credential recorded in plaintext on every delivery.
+ * There is no shared secret, by design. Hospitable's webhook form offers only
+ * Name and URL — no custom header, no signing key — so the only place a secret
+ * could go is the query string, and a query string is written to access logs.
+ * A credential that is recorded in plaintext on every delivery is not one.
  *
- * Two checks instead, either of which is sufficient:
+ * The check is the source IP, against Hospitable's published range. On Vercel
+ * that is trustworthy: they overwrite `x-forwarded-for` and "do not forward
+ * external IPs… to prevent IP spoofing", so a client cannot assert its own
+ * address.
  *
- *  - the `x-luxel-webhook-secret` header, for callers that can set one (our own
- *    tooling, manual replays, whatever provider comes next);
- *  - the source IP, against Hospitable's published range. On Vercel this is
- *    trustworthy: they overwrite `x-forwarded-for` and "do not forward external
- *    IPs… to prevent IP spoofing", so a client cannot assert its own address.
- *
- * Neither is what actually protects the guest threads. That is the handler
- * refusing to take content from the payload at all — see `ingestThread`. These
- * checks bound abuse and cost; the integrity guarantee is upstream of them.
+ * This is NOT what protects the guest threads. That is the handler refusing to
+ * take content from the payload at all — an event names a reservation and the
+ * thread is read back from Hospitable with our own credential, so a forged
+ * request costs an API call rather than a fabricated conversation. See
+ * `ingestThread`. This check bounds abuse and cost; the integrity guarantee
+ * lives upstream of it.
  */
 
 /** Hospitable's documented sender range. Overridable because a vendor IP change
@@ -70,15 +70,10 @@ export function sourceIp(headers: Headers): string | null {
 }
 
 export type WebhookAuth =
-  | { ok: true; via: 'header' | 'source_ip' | 'open' }
+  | { ok: true; via: 'source_ip' | 'open' }
   | { ok: false; via: 'rejected'; ip: string | null };
 
 export function authorizeWebhook(headers: Headers): WebhookAuth {
-  const secret = process.env.HOSPITABLE_WEBHOOK_SECRET;
-  if (secret && headers.get('x-luxel-webhook-secret') === secret) {
-    return { ok: true, via: 'header' };
-  }
-
   const ip = sourceIp(headers);
   const cidrs = (process.env.HOSPITABLE_WEBHOOK_IPS ?? DEFAULT_ALLOWED_CIDRS)
     .split(',')
@@ -88,10 +83,11 @@ export function authorizeWebhook(headers: Headers): WebhookAuth {
     return { ok: true, via: 'source_ip' };
   }
 
-  // Local development: no platform headers and no secret configured means there
-  // is nothing to check against. Production always has one or the other, so
-  // this cannot widen anything deployed.
-  if (!secret && !ip) return { ok: true, via: 'open' };
+  // Local development: with no platform headers there is no address to check
+  // against. Anything deployed to Vercel always has one, so this cannot widen
+  // production — an identifiable caller from outside the range is still
+  // refused below.
+  if (!ip) return { ok: true, via: 'open' };
 
   return { ok: false, via: 'rejected', ip };
 }

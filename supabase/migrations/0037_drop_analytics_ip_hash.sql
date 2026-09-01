@@ -1,0 +1,11 @@
+-- analytics_events.ip_hash was written on every event and read by nothing —
+-- write-only data derived from personal information, which Ley 21.719's
+-- minimisation duty says we should not be holding.
+--
+-- It was also weaker than it looked: a truncated SHA-256 of an IPv4 address is
+-- reversible by brute force, since the entire space is 2^32. Salting it better
+-- was not the fix; not collecting it was.
+--
+-- The application stopped writing this column in the same change, so dropping it
+-- loses nothing that any query, dashboard or report reads.
+alter table analytics_events drop column if exists ip_hash;
