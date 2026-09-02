@@ -97,6 +97,82 @@ const RESERVATIONS_PAYLOAD = {
 
 let PROPERTIES_MODE: 'normal' | 'paged_fail' | 'empty' = 'normal';
 
+const TEAMMATE_CLEANER_ID = 'c1ea0000-0000-4000-8000-000000000001';
+const TEAMMATE_CONCIERGE_ID = 'c0c1e000-0000-4000-8000-000000000002';
+const TEAMMATE_MANAGER_ID = 'a4a4a000-0000-4000-8000-000000000003';
+const TEAMMATE_GHOST_ID = 'e0e0e000-0000-4000-8000-000000000004';
+
+const teammatesFixture = () => [
+  {
+    id: TEAMMATE_CLEANER_ID,
+    name: 'Rosa Aseo',
+    first_name: 'Rosa',
+    last_name: 'Aseo',
+    is_company: false,
+    company_name: null,
+    email: null,
+    phone_number: '+56 9 5555 1234',
+    language: 'es',
+    timezone: 'America/Santiago',
+    all_services: false,
+    all_properties: true,
+    services: [
+      { id: 1, label: 'Cleaning' },
+      { id: 7, label: 'Laundry' },
+    ],
+    properties: 'all',
+  },
+  {
+    id: TEAMMATE_CONCIERGE_ID,
+    name: 'Conserjería Infante',
+    first_name: 'Conserjería',
+    last_name: 'Infante',
+    is_company: true,
+    company_name: 'Edificio Infante',
+    email: 'conserje@edificio.cl',
+    phone_number: '+56987654321',
+    language: 'es',
+    timezone: 'America/Santiago',
+    all_services: false,
+    all_properties: false,
+    services: [{ id: 3, label: 'Concierge' }],
+    properties: [{ id: HOSP_PROPERTY_ID }],
+  },
+  {
+    id: TEAMMATE_MANAGER_ID,
+    name: 'Gerente General',
+    first_name: 'Gerente',
+    last_name: 'General',
+    is_company: false,
+    company_name: null,
+    email: 'gerente@host.cl',
+    phone_number: '+56 9 1111 2222',
+    language: 'es',
+    timezone: 'America/Santiago',
+    all_services: false,
+    all_properties: true,
+    services: [{ id: 6, label: 'Manager' }],
+    properties: 'all',
+  },
+  {
+    id: TEAMMATE_GHOST_ID,
+    name: 'Sin Contacto',
+    first_name: 'Sin',
+    last_name: 'Contacto',
+    is_company: false,
+    company_name: null,
+    email: null,
+    phone_number: null,
+    language: 'es',
+    timezone: 'America/Santiago',
+    all_services: true,
+    all_properties: true,
+    services: [],
+    properties: 'all',
+  },
+];
+let TEAMMATES = teammatesFixture();
+
 // eslint-disable-next-line prefer-const
 let MESSAGES: Array<{
   id: string;
@@ -117,7 +193,12 @@ let admin: ReturnType<typeof createClient>;
 let connectHospitable: (
   i: unknown,
 ) => Promise<{ ok: boolean; error?: string; properties?: number }>;
-let syncHospitable: () => Promise<{ ok: boolean; properties?: number; reservations?: number }>;
+let syncHospitable: () => Promise<{
+  ok: boolean;
+  properties?: number;
+  reservations?: number;
+  contacts?: number;
+}>;
 let decryptPII: (s: string) => string;
 let customerId: string;
 let apiCalls = 0;
@@ -172,6 +253,25 @@ beforeAll(async () => {
           },
         });
       }
+      if (url.includes('/teammates')) {
+        const second = /[?&]page=2/.test(url);
+        const data = second ? TEAMMATES.slice(2) : TEAMMATES.slice(0, 2);
+        const more = !second && TEAMMATES.length > 2;
+        return Response.json({
+          data,
+          links: {
+            next: more
+              ? 'https://public.api.hospitable.com/v2/teammates?per_page=100&include=properties&page=2'
+              : null,
+          },
+          meta: {
+            current_page: second ? 2 : 1,
+            last_page: TEAMMATES.length > 2 ? 2 : 1,
+            per_page: 2,
+            total: TEAMMATES.length,
+          },
+        });
+      }
       if (url.includes('/properties')) {
         if (PROPERTIES_MODE === 'empty') return Response.json({ data: [], links: { next: null } });
         if (PROPERTIES_MODE === 'paged_fail') {
@@ -217,6 +317,7 @@ afterEach(async () => {
   SENT.length = 0;
   WA_SENDS.length = 0;
   PROPERTIES_MODE = 'normal';
+  TEAMMATES = teammatesFixture();
 });
 
 describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
@@ -294,6 +395,68 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('*', { count: 'exact', head: true })
       .eq('property_id', prop!.id);
     expect(blocks).toBe(2);
+  });
+
+  it('mirrors Hospitable teammates as crew contacts and prunes everything else', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const rows = async () =>
+      (
+        await admin
+          .from('property_contacts')
+          .select('role, name, email, whatsapp, external_id')
+          .eq('property_id', prop!.id)
+          .order('role')
+      ).data!;
+
+    const first = await rows();
+    expect(first).toHaveLength(2);
+    expect(first[0]).toMatchObject({
+      role: 'cleaning',
+      name: 'Rosa Aseo',
+      email: null,
+      whatsapp: '+56955551234',
+      external_id: TEAMMATE_CLEANER_ID,
+    });
+    expect(first[1]).toMatchObject({
+      role: 'concierge',
+      name: 'Conserjería Infante',
+      email: 'conserje@edificio.cl',
+      whatsapp: '+56987654321',
+      external_id: TEAMMATE_CONCIERGE_ID,
+    });
+
+    await admin.from('property_contacts').insert({
+      property_id: prop!.id,
+      role: 'cleaning',
+      name: 'Agregado a mano',
+      whatsapp: '+56 9 0000 0000',
+    });
+    const again = await syncHospitable();
+    expect(again.ok).toBe(true);
+    expect(again.contacts).toBe(2);
+    const second = await rows();
+    expect(second).toHaveLength(2);
+    expect(second.every((r) => r.external_id)).toBe(true);
+
+    TEAMMATES = TEAMMATES.filter((tm) => tm.id !== TEAMMATE_CONCIERGE_ID);
+    expect((await syncHospitable()).contacts).toBe(1);
+    const third = await rows();
+    expect(third.map((r) => r.external_id)).toEqual([TEAMMATE_CLEANER_ID]);
+
+    TEAMMATES = TEAMMATES.map((tm) =>
+      tm.id === TEAMMATE_CLEANER_ID ? { ...tm, all_services: true, services: [] } : tm,
+    );
+    await syncHospitable();
+    const fourth = await rows();
+    expect(fourth.map((r) => `${r.role}:${r.external_id}`)).toEqual([
+      `cleaning:${TEAMMATE_CLEANER_ID}`,
+      `concierge:${TEAMMATE_CLEANER_ID}`,
+    ]);
   });
 
   it('mirrors the full listing record and prunes anything not in Hospitable', async () => {
@@ -743,17 +906,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     await connectHospitable({ token: FAKE_TOKEN });
     SENT.length = 0;
     await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
-    const { data: prop } = await admin
-      .from('properties')
-      .select('id')
-      .eq('external_listing_id', HOSP_PROPERTY_ID)
-      .single();
-    await admin.from('property_contacts').insert({
-      property_id: prop!.id,
-      role: 'cleaning',
-      name: 'Aseo',
-      whatsapp: '+56 9 5555 1234',
-    });
     await admin
       .from('channel_connections')
       .update({ last_synced_at: new Date(Date.now() - 120_000).toISOString() })

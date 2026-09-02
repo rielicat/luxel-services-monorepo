@@ -23,6 +23,7 @@ export const hospitablePlugin: ChannelPlugin = {
       ok: r.ok,
       properties: r.properties,
       reservations: r.reservations,
+      contacts: r.contacts,
       replies: r.aiReplies,
       relinked: r.relinked,
     };

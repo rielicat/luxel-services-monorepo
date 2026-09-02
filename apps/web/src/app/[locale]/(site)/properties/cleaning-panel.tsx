@@ -109,12 +109,10 @@ export function CleaningPanel({
 
       <div className="border-border rounded-lg border p-3">
         <ContactList
-          propertyId={propertyId}
           role="cleaning"
           contacts={contacts}
           title={t('contacts_title')}
           body={t('contacts_body')}
-          addTitle={t('contact_modal_title')}
         />
       </div>
 

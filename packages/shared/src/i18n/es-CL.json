@@ -455,8 +455,7 @@
     "unit_ph": "401",
     "unit_help": "El anuncio trae la calle, no el departamento. Esto es lo que ven la conserjería y el equipo de aseo.",
     "concierge_title": "Conserjería del edificio",
-    "concierge_body": "Cada vez que un huésped completa su registro, la conserjería recibe por WhatsApp las fechas, la lista de huéspedes con sus documentos y si llega en auto.",
-    "concierge_add_title": "Agregar conserje"
+    "concierge_body": "Cada vez que un huésped completa su registro, la conserjería recibe por WhatsApp las fechas, la lista de huéspedes con sus documentos y si llega en auto."
   },
   "cleaning": {
     "mode_luxel": "Luxel lo gestiona",
@@ -479,7 +478,6 @@
     "skip": "Omitir",
     "show_all": "Ver todos los aseos ({n})",
     "upcoming_title": "Próximos aseos",
-    "contact_modal_title": "Agregar a quien hace el aseo",
     "contacts_body": "Reciben por WhatsApp cada nueva reserva con las fechas de la estadía y el día del aseo."
   },
   "hostplan": {
@@ -778,19 +776,10 @@
     "move_confirm": "Sí, reasignar"
   },
   "contacts": {
-    "none": "Aún no agregas a nadie.",
     "unnamed": "Sin nombre",
-    "add": "Agregar persona",
-    "remove": "Quitar contacto",
-    "whatsapp": "WhatsApp",
-    "whatsapp_hint": "Acá llega el aviso. Número chileno o internacional con código de país.",
-    "name": "Nombre",
-    "name_ph": "Ej.: María González",
-    "email": "Correo",
-    "optional": "(opcional)",
-    "save": "Agregar",
-    "cancel": "Cancelar",
-    "error_whatsapp": "Necesitamos un número de WhatsApp válido para poder avisarle.",
-    "error": "No se pudo agregar. Inténtalo de nuevo."
+    "none_cleaning": "Nadie con rol Cleaning o Laundry está asignado a esta propiedad en Hospitable.",
+    "none_concierge": "Nadie con rol Concierge, Check-in o Check-out está asignado a esta propiedad en Hospitable.",
+    "managed_pre": "Los contactos se administran en",
+    "managed_link": "Hospitable → Equipo"
   }
 }

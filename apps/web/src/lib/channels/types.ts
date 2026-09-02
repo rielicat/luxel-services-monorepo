@@ -64,6 +64,7 @@ export interface ChannelSyncOutcome {
   ok: boolean;
   properties: number;
   reservations: number;
+  contacts: number;
   replies: number;
   relinked: number;
 }

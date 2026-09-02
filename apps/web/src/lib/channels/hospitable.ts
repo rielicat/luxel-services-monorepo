@@ -135,6 +135,36 @@ export async function listHospitableProperties(
   return out;
 }
 
+export interface HospitableTeammate {
+  id: string;
+  name: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  is_company?: boolean | null;
+  company_name?: string | null;
+  email: string | null;
+  phone_number: string | null;
+  language?: string | null;
+  timezone?: string | null;
+  all_services: boolean;
+  all_properties: boolean;
+  services?: { id: number; label?: string | null }[] | null;
+  properties?: 'all' | unknown[] | null;
+}
+
+export async function listHospitableTeammates(token: string): Promise<HospitableTeammate[] | null> {
+  const out: HospitableTeammate[] = [];
+  let url: string | null = '/teammates?per_page=100&include=properties';
+  for (let page = 0; url && page < 50; page++) {
+    const r: Awaited<ReturnType<typeof hospGet<HospitableTeammate>>> = await hospGet(token, url);
+    if (!r.ok) return null;
+    out.push(...(r.data ?? []));
+    url = r.nextUrl ?? null;
+  }
+  if (url) return null;
+  return out;
+}
+
 export async function listHospitableReservations(
   token: string,
   propertyId: string,

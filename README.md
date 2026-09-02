@@ -142,6 +142,10 @@ These cannot be unblocked by writing more code:
       See [`docs/ENV.md`](docs/ENV.md) § Inbound webhook access
 - [ ] Author the time-based guest messages as Hospitable message rules. See
       [`docs/ENV.md`](docs/ENV.md) § Scheduled guest messages
+- [ ] Add the crew in Hospitable → Operations → Teammates, each with a phone
+      number. Services Cleaning or Laundry make the cleaning crew; Concierge,
+      Check-in or Check-out make the conserjes. The app mirrors them; it has no
+      contact form
 - [ ] Set `RESEND_API_KEY` and `RESEND_FROM`. Optional: `PRICELABS_API_KEY`
 - [ ] Verify a Meta Business account → enable WhatsApp Cloud API → add a phone
       number → deploy `workers/whatsapp`

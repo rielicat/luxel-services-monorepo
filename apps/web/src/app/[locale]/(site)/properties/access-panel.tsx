@@ -183,12 +183,10 @@ export function AccessPanel({
           <p className="text-muted-foreground text-xs">{t('unit_help')}</p>
         </div>
         <ContactList
-          propertyId={propertyId}
           role="concierge"
           contacts={contacts}
           title={t('concierge_title')}
           body={t('concierge_body')}
-          addTitle={t('concierge_add_title')}
         />
       </div>
 

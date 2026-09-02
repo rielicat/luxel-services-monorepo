@@ -4,11 +4,13 @@ import {
   listHospitableProperties,
   listHospitableReservations,
   listHospitableMessages,
+  listHospitableTeammates,
   sendHospitableMessage,
   toChannelListing,
   toChannelReservation,
   type HospitableProperty,
   type HospitableReservation,
+  type HospitableTeammate,
 } from './hospitable';
 import { suggestCleaningsFromCheckouts } from '@/lib/cleaning/schedule';
 import { autoConfirmSuggested } from '@/lib/cleaning/notify';
@@ -18,6 +20,7 @@ import { resolveGuestLang } from '@/lib/checkin/lang';
 import { RETENTION_DAYS, santiagoToday, shiftDate } from '@/lib/checkin/window';
 import { notifyCleaningCrewOfBooking } from '@/lib/cleaning/booking-notify';
 import { appUrl } from '@/lib/urls';
+import { toE164Digits } from '@/lib/phone';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
 import { pruneWouldWipeEverything, relinkByConfirmationCode } from './relink';
@@ -177,6 +180,7 @@ interface HospitableSyncResult {
   ok: boolean;
   properties: number;
   reservations: number;
+  contacts: number;
   cleanings: number;
   messagesImported: number;
   aiReplies: number;
@@ -231,6 +235,117 @@ async function upsertHospitableProperty(
       { onConflict: 'property_id', ignoreDuplicates: true },
     );
   return row.id as string;
+}
+
+type ContactRole = 'cleaning' | 'concierge';
+interface MirroredProperty {
+  id: string;
+  externalListingId: string;
+}
+
+const CLEANING_SERVICES = new Set([1, 7]);
+const CONCIERGE_SERVICES = new Set([2, 3, 4]);
+
+function teammateRoles(tm: HospitableTeammate): ContactRole[] {
+  if (tm.all_services) return ['cleaning', 'concierge'];
+  const ids = (tm.services ?? []).map((s) => s.id);
+  const roles: ContactRole[] = [];
+  if (ids.some((id) => CLEANING_SERVICES.has(id))) roles.push('cleaning');
+  if (ids.some((id) => CONCIERGE_SERVICES.has(id))) roles.push('concierge');
+  return roles;
+}
+
+function teammateListingIds(tm: HospitableTeammate): Set<string> | 'all' {
+  if (tm.all_properties || tm.properties === 'all') return 'all';
+  const ids = new Set<string>();
+  for (const p of Array.isArray(tm.properties) ? tm.properties : []) {
+    if (typeof p === 'string') ids.add(p);
+    else if (p && typeof p === 'object' && typeof (p as { id?: unknown }).id === 'string')
+      ids.add((p as { id: string }).id);
+  }
+  return ids;
+}
+
+const contactKey = (propertyId: string, role: string, externalId: string) =>
+  `${propertyId}|${role}|${externalId}`;
+
+export async function mirrorTeammates(
+  supabase: Supabase,
+  token: string,
+  customerId: string,
+  propertyRows: MirroredProperty[],
+): Promise<number> {
+  if (!propertyRows.length) return 0;
+  try {
+    const teammates = await listHospitableTeammates(token);
+    if (!teammates) return 0;
+
+    const desired = new Map<
+      string,
+      {
+        property_id: string;
+        role: ContactRole;
+        external_id: string;
+        name: string | null;
+        email: string | null;
+        whatsapp: string | null;
+      }
+    >();
+    for (const tm of teammates) {
+      const digits = toE164Digits(tm.phone_number);
+      const email = tm.email?.trim() || null;
+      if (!digits && !email) continue;
+      const roles = teammateRoles(tm);
+      if (!roles.length) continue;
+      const scope = teammateListingIds(tm);
+      const targets =
+        scope === 'all' ? propertyRows : propertyRows.filter((p) => scope.has(p.externalListingId));
+      for (const p of targets) {
+        for (const role of roles) {
+          desired.set(contactKey(p.id, role, tm.id), {
+            property_id: p.id,
+            role,
+            external_id: tm.id,
+            name: tm.name?.trim() || null,
+            email,
+            whatsapp: digits ? `+${digits}` : null,
+          });
+        }
+      }
+    }
+
+    const rows = [...desired.values()];
+    if (rows.length) {
+      const { error } = await supabase
+        .from('property_contacts')
+        .upsert(rows, { onConflict: 'property_id,role,external_id' });
+      if (error) {
+        console.warn('sync.teammates_upsert_failed', { customerId, message: error.message });
+        return 0;
+      }
+    }
+
+    const { data: existing, error } = await supabase
+      .from('property_contacts')
+      .select('id, property_id, role, external_id')
+      .in(
+        'property_id',
+        propertyRows.map((p) => p.id),
+      );
+    if (error) return rows.length;
+    const stale = (existing ?? [])
+      .filter(
+        (r) =>
+          !r.external_id ||
+          !desired.has(contactKey(r.property_id as string, r.role as string, r.external_id)),
+      )
+      .map((r) => r.id as string);
+    if (stale.length) await supabase.from('property_contacts').delete().in('id', stale);
+    return rows.length;
+  } catch {
+    console.warn('sync.teammates_failed', { customerId });
+    return 0;
+  }
 }
 
 async function pruneToHospitable(
@@ -329,9 +444,12 @@ export async function reconcileHospitableProperties(
   if (!all) return { ok: false, properties: 0, accountLabel: null };
   const remote = await scopeToCustomer(customerId, all, scope);
   if (!remote) return { ok: false, properties: 0, accountLabel: null };
+  const mirrored: MirroredProperty[] = [];
   for (const rp of remote) {
-    await upsertHospitableProperty(supabase, customerId, rp);
+    const id = await upsertHospitableProperty(supabase, customerId, rp);
+    if (id) mirrored.push({ id, externalListingId: rp.id });
   }
+  await mirrorTeammates(supabase, token, customerId, mirrored);
   await pruneToHospitable(
     supabase,
     customerId,
@@ -469,6 +587,7 @@ export async function syncHospitableAccount(
       ok: false,
       properties: 0,
       reservations: 0,
+      contacts: 0,
       cleanings: 0,
       messagesImported: 0,
       aiReplies: 0,
@@ -483,6 +602,7 @@ export async function syncHospitableAccount(
       ok: false,
       properties: 0,
       reservations: 0,
+      contacts: 0,
       cleanings: 0,
       messagesImported: 0,
       aiReplies: 0,
@@ -503,10 +623,14 @@ export async function syncHospitableAccount(
   let aiReplies = 0;
   const today = santiagoToday(now);
 
+  const mirrored: (MirroredProperty & { rp: HospitableProperty })[] = [];
   for (const rp of remote) {
-    const propertyId = await upsertHospitableProperty(supabase, customerId, rp);
-    if (!propertyId) continue;
+    const id = await upsertHospitableProperty(supabase, customerId, rp);
+    if (id) mirrored.push({ id, externalListingId: rp.id, rp });
+  }
+  const contactCount = await mirrorTeammates(supabase, token, customerId, mirrored);
 
+  for (const { id: propertyId, rp } of mirrored) {
     const startDate = iso(new Date(now.getTime() - 60 * DAY));
     const endDate = iso(new Date(now.getTime() + 400 * DAY));
     const reservations = await listHospitableReservations(token, rp.id, startDate, endDate);
@@ -578,6 +702,7 @@ export async function syncHospitableAccount(
     ok: true,
     properties: remote.length,
     reservations: reservationCount,
+    contacts: contactCount,
     cleanings: cleaningCount,
     messagesImported,
     aiReplies,

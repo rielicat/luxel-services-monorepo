@@ -94,6 +94,11 @@ supabase/        migrations + seed + local config
 
 - Properties are an **import-only mirror** of Hospitable. There is no manual
   property create or edit path. Do not add one.
+- `property_contacts` (conserjes, cleaning crew) is an **import-only mirror** of
+  Hospitable Teammates, rewritten on every sync pass (`mirrorTeammates`). Service
+  Cleaning or Laundry → role `cleaning`; Concierge, Check-in or Check-out → role
+  `concierge`; all services → both; Owner, Manager, Maintenance → no row. The UI
+  links to Hospitable → Equipo. Do not add a manual contact form.
 - Webhook payloads are **identifiers only**. Every value acted on is fetched back
   from Hospitable with our credential (`app/api/channels/[provider]/route.ts`).
   Webhook auth is Hospitable's source-IP range, never a secret in the URL.

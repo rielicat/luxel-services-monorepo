@@ -212,6 +212,13 @@ Until a template is approved, the send fails. The conserje notice records the
 outcome on the check-in (`notify_result`, recipients only). A conserje with an
 email gets the notice by email instead. The cleaning-crew booking notice is
 WhatsApp-only; it has no email fallback. A failed run leaves
-`checkins.crew_notified_at` empty, so the next sync retries it. Recipients are
-`property_contacts` rows (role `concierge` or `cleaning`), managed per property
-in `/properties`.
+`checkins.crew_notified_at` empty, so the next sync retries it.
+
+Recipients are `property_contacts` rows. That table is an **import-only mirror**
+of Hospitable's Teammates (Operations → Teammates). The host adds crew there,
+with a phone number. Each sync pass reads `GET /v2/teammates` and rewrites the
+rows; the app has no manual add or remove path. The mapping is by Hospitable
+service: Cleaning and Laundry give role `cleaning`; Concierge, Check-in and
+Check-out give role `concierge`; "all services" gives both; Owner, Manager and
+Maintenance give no row. A teammate with no phone and no email is skipped. A
+teammate scoped to some properties only appears on those.
