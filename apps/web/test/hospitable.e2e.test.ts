@@ -97,6 +97,7 @@ const RESERVATIONS_PAYLOAD = {
 
 let PROPERTIES_MODE: 'normal' | 'paged_fail' | 'empty' = 'normal';
 let RES_ID_SUFFIX = '';
+let RESERVATIONS_FILTER: ((id: string) => boolean) | null = null;
 
 const TEAMMATE_CLEANER_ID = 'c1ea0000-0000-4000-8000-000000000001';
 const TEAMMATE_CONCIERGE_ID = 'c0c1e000-0000-4000-8000-000000000002';
@@ -259,7 +260,9 @@ beforeAll(async () => {
       if (url.includes('/reservations')) {
         return Response.json({
           ...RESERVATIONS_PAYLOAD,
-          data: RESERVATIONS_PAYLOAD.data.map((r) => ({ ...r, id: r.id + RES_ID_SUFFIX })),
+          data: RESERVATIONS_PAYLOAD.data
+            .filter((r) => RESERVATIONS_FILTER?.(r.id) ?? true)
+            .map((r) => ({ ...r, id: r.id + RES_ID_SUFFIX })),
         });
       }
       if (url.includes('/calendar')) {
@@ -346,6 +349,7 @@ afterEach(async () => {
   await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
   await admin.from('listing_assignments').delete().eq('customer_id', customerId);
   MESSAGES = [];
+  RESERVATIONS_FILTER = null;
   SENT.length = 0;
   WA_SENDS.length = 0;
   PROPERTIES_MODE = 'normal';
@@ -1151,6 +1155,106 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
         .filter(Boolean)
         .sort(),
     ).toEqual(['h1', 'h2', 'h3', 'h9']);
+  });
+
+  it('an empty reservation list freezes the check-ins instead of cancelling them', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const propertyId = prop!.id as string;
+    await admin.from('checkins').delete().eq('property_id', propertyId);
+    SENT.length = 0;
+    expect((await syncHospitable()).ok).toBe(true);
+    const sends = SENT.length;
+    expect(SENT.filter((s) => s.body.includes('/checkin/'))).toHaveLength(2);
+
+    RESERVATIONS_FILTER = () => false;
+    try {
+      expect((await syncHospitable()).ok).toBe(true);
+    } finally {
+      RESERVATIONS_FILTER = null;
+    }
+    const rows = async () =>
+      (
+        await admin
+          .from('checkins')
+          .select('reservation_uid, revoked_at')
+          .eq('property_id', propertyId)
+          .order('arrival_date')
+      ).data!;
+    expect((await rows()).map((r) => [r.reservation_uid, r.revoked_at])).toEqual([
+      ['hosp:res-1', null],
+      ['hosp:res-2', null],
+    ]);
+    expect(SENT.length).toBe(sends);
+
+    expect((await syncHospitable()).ok).toBe(true);
+    expect((await rows()).map((r) => r.revoked_at)).toEqual([null, null]);
+    expect(SENT.length).toBe(sends);
+  });
+
+  it('a stay missing from one pass is revoked, not deleted, and comes back silently', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const propertyId = prop!.id as string;
+    await admin.from('checkins').delete().eq('property_id', propertyId);
+    SENT.length = 0;
+    expect((await syncHospitable()).ok).toBe(true);
+    const sends = SENT.length;
+    const { data: before } = await admin
+      .from('checkins')
+      .select('id, token')
+      .eq('property_id', propertyId)
+      .eq('reservation_uid', 'hosp:res-1')
+      .single();
+
+    RESERVATIONS_FILTER = (id) => id !== 'res-1';
+    try {
+      expect((await syncHospitable()).ok).toBe(true);
+    } finally {
+      RESERVATIONS_FILTER = null;
+    }
+    const { data: revoked } = await admin
+      .from('checkins')
+      .select('revoked_at')
+      .eq('id', before!.id)
+      .maybeSingle();
+    expect(revoked!.revoked_at).not.toBeNull();
+    expect(SENT.length).toBe(sends);
+
+    expect((await syncHospitable()).ok).toBe(true);
+    const { data: back } = await admin
+      .from('checkins')
+      .select('id, token, revoked_at')
+      .eq('reservation_uid', 'hosp:res-1')
+      .single();
+    expect(back).toMatchObject({ id: before!.id, token: before!.token, revoked_at: null });
+    expect(SENT.length).toBe(sends);
+
+    await admin
+      .from('checkins')
+      .update({ revoked_at: new Date(Date.now() - 8 * 86_400_000).toISOString() })
+      .eq('id', before!.id);
+    RESERVATIONS_FILTER = (id) => id !== 'res-1';
+    try {
+      expect((await syncHospitable()).ok).toBe(true);
+    } finally {
+      RESERVATIONS_FILTER = null;
+    }
+    const { data: purged } = await admin
+      .from('checkins')
+      .select('id')
+      .eq('id', before!.id)
+      .maybeSingle();
+    expect(purged).toBeNull();
+    expect(SENT.length).toBe(sends);
   });
 
   it('a host reply that Hospitable rejects is reported as failed and not stored', async () => {

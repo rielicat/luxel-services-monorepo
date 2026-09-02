@@ -39,10 +39,11 @@ export async function submitCheckin(input: unknown): Promise<Result> {
 
   const { data: checkin } = await supabase
     .from('checkins')
-    .select('id, status, property_id, arrival_date, departure_date')
+    .select('id, status, property_id, arrival_date, departure_date, revoked_at')
     .eq('token', d.token)
     .maybeSingle();
   if (!checkin) return { ok: false, error: 'not_found' };
+  if (checkin.revoked_at) return { ok: false, error: 'expired' };
   if (checkin.status !== 'pending') return { ok: false, error: 'already_submitted' };
   const todaySantiago = santiagoToday();
   if (checkin.departure_date && todaySantiago > (checkin.departure_date as string)) {

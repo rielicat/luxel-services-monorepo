@@ -29,7 +29,7 @@ export default async function CheckinPage({ params }: { params: Promise<{ token:
     )
     .eq('token', token)
     .maybeSingle();
-  if (!checkin) notFound();
+  if (!checkin || checkin.revoked_at) notFound();
 
   const done = checkin.status !== 'pending';
 

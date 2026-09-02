@@ -281,6 +281,24 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(workerSends).toHaveLength(1);
   });
 
+  it('a revoked link is refused, so a cancelled stay cannot register', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Cancelado' });
+    const link = await mintCheckinLink(prop.id!);
+    await admin
+      .from('checkins')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('token', link.token!);
+    const res = await submitCheckin({
+      token: link.token,
+      guests: [{ fullName: 'Ya No Viene' }],
+      email: 'no@guest.cl',
+      arrivalTime: '15:00',
+      consent: true,
+    });
+    expect(res).toMatchObject({ ok: false, error: 'expired' });
+    expect(workerSends).toHaveLength(0);
+  });
+
   it('leaves the link pending when the PII key is missing, so the guest can retry', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Sin Clave' });
     const link = await mintCheckinLink(prop.id!);

@@ -32,6 +32,7 @@ import { encodeRef, refPattern, type ChannelReservation } from './types';
 
 const ref = (id: string) => encodeRef({ provider: 'hospitable', id });
 const HOSP = refPattern('hospitable');
+const REVOKE_GRACE_DAYS = 7;
 
 async function scopeToCustomer<T extends { id: string }>(
   customerId: string,
@@ -79,6 +80,18 @@ async function sendCheckinLinksForNewReservations(
   if (rekeyed) console.warn('sync.checkins_rekeyed', { propertyId, rekeyed });
 
   const uids = accepted.map((r) => ref(r.id));
+  if (!uids.length) {
+    const { count } = await supabase
+      .from('checkins')
+      .select('id', { count: 'exact', head: true })
+      .eq('property_id', propertyId)
+      .like('reservation_uid', HOSP)
+      .is('revoked_at', null);
+    if (count) {
+      console.warn('sync.checkins_frozen', { propertyId, live: count });
+      return;
+    }
+  }
   const notInList = (q: ReturnType<typeof revokeBase>) =>
     uids.length ? q.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`) : q;
   function revokeBase() {
@@ -90,16 +103,21 @@ async function sendCheckinLinksForNewReservations(
       .is('revoked_at', null);
   }
   await notInList(revokeBase());
-  let purge = supabase
+  if (uids.length) {
+    await supabase
+      .from('checkins')
+      .update({ revoked_at: null })
+      .eq('property_id', propertyId)
+      .in('reservation_uid', uids)
+      .not('revoked_at', 'is', null);
+  }
+  await supabase
     .from('checkins')
     .delete()
     .eq('property_id', propertyId)
     .like('reservation_uid', HOSP)
-    .is('submitted_at', null);
-  if (uids.length) {
-    purge = purge.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`);
-  }
-  await purge;
+    .is('submitted_at', null)
+    .lt('revoked_at', shiftDate(today, -REVOKE_GRACE_DAYS));
 
   const { data: prop } = await supabase
     .from('properties')
