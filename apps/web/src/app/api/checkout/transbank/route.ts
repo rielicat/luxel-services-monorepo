@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
   if (devMockPaymentsEnabled('transbank')) {
     await completeMockPayment(supabase, booking.id, 'transbank');
-    return NextResponse.redirect(new URL('/es/account?paid=1&mock=1', origin));
+    return NextResponse.redirect(new URL('/es/account', origin));
   }
 
   const buyOrder = `LX${booking.id.replace(/-/g, '').slice(0, 24)}`;

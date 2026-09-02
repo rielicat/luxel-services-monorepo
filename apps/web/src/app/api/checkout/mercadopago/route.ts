@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
   if (devMockPaymentsEnabled('mercadopago')) {
     await completeMockPayment(supabase, booking.id, 'mercadopago');
-    return NextResponse.redirect(new URL('/es/account?paid=1&mock=1', origin));
+    return NextResponse.redirect(new URL('/es/account', origin));
   }
 
   const { preference } = getMercadoPago();
@@ -47,9 +47,9 @@ export async function GET(req: Request) {
       payer: { email: customer.email },
       external_reference: booking.id,
       back_urls: {
-        success: `${origin}/es/account?paid=1`,
-        failure: `${origin}/es/account?cancelled=1`,
-        pending: `${origin}/es/account?pending=1`,
+        success: `${origin}/es/account`,
+        failure: `${origin}/es/account`,
+        pending: `${origin}/es/account`,
       },
       auto_return: 'approved',
       notification_url: `${origin}/api/webhooks/mercadopago`,

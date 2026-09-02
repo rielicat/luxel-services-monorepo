@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
   if (devMockPaymentsEnabled('stripe')) {
     await completeMockPayment(supabase, booking.id, 'stripe');
-    return NextResponse.redirect(new URL('/es/account?paid=1&mock=1', origin));
+    return NextResponse.redirect(new URL('/es/account', origin));
   }
 
   const stripe = getStripe();
@@ -48,8 +48,8 @@ export async function GET(req: Request) {
       },
     ],
     metadata: { bookingId: booking.id },
-    success_url: `${origin}/es/account?paid=1`,
-    cancel_url: `${origin}/es/account?cancelled=1`,
+    success_url: `${origin}/es/account`,
+    cancel_url: `${origin}/es/account`,
   });
 
   await supabase

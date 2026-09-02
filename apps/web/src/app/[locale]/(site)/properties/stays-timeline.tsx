@@ -108,7 +108,7 @@ const shortClp = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String
 type CleaningState = 'confirmed' | 'notified' | 'pending';
 const cleaningState = (c: Cleaning | undefined): CleaningState | null => {
   if (!c) return null;
-  if (c.crew_confirmed_at || c.status === 'done') return 'confirmed';
+  if (c.crew_confirmed_at) return 'confirmed';
   return c.status === 'scheduled' ? 'notified' : 'pending';
 };
 

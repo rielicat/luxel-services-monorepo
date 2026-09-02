@@ -72,7 +72,7 @@ export function CleaningPanel({
   const window = checkoutTime && checkinTime ? `${checkoutTime}–${checkinTime}` : null;
 
   const upcoming = [...cleanings]
-    .filter((c) => c.status !== 'skipped' && c.status !== 'done')
+    .filter((c) => c.status !== 'skipped')
     .sort((a, b) => a.cleaning_date.localeCompare(b.cleaning_date));
 
   return (

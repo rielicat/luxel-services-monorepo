@@ -43,7 +43,7 @@ export async function updateCleaningStaff(input: unknown): Promise<{ ok: boolean
 
 const StatusSchema = z.object({
   cleaningId: z.string().uuid(),
-  status: z.enum(['scheduled', 'skipped', 'done']),
+  status: z.enum(['scheduled', 'skipped']),
 });
 
 export async function setCleaningStatus(input: unknown): Promise<{ ok: boolean }> {

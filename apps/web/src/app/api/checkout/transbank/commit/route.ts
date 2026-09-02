@@ -9,10 +9,10 @@ export const runtime = 'nodejs';
 
 async function handle(req: Request): Promise<NextResponse> {
   const origin = new URL(req.url).origin;
-  const seeOther = (path: string) => NextResponse.redirect(new URL(path, origin), 303);
+  const seeOther = () => NextResponse.redirect(new URL('/es/account', origin), 303);
 
   const { token, aborted } = await readToken(req);
-  if (aborted || !token) return seeOther('/es/account?cancelled=1');
+  if (aborted || !token) return seeOther();
 
   const supabase = createSupabaseServiceRoleClient();
   const { data: booking } = await supabase
@@ -22,17 +22,17 @@ async function handle(req: Request): Promise<NextResponse> {
     .eq('payment_provider', 'transbank')
     .maybeSingle();
 
-  if (!booking) return seeOther('/es/account?cancelled=1');
-  if (booking.payment_status === 'paid') return seeOther('/es/account?paid=1');
+  if (!booking) return seeOther();
+  if (booking.payment_status === 'paid') return seeOther();
 
   let result;
   try {
     result = await commitWebpayTransaction(token);
   } catch {
-    return seeOther('/es/account?error=1');
+    return seeOther();
   }
-  if (!isWebpayApproved(result)) return seeOther('/es/account?cancelled=1');
-  if (result.amount !== booking.total_price_clp) return seeOther('/es/account?error=1');
+  if (!isWebpayApproved(result)) return seeOther();
+  if (result.amount !== booking.total_price_clp) return seeOther();
 
   const { data: updated } = await supabase
     .from('bookings')
@@ -46,7 +46,7 @@ async function handle(req: Request): Promise<NextResponse> {
     .select('total_price_clp, customers(clerk_user_id)')
     .maybeSingle();
 
-  if (!updated) return seeOther('/es/account?paid=1');
+  if (!updated) return seeOther();
 
   const cust = Array.isArray(updated.customers) ? updated.customers[0] : updated.customers;
   capture(EVENTS.PAYMENT_SUCCEEDED, cust?.clerk_user_id ?? booking.id, {
@@ -56,7 +56,7 @@ async function handle(req: Request): Promise<NextResponse> {
   });
   await ensureSubscriptionForBooking(supabase, booking.id);
 
-  return seeOther('/es/account?paid=1');
+  return seeOther();
 }
 
 async function readToken(req: Request): Promise<{ token: string | null; aborted: boolean }> {

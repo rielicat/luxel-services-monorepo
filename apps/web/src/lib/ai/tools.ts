@@ -329,7 +329,7 @@ async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
       (th) => th.status === 'needs_host',
     ).length;
     const nextCleaning = (p.cleanings as { cleaning_date: string; status: string }[])
-      .filter((c) => c.status !== 'skipped' && c.status !== 'done' && c.cleaning_date >= from)
+      .filter((c) => c.status !== 'skipped' && c.cleaning_date >= from)
       .map((c) => c.cleaning_date)
       .sort()[0];
     lines.push(

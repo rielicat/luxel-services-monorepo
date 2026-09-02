@@ -73,7 +73,7 @@ function stats(property: PropertyRow, liveDays: LiveDay[] | null, from: string) 
     : null;
 
   const upcoming = property.cleanings
-    .filter((c) => c.status !== 'skipped' && c.status !== 'done' && c.cleaning_date >= from)
+    .filter((c) => c.status !== 'skipped' && c.cleaning_date >= from)
     .map((c) => c.cleaning_date)
     .sort();
 
