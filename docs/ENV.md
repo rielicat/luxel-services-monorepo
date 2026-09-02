@@ -182,11 +182,15 @@ the Cloud API rejects free text — and that is every conserje and every cleaner
 every time. The worker maps an intent to a template name (`TEMPLATES` in
 `workers/whatsapp/src/index.ts`); register both in Meta Business Manager,
 category _Utility_, language `es`, with these bodies. Parameters may not
-contain newlines, so the guest list arrives as one line.
+contain newlines, so the guest list arrives as one line. Meta rejects bodies whose
+variable count is high for their length, so both bodies carry a static intro and
+closing sentence.
 
-`luxel_conserje_llegada` — sent when a guest completes registration:
+`luxel_conserje_llegada` — sent when a guest completes registration (submitted to Meta 2026-09-02, language `es`):
 
 ```
+Hola, les avisamos la llegada de nuevos huéspedes para su registro en conserjería. Estos son los datos de la estadía:
+
 📅 Estadía: {{1}}
 🏠 Departamento: {{2}}
 📍 Dirección: {{3}}
@@ -194,18 +198,22 @@ contain newlines, so the guest list arrives as one line.
 
 HUÉSPEDES ({{5}})
 {{6}}
+
+Cualquier duda pueden responder por este medio. Muchas gracias por su ayuda, equipo Luxel.
 ```
 
-`luxel_aseo_nueva_reserva` — sent when a booking is created:
+`luxel_aseo_nueva_reserva` — sent when a booking is created (submitted to Meta 2026-09-02, language `es`):
 
 ```
-🧹 Nueva reserva — {{1}}
+Hola, les avisamos que entró una nueva reserva en {{1}}. Estos son los datos para coordinar el aseo:
 
 📅 Estadía: {{2}}
 🏠 Departamento: {{3}}
 📍 Dirección: {{4}}
 👥 Huéspedes: {{5}}
 🗓️ Check-out (aseo): {{6}}
+
+Cualquier duda pueden responder por este medio. Muchas gracias, equipo Luxel.
 ```
 
 Until a template is approved, the send fails. The conserje notice records the
