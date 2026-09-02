@@ -243,6 +243,70 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(checkin).toMatchObject({ party_size: 1, arrival_time: '22:30+', departure_time: null });
   });
 
+  it('claims the link once: two simultaneous submits store one party and notify once', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Doble' });
+    const propertyId = prop.id!;
+    await admin.from('property_contacts').insert({
+      property_id: propertyId,
+      role: 'concierge',
+      name: 'Conserjería',
+      whatsapp: '+56 9 1111 2222',
+    });
+    const link = await mintCheckinLink(propertyId);
+    await admin
+      .from('checkins')
+      .update({ arrival_date: plusDays(3), departure_date: plusDays(5) })
+      .eq('token', link.token!);
+    const input = {
+      token: link.token,
+      guests: [{ fullName: 'Ana Uno' }, { fullName: 'Beto Dos' }],
+      email: 'ana@guest.cl',
+      arrivalTime: '18:00',
+      consent: true,
+    };
+    const results = await Promise.all([submitCheckin(input), submitCheckin(input)]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.find((r) => !r.ok)).toMatchObject({ error: 'already_submitted' });
+    const { data: checkin } = await admin
+      .from('checkins')
+      .select('id, party_size')
+      .eq('token', link.token!)
+      .maybeSingle();
+    const { data: guests } = await admin
+      .from('checkin_guests')
+      .select('id')
+      .eq('checkin_id', checkin!.id as string);
+    expect(guests).toHaveLength(2);
+    expect(checkin!.party_size).toBe(2);
+    expect(workerSends).toHaveLength(1);
+  });
+
+  it('leaves the link pending when the PII key is missing, so the guest can retry', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Sin Clave' });
+    const link = await mintCheckinLink(prop.id!);
+    const saved = process.env.LUXEL_PII_KEY;
+    delete process.env.LUXEL_PII_KEY;
+    try {
+      const res = await submitCheckin({
+        token: link.token,
+        guests: [{ fullName: 'Sin Clave', docType: 'rut', docNumber: '11.111.111-1' }],
+        email: 'sin@guest.cl',
+        arrivalTime: '15:00',
+        consent: true,
+      });
+      expect(res).toMatchObject({ ok: false, error: 'store_guests' });
+    } finally {
+      process.env.LUXEL_PII_KEY = saved;
+    }
+    const { data: checkin } = await admin
+      .from('checkins')
+      .select('status, submitted_at')
+      .eq('token', link.token!)
+      .maybeSingle();
+    expect(checkin).toMatchObject({ status: 'pending', submitted_at: null });
+    expect(workerSends).toHaveLength(0);
+  });
+
   it('when the host requires ID, every companion must carry a document too', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Todos Con ID' });
     const propertyId = prop.id!;

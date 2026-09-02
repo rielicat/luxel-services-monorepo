@@ -102,6 +102,14 @@ const isNationality = (v: string): v is Nationality =>
   (NATIONALITIES as readonly string[]).includes(v);
 const isDocType = (v: string): v is DocType => v in DOC_KEY;
 
+const ARROW_STEP: Record<string, number> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+};
+const GUEST_ERROR = /^g(\d+)-(name|doc)$/;
+
 const newGuest = (): GuestDraft => ({
   fullName: '',
   docType: 'rut',
@@ -190,6 +198,7 @@ function Chips<V extends string>({
   invalid?: boolean;
   className?: string;
 }) {
+  const selected = options.findIndex((o) => o.value === value);
   return (
     <div
       id={id}
@@ -198,15 +207,27 @@ function Chips<V extends string>({
       aria-invalid={invalid || undefined}
       className={cn('grid gap-2', className)}
     >
-      {options.map((o) => {
+      {options.map((o, i) => {
         const on = o.value === value;
+        const focusable = selected === -1 ? i === 0 : on;
         return (
           <button
             key={o.value}
             type="button"
             role="radio"
             aria-checked={on}
+            tabIndex={focusable ? 0 : -1}
             onClick={() => onChange(o.value)}
+            onKeyDown={(e) => {
+              const step = ARROW_STEP[e.key];
+              if (!step) return;
+              e.preventDefault();
+              const next = (i + step + options.length) % options.length;
+              onChange(options[next]!.value);
+              e.currentTarget.parentElement
+                ?.querySelectorAll<HTMLButtonElement>('button')
+                [next]?.focus();
+            }}
             className={cn(
               'focus-visible:ring-ring/60 min-h-11 rounded-lg border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2',
               on
@@ -298,6 +319,7 @@ function GuestCard({
         <Input
           id={`${id}-name`}
           autoComplete="name"
+          maxLength={120}
           aria-required
           aria-invalid={nameBad || undefined}
           placeholder={t('name_ph')}
@@ -325,6 +347,7 @@ function GuestCard({
           inputMode="text"
           autoCapitalize="characters"
           autoComplete="off"
+          maxLength={40}
           aria-required={requireId || undefined}
           aria-invalid={docBad || undefined}
           placeholder={t('doc_number_ph')}
@@ -514,6 +537,24 @@ export function CheckinForm({
     if (patch.docNumber !== undefined) touch(`g${i}-doc`);
   };
 
+  const removeGuest = (i: number) => {
+    setGuests((list) => list.filter((_, j) => j !== i));
+    setErrors((prev) => {
+      const next = new Set<string>();
+      for (const id of prev) {
+        const m = GUEST_ERROR.exec(id);
+        if (!m) {
+          next.add(id);
+          continue;
+        }
+        const k = Number(m[1]);
+        if (k === i) continue;
+        next.add(k > i ? `g${k - 1}-${m[2]}` : id);
+      }
+      return next;
+    });
+  };
+
   const validate = (): string[] => {
     const bad: string[] = [];
     guests.forEach((g, i) => {
@@ -561,7 +602,7 @@ export function CheckinForm({
         parking: parking ? parking === 'yes' : undefined,
         vehiclePlate: parking === 'yes' && plate.trim() ? plate.trim() : undefined,
         consent: true,
-      });
+      }).catch(() => ({ ok: false, error: 'generic' }));
       if (r.ok) {
         setRegistered(
           guests.map((g, i) => {
@@ -577,11 +618,13 @@ export function CheckinForm({
         );
         setDone(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (r.error === 'already_submitted') {
+        window.location.reload();
       } else {
         setMessage(
           r.error === 'id_required'
             ? t('error_id_required')
-            : r.error === 'expired'
+            : r.error === 'expired' || r.error === 'not_found'
               ? t('error_expired')
               : t('error_generic'),
         );
@@ -642,7 +685,7 @@ export function CheckinForm({
             requireId={requireId}
             errors={errors}
             onChange={(patch) => updateGuest(i, patch)}
-            onRemove={i > 0 ? () => setGuests((list) => list.filter((_, j) => j !== i)) : undefined}
+            onRemove={i > 0 ? () => removeGuest(i) : undefined}
           >
             {i === 0 && (
               <>
@@ -652,6 +695,7 @@ export function CheckinForm({
                     type="email"
                     inputMode="email"
                     autoComplete="email"
+                    maxLength={120}
                     aria-required
                     aria-invalid={emailBad || undefined}
                     value={email}
@@ -667,6 +711,7 @@ export function CheckinForm({
                     id="phone"
                     type="tel"
                     autoComplete="tel"
+                    maxLength={30}
                     placeholder={t('phone_ph')}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -745,6 +790,7 @@ export function CheckinForm({
               id="plate"
               autoCapitalize="characters"
               autoComplete="off"
+              maxLength={12}
               placeholder={t('plate_ph')}
               value={plate}
               onChange={(e) => setPlate(e.target.value)}

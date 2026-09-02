@@ -58,8 +58,24 @@ export async function submitCheckin(input: unknown): Promise<Result> {
     return { ok: false, error: 'id_required' };
   }
 
+  let rows: Array<Record<string, unknown>>;
+  try {
+    rows = d.guests.map((g, i) => ({
+      checkin_id: checkin.id,
+      is_lead: i === 0,
+      full_name: g.fullName,
+      nationality: g.nationality ?? null,
+      doc_type: g.docType && g.docNumber ? g.docType : null,
+      doc_number_enc: g.docNumber ? encryptPII(g.docNumber) : null,
+      doc_last4: g.docNumber ? last4(g.docNumber) : null,
+    }));
+  } catch {
+    console.error('checkin.encrypt_failed', { checkinId: checkin.id });
+    return { ok: false, error: 'store_guests' };
+  }
+
   const now = new Date();
-  const { error: e1 } = await supabase
+  const { data: claimed, error: e1 } = await supabase
     .from('checkins')
     .update({
       status: 'submitted',
@@ -74,21 +90,14 @@ export async function submitCheckin(input: unknown): Promise<Result> {
         d.parking && d.vehiclePlate?.trim() ? d.vehiclePlate.trim().toUpperCase() : null,
       submitted_at: now.toISOString(),
     })
-    .eq('id', checkin.id);
+    .eq('id', checkin.id)
+    .eq('status', 'pending')
+    .select('id');
   if (e1) return { ok: false, error: 'store' };
+  if (!claimed?.length) return { ok: false, error: 'already_submitted' };
 
   await supabase.from('checkin_guests').delete().eq('checkin_id', checkin.id);
-  const { error: e3 } = await supabase.from('checkin_guests').insert(
-    d.guests.map((g, i) => ({
-      checkin_id: checkin.id,
-      is_lead: i === 0,
-      full_name: g.fullName,
-      nationality: g.nationality ?? null,
-      doc_type: g.docType && g.docNumber ? g.docType : null,
-      doc_number_enc: g.docNumber ? encryptPII(g.docNumber) : null,
-      doc_last4: g.docNumber ? last4(g.docNumber) : null,
-    })),
-  );
+  const { error: e3 } = await supabase.from('checkin_guests').insert(rows);
   if (e3) return { ok: false, error: 'store_guests' };
 
   await notifyCheckin(checkin.id);
