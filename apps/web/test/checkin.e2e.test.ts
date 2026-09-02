@@ -74,7 +74,7 @@ afterEach(async () => {
 });
 
 describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
-  it('runs the full host→guest flow and stores the ID encrypted', async () => {
+  it('runs the full host→guest flow and stores the party with encrypted IDs', async () => {
     const prop = await seedImportedProperty({
       nickname: 'Depto Providencia',
       comuna: 'Providencia',
@@ -106,7 +106,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     const departure = plusDays(5);
     await admin
       .from('checkins')
-      .update({ arrival_date: arrival, departure_date: departure })
+      .update({ arrival_date: arrival, departure_date: departure, expected_guests: 2 })
       .eq('token', token);
     await admin.from('property_contacts').insert({
       property_id: propertyId,
@@ -117,18 +117,19 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
 
     const res = await submitCheckin({
       token,
-      guestName: 'María Pérez',
-      guestEmail: 'maria@guest.cl',
-      arrivalAt: new Date('2026-08-01T18:00:00Z').toISOString(),
-      docType: 'rut',
-      docNumber: '12.345.678-9',
-      companions: [{ fullName: 'Pedro Pérez', docType: 'rut', docNumber: '9.876.543-2' }],
+      guests: [
+        { fullName: 'María Pérez', docType: 'rut', docNumber: '12.345.678-9', nationality: 'CL' },
+        { fullName: 'Pedro Pérez', docType: 'rut', docNumber: '9.876.543-2', nationality: 'AR' },
+      ],
+      email: 'maria@guest.cl',
+      arrivalTime: '18:00',
+      departureTime: '11:00',
       parking: true,
       vehiclePlate: 'abcd12',
       consent: true,
     });
     expect(res.ok).toBe(true);
-    expect(res.access).toMatchObject({ method: 'keyless', keylessCode: '4821' });
+    expect(JSON.stringify(res)).not.toContain('4821');
 
     expect(workerSends).toHaveLength(1);
     expect(workerSends[0]).toMatchObject({
@@ -144,31 +145,39 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
 
     const { data: checkin } = await admin
       .from('checkins')
-      .select('id, status, guest_name, party_size, parking, vehicle_plate, notify_result')
+      .select(
+        'id, status, guest_name, guest_email, party_size, arrival_time, departure_time, parking, vehicle_plate, notify_result',
+      )
       .eq('token', token)
       .maybeSingle();
     expect(checkin!.guest_name).toBe('María Pérez');
+    expect(checkin!.guest_email).toBe('maria@guest.cl');
+    expect(checkin!.party_size).toBe(2);
+    expect(checkin!.arrival_time).toBe('18:00');
+    expect(checkin!.departure_time).toBe('11:00');
     expect(checkin!.parking).toBe(true);
     expect(checkin!.vehicle_plate).toBe('ABCD12');
     expect(checkin!.status).toBe('notified');
     const result = checkin!.notify_result as Array<{ role: string; channel: string; ok: boolean }>;
-    expect(result.some((r) => r.role === 'guest' && r.ok)).toBe(true);
+    expect(result.some((r) => r.role === 'guest')).toBe(false);
+    expect(JSON.stringify(result)).not.toContain('4821');
     expect(result.some((r) => r.role === 'host' && r.ok)).toBe(true);
     expect(result.some((r) => r.role === 'concierge' && r.channel === 'whatsapp' && r.ok)).toBe(
       true,
     );
     expect(JSON.stringify(result)).not.toContain('12.345.678');
 
-    expect(checkin!.party_size).toBe(2);
     const { data: guests } = await admin
       .from('checkin_guests')
-      .select('is_lead, full_name, doc_last4, doc_number_enc')
+      .select('is_lead, full_name, nationality, doc_type, doc_last4, doc_number_enc')
       .eq('checkin_id', checkin!.id)
       .order('is_lead', { ascending: false });
     expect(guests).toHaveLength(2);
     expect(guests![0]).toMatchObject({
       is_lead: true,
       full_name: 'María Pérez',
+      nationality: 'CL',
+      doc_type: 'rut',
       doc_last4: '78-9',
     });
     expect(guests![0].doc_number_enc).not.toContain('12.345.678-9');
@@ -176,13 +185,38 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(guests![1]).toMatchObject({
       is_lead: false,
       full_name: 'Pedro Pérez',
+      nationality: 'AR',
+      doc_type: 'rut',
       doc_last4: '43-2',
     });
     expect(guests![1].doc_number_enc).not.toContain('9.876.543-2');
     expect(decryptPII(guests![1].doc_number_enc as string)).toBe('9.876.543-2');
   });
 
-  it('keeps the access hidden until 3 days before arrival — the day Hospitable sends the details', async () => {
+  it('rejects a party without an arrival slot, an empty party, or an unknown nationality', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Estricto' });
+    const link = await mintCheckinLink(prop.id!);
+    const base = { token: link.token, email: 'x@guest.cl', consent: true };
+    const noSlot = await submitCheckin({ ...base, guests: [{ fullName: 'Sin Hora' }] });
+    expect(noSlot).toMatchObject({ ok: false, error: 'validation' });
+    const empty = await submitCheckin({ ...base, guests: [], arrivalTime: '15:00' });
+    expect(empty).toMatchObject({ ok: false, error: 'validation' });
+    const badNat = await submitCheckin({
+      ...base,
+      guests: [{ fullName: 'De Marte', nationality: 'XX' }],
+      arrivalTime: '15:00',
+    });
+    expect(badNat).toMatchObject({ ok: false, error: 'validation' });
+    const badSlot = await submitCheckin({
+      ...base,
+      guests: [{ fullName: 'Hora Rara' }],
+      arrivalTime: '6pm',
+    });
+    expect(badSlot).toMatchObject({ ok: false, error: 'validation' });
+    expect(workerSends).toHaveLength(0);
+  });
+
+  it('never returns the door code to the browser; Hospitable delivers it 3 days before arrival', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Lejano' });
     const propertyId = prop.id!;
     await updateAccess({ propertyId, method: 'keyless', keylessCode: '4821' });
@@ -193,13 +227,20 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .eq('token', link.token!);
     const res = await submitCheckin({
       token: link.token,
-      guestName: 'Llega En Diez Días',
-      guestEmail: 'diez@guest.cl',
+      guests: [{ fullName: 'Llega En Diez Días' }],
+      email: 'diez@guest.cl',
+      arrivalTime: '22:30+',
       consent: true,
     });
     expect(res.ok).toBe(true);
-    expect(res.access).toBeUndefined();
+    expect(res).toEqual({ ok: true });
     expect(workerSends).toHaveLength(0);
+    const { data: checkin } = await admin
+      .from('checkins')
+      .select('party_size, arrival_time, departure_time')
+      .eq('token', link.token!)
+      .maybeSingle();
+    expect(checkin).toMatchObject({ party_size: 1, arrival_time: '22:30+', departure_time: null });
   });
 
   it('when the host requires ID, every companion must carry a document too', async () => {
@@ -215,11 +256,12 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     const link = await mintCheckinLink(propertyId);
     const res = await submitCheckin({
       token: link.token,
-      guestName: 'Líder Con Doc',
-      guestEmail: 'lider@guest.cl',
-      docType: 'rut',
-      docNumber: '11.111.111-1',
-      companions: [{ fullName: 'Acompañante Sin Doc' }],
+      guests: [
+        { fullName: 'Líder Con Doc', docType: 'rut', docNumber: '11.111.111-1' },
+        { fullName: 'Acompañante Sin Doc' },
+      ],
+      email: 'lider@guest.cl',
+      arrivalTime: '15:00',
       consent: true,
     });
     expect(res.ok).toBe(false);
@@ -247,8 +289,9 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     const link = await mintCheckinLink(propertyId);
     const res = await submitCheckin({
       token: link.token,
-      guestName: 'Sin Documento',
-      guestEmail: 'x@guest.cl',
+      guests: [{ fullName: 'Sin Documento' }],
+      email: 'x@guest.cl',
+      arrivalTime: '15:00',
       consent: true,
     });
     expect(res.ok).toBe(false);
@@ -271,31 +314,5 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .eq('property_id', propertyId)
       .maybeSingle();
     expect(acc!.require_id).toBe(false);
-  });
-});
-
-describe('shapeAccess', () => {
-  it('never reveals a keyless code on a concierge property, or vice versa', async () => {
-    const { shapeAccess } = await import('../src/lib/checkin/access');
-    const concierge = shapeAccess({
-      method: 'physical_concierge',
-      keyless_code: '9999',
-      keyless_instructions: 'no debe salir',
-      concierge_name: 'Conserjería',
-      concierge_hours: '24/7',
-    }) as Record<string, unknown>;
-    expect(concierge.keylessCode).toBeNull();
-    expect(concierge.keylessInstructions).toBeNull();
-    expect(concierge.conciergeName).toBe('Conserjería');
-
-    const keyless = shapeAccess({
-      method: 'keyless',
-      keyless_code: '4821',
-      concierge_name: 'Conserjería',
-      concierge_hours: '24/7',
-    }) as Record<string, unknown>;
-    expect(keyless.conciergeName).toBeNull();
-    expect(keyless.conciergeHours).toBeNull();
-    expect(keyless.keylessCode).toBe('4821');
   });
 });

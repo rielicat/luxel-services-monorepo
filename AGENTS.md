@@ -107,6 +107,8 @@ supabase/        migrations + seed + local config
   Code handles events only.
 - Door codes and wifi passwords live in Hospitable custom codes and in
   `property_access`; the AI redacts them (`lib/ai/redact.ts`). Never log them.
+  The guest receives the door code only through Hospitable's T-3 message rule.
+  Never show it on the check-in page or send it from our code.
 - Guest documents are encrypted with `LUXEL_PII_KEY`, nulled 90 days after
   departure by the sync pass, and reach conserjes only through the approved
   WhatsApp template.

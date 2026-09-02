@@ -1,178 +1,584 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Check,
-  KeyRound,
-  UserPlus,
-  Trash2,
-  ArrowRight,
-  ArrowLeft,
-  ConciergeBell,
+  ChevronDown,
+  CigaretteOff,
+  House,
+  PartyPopper,
+  PawPrint,
+  Plus,
+  TriangleAlert,
+  User,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { LuxelLogo } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import {
+  NATIONALITIES,
+  arrivalSlots,
+  departureSlots,
+  nightsBetween,
+  type Nationality,
+} from '@/lib/checkin/slots';
 import { submitCheckin } from './actions';
-import type { AccessInfo } from '@/lib/checkin/access';
 
-interface Props {
-  token: string;
+export type DocType = 'rut' | 'passport' | 'dni' | 'other';
+
+export interface Stay {
   propertyName: string;
-  requireId: boolean;
-  alreadyDone: boolean;
-  access?: AccessInfo | null;
+  address: string | null;
+  arrival: string | null;
+  departure: string | null;
+  checkinTime: string | null;
+  checkoutTime: string | null;
 }
 
-type Companion = { fullName: string; docType: string; docNumber: string };
+export interface Rules {
+  noSmoking: boolean;
+  noPets: boolean;
+  noEvents: boolean;
+}
 
-const inputCls =
-  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+export interface RegisteredGuest {
+  isLead: boolean;
+  fullName: string;
+  nationality: string | null;
+  docType: string | null;
+  docLast4: string | null;
+}
 
-function DocFields({
-  t,
-  docType,
-  docNumber,
-  required,
-  onType,
-  onNumber,
-}: {
-  t: (k: string) => string;
-  docType: string;
+export interface CheckinFormProps {
+  token: string;
+  requireId: boolean;
+  alreadyDone: boolean;
+  stay: Stay;
+  expectedGuests: number;
+  maxGuests: number;
+  rules: Rules;
+  registered?: RegisteredGuest[];
+  arrivalTime?: string | null;
+  departureTime?: string | null;
+}
+
+type GuestDraft = {
+  fullName: string;
+  docType: DocType;
   docNumber: string;
-  required: boolean;
-  onType: (v: string) => void;
-  onNumber: (v: string) => void;
+  nationality: '' | Nationality;
+};
+type Parking = '' | 'yes' | 'no';
+
+const INTL_LOCALE: Record<string, string> = { es: 'es-CL', en: 'en', pt: 'pt-BR' };
+
+const NAT_KEY = {
+  CL: 'nat_cl',
+  AR: 'nat_ar',
+  PE: 'nat_pe',
+  CO: 'nat_co',
+  VE: 'nat_ve',
+  BR: 'nat_br',
+  BO: 'nat_bo',
+  EC: 'nat_ec',
+  MX: 'nat_mx',
+  US: 'nat_us',
+  ES: 'nat_es',
+  other: 'nat_other',
+} as const satisfies Record<Nationality, string>;
+
+const DOC_KEY = {
+  rut: 'doc_rut',
+  passport: 'doc_passport',
+  dni: 'doc_dni',
+  other: 'doc_other',
+} as const satisfies Record<DocType, string>;
+const DOC_TYPES = Object.keys(DOC_KEY) as DocType[];
+
+const isNationality = (v: string): v is Nationality =>
+  (NATIONALITIES as readonly string[]).includes(v);
+const isDocType = (v: string): v is DocType => v in DOC_KEY;
+
+const newGuest = (): GuestDraft => ({
+  fullName: '',
+  docType: 'rut',
+  docNumber: '',
+  nationality: '',
+});
+const clock = (time: string | null): string | null => (time ? time.slice(0, 5) : null);
+const maskDoc = (n: string): string => n.replace(/\s+/g, '').slice(-4);
+const fieldCls = (invalid: boolean) =>
+  cn('h-12 text-base', invalid && 'border-destructive focus-visible:border-destructive');
+
+function useStayLine(stay: Stay): string | null {
+  const t = useTranslations('checkin');
+  const locale = useLocale();
+  if (!stay.arrival || !stay.departure) return null;
+  const loc = INTL_LOCALE[locale] ?? 'es-CL';
+  const fmt = (iso: string, year: boolean) =>
+    new Intl.DateTimeFormat(loc, {
+      timeZone: 'America/Santiago',
+      day: 'numeric',
+      month: 'short',
+      ...(year ? { year: 'numeric' as const } : {}),
+    }).format(new Date(`${iso.slice(0, 10)}T12:00:00Z`));
+  const nights = t('nights', { n: nightsBetween(stay.arrival, stay.departure) });
+  return `${fmt(stay.arrival, false)} – ${fmt(stay.departure, true)} · ${nights}`;
+}
+
+function GroupLabel({
+  id,
+  invalid,
+  children,
+}: {
+  id: string;
+  invalid?: boolean;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[7rem_1fr] gap-2">
-      <select
-        className={inputCls}
-        value={docType}
-        onChange={(e) => onType(e.target.value)}
-        aria-label={t('doc_type')}
-      >
-        <option value="rut">{t('doc_rut')}</option>
-        <option value="passport">{t('doc_passport')}</option>
-        <option value="dni">{t('doc_dni')}</option>
-        <option value="other">{t('doc_other')}</option>
-      </select>
-      <Input
-        required={required}
-        value={docNumber}
-        onChange={(e) => onNumber(e.target.value)}
-        placeholder={t('doc_number_ph')}
-        aria-label={t('doc_number')}
-      />
+    <span id={id} className={cn('text-sm font-medium leading-none', invalid && 'text-destructive')}>
+      {children}
+    </span>
+  );
+}
+
+function Field({
+  id,
+  label,
+  optional,
+  hint,
+  invalid,
+  children,
+}: {
+  id: string;
+  label: string;
+  optional?: boolean;
+  hint?: string;
+  invalid?: boolean;
+  children: React.ReactNode;
+}) {
+  const t = useTranslations('checkin');
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id} className={cn(invalid && 'text-destructive')}>
+        {label}
+        {optional && <span className="text-muted-foreground font-normal"> {t('optional')}</span>}
+      </Label>
+      {children}
+      {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
     </div>
   );
 }
 
-function AccessCard({ access, t }: { access: AccessInfo | null; t: (k: string) => string }) {
-  if (!access) return null;
-  const shell = 'border-primary/30 bg-primary/5 grid gap-1.5 rounded-xl border p-4 text-center';
-  const heading =
-    'text-muted-foreground flex items-center justify-center gap-1.5 text-xs font-medium uppercase tracking-wide';
+function Chips<V extends string>({
+  id,
+  labelId,
+  options,
+  value,
+  onChange,
+  invalid,
+  className,
+}: {
+  id: string;
+  labelId: string;
+  options: Array<{ value: V; label: string }>;
+  value: string;
+  onChange: (v: V) => void;
+  invalid?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      id={id}
+      role="radiogroup"
+      aria-labelledby={labelId}
+      aria-invalid={invalid || undefined}
+      className={cn('grid gap-2', className)}
+    >
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              'focus-visible:ring-ring/60 min-h-11 rounded-lg border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2',
+              on
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-card hover:border-primary/40',
+              invalid && !on && 'border-destructive/60',
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
-  if (access.method === 'keyless' && (access.keylessCode || access.keylessInstructions)) {
-    return (
-      <div className={shell}>
-        <p className={heading}>
-          <KeyRound className="h-3.5 w-3.5" /> {t('access_title')}
+function NationalitySelect({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: '' | Nationality;
+  onChange: (v: '' | Nationality) => void;
+}) {
+  const t = useTranslations('checkin');
+  return (
+    <div className="relative">
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value as '' | Nationality)}
+        className="border-input bg-card focus-visible:border-primary focus-visible:ring-ring/25 shadow-xs h-12 w-full appearance-none rounded-lg border px-3 pr-10 text-base focus-visible:outline-none focus-visible:ring-[3px]"
+      >
+        <option value="">{t('nationality_select')}</option>
+        {NATIONALITIES.map((c) => (
+          <option key={c} value={c}>
+            {t(NAT_KEY[c])}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="text-muted-foreground pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+    </div>
+  );
+}
+
+function GuestCard({
+  index,
+  guest,
+  requireId,
+  errors,
+  onChange,
+  onRemove,
+  children,
+}: {
+  index: number;
+  guest: GuestDraft;
+  requireId: boolean;
+  errors: Set<string>;
+  onChange: (patch: Partial<GuestDraft>) => void;
+  onRemove?: () => void;
+  children?: React.ReactNode;
+}) {
+  const t = useTranslations('checkin');
+  const id = `g${index}`;
+  const nameBad = errors.has(`${id}-name`);
+  const docBad = errors.has(`${id}-doc`);
+  return (
+    <div className="border-border bg-card shadow-card grid gap-4 rounded-xl border p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex items-center gap-2.5 font-semibold">
+          <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+            <User className="h-4 w-4" />
+          </span>
+          {index === 0 ? t('guest_lead') : t('guest_n', { n: index + 1 })}
         </p>
-        {access.keylessCode && (
-          <p className="font-display text-3xl font-bold tracking-[0.3em]">{access.keylessCode}</p>
-        )}
-        {access.keylessInstructions && (
-          <p className="text-muted-foreground text-sm">{access.keylessInstructions}</p>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-muted-foreground hover:text-destructive -mr-2 min-h-11 px-2 text-sm font-medium transition-colors"
+          >
+            {t('remove')}
+          </button>
         )}
       </div>
-    );
-  }
 
-  if (access.method === 'physical_concierge') {
-    return (
-      <div className={shell}>
-        <p className={heading}>
-          <ConciergeBell className="h-3.5 w-3.5" /> {t('access_title')}
-        </p>
-        <p className="text-sm">
-          {t('access_concierge')
-            .replace('{name}', access.conciergeName ?? t('access_concierge_generic'))
-            .replace('{hours}', access.conciergeHours ?? '24/7')}
-        </p>
+      <Field id={`${id}-name`} label={t('name')} invalid={nameBad}>
+        <Input
+          id={`${id}-name`}
+          autoComplete="name"
+          aria-required
+          aria-invalid={nameBad || undefined}
+          placeholder={t('name_ph')}
+          value={guest.fullName}
+          onChange={(e) => onChange({ fullName: e.target.value })}
+          className={fieldCls(nameBad)}
+        />
+      </Field>
+
+      <div className="grid gap-1.5">
+        <GroupLabel id={`${id}-doctype-label`}>{t('doc_type')}</GroupLabel>
+        <Chips
+          id={`${id}-doctype`}
+          labelId={`${id}-doctype-label`}
+          options={DOC_TYPES.map((v) => ({ value: v, label: t(DOC_KEY[v]) }))}
+          value={guest.docType}
+          onChange={(v) => onChange({ docType: v })}
+          className="grid-cols-2"
+        />
       </div>
-    );
-  }
-  return null;
+
+      <Field id={`${id}-doc`} label={t('doc_number')} optional={!requireId} invalid={docBad}>
+        <Input
+          id={`${id}-doc`}
+          inputMode="text"
+          autoCapitalize="characters"
+          autoComplete="off"
+          aria-required={requireId || undefined}
+          aria-invalid={docBad || undefined}
+          placeholder={t('doc_number_ph')}
+          value={guest.docNumber}
+          onChange={(e) => onChange({ docNumber: e.target.value })}
+          className={fieldCls(docBad)}
+        />
+      </Field>
+
+      <Field id={`${id}-nat`} label={t('nationality')}>
+        <NationalitySelect
+          id={`${id}-nat`}
+          value={guest.nationality}
+          onChange={(v) => onChange({ nationality: v })}
+        />
+      </Field>
+
+      {children}
+    </div>
+  );
+}
+
+function DoneView({
+  stay,
+  registered,
+  arrivalTime,
+  departureTime,
+  rules,
+}: {
+  stay: Stay;
+  registered: RegisteredGuest[];
+  arrivalTime: string | null;
+  departureTime: string | null;
+  rules: Rules;
+}) {
+  const t = useTranslations('checkin');
+  const dates = useStayLine(stay);
+  const rows: Array<[string, string]> = [];
+  if (stay.propertyName) rows.push([t('summary_property'), stay.propertyName]);
+  if (dates) rows.push([t('summary_dates'), dates]);
+  if (arrivalTime) rows.push([t('summary_arrival'), arrivalTime]);
+  if (departureTime) rows.push([t('summary_departure'), departureTime]);
+
+  const ruleItems: Array<{ label: string; Icon: typeof PawPrint }> = [];
+  if (rules.noSmoking) ruleItems.push({ label: t('rule_no_smoking'), Icon: CigaretteOff });
+  if (rules.noPets) ruleItems.push({ label: t('rule_no_pets'), Icon: PawPrint });
+  if (rules.noEvents) ruleItems.push({ label: t('rule_no_events'), Icon: PartyPopper });
+
+  const card = 'border-border bg-card shadow-card rounded-xl border';
+
+  return (
+    <div className="grid gap-4">
+      <LuxelLogo markClassName="h-5 w-5" />
+
+      <section className={cn(card, 'grid justify-items-center gap-3 p-6 text-center')}>
+        <span className="bg-success/15 text-success flex h-14 w-14 items-center justify-center rounded-full">
+          <Check className="h-7 w-7" strokeWidth={2.5} />
+        </span>
+        <h1 className="font-display text-balance text-xl font-semibold">{t('done_title')}</h1>
+        <p className="text-muted-foreground text-sm">{t('done_body')}</p>
+      </section>
+
+      {rows.length > 0 && (
+        <dl className={cn(card, 'divide-border divide-y px-4')}>
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex items-start justify-between gap-4 py-3">
+              <dt className="text-muted-foreground shrink-0 text-sm">{k}</dt>
+              <dd className="text-right text-sm font-medium">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {registered.length > 0 && (
+        <section className={cn(card, 'p-4')}>
+          <h2 className="font-display mb-2 text-base font-semibold">{t('registered_title')}</h2>
+          <ul className="divide-border divide-y">
+            {registered.map((g, i) => {
+              const nat =
+                g.nationality && isNationality(g.nationality) ? t(NAT_KEY[g.nationality]) : null;
+              const docLabel = g.docType && isDocType(g.docType) ? t(DOC_KEY[g.docType]) : null;
+              const last = g.docLast4 ? `···${g.docLast4}` : null;
+              const doc = [docLabel, last].filter(Boolean).join(' ');
+              const detail = [nat, doc].filter(Boolean).join(' · ');
+              return (
+                <li key={i} className="flex items-center gap-3 py-3 last:pb-0">
+                  <span className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-semibold">
+                    {g.fullName.trim().charAt(0).toUpperCase() || '·'}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 font-medium">
+                      <span className="truncate">{g.fullName}</span>
+                      {g.isLead && (
+                        <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+                          {t('lead_badge')}
+                        </span>
+                      )}
+                    </p>
+                    {detail && <p className="text-muted-foreground truncate text-sm">{detail}</p>}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {ruleItems.length > 0 && (
+        <section className={cn(card, 'p-4')}>
+          <h2 className="font-display mb-2 text-base font-semibold">{t('rules_title')}</h2>
+          <ul className="grid gap-2">
+            {ruleItems.map(({ label, Icon }) => (
+              <li key={label} className="flex items-center gap-3">
+                <span className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="text-sm">{label}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <p className="text-muted-foreground text-center text-sm">{t('missing_someone')}</p>
+    </div>
+  );
 }
 
 export function CheckinForm({
   token,
-  propertyName,
   requireId,
   alreadyDone,
-  access: initialAccess = null,
-}: Props) {
+  stay,
+  expectedGuests,
+  maxGuests,
+  rules,
+  registered: initialRegistered = [],
+  arrivalTime: initialArrival = null,
+  departureTime: initialDeparture = null,
+}: CheckinFormProps) {
   const t = useTranslations('checkin');
-  const [step, setStep] = useState<1 | 2>(1);
   const [done, setDone] = useState(alreadyDone);
-  const [access, setAccess] = useState<AccessInfo | null>(initialAccess);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  const [f, setF] = useState({
-    guestName: '',
-    guestEmail: '',
-    guestPhone: '',
-    arrival: '',
-    docType: 'rut',
-    docNumber: '',
-    consent: false,
-  });
-  const [companions, setCompanions] = useState<Companion[]>([]);
-  const [parking, setParking] = useState<'' | 'yes' | 'no'>('');
+  const [registered, setRegistered] = useState<RegisteredGuest[]>(initialRegistered);
+  const [guests, setGuests] = useState<GuestDraft[]>(() =>
+    Array.from({ length: expectedGuests }, newGuest),
+  );
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [arrival, setArrival] = useState('');
+  const [departure, setDeparture] = useState('');
+  const [parking, setParking] = useState<Parking>('');
   const [plate, setPlate] = useState('');
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setF((p) => ({
-      ...p,
-      [k]: e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value,
-    }));
+  const [consent, setConsent] = useState(false);
+  const [errors, setErrors] = useState<Set<string>>(() => new Set());
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const stayLine = useStayLine(stay);
 
-  const step1Valid =
-    f.guestName.trim() &&
-    /.+@.+\..+/.test(f.guestEmail) &&
-    (!requireId || f.docNumber.trim().length >= 3);
+  if (done) {
+    return (
+      <DoneView
+        stay={stay}
+        registered={registered}
+        arrivalTime={arrival || initialArrival}
+        departureTime={departure || initialDeparture}
+        rules={rules}
+      />
+    );
+  }
 
-  const submit = () => {
-    setError(null);
+  const checkinAt = clock(stay.checkinTime);
+  const checkoutAt = clock(stay.checkoutTime);
+  const times =
+    checkinAt && checkoutAt ? t('times', { checkin: checkinAt, checkout: checkoutAt }) : null;
+
+  const touch = (id: string) =>
+    setErrors((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+
+  const updateGuest = (i: number, patch: Partial<GuestDraft>) => {
+    setGuests((list) => list.map((g, j) => (j === i ? { ...g, ...patch } : g)));
+    if (patch.fullName !== undefined) touch(`g${i}-name`);
+    if (patch.docNumber !== undefined) touch(`g${i}-doc`);
+  };
+
+  const validate = (): string[] => {
+    const bad: string[] = [];
+    guests.forEach((g, i) => {
+      if (!g.fullName.trim()) bad.push(`g${i}-name`);
+      const n = g.docNumber.trim().length;
+      if ((requireId && n < 3) || (n > 0 && n < 3)) bad.push(`g${i}-doc`);
+      if (i === 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) bad.push('email');
+    });
+    if (!arrival) bad.push('arrival');
+    if (!departure) bad.push('departure');
+    if (!consent) bad.push('consent');
+    return bad;
+  };
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const bad = validate();
+    setErrors(new Set(bad));
+    if (bad.length) {
+      setMessage(t('error_incomplete'));
+      const el = document.getElementById(bad[0]!);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const target =
+        el instanceof HTMLInputElement ? el : el?.querySelector<HTMLElement>('button, input');
+      target?.focus({ preventScroll: true });
+      return;
+    }
+    setMessage(null);
     startTransition(async () => {
       const r = await submitCheckin({
         token,
-        guestName: f.guestName.trim(),
-        guestEmail: f.guestEmail.trim(),
-        guestPhone: f.guestPhone.trim() || undefined,
-        arrivalAt: f.arrival ? new Date(f.arrival).toISOString() : undefined,
-        docType: f.docNumber.trim() ? (f.docType as 'rut') : undefined,
-        docNumber: f.docNumber.trim() || undefined,
-        companions: companions
-          .filter((c) => c.fullName.trim())
-          .map((c) => ({
-            fullName: c.fullName.trim(),
-            docType: c.docNumber.trim() ? (c.docType as 'rut') : undefined,
-            docNumber: c.docNumber.trim() || undefined,
-          })),
+        guests: guests.map((g) => {
+          const n = g.docNumber.trim();
+          return {
+            fullName: g.fullName.trim(),
+            docType: n ? g.docType : undefined,
+            docNumber: n || undefined,
+            nationality: g.nationality || undefined,
+          };
+        }),
+        email: email.trim(),
+        phone: phone.trim() || undefined,
+        arrivalTime: arrival,
+        departureTime: departure || undefined,
         parking: parking ? parking === 'yes' : undefined,
         vehiclePlate: parking === 'yes' && plate.trim() ? plate.trim() : undefined,
-        consent: f.consent as true,
+        consent: true,
       });
       if (r.ok) {
-        setAccess(r.access ?? null);
+        setRegistered(
+          guests.map((g, i) => {
+            const n = g.docNumber.trim();
+            return {
+              isLead: i === 0,
+              fullName: g.fullName.trim(),
+              nationality: g.nationality || null,
+              docType: n ? g.docType : null,
+              docLast4: n ? maskDoc(n) : null,
+            };
+          }),
+        );
         setDone(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        setError(
+        setMessage(
           r.error === 'id_required'
             ? t('error_id_required')
             : r.error === 'expired'
@@ -183,238 +589,205 @@ export function CheckinForm({
     });
   };
 
-  if (done) {
-    return (
-      <Card>
-        <CardContent className="grid gap-4 p-8">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="bg-success/15 text-success flex h-14 w-14 items-center justify-center rounded-full">
-              <Check className="h-7 w-7" />
-            </span>
-            <h1 className="font-display text-xl font-semibold">{t('done_title')}</h1>
-            <p className="text-muted-foreground text-sm">{t('done_body')}</p>
-          </div>
-
-          <AccessCard access={access} t={t} />
-        </CardContent>
-      </Card>
-    );
-  }
+  const emailBad = errors.has('email');
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="mb-5 flex items-start gap-2">
-          <KeyRound className="text-primary mt-0.5 h-5 w-5 shrink-0" />
-          <div className="min-w-0 flex-1">
-            <h1 className="font-display text-balance text-xl font-semibold">{t('title')}</h1>
-            <p className="text-muted-foreground text-sm">{propertyName || t('subtitle')}</p>
-          </div>
-          <span className="text-muted-foreground shrink-0 text-xs font-medium tabular-nums">
-            {step}/2
+    <form onSubmit={onSubmit} noValidate className="grid gap-6">
+      <header className="grid gap-4">
+        <LuxelLogo markClassName="h-5 w-5" />
+        <h1 className="font-display text-balance text-2xl font-semibold">{t('title')}</h1>
+        <div className="border-border bg-card shadow-card flex gap-3 rounded-xl border p-4">
+          <span className="bg-primary/10 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-lg">
+            <House className="h-5 w-5" />
           </span>
+          <div className="grid min-w-0 gap-0.5">
+            <p className="font-display text-balance font-semibold leading-snug">
+              {stay.propertyName}
+            </p>
+            {stay.address && <p className="text-muted-foreground text-sm">{stay.address}</p>}
+            {stayLine && <p className="text-sm font-medium">{stayLine}</p>}
+            {times && <p className="text-muted-foreground text-xs">{times}</p>}
+          </div>
         </div>
-        <div className="bg-muted mb-5 h-1 overflow-hidden rounded-full">
-          <div
-            className="bg-primary h-full rounded-full transition-all"
-            style={{ width: step === 1 ? '50%' : '100%' }}
-          />
+      </header>
+
+      <div
+        role="note"
+        className="border-warning/40 bg-warning/10 text-warning-foreground dark:text-foreground flex gap-3 rounded-xl border p-4"
+      >
+        <TriangleAlert className="text-warning mt-0.5 h-5 w-5 shrink-0" />
+        <div className="grid gap-1 text-sm">
+          <p className="font-semibold">{t('notice_title')}</p>
+          <p>{t('notice_body')}</p>
+        </div>
+      </div>
+
+      <section aria-labelledby="guests-title" className="grid gap-3">
+        <div className="grid gap-1">
+          <h2 id="guests-title" className="font-display text-lg font-semibold">
+            {t('guests_title')}
+          </h2>
+          {expectedGuests > 1 && (
+            <p className="text-muted-foreground text-sm">
+              {t('guests_expected', { n: expectedGuests })}
+            </p>
+          )}
         </div>
 
-        {step === 1 ? (
-          <form
-            className="grid gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (step1Valid) setStep(2);
-            }}
+        {guests.map((g, i) => (
+          <GuestCard
+            key={i}
+            index={i}
+            guest={g}
+            requireId={requireId}
+            errors={errors}
+            onChange={(patch) => updateGuest(i, patch)}
+            onRemove={i > 0 ? () => setGuests((list) => list.filter((_, j) => j !== i)) : undefined}
           >
-            <div className="grid gap-1.5">
-              <Label htmlFor="ci-name">{t('name')}</Label>
-              <Input
-                id="ci-name"
-                required
-                autoFocus
-                autoComplete="name"
-                value={f.guestName}
-                onChange={set('guestName')}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="ci-email">{t('email')}</Label>
-              <Input
-                id="ci-email"
-                type="email"
-                required
-                autoComplete="email"
-                value={f.guestEmail}
-                onChange={set('guestEmail')}
-              />
-              <p className="text-muted-foreground text-xs">{t('email_help')}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="ci-phone">{t('phone_opt')}</Label>
-                <Input
-                  id="ci-phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={f.guestPhone}
-                  onChange={set('guestPhone')}
-                  placeholder="+56 9 ..."
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="ci-arrival">{t('arrival')}</Label>
-                <input
-                  id="ci-arrival"
-                  type="datetime-local"
-                  className={inputCls}
-                  value={f.arrival}
-                  onChange={set('arrival')}
-                />
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>{requireId ? t('your_id') : t('your_id_opt')}</Label>
-              <DocFields
-                t={t}
-                docType={f.docType}
-                docNumber={f.docNumber}
-                required={requireId}
-                onType={(v) => setF((p) => ({ ...p, docType: v }))}
-                onNumber={(v) => setF((p) => ({ ...p, docNumber: v }))}
-              />
-            </div>
-            <Button type="submit" size="lg" disabled={!step1Valid}>
-              {t('next')} <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Button>
-          </form>
-        ) : (
-          <form
-            className="grid gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
+            {i === 0 && (
+              <>
+                <Field id="email" label={t('email')} hint={t('email_help')} invalid={emailBad}>
+                  <Input
+                    id="email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    aria-required
+                    aria-invalid={emailBad || undefined}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      touch('email');
+                    }}
+                    className={fieldCls(emailBad)}
+                  />
+                </Field>
+                <Field id="phone" label={t('phone')} optional>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder={t('phone_ph')}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="h-12 text-base"
+                  />
+                </Field>
+              </>
+            )}
+          </GuestCard>
+        ))}
+
+        {guests.length < maxGuests && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 w-full text-base"
+            onClick={() => setGuests((list) => [...list, newGuest()])}
           >
-            <div>
-              <p className="font-medium">{t('companions_title')}</p>
-              <p className="text-muted-foreground text-sm">
-                {requireId ? t('companions_body_id') : t('companions_body')}
-              </p>
-            </div>
-
-            {companions.map((c, i) => (
-              <div key={i} className="border-border grid gap-2 rounded-lg border p-3">
-                <div className="flex items-center gap-2">
-                  <Input
-                    required
-                    value={c.fullName}
-                    onChange={(e) =>
-                      setCompanions((list) =>
-                        list.map((x, j) => (j === i ? { ...x, fullName: e.target.value } : x)),
-                      )
-                    }
-                    placeholder={t('companion_name_ph')}
-                    aria-label={t('companion_name_ph')}
-                  />
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
-                    aria-label={t('remove')}
-                    onClick={() => setCompanions((list) => list.filter((_, j) => j !== i))}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-                <DocFields
-                  t={t}
-                  docType={c.docType}
-                  docNumber={c.docNumber}
-                  required={requireId}
-                  onType={(v) =>
-                    setCompanions((list) =>
-                      list.map((x, j) => (j === i ? { ...x, docType: v } : x)),
-                    )
-                  }
-                  onNumber={(v) =>
-                    setCompanions((list) =>
-                      list.map((x, j) => (j === i ? { ...x, docNumber: v } : x)),
-                    )
-                  }
-                />
-              </div>
-            ))}
-
-            <Button
-              type="button"
-              variant="outline"
-              className="justify-self-start"
-              onClick={() =>
-                setCompanions((list) => [...list, { fullName: '', docType: 'rut', docNumber: '' }])
-              }
-            >
-              <UserPlus className="mr-1.5 h-4 w-4" /> {t('add_companion')}
-            </Button>
-
-            <div className="grid gap-2">
-              <p className="font-medium">{t('parking')}</p>
-              <div className="flex gap-2">
-                {(['yes', 'no'] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setParking(v)}
-                    className={`rounded-lg border px-4 py-2 text-sm transition-colors ${
-                      parking === v
-                        ? 'border-primary/50 bg-accent/60 font-medium'
-                        : 'border-border hover:border-primary/30'
-                    }`}
-                  >
-                    {t(v === 'yes' ? 'parking_yes' : 'parking_no')}
-                  </button>
-                ))}
-              </div>
-              {parking === 'yes' && (
-                <div className="grid gap-1.5">
-                  <Label htmlFor="ci-plate">{t('plate')}</Label>
-                  <Input
-                    id="ci-plate"
-                    value={plate}
-                    onChange={(e) => setPlate(e.target.value)}
-                    placeholder={t('plate_ph')}
-                    autoCapitalize="characters"
-                    className="sm:max-w-xs"
-                  />
-                </div>
-              )}
-            </div>
-
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                required
-                checked={f.consent}
-                onChange={set('consent')}
-                className="mt-1"
-              />
-              <span className="text-muted-foreground">{t('consent')}</span>
-            </label>
-
-            {error && <p className="text-destructive text-sm">{error}</p>}
-
-            <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => setStep(1)}>
-                <ArrowLeft className="mr-1.5 h-4 w-4" /> {t('back')}
-              </Button>
-              <Button type="submit" size="lg" className="flex-1" disabled={pending || !f.consent}>
-                {pending ? t('sending') : t('submit')}
-              </Button>
-            </div>
-          </form>
+            <Plus className="h-4 w-4" /> {t('add_guest')}
+          </Button>
         )}
-      </CardContent>
-    </Card>
+      </section>
+
+      <section className="grid gap-2">
+        <GroupLabel id="arrival-label" invalid={errors.has('arrival')}>
+          {t('arrival')}
+        </GroupLabel>
+        <Chips
+          id="arrival"
+          labelId="arrival-label"
+          options={arrivalSlots(stay.checkinTime).map((v) => ({ value: v, label: v }))}
+          value={arrival}
+          onChange={(v) => {
+            setArrival(v);
+            touch('arrival');
+          }}
+          invalid={errors.has('arrival')}
+          className="grid-cols-3"
+        />
+      </section>
+
+      <section className="grid gap-2">
+        <GroupLabel id="departure-label" invalid={errors.has('departure')}>
+          {t('departure')}
+        </GroupLabel>
+        <Chips
+          id="departure"
+          labelId="departure-label"
+          options={departureSlots(stay.checkoutTime).map((v) => ({ value: v, label: v }))}
+          value={departure}
+          onChange={(v) => {
+            setDeparture(v);
+            touch('departure');
+          }}
+          invalid={errors.has('departure')}
+          className="grid-cols-4"
+        />
+      </section>
+
+      <section className="grid gap-3">
+        <GroupLabel id="parking-label">{t('parking')}</GroupLabel>
+        <Chips
+          id="parking"
+          labelId="parking-label"
+          options={[
+            { value: 'yes' as const, label: t('parking_yes') },
+            { value: 'no' as const, label: t('parking_no') },
+          ]}
+          value={parking}
+          onChange={setParking}
+          className="grid-cols-2"
+        />
+        {parking === 'yes' && (
+          <Field id="plate" label={t('plate')} optional>
+            <Input
+              id="plate"
+              autoCapitalize="characters"
+              autoComplete="off"
+              placeholder={t('plate_ph')}
+              value={plate}
+              onChange={(e) => setPlate(e.target.value)}
+              className="h-12 text-base uppercase"
+            />
+          </Field>
+        )}
+      </section>
+
+      <label htmlFor="consent" className="flex min-h-11 items-start gap-3 text-sm">
+        <input
+          id="consent"
+          type="checkbox"
+          checked={consent}
+          aria-invalid={errors.has('consent') || undefined}
+          onChange={(e) => {
+            setConsent(e.target.checked);
+            touch('consent');
+          }}
+          className="accent-primary mt-0.5 h-5 w-5 shrink-0 rounded"
+        />
+        <span
+          className={cn(
+            'text-muted-foreground',
+            errors.has('consent') && 'text-destructive font-medium',
+          )}
+        >
+          {t('consent')}
+        </span>
+      </label>
+
+      <div className="bg-background/90 border-border fixed inset-x-0 bottom-0 z-10 border-t pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+        <div className="mx-auto grid w-full max-w-md gap-2 px-4">
+          {message && (
+            <p role="alert" className="text-destructive text-sm font-medium">
+              {message}
+            </p>
+          )}
+          <Button type="submit" size="lg" className="h-12 w-full text-base" disabled={pending}>
+            {pending ? t('sending') : t('submit')}
+          </Button>
+        </div>
+      </div>
+    </form>
   );
 }

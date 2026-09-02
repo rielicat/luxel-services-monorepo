@@ -2,24 +2,11 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { emailConfigured, sendEmail } from '@/lib/email/send';
 import { sendWhatsAppTemplate, whatsappBridgeConfigured } from '@/lib/whatsapp/send';
-import { stayRangeEs } from '@/lib/checkin/copy';
+import { longDateEs, stayRangeEs } from '@/lib/checkin/copy';
 import { guestListLine, type GuestRow } from '@/lib/checkin/guest-list';
 import { toE164Digits } from '@/lib/phone';
 
 type NotifyResult = Array<{ channel: string; to: string; role: string; ok: boolean }>;
-
-function fmtArrival(iso: string | null): string {
-  if (!iso) return 'por confirmar';
-  try {
-    return new Intl.DateTimeFormat('es-CL', {
-      timeZone: 'America/Santiago',
-      dateStyle: 'full',
-      timeStyle: 'short',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
 
 function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
@@ -31,7 +18,7 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
   const { data: checkin } = await supabase
     .from('checkins')
     .select(
-      'id, property_id, guest_name, guest_email, guest_phone, party_size, arrival_at, arrival_date, departure_date, parking, vehicle_plate',
+      'id, property_id, guest_name, guest_email, guest_phone, party_size, arrival_time, arrival_date, departure_date, parking, vehicle_plate',
     )
     .eq('id', checkinId)
     .maybeSingle();
@@ -46,7 +33,7 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
         .maybeSingle(),
       supabase
         .from('property_access')
-        .select('method, keyless_code, keyless_instructions, unit')
+        .select('unit')
         .eq('property_id', checkin.property_id)
         .maybeSingle(),
       supabase
@@ -71,7 +58,10 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
   const results: NotifyResult = [];
   const place = esc(property.nickname);
   const who = esc(checkin.guest_name ?? 'Huésped');
-  const arrival = fmtArrival(checkin.arrival_at);
+  const arrival =
+    checkin.arrival_date && checkin.arrival_time
+      ? `${longDateEs(checkin.arrival_date as string)}, ${checkin.arrival_time}`
+      : 'por confirmar';
   const guestRows = (guests ?? []) as GuestRow[];
   const guestList = guestListLine(guestRows) || (checkin.guest_name ?? 'Huésped');
   const stay =
@@ -102,21 +92,6 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
   }
 
   if (emailConfigured()) {
-    if (access?.method === 'keyless' && checkin.guest_email) {
-      const html =
-        `<p>Hola ${who}, ¡bienvenido/a a <strong>${place}</strong>!</p>` +
-        `<p>Tu acceso es sin llave.</p>` +
-        (access.keyless_code ? `<p>Código: <strong>${esc(access.keyless_code)}</strong></p>` : '') +
-        (access.keyless_instructions ? `<p>${esc(access.keyless_instructions)}</p>` : '') +
-        `<p>Llegada estimada: ${arrival}.</p>`;
-      const r = await sendEmail({
-        to: checkin.guest_email,
-        subject: `Tu acceso — ${property.nickname}`,
-        html,
-      });
-      results.push({ channel: 'email', to: checkin.guest_email, role: 'guest', ok: Boolean(r) });
-    }
-
     for (const c of conserjes ?? []) {
       const to = toE164Digits(c.whatsapp as string | null);
       if ((to && reached.has(to)) || !c.email) continue;
