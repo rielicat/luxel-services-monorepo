@@ -11,13 +11,17 @@ under 20 words. Product copy stays `es-CL` and follows [`docs/BRAND.md`](docs/BR
 
 ## Project
 
-**Servicios Luxel** automates short-term-rental hosting in Santiago, Chile. Hosts
-connect their Hospitable account; the app mirrors listings and reservations, sends
-each guest a check-in link, renders the check-in page in the guest's language
-(es/en/pt), answers guest messages with AI ("Lux"), and tells conserjes and the
-cleaning crew what they need over WhatsApp. Professional cleaning is a secondary
-service line. pnpm + Turborepo monorepo: Next.js 15 apps, a Cloudflare Worker,
-shared packages, Supabase, Pulumi IaC.
+**Servicios Luxel** manages Airbnb listings in Santiago, Chile, end to end. A host
+signs up, picks a plan and grants Luxel access to the listing in Hospitable. Luxel
+then runs the whole operation: dynamic pricing, guest replies 24/7 with AI ("Lux")
+and Luxel humans, cleaning and laundry between stays, conflict resolution,
+inventory, small repairs and furnishing. The app mirrors listings and reservations.
+It sends each guest a check-in link and renders the check-in page in the guest's
+language (es/en/pt). It tells conserjes and the cleaning crew what they need over
+WhatsApp. Hosts see their properties, calendar, revenue and plan. Hosts never see
+the crew or the guest messages; those are Luxel operations. pnpm + Turborepo
+monorepo: Next.js 15 apps, a Cloudflare Worker, shared packages, Supabase, Pulumi
+IaC.
 
 ## Toolchain
 
@@ -50,28 +54,26 @@ Web tests need local Supabase and `apps/web/.env.local` sourced. Scope with
 apps/web         @luxel/web              customer app → Vercel (serviciosluxel.cl)
 apps/admin       @luxel/admin            operator panel → Vercel
 workers/whatsapp @luxel/whatsapp-worker  Cloudflare Worker: WhatsApp webhook + /send
-packages/shared  @luxel/shared           i18n catalogs, Zod schemas, shared types
-packages/pricing @luxel/pricing          pure pricing engine
+packages/shared  @luxel/shared           i18n catalogs, WhatsApp template kinds, constants
 packages/config  @luxel/config           ESLint / TS / Tailwind presets
 infra/cloudflare @luxel/infra-cloudflare Pulumi: DNS + Email Routing (R2 state)
 infra/vercel     @luxel/infra-vercel     Pulumi: Vercel projects, CI-driven
-supabase/        migrations + seed + local config
+supabase/        migrations + local config
 ```
 
 ## Stack
 
-| Concern       | Tool                                                                                                        |
-| ------------- | ----------------------------------------------------------------------------------------------------------- |
-| Hosting       | Vercel (one project per app root)                                                                           |
-| Edge          | Cloudflare Workers, DNS, Email Routing                                                                      |
-| Auth          | Clerk. Web `/admin` = Clerk `admin` role; `apps/admin` = Clerk org membership (`LUXEL_ADMIN_ORG_ID`/`SLUG`) |
-| Database      | Supabase Postgres + RLS                                                                                     |
-| Channel (PMS) | Hospitable, as a plugin behind `apps/web/src/lib/channels/registry.ts`                                      |
-| Messaging     | WhatsApp Cloud API (worker), Resend email fallback                                                          |
-| AI            | OpenAI `gpt-4o-mini` (`OPENAI_MODEL` override)                                                              |
-| Pricing       | PriceLabs (optional add-on)                                                                                 |
-| Payments      | MercadoPago (CLP), Stripe, Transbank                                                                        |
-| Analytics     | In-house `analytics_events` + `leads`                                                                       |
+| Concern         | Tool                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| Hosting         | Vercel (one project per app root)                                                                           |
+| Edge            | Cloudflare Workers, DNS, Email Routing                                                                      |
+| Auth            | Clerk. Web `/admin` = Clerk `admin` role; `apps/admin` = Clerk org membership (`LUXEL_ADMIN_ORG_ID`/`SLUG`) |
+| Database        | Supabase Postgres + RLS                                                                                     |
+| Channel (PMS)   | Hospitable, as a plugin behind `apps/web/src/lib/channels/registry.ts`                                      |
+| Messaging       | WhatsApp Cloud API (worker), Resend email fallback                                                          |
+| AI              | OpenAI `gpt-4o-mini` (`OPENAI_MODEL` override)                                                              |
+| Dynamic pricing | PriceLabs (part of every plan)                                                                              |
+| Analytics       | In-house `analytics_events` + `leads`                                                                       |
 
 ## Conventions
 
@@ -81,8 +83,8 @@ supabase/        migrations + seed + local config
   `packages/shared/src/i18n/es-CL.json`; the guest check-in page also has
   `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix is
   `never`.
-- **Routes are English.** `/calculator`, `/book`, `/account`,
-  `/properties`, `/checkin/[token]`. Never a Spanish path segment.
+- **Routes are English.** `/calculator`, `/account`, `/properties`,
+  `/checkin/[token]`, `/cleaning/confirm/[token]`. Never a Spanish path segment.
 - **TypeScript strict.** Extend `@luxel/config/tsconfig/{next,library,base}.json`.
   `infra/cloudflare` is standalone CommonJS for Pulumi.
 - **Commits.** Conventional Commits. End the message with
@@ -97,8 +99,19 @@ supabase/        migrations + seed + local config
 - `property_contacts` (conserjes, cleaning crew) is an **import-only mirror** of
   Hospitable Teammates, rewritten on every sync pass (`mirrorTeammates`). Service
   Cleaning or Laundry → role `cleaning`; Concierge, Check-in or Check-out → role
-  `concierge`; all services → both; Owner, Manager, Maintenance → no row. The UI
-  links to Hospitable → Equipo. Do not add a manual contact form.
+  `concierge`; all services → both; Owner, Manager, Maintenance → no row. There is
+  no host-facing contacts UI. Luxel operators manage teammates in Hospitable →
+  Operations → Teammates. Do not add a manual contact form.
+- Cleanings are a **Luxel-run operation**. The sync pass creates one per imported
+  checkout (`suggestCleaningsFromCheckouts`), schedules it (`autoConfirmSuggested`)
+  and sends the `cleaning_confirm` template to the crew (`lib/cleaning/notify.ts`).
+  Hosts have no cleaning controls and no guest inbox. `guest_threads` status
+  `needs_host` means "needs a Luxel human". Do not add host-facing crew or inbox
+  surfaces.
+- Plans live in `plan_subscriptions`: `plan` ∈ `fixed | hybrid | commission`,
+  `status` ∈ `requested | active | cancelled`. The host requests a plan
+  (`requestPlan`); a Luxel operator activates it. There is no billing code and no
+  checkout. Do not add one.
 - Webhook payloads are **identifiers only**. Every value acted on is fetched back
   from Hospitable with our credential (`app/api/channels/[provider]/route.ts`).
   Webhook auth is Hospitable's source-IP range, never a secret in the URL.
@@ -124,16 +137,20 @@ block in `apps/web/src/middleware.ts`.
 
 ## Product constraints (user-set)
 
-- Airbnb management leads in nav, homepage and service picker. No "primary" badge.
-- Marketing nav: `Servicios ▾` (Administración Airbnb, Plan de Aseo) · `Precios`
-  (`/calculator`) · `Nosotros` (`/about`). One `Ingresar` button. No header CTA.
+- Airbnb full management is the only service. No service picker, no cleaning-only
+  offer, no "primary" badge.
+- Marketing nav: `Servicio` (`/services/airbnb`) · `Precios` (`/calculator`) ·
+  `Nosotros` (`/about`). One `Ingresar` button. No dropdown. No header CTA.
 - Service icons share one color (`bg-primary/10 text-primary`).
-- Never say "m²" or "metros cuadrados" in marketing copy. Say "tu espacio".
-- Airbnb pricing is two flat tiers per listing per month
-  (`apps/web/src/lib/plan-pricing.ts`): 39.900 Esencial, 99.900 Con respaldo
-  humano. No per-booking commission.
-- Competitor reference: `airhost.cl`, `airhostchile.com`. Our angle: same outcomes,
-  automation, flat fee.
+- Three plans per listing per month (`apps/web/src/lib/plan-pricing.ts`): Fijo
+  99.900 CLP; Mixto 49.900 CLP + 6% of booking revenue; Comisión 12% of booking
+  revenue. Luxel bills monthly, off-platform. No free trial. No "recomendado"
+  badge; the calculator marks the cheapest plan for the entered revenue.
+- Hosts never see the crew or the guest messages. Those are Luxel operations.
+- Copy never says "0% comisión", "14 días gratis" or "m²". Voice per
+  [`docs/BRAND.md`](docs/BRAND.md).
+- Competitor reference: `airhost.cl`, `airhostchile.com`. Our angle: full
+  management, transparent plans (fixed fee or revenue share), monthly report.
 
 ## CI and deployment
 
@@ -145,6 +162,7 @@ Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/E
 
 Open follow-ups that need operator credentials: Clerk production instance (prod
 runs the dev instance), Meta WhatsApp go-live (portfolio, number, templates).
+Open follow-ups in code: plan activation and a crew/cleanings view in `apps/admin`.
 
 ## Gotchas
 

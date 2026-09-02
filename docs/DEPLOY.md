@@ -28,9 +28,9 @@ These are external accounts. The code cannot provision them:
 
 1. **Supabase** — create a project. Copy the Project URL, the `sb_publishable_*`
    key and the `sb_secret_*` key. Apply the schema once:
-   `supabase link --project-ref <ref>` → `supabase db push`, then run
-   `supabase/seed.sql`. After that, `.github/workflows/db-migrate.yml` applies
-   new migrations on push (repo secret `SUPABASE_DB_URL`).
+   `supabase link --project-ref <ref>` → `supabase db push`. There is no seed
+   file. After that, `.github/workflows/db-migrate.yml` applies new migrations
+   on push (repo secret `SUPABASE_DB_URL`).
 2. **Clerk** — create a production instance. Add **both** app domains to the
    allowed origins. Copy `pk_live_*` / `sk_live_*`. Point a Clerk webhook at
    `https://serviciosluxel.cl/api/webhooks/clerk` and copy
@@ -57,13 +57,13 @@ These are external accounts. The code cannot provision them:
    with the System User token. Get the templates `luxel_conserje_registro` and
    `luxel_aseo_confirmacion` approved. Set `WHATSAPP_WORKER_SEND_URL` and
    `INTERNAL_SEND_TOKEN` on the web project.
-7. **Payments** — MercadoPago, Stripe, Transbank (CLP). Set the webhook URLs to
-   `https://serviciosluxel.cl/api/webhooks/{mercadopago,stripe}`. Transbank has
-   no webhook; `/api/checkout/transbank/commit` completes the payment.
-8. **PriceLabs** — optional `PRICELABS_API_KEY` for dynamic pricing.
-9. **PostHog / Sentry** — optional. In-house analytics works without PostHog.
-10. **DNS** — records live in `infra/cloudflare`. They point the domains at
-    Vercel.
+7. **PriceLabs** — `PRICELABS_API_KEY` for dynamic pricing. Dynamic pricing is
+   part of every plan; without the key the pricing panel reports `unavailable`.
+8. **PostHog / Sentry** — optional. In-house analytics works without PostHog.
+9. **DNS** — records live in `infra/cloudflare`. They point the domains at
+   Vercel.
+
+Plan billing has no external account. Luxel invoices the plans off-platform.
 
 ## Vercel setup (per project)
 
@@ -77,10 +77,9 @@ These are external accounts. The code cannot provision them:
 
 ### `apps/web` env
 
-The inventory lives in [`ENV.md`](./ENV.md): the **Required** table, the
-**Feature gates** table, and the **Payments** table. Do not keep a second list
-here. Never set `LUXEL_DEV_MOCK`, `LUXEL_DEV_MOCK_PAYMENTS`, or `E2E_SKIP_AUTH`
-in production.
+The inventory lives in [`ENV.md`](./ENV.md): the **Required** table and the
+**Feature gates** table. Do not keep a second list here. Never set
+`LUXEL_DEV_MOCK` or `E2E_SKIP_AUTH` in production.
 
 ### `apps/admin` env
 

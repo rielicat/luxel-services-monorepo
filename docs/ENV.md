@@ -39,26 +39,20 @@ effect and fails silently:
 
 | Variable                                           | Absent behaviour                                                                                                                                                 |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** Guest threads go straight to `needs_host`. No error surfaces.                          |
+| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** Guest threads go straight to `needs_host` (a Luxel human answers). No error surfaces.  |
 | `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                                                                              |
 | `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN`                                                 |
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false. Check-in emails (guest access code, conserje fallback, host confirmation) and cleaning-confirmation emails are skipped, never sent |
-| `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                                                                           |
+| `PRICELABS_API_KEY`                                | dynamic pricing (part of every plan) unavailable; the pricing panel reports `unavailable`                                                                        |
 | `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp. A conserje with an email gets the check-in notice by email. A cleaner gets the cleaning confirmation by email instead                               |
 | `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                                                                    |
 | `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                        |
 | _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.                                                              |
 
-### Payments — only what the chosen provider needs
+### Billing
 
-| Provider    | Variables                                                       |
-| ----------- | --------------------------------------------------------------- |
-| MercadoPago | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`        |
-| Stripe      | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                    |
-| Transbank   | `TRANSBANK_API_KEY`, `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_ENV` |
-
-With none of them set, the plan bar reports `billing_not_configured` and hides
-the activate button, which is intended rather than broken.
+Plan billing is not in code. Luxel invoices the plans off-platform at the end
+of the month. There is no payment variable to set.
 
 ### Optional
 
@@ -71,7 +65,7 @@ the activate button, which is intended rather than broken.
 `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL`.
 
 Local development only, never set in production: `LUXEL_DEV_MOCK`,
-`LUXEL_DEV_MOCK_PAYMENTS`, `E2E_SKIP_AUTH`.
+`E2E_SKIP_AUTH`.
 
 ## Vercel — `luxel-admin`
 
@@ -169,7 +163,7 @@ and the review request — is a **message rule in Hospitable's own dashboard**
 (Inbox → Rules), with the property-specific values as Hospitable custom codes.
 Nothing to deploy: no `CRON_SECRET`, no `vercel.json`, no cron route.
 
-The app sends exactly one guest message itself: the booking message with the
+The app sends exactly one guest message itself: the reservation message with the
 registration link, in the guest's language (`lib/checkin/copy.ts`), from the
 `reservation.created` webhook. The cleaning crew hears when a turnover cleaning is
 scheduled; the conserjes hear when the registration is submitted.
@@ -211,22 +205,24 @@ Each button carries a payload: `clean:<confirm_token>:yes` for Confirmo,
 `cleanings.confirm_token` uuid. The worker reads the payload from the inbound
 `button` message. `yes` stamps `cleanings.crew_confirmed_at` and replies
 "¡Gracias! Aseo confirmado ✅". `no` stamps `cleanings.crew_declined_at`, replies
-"Entendido. Avisamos al anfitrión para coordinar." and texts
+"Entendido. Avisamos al equipo Luxel para coordinar." and texts
 `LUXEL_OPERATOR_WHATSAPP` with the date, the property and the sender. An unknown
 payload is ignored. Button replies never enter the chat bridge.
 
 Until a template is approved, the send fails. The conserje notice records the
 outcome on the check-in (`notify_result`, recipients only). A conserje with an
 email gets the notice by email instead. The cleaning confirmation goes to each
-cleaner with a phone when a cleaning is scheduled: by the sync pass when
-`cleaning_auto_confirm` is on, or by the host's Confirmar in the panel. A cleaner
-with only an email, or a failed send, gets an email with the tokenized confirm
-link (`/cleaning/confirm/<token>`) instead. Nothing goes to the crew at booking
-time.
+cleaner with a phone when the sync pass schedules a cleaning from an imported
+checkout (`suggestCleaningsFromCheckouts` + `autoConfirmSuggested`). There is no
+host toggle. The same pass texts `LUXEL_OPERATOR_WHATSAPP` a free-text FYI with
+the confirm link. A cleaner with only an email, or a failed send, gets an email
+with the tokenized confirm link (`/cleaning/confirm/<token>`) instead. Nothing
+goes to the crew at reservation time.
 
 Recipients are `property_contacts` rows. That table is an **import-only mirror**
-of Hospitable's Teammates (Operations → Teammates). The host adds crew there,
-with a phone number. Each sync pass reads `GET /v2/teammates` and rewrites the
+of Hospitable's Teammates (Operations → Teammates). Luxel operators add the crew
+there, with a phone number. Hosts never see these rows. Each sync pass reads
+`GET /v2/teammates` and rewrites the
 rows; the app has no manual add or remove path. The mapping is by Hospitable
 service: Cleaning and Laundry give role `cleaning`; Concierge, Check-in and
 Check-out give role `concierge`; "all services" gives both; Owner, Manager and

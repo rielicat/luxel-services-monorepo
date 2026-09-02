@@ -1,5 +1,9 @@
 # PriceLabs partner enquiry — draft email
 
+> Historical draft; pricing changed 2026-09-02. Luxel now includes PriceLabs
+> dynamic pricing in every management plan (fixed fee or revenue share). The
+> "paid add-on" and "flat monthly fee" lines below are out of date.
+
 Send to **support@pricelabs.co**. Fill the three `[bracketed]` blanks before sending.
 
 Why this email is needed (from research, July 2026):

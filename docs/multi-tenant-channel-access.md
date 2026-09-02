@@ -46,7 +46,7 @@ Onboarding a host client:
 
 | #   | Who         | Action                                                                                         |
 | --- | ----------- | ---------------------------------------------------------------------------------------------- |
-| 1   | Customer    | Signs in, starts the trial or buys                                                             |
+| 1   | Customer    | Signs in and requests a plan                                                                   |
 | 2   | Luxel staff | Connected accounts → **Invite hosts** → host's full name + email                               |
 | 3   | Hospitable  | Emails the host, Luxel cc'd                                                                    |
 | 4   | **Host**    | Clicks "Connect my Airbnb account", logs into **Airbnb**, authorises. Done — they never return |
