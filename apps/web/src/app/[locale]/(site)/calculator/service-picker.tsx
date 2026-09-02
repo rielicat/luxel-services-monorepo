@@ -2,8 +2,6 @@ import { useTranslations } from 'next-intl';
 import { Bot, Sparkles, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
-/** Step 0 of quoting: choose the service, then route to its calculator. AirBnB
- *  (the primary service) is presented first and emphasized. */
 export function ServicePicker() {
   const t = useTranslations('calculator.picker');
   return (

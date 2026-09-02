@@ -6,7 +6,6 @@ import { Link } from '@/i18n/routing';
 import { Card } from '@/components/ui/card';
 import { ProfileForm } from '../profile-form';
 
-// Auth-gated + reads per-request auth(); never statically prerender or cache.
 export const dynamic = 'force-dynamic';
 
 export default async function PerfilPage() {

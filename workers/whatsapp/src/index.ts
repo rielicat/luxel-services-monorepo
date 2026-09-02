@@ -1,38 +1,19 @@
-/**
- * Luxel WhatsApp Webhook (Cloudflare Worker)
- *
- * Routes:
- *   GET  /webhook  → Meta verification handshake (`hub.challenge`)
- *   POST /webhook  → inbound message events; HMAC-SHA256 signature verified before parsing
- *   POST /send     → outbound, from the web app only (shared token): free text to the
- *                    operator, or an approved template to a conserje / cleaner
- *
- * Behavior:
- *   - Verifies the Meta `x-hub-signature-256` header (constant-time compare)
- *   - For every inbound text message: tries to attribute by phone (E.164) to a customer,
- *     persists into public.messages (channel='whatsapp', direction='in'),
- *     then Supabase Realtime fans out to any web client listening on that customer's channel.
- *   - Outbound replies are sent from the Next.js API (so an authenticated user can reply).
- */
-
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import {
+  WHATSAPP_TEMPLATE_KINDS,
+  WHATSAPP_TEXT_MAX,
+  type WhatsAppTemplateKind,
+} from '@luxel/shared/whatsapp';
 
-export interface Env {
+interface Env {
   WHATSAPP_VERIFY_TOKEN: string;
   WHATSAPP_APP_SECRET: string;
   WHATSAPP_ACCESS_TOKEN: string;
   WHATSAPP_PHONE_NUMBER_ID: string;
   SUPABASE_URL: string;
-  // sb_secret_* opaque token (post-2025 rotation). Workers only — never exposed to clients.
-  // Worker secrets are set via `wrangler secret put SUPABASE_SECRET_KEY`.
   SUPABASE_SECRET_KEY: string;
-  // Operator/team number (E.164) whose replies bridge back into the web chat.
   LUXEL_OPERATOR_WHATSAPP?: string;
-  // Shared secret the Next.js app presents to POST /send. Set via
-  // `wrangler secret put INTERNAL_SEND_TOKEN`.
   INTERNAL_SEND_TOKEN?: string;
-  // Optional Cloudflare rate-limit binding backstopping /send if the shared token
-  // ever leaks (declared in wrangler.toml). Absent locally/in tests → skipped.
   SEND_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
 }
 
@@ -42,8 +23,6 @@ interface InboundMessage {
   timestamp: string;
   type: string;
   text?: { body: string };
-  // Present when the sender replied to a specific message — used to route an
-  // operator's reply back to the originating web-chat session.
   context?: { id: string };
 }
 
@@ -81,34 +60,17 @@ async function verifySignature(
   const expected =
     'sha256=' + [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
 
-  if (signatureHeader.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < signatureHeader.length; i++) {
-    diff |= signatureHeader.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return diff === 0;
+  return timingSafeEqual(signatureHeader, expected);
 }
 
 type Thread = { session_id: string; customer_id: string | null };
 
-// The recency fallback auto-routes a non-reply operator message only when the
-// SAME single web session is the only one that has bridged to the operator in
-// this window. Kept wide (60 min) on purpose: a short window let an older
-// concurrent chat's anchor age out, collapsing the distinct-session set to 1 and
-// leaking one customer's answer into another's chat. A wider window means a
-// second recent handoff reliably disables the guess instead of misrouting.
 const FALLBACK_WINDOW_MS = 60 * 60 * 1000;
 
-/** Which web session an operator's WhatsApp reply belongs to. Prefers the exact
- *  bridged message it quoted; otherwise only auto-routes when there is a SINGLE
- *  active thread (never guesses between concurrent chats → no cross-leak). */
 async function resolveOperatorThread(
   supabase: SupabaseClient,
   contextId: string | undefined,
 ): Promise<Thread | null> {
-  // Exact match: the operator quoted a specific bridged message. Match ANY of our
-  // rows carrying that id — the forwarded anchor OR one of our own prior replies —
-  // so quoting an earlier answer in a thread still resolves to the right session.
   if (contextId) {
     const { data } = await supabase
       .from('messages')
@@ -136,8 +98,6 @@ async function resolveOperatorThread(
   return null;
 }
 
-/** Human-readable stand-in for a non-text operator reply so the customer sees
- *  that a person answered instead of silence. */
 function operatorPlaceholder(type: string): string {
   switch (type) {
     case 'image':
@@ -169,9 +129,6 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
         const fromDigits = msg.from.replace(/[^\d]/g, '');
         const fromOperator = Boolean(operatorDigits) && fromDigits === operatorDigits;
 
-        // 1) A reply from the operator → route it back to the web session. Non-text
-        //    replies (voice note, image, sticker) become a placeholder so the
-        //    customer still sees the operator answered instead of nothing.
         if (fromOperator) {
           const target = await resolveOperatorThread(supabase, msg.context?.id);
           if (target) {
@@ -189,17 +146,12 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
             );
             continue;
           }
-          // Operator message we can't safely route (multiple open threads and no
-          // reply-to). Log it so it isn't lost silently, then fall through: a text
-          // one is stored as a plain inbound below; a non-text one stops here.
           console.warn('whatsapp.operator_reply_unrouted', {
             id: msg.id,
             context: msg.context?.id ?? null,
           });
         }
 
-        // 2) Otherwise a direct inbound from a customer — text only (media isn't
-        //    surfaced to the operator today) — attribute by phone (E.164).
         if (msg.type !== 'text' || !msg.text?.body) continue;
         const wa = msg.from.startsWith('+') ? msg.from : `+${msg.from}`;
         const { data: customer } = await supabase
@@ -231,20 +183,12 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/**
- * Meta template names, by the intent the web app sends. Utility templates the
- * operator registers once in Meta Business Manager, language `es`. A
- * business-initiated message to someone who has not written to us in the last
- * 24 hours MUST be a template — the Cloud API rejects free text — and that is
- * every conserje and every cleaner, every time.
- */
-const TEMPLATES: Record<string, string> = {
+const TEMPLATES: Record<WhatsAppTemplateKind, string> = {
   concierge_arrival: 'luxel_conserje_llegada',
   cleaning_booking: 'luxel_aseo_nueva_reserva',
 };
 const TEMPLATE_LANG = 'es';
 
-/** Template parameters may not contain newlines, tabs or 4+ consecutive spaces. */
 function templateParam(s: string): string {
   return (
     s
@@ -277,12 +221,11 @@ async function graphSend(env: Env, payload: Record<string, unknown>): Promise<st
   }
 }
 
-/** Free text — only lands inside an open 24h customer-service window. */
 function sendText(env: Env, to: string, text: string): Promise<string | null> {
   return graphSend(env, {
     to,
     type: 'text',
-    text: { body: text.slice(0, 4000), preview_url: false },
+    text: { body: text.slice(0, WHATSAPP_TEXT_MAX), preview_url: false },
   });
 }
 
@@ -305,11 +248,6 @@ function sendTemplate(
   });
 }
 
-/**
- * Internal route the Next.js app calls to send WhatsApp: a free-text forward to
- * the operator (no `to`), or a template to any number (`to` + `template`).
- * Authenticated by a shared secret so the endpoint cannot be abused directly.
- */
 async function handleSend(req: Request, env: Env): Promise<Response> {
   const token = req.headers.get('x-luxel-internal-token');
   if (!env.INTERNAL_SEND_TOKEN || !token || !timingSafeEqual(token, env.INTERNAL_SEND_TOKEN)) {
@@ -327,15 +265,16 @@ async function handleSend(req: Request, env: Env): Promise<Response> {
       : (env.LUXEL_OPERATOR_WHATSAPP?.replace(/[^\d]/g, '') ?? '');
   if (!to) return Response.json({ error: 'no_destination' }, { status: 400 });
 
-  // Defense-in-depth: the token is deployed across the whole web fleet, so cap
-  // sends per destination in case it ever leaks.
   if (env.SEND_LIMITER) {
     const { success } = await env.SEND_LIMITER.limit({ key: `send:${to}` });
     if (!success) return new Response('Too Many Requests', { status: 429 });
   }
 
   if (body.template) {
-    const name = TEMPLATES[String(body.template.kind ?? '')];
+    const kind = String(body.template.kind ?? '');
+    const name = (WHATSAPP_TEMPLATE_KINDS as readonly string[]).includes(kind)
+      ? TEMPLATES[kind as WhatsAppTemplateKind]
+      : undefined;
     const params = Array.isArray(body.template.params)
       ? body.template.params.map((p) => String(p ?? ''))
       : null;
@@ -380,7 +319,6 @@ export default {
         return new Response('Bad JSON', { status: 400 });
       }
 
-      // Acknowledge to Meta within 5s; persist in the background.
       ctx.waitUntil(
         persistInbound(env, payload).catch((err) => console.error('whatsapp.persist_failed', err)),
       );

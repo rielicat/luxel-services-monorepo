@@ -8,8 +8,6 @@ import { cn } from '@/lib/utils';
 import type { Block } from './properties-client';
 import type { Cleaning } from './cleaning-panel';
 
-/** One night of the listing's REAL Airbnb calendar, mapped server-side from the
- *  channel API — published price and availability, never computed locally. */
 export type LiveDay = {
   date: string;
   available: boolean;
@@ -46,13 +44,6 @@ const nightsBetween = (from: string, to: string) =>
     ),
   );
 
-/** Stay boundaries come from the synced RESERVATIONS (one block per booking) —
- *  the live calendar only says "reserved", so consecutive runs would glue
- *  back-to-back bookings into one giant fake stay. The calendar's job here is
- *  pricing: a stay gets a revenue figure only when every one of its nights has
- *  a published price in the window (an in-progress stay's past nights don't,
- *  so no invented totals). Reserved days not covered by any block — bookings
- *  newer than the last sync — still surface as boundary-less runs. */
 export function buildStays(liveDays: LiveDay[] | null, blocks: Block[], today: string): Stay[] {
   const price = new Map<string, number>();
   for (const d of liveDays ?? []) if (d.priceClp != null) price.set(d.date, d.priceClp);
@@ -106,18 +97,12 @@ export function buildStays(liveDays: LiveDay[] | null, blocks: Block[], today: s
 }
 
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-/** Months rendered. All of them, always: mounting and unmounting during a
- *  scroll is what made this feel rough — an IntersectionObserver firing mid
- *  momentum, then a scrollTop write fighting the browser's own animation. A
- *  year of cells is nothing to render, and `content-visibility` below skips the
- *  paint work for the ones off screen, so scrolling is plain native scrolling. */
 const MONTHS = 12;
 
 const monthLabel = (y: number, m: number) =>
   new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
     new Date(Date.UTC(y, m, 1)),
   );
-/** Compact money for a calendar cell: 166.450 → 166k. */
 const shortClp = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 
 type CleaningState = 'confirmed' | 'notified' | 'pending';
@@ -127,7 +112,6 @@ const cleaningState = (c: Cleaning | undefined): CleaningState | null => {
   return c.status === 'scheduled' ? 'notified' : 'pending';
 };
 
-/** A month's worth of cells, `null` padding the lead-in weekdays. */
 function monthCells(year: number, month: number): (string | null)[] {
   const first = new Date(Date.UTC(year, month, 1));
   const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -140,15 +124,6 @@ function monthCells(year: number, month: number): (string | null)[] {
   ];
 }
 
-/**
- * The calendar a host actually reads: months stacked in one scroll, each night
- * carrying its published rate — the shape Airbnb trained them on.
- *
- * When price optimisation is on, the engine's recommendation sits under the
- * published price wherever the two differ. Both numbers are real: published
- * comes from the channel calendar, recommended from the pricing engine. A night
- * with no data shows none.
- */
 export function StaysTimeline({
   stays,
   cleanings,
@@ -159,9 +134,7 @@ export function StaysTimeline({
   stays: Stay[];
   cleanings: Cleaning[];
   today: string;
-  /** Published nightly rates + availability, straight from the channel. */
   liveDays?: LiveDay[] | null;
-  /** Engine recommendations by date, when the add-on is active and linked. */
   recommended?: Record<string, number> | null;
 }) {
   const t = useTranslations('stays');
@@ -193,7 +166,6 @@ export function StaysTimeline({
 
   return (
     <div className="grid gap-3">
-      {/* One continuous scroll rather than paging month by month. */}
       <div className="max-h-[28rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
         <div className="grid gap-6">
           {Array.from({ length: MONTHS }, (_, i) => {
@@ -203,8 +175,6 @@ export function StaysTimeline({
             return (
               <div
                 key={`${y}-${m}`}
-                // Off-screen months cost nothing to paint; the reserved size
-                // keeps the scrollbar honest so the thumb never jumps.
                 className="grid gap-1.5 [contain-intrinsic-size:auto_19rem] [content-visibility:auto]"
               >
                 <p className="bg-card/95 sticky top-0 z-10 py-1 text-sm font-semibold capitalize backdrop-blur">

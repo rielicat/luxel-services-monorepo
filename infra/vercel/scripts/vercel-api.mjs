@@ -1,4 +1,3 @@
-// Minimal Vercel API helper. Requires env VERCEL_API_TOKEN; optional VERCEL_TEAM_ID.
 const TOKEN = process.env.VERCEL_API_TOKEN;
 export const TEAM_ID = process.env.VERCEL_TEAM_ID || '';
 
@@ -23,7 +22,6 @@ export async function vc(path) {
   return body;
 }
 
-/** All projects across every page (Vercel paginates via pagination.next timestamp). */
 export async function vcProjects() {
   const out = [];
   let until = '';

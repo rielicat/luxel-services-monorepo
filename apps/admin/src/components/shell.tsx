@@ -55,7 +55,6 @@ export function Shell({ email, children }: { email: string; children: React.Reac
       </aside>
 
       <div className="min-w-0 flex-1">
-        {/* Mobile top bar */}
         <header className="border-border bg-card flex items-center justify-between border-b px-4 py-3 sm:hidden">
           <div className="flex items-center gap-2">
             <LuxelMark className="h-5 w-5" />

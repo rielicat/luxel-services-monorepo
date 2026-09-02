@@ -1,8 +1,3 @@
-/**
- * End-to-end proof of the Phase-2 AI messaging loop: an inbound guest message is
- * stored, the AI (dev-mock) drafts + auto-sends via the local channel, or hands
- * off to a human on frustration; the host can reply and save a learned answer.
- */
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -13,7 +8,7 @@ const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-msg-${nodeCrypto.randomUUID()}`;
 delete process.env.OPENAI_API_KEY;
-process.env.LUXEL_DEV_MOCK = '1'; // dev-mock AI drafting + local channel send
+process.env.LUXEL_DEV_MOCK = '1';
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
@@ -96,7 +91,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
     const r = await handleInboundMessage({
       propertyId: prop.id!,
       externalThreadId: 't-off',
-      body: '¿Hay wifi?', // benign — would auto-reply if the AI were on
+      body: '¿Hay wifi?',
     });
     expect(r.action).toBe('handoff');
 
@@ -133,7 +128,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
       .from('guest_messages')
       .select('source')
       .eq('thread_id', r.threadId!);
-    expect(msgs).toHaveLength(1); // only the inbound; nothing auto-sent
+    expect(msgs).toHaveLength(1);
     expect(msgs![0].source).toBe('guest');
   });
 

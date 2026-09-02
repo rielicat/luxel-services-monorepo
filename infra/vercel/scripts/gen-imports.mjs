@@ -1,7 +1,3 @@
-// Writes imports.json for the live web project + its domains, matching this
-// program's resource names. Run once, then: LUXEL_VC_ADOPT=1 pulumi up
-//   VERCEL_API_TOKEN=... [VERCEL_TEAM_ID=...] pnpm --filter @luxel/infra-vercel import
-
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';

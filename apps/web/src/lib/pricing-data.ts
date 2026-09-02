@@ -4,11 +4,6 @@ import type { PricingConfig } from '@luxel/pricing';
 import type { OperationPoint, ServiceType } from '@luxel/shared';
 import { createSupabasePublicClient } from '@/lib/supabase/server';
 
-/**
- * Seed-equivalent defaults (mirror supabase/seed.sql). Used when the database
- * hasn't been provisioned/seeded yet or is unreachable, so the public quoting
- * flow works out of the box. Real rows take over as soon as they exist.
- */
 const DEFAULT_SERVICE_TYPES: ServiceType[] = [
   {
     id: 'regular',
@@ -46,14 +41,6 @@ const DEFAULT_CONFIG: PricingConfig = {
   subscriptionDiscountPct: { weekly: 15, biweekly: 10, monthly: 5 },
 };
 
-/**
- * Loads pricing config + service types + operation points from Supabase.
- * Public-read tables — uses the publishable key, no service role needed.
- * Cached for 5 minutes; admin changes appear within that window.
- *
- * Never throws: any Supabase failure or empty result falls back to the
- * seed-equivalent defaults so quoting stays functional.
- */
 export const getPricingData = unstable_cache(
   async () => {
     let services: Record<string, unknown>[] = [];
@@ -70,9 +57,7 @@ export const getPricingData = unstable_cache(
       services = servicesRes.data ?? [];
       ops = opsRes.data ?? [];
       configRows = configRes.data ?? [];
-    } catch {
-      // Fall through to defaults below.
-    }
+    } catch {}
 
     const config: Record<string, number> = {};
     for (const row of configRows) {

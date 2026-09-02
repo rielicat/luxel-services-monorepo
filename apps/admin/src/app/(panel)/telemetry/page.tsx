@@ -66,7 +66,6 @@ export default async function TelemetryPage({
         </div>
       </div>
 
-      {/* Filter chips */}
       <div className="mb-4 flex flex-wrap gap-2">
         <FilterChip href={href({ days })} active={!event} label="Todos" />
         {names.map((n) => (

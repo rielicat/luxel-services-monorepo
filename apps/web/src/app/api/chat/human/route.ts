@@ -14,16 +14,8 @@ const Body = z.object({
   message: z.string().min(1).max(2000),
 });
 
-// Per-session cap on this public endpoint. Enforced atomically in Postgres
-// (claim_chat_slot) so concurrent bursts can't slip past a check-then-write race.
 const MAX_MESSAGES_PER_MINUTE = 12;
 
-/**
- * A message the user sends while in "human mode" (after the concierge handed off).
- * Persists it, and forwards it to the operator's WhatsApp when configured — the
- * user stays in the web chat; the operator replies from WhatsApp and those come
- * back via the worker + /api/chat/poll. Reports whether we're within hours.
- */
 export async function POST(req: Request) {
   const json = await req.json().catch(() => null);
   const parsed = Body.safeParse(json);
@@ -33,10 +25,6 @@ export async function POST(req: Request) {
   const { userId } = await auth();
   const supabase = createSupabaseServiceRoleClient();
 
-  // Abuse gate: this endpoint is public (anonymous chat), so it can only be used
-  // by a session that has actually reached an AI handoff — otherwise it's an
-  // unauthenticated write/WhatsApp-spam amplifier. The concierge persists a
-  // metadata.kind='handoff' assistant message when it escalates.
   const { data: handoff } = await supabase
     .from('messages')
     .select('id')
@@ -60,9 +48,6 @@ export async function POST(req: Request) {
 
   const hours = workingHoursStatus();
 
-  // Atomic per-session cap. This also writes the user's message row, so a request
-  // that trips the cap persists nothing and can't be used to amplify DB writes or
-  // WhatsApp forwards. Counts attempts, so a later send failure still spends a slot.
   const { data: allowed, error: slotErr } = await supabase.rpc('claim_chat_slot', {
     p_session_id: sessionId,
     p_customer_id: customerId,
@@ -92,7 +77,6 @@ export async function POST(req: Request) {
     const wamid = await sendWhatsAppViaWorker(text);
     if (wamid) {
       forwarded = true;
-      // Anchor for reply-context routing: the operator's reply carries this id.
       await supabase.from('messages').insert({
         customer_id: customerId,
         session_id: sessionId,

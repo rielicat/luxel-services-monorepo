@@ -28,7 +28,6 @@ export interface QuoteActionInput {
   serviceTypeSlug: string;
   squareMeters: number;
   address: string;
-  /** Pre-resolved coordinates from autocomplete — skips geocoding when present. */
   lat?: number;
   lng?: number;
   toolsProvidedBy: 'customer' | 'company';

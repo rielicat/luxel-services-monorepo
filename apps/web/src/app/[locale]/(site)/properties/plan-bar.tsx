@@ -15,10 +15,6 @@ function daysLeft(iso: string | null): number {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
 }
 
-/** `billingReady` = a payment provider can actually charge. Without it,
- *  `activateMyPlan` refuses server-side ('billing_not_configured'), so offering
- *  "Activar plan" mid-trial rendered a button that silently did nothing — next
- *  to a trial that was already running. */
 export function PlanBar({ plan, billingReady = false }: { plan: Plan; billingReady?: boolean }) {
   const t = useTranslations('hostplan');
   const router = useRouter();

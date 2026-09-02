@@ -7,15 +7,6 @@ import { toE164Digits } from '@/lib/phone';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Supabase = SupabaseClient<any, 'public', any>;
 
-/**
- * Tells the property's cleaning crew about a NEW booking, over WhatsApp, once.
- *
- * Fires from the same place the guest's booking message does — a freshly
- * inserted check-in row — so "the crew knows" and "the guest was told" cannot
- * drift apart. Send-once through `checkins.crew_notified_at`, stamped only after
- * at least one delivery: a run that fails leaves the row open for the next sync.
- * Never throws.
- */
 export async function notifyCleaningCrewOfBooking(
   supabase: Supabase,
   reservationUid: string,

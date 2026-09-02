@@ -1,7 +1,7 @@
 import 'server-only';
 import { createServiceClient } from './supabase';
 
-export interface DashboardData {
+interface DashboardData {
   days: number;
   traffic: { pageviews: number; visitors: number; sessions: number; events: number };
   funnel: {
@@ -17,8 +17,6 @@ export interface DashboardData {
   topCommunes: { commune: string; count: number }[];
   leads: { total: number; new: number };
   recentBookings: BookingRow[];
-  /** Non-null when the DB couldn't be read (misconfigured env / unmigrated) — so
-   *  the panel can distinguish "connection broken" from "no data yet". */
   error: string | null;
 }
 
@@ -36,7 +34,7 @@ export interface OperationPointRow {
   name: string;
 }
 
-export interface BookingRow {
+interface BookingRow {
   id: string;
   scheduled_date: string;
   timeblock: string;
@@ -49,7 +47,7 @@ export interface BookingRow {
   commune: string | null;
 }
 
-export interface LeadRow {
+interface LeadRow {
   id: string;
   source: string;
   name: string | null;
@@ -64,7 +62,7 @@ export interface LeadRow {
   created_at: string;
 }
 
-export interface SessionRow {
+interface SessionRow {
   session_id: string;
   anon_id: string | null;
   distinct_id: string | null;
@@ -76,7 +74,7 @@ export interface SessionRow {
   converted: boolean;
 }
 
-export interface EventRow {
+interface EventRow {
   id: string;
   event: string;
   path: string | null;
@@ -126,8 +124,6 @@ export async function getDashboard(days = 30): Promise<DashboardData> {
     supabase.from('leads').select('status').limit(1000),
   ]);
 
-  // A read error here means the DB is unreachable / unmigrated / misconfigured —
-  // surface it so the panel shows a clear banner instead of silent zeros.
   const dbError =
     traffic.error?.message ??
     eventCounts.error?.message ??
@@ -250,7 +246,6 @@ export async function getEvents(eventFilter?: string, limit = 100, days = 30): P
   return (data ?? []) as EventRow[];
 }
 
-/** Larger pull for CSV export (bounded so a runaway export can't OOM). */
 export async function getEventsForExport(
   eventFilter?: string,
   days = 30,

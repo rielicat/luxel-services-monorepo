@@ -19,9 +19,6 @@ interface Props {
 }
 
 export default async function AgendarPage({ searchParams }: Props) {
-  // Gate on auth only — tolerate a missing customer row (created lazily on
-  // submit) so a signed-in user is never bounced home, losing the quote/plan
-  // intent in the query string. Mirrors /account's resilient behaviour.
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
 
@@ -37,7 +34,6 @@ export default async function AgendarPage({ searchParams }: Props) {
     );
   }
 
-  // Resolve the service type from either id or slug (fallback data uses slug ids).
   const resolved =
     serviceTypes.find((s) => s.id === params.serviceTypeId) ??
     serviceTypes.find((s) => s.slug === params.serviceTypeSlug);

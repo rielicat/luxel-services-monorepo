@@ -8,18 +8,11 @@ import { priceTurnover } from '@/lib/cleaning/price';
 import { resolvePricelabsRef } from '@/lib/pricelabs/link';
 import { getPricelabsPrices } from '@/lib/pricelabs/client';
 import { devMockEnabled } from '@/lib/dev-mock';
+import { santiagoToday, shiftDate } from '@/lib/checkin/window';
 import type { PropertyRow } from '../properties-client';
 import { PropertyDetailClient, type LiveDay } from './detail-client';
 
 export const dynamic = 'force-dynamic';
-
-const DAY = 86_400_000;
-// The host operates in Chile: "today" must be the Santiago calendar date, not
-// UTC (which rolls over at 20:00–21:00 local and would drop tonight's data).
-const santiagoToday = () =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
-const plusDays = (d: string, n: number) =>
-  new Date(new Date(`${d}T00:00:00Z`).getTime() + n * DAY).toISOString().slice(0, 10);
 
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,14 +30,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   const property = (await fetchProperty(customer.id, id)) as PropertyRow | null;
   if (!property) notFound();
 
-  // The listing's REAL calendar for the next 90 days (published nightly prices
-  // + availability), straight from the channel — nothing invented. Null on any
-  // failure: the panels then fall back to the locally synced blocks.
   const today = santiagoToday();
   let liveDays: LiveDay[] | null = null;
   if (property.external_listing_id) {
-    // The listing id comes from `fetchProperty`, already scoped to this owner,
-    // so reading its calendar through the central credential stays tenant-safe.
     const access = await hospitableAccess(customer.id);
     const token = access?.token ?? null;
     if (token) {
@@ -52,9 +40,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         token,
         property.external_listing_id,
         today,
-        plusDays(today, 90),
+        shiftDate(today, 90),
       );
-      // [] normalizes to null so every consumer treats "no data" uniformly.
       if (days?.length) {
         liveDays = days.map((d) => ({
           date: d.date,
@@ -69,13 +56,10 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   const turnover = await priceTurnover(id);
 
-  // Engine recommendations for the same window, only when the paid add-on is
-  // active and the listing is linked — resolvePricelabsRef enforces both, and
-  // ownership. Absent data simply means the calendar shows published rates only.
   let recommended: Record<string, number> | null = null;
   const plRef = await resolvePricelabsRef(customer.id, id);
   if (plRef) {
-    const rows = await getPricelabsPrices(plRef, today, plusDays(today, 90));
+    const rows = await getPricelabsPrices(plRef, today, shiftDate(today, 90));
     if (rows?.length) {
       recommended = {};
       for (const r of rows) {

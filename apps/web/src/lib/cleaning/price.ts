@@ -3,13 +3,10 @@ import { quote, OutOfServiceAreaError } from '@luxel/pricing';
 import { getPricingData } from '@/lib/pricing-data';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
-// The turnover clean maps to the standard service; Luxel provides tools, one-off.
 const TURNOVER_SERVICE_SLUG = 'regular';
 
-export type TurnoverPrice = { priceClp: number } | { error: 'no_data' | 'out_of_area' | 'service' };
+type TurnoverPrice = { priceClp: number } | { error: 'no_data' | 'out_of_area' | 'service' };
 
-/** Per-turnover cleaning price for a property, from size + distance (@luxel/pricing).
- *  The host sets this as their AirBnB cleaning fee, so the guest funds it. */
 export async function priceTurnover(propertyId: string): Promise<TurnoverPrice> {
   const supabase = createSupabaseServiceRoleClient();
   const { data: prop } = await supabase

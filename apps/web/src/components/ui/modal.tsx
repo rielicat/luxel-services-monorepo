@@ -5,7 +5,6 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/** Controlled modal: bottom sheet on mobile, centered dialog on desktop. */
 export function Modal({
   open,
   onClose,

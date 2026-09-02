@@ -7,13 +7,6 @@ import { ensureSubscriptionForBooking } from '@/lib/subscriptions';
 
 export const runtime = 'nodejs';
 
-/**
- * MercadoPago IPN webhook.
- *
- * MP signs payloads via `x-signature` header (HMAC SHA256 of "id:<id>;request-id:<reqId>;ts:<ts>;").
- * Configure MERCADOPAGO_WEBHOOK_SECRET in env to enable verification — if unset, we accept the
- * payload (useful for local sandbox).
- */
 export async function POST(req: Request) {
   const url = new URL(req.url);
   const id = url.searchParams.get('id') ?? url.searchParams.get('data.id');
@@ -23,11 +16,8 @@ export async function POST(req: Request) {
   let payload: { data?: { id?: string }; type?: string } = {};
   try {
     payload = JSON.parse(body) as typeof payload;
-  } catch {
-    /* topic-only notifications can have empty body */
-  }
+  } catch {}
 
-  // Verify signature if a secret is configured.
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   if (secret) {
     const ok = await verifyMpSignature(req, secret, id ?? payload.data?.id ?? '');
@@ -40,7 +30,6 @@ export async function POST(req: Request) {
 
   const supabase = createSupabaseServiceRoleClient();
 
-  // Idempotency.
   const { error: dupErr } = await supabase.from('payment_events').insert({
     provider: 'mercadopago',
     event_id: String(paymentId),
@@ -58,8 +47,6 @@ export async function POST(req: Request) {
     try {
       detail = await payment.get({ id: String(paymentId) });
     } catch {
-      // The dedup row is already committed; roll it back so MercadoPago's retry
-      // isn't poisoned into a no-op by our own idempotency ledger.
       await supabase
         .from('payment_events')
         .delete()
@@ -67,7 +54,7 @@ export async function POST(req: Request) {
         .eq('event_id', String(paymentId));
       return NextResponse.json({ ok: false }, { status: 500 });
     }
-    const externalRef = detail.external_reference; // booking id
+    const externalRef = detail.external_reference;
     if (externalRef && detail.status === 'approved') {
       const { data: updated } = await supabase
         .from('bookings')

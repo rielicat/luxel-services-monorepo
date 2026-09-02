@@ -1,182 +1,212 @@
-# Servicios Luxel — AI Concierge Strategy & Architecture
+# Servicios Luxel — AI Concierge & Guest-Reply Pipeline
 
-> "Lux", the AI concierge. Anthropic TypeScript SDK · model `claude-opus-4-8` ·
-> streaming · tool-use. Replaces the old keyword FAQ matcher in `/api/chat`.
-> Prose is English; user-facing copy is es-CL.
-
----
-
-## 1. Vision — "Lux", the AI Concierge
-
-The current chat (`apps/web/src/app/api/chat/route.ts` + `lib/faq.ts`) is a **dumb
-keyword FAQ matcher**: it matches the user's message against seeded keywords and
-returns a canned answer or offers a human. It cannot quote, cannot check coverage,
-cannot book.
-
-**Lux** replaces it with a real Claude-powered concierge that meets the customer at
-every journey stage and, crucially, uses the same trusted engines the rest of the
-site uses — so it never invents a price or promises a zone we don't cover.
-
-| Journey stage                | How Lux helps                                                                                          |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Pre-quote guidance**       | Explains service tiers, tools policy, and what affects price — in plain Chilean Spanish.               |
-| **Natural-language quoting** | "¿Cuánto sale limpiar 55 m² en Ñuñoa?" → calls `get_quote`, returns the itemized total. Never guesses. |
-| **Coverage checks**          | "¿Llegan a Maipú?" → calls `check_coverage` against active operation points. Honest yes/no.            |
-| **Service recommendation**   | "Me estoy cambiando de depto" → `recommend_service` suggests `move_out`.                               |
-| **Booking assistance**       | "¿Tienen jueves en la mañana?" → `check_availability`; guides to `/book`.                              |
-| **Post-booking support**     | Answers FAQs (payment, pause/cancel) via `answer_faq`.                                                 |
-| **Human handoff**            | Anything it shouldn't or can't do → `escalate_to_human` (WhatsApp).                                    |
-
-The goal is to **compress the funnel**: turn a hesitant visitor into a
-`booking_created` inside one conversation, and hand off gracefully when a human is
-the right answer.
+> "Lux", the AI concierge, and the guest auto-replies. OpenAI Node SDK
+> (`openai`) · model `gpt-4o-mini` (`OPENAI_MODEL` override) · SSE streaming ·
+> tool-use. Prose is English; user-facing copy is es-CL.
 
 ---
 
-## 2. Technical Architecture
+## 1. Two AI surfaces
+
+The AI does two jobs. Both use the same client
+(`apps/web/src/lib/ai/client.ts`).
+
+| Surface                     | Where                                                             | What it does                                                                                                                                                    |
+| --------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Lux**, the site concierge | Chat widget → `POST /api/chat`                                    | Sells and supports both services. Quotes Airbnb management and cleaning with tools. Shows a signed-in host real account data. Hands off to a human on WhatsApp. |
+| Guest auto-replies          | Hospitable `message.created` webhook → `lib/channels/pipeline.ts` | Answers a guest in the Airbnb thread from the property's own data. Flags the thread for the host when it cannot answer.                                         |
+
+### Lux by journey stage
+
+| Journey stage    | How Lux helps                                                                                      |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| Host pre-sale    | "¿Cuánto cuesta administrar 3 deptos?" → `get_airbnb_quote` returns the flat monthly fee per plan. |
+| Cleaning quote   | "¿Cuánto sale limpiar 55 m² en Ñuñoa?" → `get_quote` returns the itemized total. It never guesses. |
+| Coverage checks  | "¿Llegan a Maipú?" → `check_coverage` against the active operation points. Honest yes/no.          |
+| Cleaning booking | "¿Tienen jueves en la mañana?" → `check_availability`; guides to `/book`.                          |
+| Host support     | A signed-in host asks about occupancy, unanswered threads or next cleanings → `get_host_status`.   |
+| Navigation       | `share_links` renders 1–3 buttons to real routes. The model never writes a URL.                    |
+| Human handoff    | Anything it cannot or must not do → `escalate_to_human` (WhatsApp).                                |
+
+Lux compresses the funnel. It turns a visitor into a trial or a booking inside
+one conversation. It hands off when a human is the right answer.
+
+---
+
+## 2. Lux — technical architecture
 
 ### Stack
 
-- **SDK:** Anthropic TypeScript SDK (`@anthropic-ai/sdk`).
-- **Model:** `claude-opus-4-8`.
-- **Adaptive thinking:** enabled so the model reasons before multi-step tool use
-  (which tier to recommend, whether coverage + availability both need checking)
-  without over-thinking simple FAQ turns.
-- **Streaming:** responses stream token-by-token over **SSE** from a Next.js route
-  (evolves `apps/web/src/app/api/chat/route.ts`). The chat widget
-  (`components/chat/chat-widget.tsx`) upgrades from a single `fetch`/JSON call to
-  consuming the stream.
-- **Tool-use loop:** the route runs the standard agentic loop — send messages →
-  if the model returns `tool_use`, execute the tool server-side, append the
-  `tool_result`, and re-invoke — until the model returns a final text answer.
-  Tools reuse existing server code (`@luxel/pricing`, `lib/pricing-data`,
-  `lib/geocode`, `lib/availability`, `lib/faq`).
+- **SDK:** OpenAI Node SDK (`openai`), Chat Completions with function tools.
+- **Model:** `AI_MODEL` = `OPENAI_MODEL` or `gpt-4o-mini` (`lib/ai/client.ts`).
+- **Streaming:** the route streams **SSE** events (`text`, `tool`, `widget`,
+  `done`, `error`) from `apps/web/src/app/api/chat/route.ts`. The widget
+  (`components/chat/chat-widget.tsx`) consumes the stream.
+- **Tool loop:** up to `MAX_TOOL_ROUNDS = 6`. Each round streams one completion.
+  When it ends with `tool_calls`, the route runs each tool server-side
+  (`runTool`), appends the `tool` messages, and calls again. When the rounds run
+  out, one final call without tools produces the closing answer.
+- **Prompt caching:** system prompt + tools form a stable prefix. OpenAI caches
+  those input tokens across turns.
+- **Limits:** the body schema allows 40 messages of up to 4000 chars each.
+  `max_completion_tokens` is 1024. `maxDuration` is 60 s.
+- **Without a key:** `getOpenAI()` returns null. The route streams a fixed
+  fallback reply that points to the calculator and WhatsApp. It records the turn
+  as `ai_unavailable`.
 
 ### Persistence & analytics
 
-Every turn is persisted to the **`messages`** table (the same unified web +
-WhatsApp log used today: `direction`, `channel: 'web'`, `session_id`,
-`customer_id`, `body`, `metadata`). Tool calls and handoffs are written into
-`metadata` so we can reconstruct a conversation. Analytics events fire alongside
-(`chat_opened`, `chat_message_sent`, `ai_tool_called`, `ai_handoff_to_human`) —
-see [`METRICS.md`](./METRICS.md).
+Every turn is written to the `messages` table (`channel: 'web'`, `direction`,
+`session_id`, `customer_id`, `body`, `metadata.kind` ∈
+`ai | handoff | ai_unavailable`). The route emits `chat_message_sent`,
+`ai_tool_called` (property `tool`) and `ai_handoff_to_human`. A handoff also
+creates a `leads` row (`source: 'chat_handoff'`). See
+[`METRICS.md`](./METRICS.md).
 
 ### Tools
 
-Each tool has a strict input schema; results are JSON the model summarizes for the
-user. Tools **reuse the exact production logic** so the concierge and the website
-can never disagree.
+`buildTools()` in `apps/web/src/lib/ai/tools.ts` declares them. Each tool has a
+strict input schema. Each returns text for the model and, optionally, a widget
+for the chat UI (`quote`, `availability`, `airbnb_quote`, `links`, `handoff`).
+Tools reuse the production code, so the concierge and the website never
+disagree.
 
-| Tool                 | Purpose                                                                                                  | Inputs                                                                                        | Returns                                                                                                                                     | Backed by                                                          |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `get_quote`          | Compute an itemized price. **The only source of prices** — Lux never states a price it did not get here. | `serviceTypeSlug`, `squareMeters`, `address` (or `lat`/`lng`), `toolsProvidedBy`, `frequency` | `totalClp`, `breakdown {base, perM2, distance, tools, subscriptionDiscount}`, `distanceKm`, `operationPointId` — or an `out_of_area` signal | `@luxel/pricing` `quote()`, `getPricingData()`, `geocodeAddress()` |
-| `check_coverage`     | Is an address/comuna inside an active operation-point radius?                                            | `address` or `commune` (or `lat`/`lng`)                                                       | `{ covered: boolean, operationPoint?, distanceKm? }`                                                                                        | `findNearestActivePoint()` + geocode                               |
-| `recommend_service`  | Suggest `regular` / `deep` / `move_out` from the described situation.                                    | free-text `situation`, optional `squareMeters`                                                | recommended `serviceTypeSlug` + rationale                                                                                                   | service-type catalog                                               |
-| `check_availability` | Are `mañana`/`tarde` blocks open on a date?                                                              | `date` (ISO), `operationPointId` (from a prior quote/coverage call)                           | per-block `{ capacity, booked, available }`                                                                                                 | `getDayAvailability()`                                             |
-| `answer_faq`         | Retrieve the canonical answer to a known question.                                                       | free-text `question`                                                                          | matched FAQ answer (i18n key / text)                                                                                                        | `getFaqEntries()` + `matchFaq()`                                   |
-| `escalate_to_human`  | Hand off to a person over WhatsApp.                                                                      | optional `reason`, `contact`                                                                  | handoff acknowledgment; writes a handoff `messages` row                                                                                     | existing handoff path in `/api/chat`                               |
+| Tool                 | Purpose                                                                                 | Inputs                                                                                        | Backed by                                                          |
+| -------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `check_coverage`     | Is an address inside an active operation-point radius?                                  | `address`, `commune?`                                                                         | `geocodeAddress()` + `findNearestActivePoint()`                    |
+| `get_quote`          | Itemized cleaning price. **The only source of cleaning prices.**                        | `service_type_slug`, `square_meters`, `address`, `commune?`, `tools_provided_by`, `frequency` | `@luxel/pricing` `quote()`, `getPricingData()`, `geocodeAddress()` |
+| `get_airbnb_quote`   | Monthly fee for Airbnb management. Flat per property.                                   | `listings`, `tier?` (`base` \| `handoff`)                                                     | `airbnbTierPrice()` in `lib/plan-pricing`                          |
+| `get_host_status`    | Real data for the signed-in host: occupancy, threads that need a reply, next cleanings. | none (uses `ToolContext.customerId`)                                                          | `fetchProperties()`, `listHospitableCalendar()`                    |
+| `share_links`        | Clickable buttons to curated routes. The model picks keys; the server resolves hrefs.   | `destinations[]` (keys of `LINK_DESTINATIONS`)                                                | static map in `tools.ts`                                           |
+| `check_availability` | Open `mañana`/`tarde` blocks on a date.                                                 | `date`, `address`, `commune?`                                                                 | `getDayAvailability()`                                             |
+| `escalate_to_human`  | Hand off to a person over WhatsApp. Sets `handoff`.                                     | `reason?`                                                                                     | `workingHoursStatus()`, `NEXT_PUBLIC_WHATSAPP_NUMBER`              |
 
-**Booking itself stays a deliberate user action** in `/book`
-(`createBookingAction`, which re-derives the price server-side and never trusts a
-client total). Lux _guides_ to booking; it does not silently spend the customer's
-money. This is a safety choice, not a limitation.
-
----
-
-## 3. Guardrails & Safety
-
-- **Scope.** The system prompt constrains Lux to **Luxel topics only** — cleaning
-  services, pricing, coverage, scheduling, account help. Off-topic requests are
-  politely declined and redirected.
-- **Never invents prices.** Lux must call `get_quote` for any price and quote the
-  returned number verbatim. It is explicitly forbidden from estimating,
-  extrapolating, or "roughly" pricing. If `get_quote` returns `out_of_area`, Lux
-  says so honestly (reusing the `errors.out_of_service_area` copy tone) and offers
-  to take contact details.
-- **Honest about coverage.** Coverage answers come only from `check_coverage`.
-  Lux never promises a zone we don't actively serve.
-- **PII handling.** Chat runs server-side; the `messages` table is under RLS.
-  Customer identity resolves from the Clerk session (`auth()`), not from anything
-  the user types. Lux does not ask for more PII than a task needs and never
-  requests card data (payment happens in the provider's checkout, not in chat).
-- **Rate limiting.** Per-session and per-IP limits on the chat route to cap abuse
-  and cost. Input is length-capped (the existing schema caps messages at 1000
-  chars); tool-loop iterations are bounded to prevent runaway agentic loops.
-- **Cost control — why a _concierge_, not a full agent.** Lux is intentionally a
-  bounded, tool-assisted assistant, not an open-ended autonomous agent: it has a
-  small, fixed toolset, a capped loop, and cannot take irreversible actions
-  (bookings/payments stay explicit user steps). This keeps latency, token spend,
-  and blast radius predictable.
-- **Fallback to human.** Any uncertainty, complaint, edge case, or explicit
-  request routes to `escalate_to_human` → the existing WhatsApp handoff, which
-  writes a `messages` row and acknowledges: _"Listo — un humano de Servicios Luxel
-  te contactará por WhatsApp en breve."_
+**Booking stays a deliberate user action.** Lux guides to `/book` and to the
+trial. It never books and never charges. This is a safety choice, not a
+limitation.
 
 ---
 
-## 4. Prompt Design Principles
+## 3. Guest-reply pipeline
 
-1. **Role + boundaries first** — who Lux is, what it can/can't do, and the hard
-   "never invent prices / never promise coverage" rules.
-2. **Tool-first behavior** — for any factual claim about price, coverage, or
-   availability, call the tool; do not answer from memory.
-3. **Chilean, warm, concise** — es-CL, **tú**, short sentences, no corporate
-   filler, no emojis-as-crutch.
-4. **Always advance the funnel** — end helpful turns with a gentle next step
-   ("¿Lo agendamos?").
-5. **Graceful handoff** — know when a human is the better answer and say so.
+Trigger: Hospitable posts `message.created` to
+`POST /api/channels/hospitable`
+(`apps/web/src/app/api/channels/[provider]/route.ts`).
 
-### Example system-prompt outline (es-CL)
+1. **Route.** The route resolves the plugin from the `[provider]` URL segment
+   (`channelPlugin()` in `lib/channels/registry.ts`). An unknown id answers 404.
+   It authorises by source IP (`lib/channels/webhook-auth.ts`). It reads only
+   the reservation id from the payload, never the body. It answers 200 and
+   continues in `after()`.
+2. **Ingest.** `ingestThread()` (`lib/channels/hospitable-sync.ts`) reads the
+   thread back from Hospitable with Luxel's own credential. It stores host and
+   guest messages. It calls `handleInboundMessage()` for each guest message
+   newer than the account's `messages_synced_at` watermark. An account with no
+   watermark imports its history silently.
+3. **Store.** `handleInboundMessage()` (`lib/channels/pipeline.ts`) drops
+   duplicates by `external_id`. It upserts `guest_threads` and inserts the
+   inbound row in `guest_messages`.
+4. **Host switch.** If `properties.ai_enabled` is false, the thread becomes
+   `needs_host`. Nothing is sent.
+5. **Ground.** `buildGrounding()` (`lib/ai/grounding.ts`) collects the
+   property's `learned_answers` and its past guest→answer pairs. A property
+   with no history gets anonymized pairs from other properties, marked as
+   generic. Every snippet passes `redactSecrets()` (`lib/ai/redact.ts`):
+   keyless codes and wifi passwords become `[dato de acceso]`. Cross-property
+   snippets also lose emails and phone numbers. The last 8 messages of the
+   thread are appended.
+6. **Draft.** `draftGuestReply()` (`lib/ai/copilot.ts`) builds the context from
+   the synced listing: capacity, times, amenities, rules, access method, wifi
+   name (never the password), listing texts, `guest_info`, and the grounding.
+   One Chat Completions call at `temperature 0.3`. The system prompt forbids
+   invented facts and access codes. It asks for the tag `[HANDOFF]` when the
+   answer is missing, the guest is frustrated, or the guest asks for a person.
+7. **Handoff.** If the reply carries `[HANDOFF]` or is empty, the thread becomes
+   `needs_host`. The tag is stripped; the draft is kept for the host. Without an
+   API key the result is `handoff` with reason `no_ai`.
+8. **Send.** Otherwise `getMessageSender(channel).send()` posts the reply into
+   the Airbnb thread with the property owner's Hospitable token
+   (`hospitableTokenForCustomer()`). The outbound row is stored with
+   `source: 'ai'`.
 
-```
-Eres "Lux", el asistente de Servicios Luxel, una plataforma de aseo en la
-Región Metropolitana (Chile). Hablas en español chileno, de tú, cálido y claro.
-
-Qué haces:
-- Ayudas a cotizar, revisar cobertura, recomendar el tipo de aseo, ver
-  disponibilidad y resolver dudas frecuentes.
-- Guías a la persona a agendar en /book; nunca reservas ni cobras tú.
-
-Reglas que NO puedes romper:
-- NUNCA inventas precios. Para cualquier precio, usa la herramienta get_quote
-  y entrega el monto tal cual lo devuelve, en CLP.
-- Solo confirmas cobertura con check_coverage. Si una zona no está cubierta,
-  lo dices con honestidad y ofreces tomar los datos.
-- Te mantienes en temas de Luxel (aseo, precios, cobertura, agenda, cuenta).
-- No pides datos de tarjeta. El pago ocurre en el checkout seguro.
-
-Cómo respondes:
-- Frases cortas, tono cercano y profesional. Sin tecnicismos.
-- Terminas con un siguiente paso útil ("¿Lo agendamos para esta semana?").
-- Si hay una duda, reclamo o algo fuera de tu alcance, usa
-  escalate_to_human para derivar por WhatsApp.
-
-Herramientas: get_quote, check_coverage, recommend_service,
-check_availability, answer_faq, escalate_to_human.
-```
-
----
-
-## 5. Future AI Opportunities
-
-- **Proactive re-engagement** — Lux drafts WhatsApp win-back and "reactiva tu
-  suscripción" messages, personalized from booking history, through the unified
-  `messages` channel.
-- **Smart scheduling optimization** — recommend the block/day that best fits
-  operator capacity (`getDayAvailability`), smoothing demand across `mañana`/`tarde`.
-- **Review summarization _(Phase 2)_** — condense post-service reviews into trust
-  signals for landing/comuna pages.
-- **Operator matching** — as supply grows, match bookings to operators by zone,
-  rating, and load.
-- **Demand forecasting** — anticipate volume by comuna/day to inform where to open
-  the next operation point (ties to GOAL.md Phase 3).
+The local adapter (`provider: 'local'`, dev only, behind `LUXEL_DEV_MOCK`) runs
+the same pipeline without Hospitable.
 
 ---
 
-## 6. Environment
+## 4. Guardrails & Safety
 
-Lux requires **`ANTHROPIC_API_KEY`** set as an environment variable (in
-`apps/web/.env.local` for local dev and in the Vercel project for deploys). It is
-**not** committed and should be added to `.env.example` under a new "Anthropic"
-section. Without it, the chat route must fall back to the human-handoff path rather
-than error.
+- **Scope.** Lux talks only about Luxel's two services. Off-topic requests get
+  a polite redirect.
+- **Never invents prices.** Cleaning prices come from `get_quote`. Airbnb fees
+  come from `get_airbnb_quote`. The prompt forbids estimates.
+- **Honest about coverage and availability.** Only `check_coverage` and
+  `check_availability` answer these questions.
+- **Real host data only.** `get_host_status` reads the signed-in account. A
+  signed-out user gets no host data.
+- **No URLs in prose.** Links come from `share_links`. The model picks keys; the
+  server resolves labels and hrefs.
+- **PII.** Chat runs server-side. Identity comes from the Clerk session
+  (`auth()`), never from the text. Lux does not ask for RUT or card data.
+- **Access codes never reach a guest through the AI.** Redaction in grounding,
+  exclusion from the listing context, and the system prompt all block them.
+  Guests get the codes through Hospitable's check-in rule, 3 days before
+  arrival.
+- **Bounded loop.** 6 tool rounds, 1024 output tokens, 60 s. Malformed tool
+  arguments produce an error message for the model. The tool does not run.
+- **Handoff.** `escalate_to_human` creates a lead and shows the WhatsApp link
+  with the working-hours status. A guest thread flips to `needs_host` for the
+  host's inbox.
+- **Host switch.** `ai_enabled = false` on a property stops auto-replies for
+  that property.
+- **Rate limiting.** The human bridge (`/api/chat/human`) rate-limits. The AI
+  route relies on the caps above.
+
+---
+
+## 5. Prompt design
+
+Both prompts are code, not config:
+
+- `lib/ai/system-prompt.ts` — `buildSystemPrompt()`. Sections: the two services
+  and plan prices (from `lib/plan-pricing`); critical rules (no invented
+  prices, one tool per fact, `share_links` for every navigation, no URLs, stay
+  on topic, no sensitive data, hide reasoning); the cleaning catalog and price
+  formula (from `getPricingData()`); coverage; payment methods; next steps;
+  `escalate_to_human`. Tools: `check_coverage`, `get_quote`,
+  `get_airbnb_quote`, `get_host_status`, `share_links`, `check_availability`,
+  `escalate_to_human`.
+- `lib/ai/copilot.ts` — `SYSTEM`. Short, warm Spanish. Only the supplied
+  property info. Missing answer → `[HANDOFF]`. Frustration or "a person" →
+  `[HANDOFF]`. Never access codes or wifi passwords; they arrive 3 days before
+  arrival.
+
+Principles: role and boundaries first; tool-first for facts; Chilean, warm,
+concise (`tú`); always a next step; graceful handoff.
+
+---
+
+## 6. Future AI opportunities
+
+- **Proactive re-engagement** — drafts of win-back and upsell messages from
+  booking history, through the unified `messages` channel.
+- **Review summarization** — condense reviews into trust signals for landing
+  pages.
+- **Smart cleaning scheduling** — recommend the block/day that fits operator
+  capacity (`getDayAvailability`).
+- **Demand forecasting** — anticipate volume by comuna to decide where to open
+  the next operation point (GOAL.md Phase 3).
+
+---
+
+## 7. Environment
+
+| Variable                      | Effect                                                                                                                                                                       |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`              | Required for any AI answer. Absent: `getOpenAI()` returns null, Lux streams the fixed fallback, and guest threads go to `needs_host` with reason `no_ai`. No error surfaces. |
+| `OPENAI_MODEL`                | Optional. Defaults to `gpt-4o-mini`.                                                                                                                                         |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | The handoff link Lux shows.                                                                                                                                                  |
+| `LUXEL_DEV_MOCK`              | Dev only. Simulates guest drafts without a key. Never set in production.                                                                                                     |
+
+Set them in `apps/web/.env.local` locally and in the Vercel `luxel-web` project.
+There is no Anthropic key. See [`ENV.md`](./ENV.md).

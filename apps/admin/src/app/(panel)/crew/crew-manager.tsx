@@ -52,7 +52,6 @@ export function CrewManager({
 
   return (
     <div className="grid gap-5">
-      {/* Add operator */}
       <Card>
         <div className="grid gap-3 p-5 sm:grid-cols-[1fr_auto_auto] sm:items-end">
           <label className="grid gap-1.5">
@@ -86,7 +85,6 @@ export function CrewManager({
         </div>
       </Card>
 
-      {/* Operator list */}
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

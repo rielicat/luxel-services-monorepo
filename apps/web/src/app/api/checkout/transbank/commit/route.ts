@@ -7,13 +7,6 @@ import { commitWebpayTransaction, isWebpayApproved } from '@/lib/payments/transb
 
 export const runtime = 'nodejs';
 
-/**
- * Webpay return URL. Transbank redirects the buyer's browser here (POST form on
- * success with `token_ws`; `TBK_TOKEN` present with no `token_ws` = user aborted).
- * We commit the transaction, mark the booking paid, and 303-redirect to /account.
- * Authorization is by the opaque token (the buyer's session cookie isn't sent on
- * Webpay's cross-site POST), so we look the booking up by the stored token.
- */
 async function handle(req: Request): Promise<NextResponse> {
   const origin = new URL(req.url).origin;
   const seeOther = (path: string) => NextResponse.redirect(new URL(path, origin), 303);
@@ -30,7 +23,6 @@ async function handle(req: Request): Promise<NextResponse> {
     .maybeSingle();
 
   if (!booking) return seeOther('/es/account?cancelled=1');
-  // Already finalized (double return / refresh) — don't re-commit (Webpay rejects it).
   if (booking.payment_status === 'paid') return seeOther('/es/account?paid=1');
 
   let result;
@@ -40,7 +32,6 @@ async function handle(req: Request): Promise<NextResponse> {
     return seeOther('/es/account?error=1');
   }
   if (!isWebpayApproved(result)) return seeOther('/es/account?cancelled=1');
-  // Defense in depth: the charged amount must match the server-side booking total.
   if (result.amount !== booking.total_price_clp) return seeOther('/es/account?error=1');
 
   const { data: updated } = await supabase
@@ -55,8 +46,6 @@ async function handle(req: Request): Promise<NextResponse> {
     .select('total_price_clp, customers(clerk_user_id)')
     .maybeSingle();
 
-  // A concurrent return already finalized this booking — don't double-fire the
-  // revenue event / subscription emit; the winner did it.
   if (!updated) return seeOther('/es/account?paid=1');
 
   const cust = Array.isArray(updated.customers) ? updated.customers[0] : updated.customers;
@@ -79,12 +68,8 @@ async function readToken(req: Request): Promise<{ token: string | null; aborted:
       const form = await req.formData();
       token = (form.get('token_ws') as string | null) ?? token;
       tbkToken = (form.get('TBK_TOKEN') as string | null) ?? tbkToken;
-    } catch {
-      /* no form body */
-    }
+    } catch {}
   }
-  // A present TBK_TOKEN means the buyer aborted / the form timed out — even when a
-  // token_ws is also present (Transbank's timeout variant sends both).
   return { token, aborted: Boolean(tbkToken) };
 }
 

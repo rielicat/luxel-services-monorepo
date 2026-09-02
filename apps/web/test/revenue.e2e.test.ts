@@ -1,9 +1,3 @@
-/**
- * End-to-end proof of the global agent's host tool: get_host_status reports the
- * signed-in host's REAL account state (properties, pending conversations,
- * upcoming cleanings) and degrades honestly — no session → guidance, no channel
- * token → "ocupación no disponible" — never invented numbers.
- */
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -13,7 +7,7 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABAS
 const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-host-${nodeCrypto.randomUUID()}`;
-delete process.env.HOSPITABLE_API_TOKEN; // occupancy must degrade honestly, not fall to env
+delete process.env.HOSPITABLE_API_TOKEN;
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
@@ -66,7 +60,6 @@ describe.skipIf(!LIVE)('global agent host status (end to end)', () => {
     expect(r.content).toContain('Depto Estado Real');
     expect(r.content).toContain('próximo aseo 2027-02-01');
     expect(r.content).toContain('0 conversaciones por responder');
-    // No channel token in this fixture → occupancy must degrade, not invent.
     expect(r.content).toContain('ocupación no disponible');
   });
 

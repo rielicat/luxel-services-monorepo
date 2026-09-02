@@ -1,8 +1,3 @@
-/**
- * The operator assignment screen writes the tenant boundary, so it is gated to
- * Clerk admins and must uphold two invariants: a transfer moves the mirrored
- * data with it, and an offboard deletes it. Non-admins can do neither.
- */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -16,7 +11,6 @@ const LISTING = 'c3333333-0000-0000-0000-00000000000c';
 
 process.env.HOSPITABLE_API_TOKEN = CENTRAL_TOKEN;
 process.env.TEST_CLERK_ID = `test-assign-${nodeCrypto.randomUUID()}`;
-// Flipped per test so one file can exercise both sides of the admin gate.
 process.env.TEST_ADMIN_ROLE = 'member';
 
 vi.mock('@clerk/nextjs/server', () => ({
@@ -41,7 +35,6 @@ const withListings = (id: string, email: string | null) => ({
       platform_name: 'Host',
       platform_email: email,
     },
-    // Luxel's own bookkeeping channels carry no host identity.
     { platform: 'manual', platform_id: 'm1', platform_user_id: 'manual_1', platform_email: null },
   ],
 });
@@ -136,7 +129,6 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
     const { autoAssignListings } = await import('../src/lib/channels/auto-assign');
     const r = await autoAssignListings();
     expect(r.ok).toBe(true);
-    // owner@test.cl matches a customer → assigned without any operator step.
     expect(r.assigned).toBe(1);
 
     const { data } = await admin
@@ -148,10 +140,8 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
     expect(data![0].customer_id).toBe(owner);
     expect(data![0].assigned_by).toBe('auto:channel_email');
 
-    // Unknown email and no-listings-metadata stay unassigned for a human.
     expect(r.ambiguous).toBeGreaterThan(0);
 
-    // Idempotent: a second pass claims nothing new.
     expect((await autoAssignListings()).assigned).toBe(0);
     await admin.from('listing_assignments').delete().eq('external_listing_id', LISTING_AUTO);
   });
@@ -201,14 +191,12 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
     });
     expect(r.ok).toBe(true);
     expect(r.importOk).toBe(true);
-    // Imported immediately, so the operator sees the result without waiting.
     const { data: props } = await admin
       .from('properties')
       .select('external_listing_id')
       .eq('owner_id', owner);
     expect(props!.map((p) => p.external_listing_id)).toEqual([LISTING]);
 
-    // …and it is no longer offered as unassigned.
     const after = await actions.listUnclaimedListings();
     expect(
       after.listings.map((l: { externalListingId: string }) => l.externalListingId),
@@ -224,7 +212,6 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
 
   it('a transfer moves the mirrored data to the new owner', async () => {
     process.env.TEST_ADMIN_ROLE = 'admin';
-    // A stale expectation must be refused rather than silently transferring.
     expect(
       (
         await actions.assignListingToCustomer({
@@ -260,7 +247,6 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
 
   it('an offboard deletes the assignment and the mirror', async () => {
     process.env.TEST_ADMIN_ROLE = 'admin';
-    // Wrong expected owner → nothing is destroyed.
     expect(
       (
         await actions.unassignListingFromCustomer({

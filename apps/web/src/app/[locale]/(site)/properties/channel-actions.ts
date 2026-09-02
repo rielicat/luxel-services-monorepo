@@ -6,8 +6,6 @@ import { currentCustomerId } from '@/lib/host/owner';
 import { verifyHospitableToken, saveHospitableConnection } from '@/lib/channels/hospitable';
 import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
 
-/** Connects the host's own Hospitable account: verifies the token against the
- *  live API, then stores it encrypted. Immediately runs a first sync. */
 export async function connectHospitable(
   input: unknown,
 ): Promise<{ ok: boolean; error?: string; properties?: number }> {

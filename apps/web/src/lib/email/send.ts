@@ -1,12 +1,6 @@
 import 'server-only';
 import { devMockEnabled } from '@/lib/dev-mock';
 
-/**
- * Outbound transactional email via Resend. Gated on RESEND_API_KEY + RESEND_FROM
- * so a fresh environment without email configured simply no-ops (the same pattern
- * as the payment providers), and never throws. In dev-mock mode (no real key) it
- * simulates a successful send so notification flows are testable end-to-end.
- */
 export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM) || devMockEnabled();
 }

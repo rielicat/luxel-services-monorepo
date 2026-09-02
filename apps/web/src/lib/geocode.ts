@@ -1,13 +1,7 @@
-/**
- * Address → lat/lng using Nominatim (OpenStreetMap, free).
- * Usage policy requires an identifying User-Agent and ≤1 req/sec — fine for our volume.
- * Cached for 24h via Next's data cache.
- */
-
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
 const USER_AGENT = 'ServiciosLuxel/1.0 (contacto@serviciosluxel.cl)';
 
-export interface GeocodeResult {
+interface GeocodeResult {
   lat: number;
   lng: number;
   displayName: string;
@@ -36,11 +30,6 @@ async function nominatimSearch(params: Record<string, string>): Promise<GeocodeR
   };
 }
 
-/**
- * Geocode a specific street address within a Santiago commune.
- * Uses Nominatim's structured parameters (street + city + state) for precise
- * house-level results. Falls back to free-form if structured returns nothing.
- */
 export async function geocodeAddress(
   street: string,
   commune?: string,
@@ -56,7 +45,6 @@ export async function geocodeAddress(
     if (structured) return structured;
   }
 
-  // Fallback: free-form query
   const q = commune ? `${street}, ${commune}, Región Metropolitana` : `${street}, Chile`;
   return nominatimSearch({ q });
 }

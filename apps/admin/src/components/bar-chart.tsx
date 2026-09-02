@@ -3,7 +3,6 @@ interface Datum {
   value: number;
 }
 
-/** Minimal in-house bar chart (no chart library) — responsive flex bars. */
 export function BarChart({ data }: { data: Datum[] }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   const first = data[0]?.label ?? '';

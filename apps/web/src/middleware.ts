@@ -5,14 +5,11 @@ import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-// URLs are locale-prefix-free (see i18n/routing.ts). Match user-facing paths directly.
 const isProtectedRoute = createRouteMatcher([
   '/account(.*)',
-  '/calendar(.*)',
   '/book(.*)',
   '/properties(.*)',
   '/admin(.*)',
-  '/api/protected(.*)',
 ]);
 
 const intlOnly = (req: NextRequest) => {
@@ -20,22 +17,10 @@ const intlOnly = (req: NextRequest) => {
   return intlMiddleware(req);
 };
 
-// E2E smoke tests drive the dev server with stub Clerk creds, whose dev-browser
-// handshake can't complete (the stub publishable key points at a FAPI host that
-// doesn't exist) and 400s every browser navigation. The smoke suite only hits
-// public routes, so we skip Clerk there. Set ONLY by the CI e2e job — never in
-// production (Vercel never sets it), so real auth is always enforced in prod.
 const skipAuth = process.env.E2E_SKIP_AUTH === '1';
 
-/* TEMP stealth gate — remove before launch (see AGENTS.md § Temporary).
- * Production only: while the unlock cookie is absent, every PAGE request is
- * rewritten server-side to the gate route (app/[locale]/gate), so the gate
- * arrives fully rendered and unlocked visitors never see it — no client-side
- * flicker in either direction. API routes stay open (they were never gated). */
 const GATE_COOKIE = 'luxel_gate';
 const gateActive = process.env.NODE_ENV === 'production';
-// Tokenized links sent to guests and cleaning crews — people who never got the
-// unlock code. The token itself is the access control.
 const isPublicTokenRoute = (pathname: string) => /^\/(checkin|cleaning\/confirm)\//.test(pathname);
 
 const withStealthGate =
@@ -58,10 +43,6 @@ const inner = skipAuth
       if (isProtectedRoute(req)) {
         const { userId } = await auth();
         if (!userId) {
-          // auth.protect()'s default redirect resolves the sign-in URL via
-          // requestState.signInUrl → NEXT_PUBLIC_CLERK_SIGN_IN_URL, which is
-          // unset on Vercel prod, so it falls back to Clerk's hosted Account
-          // Portal. Build the redirect to our own /sign-in explicitly instead.
           if (req.nextUrl.pathname.startsWith('/api/')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
           }
@@ -70,7 +51,6 @@ const inner = skipAuth
           return NextResponse.redirect(signInUrl);
         }
       }
-      // API routes are not locale-aware — skip intl middleware
       if (req.nextUrl.pathname.startsWith('/api/')) return;
       return intlMiddleware(req);
     });
@@ -78,10 +58,5 @@ const inner = skipAuth
 export default withStealthGate(inner);
 
 export const config = {
-  matcher: [
-    // Skip Next internals and static assets unless used in search params
-    '/((?!api/webhooks|_next|_vercel|monitoring|.*\\..*).*)',
-    // Always run for protected API routes
-    '/api/protected(.*)',
-  ],
+  matcher: ['/((?!api/webhooks|_next|_vercel|monitoring|.*\\..*).*)'],
 };

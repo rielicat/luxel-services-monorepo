@@ -1,12 +1,6 @@
 export type Timeblock = 'manana' | 'tarde';
 export type ServiceFrequency = 'one_time' | 'weekly' | 'biweekly' | 'monthly';
 export type ToolsProvider = 'customer' | 'company';
-export type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-export type SubscriptionStatus = 'active' | 'paused' | 'cancelled';
-export type PaymentProvider = 'stripe' | 'mercadopago';
-export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
-export type ChatChannel = 'web' | 'whatsapp';
-export type MessageDirection = 'in' | 'out';
 
 export interface OperationPoint {
   id: string;

@@ -1,21 +1,10 @@
-/**
- * Test-only fixture seeding. Properties are a strict mirror of the host's
- * Hospitable account — the app has NO manual property creation — so the e2e
- * suites seed rows shaped exactly like the mirror's imports: an external
- * listing id + platform, plus the default access record, written straight to
- * the DB (never through an app path). Customer resolved from TEST_CLERK_ID;
- * best-effort geocode keeps cleaning-pricing fixtures located.
- */
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import { geocodeAddress } from '../../src/lib/geocode';
 
 export interface SeedPropertyInput {
   nickname: string;
   address?: string;
   comuna?: string;
-  bedrooms?: number;
-  bathrooms?: number;
   sizeM2?: number;
   lat?: number;
   lng?: number;
@@ -37,16 +26,6 @@ export async function seedImportedProperty(
     .maybeSingle();
   if (!customer) return { ok: false };
 
-  let lat = input.lat ?? null;
-  let lng = input.lng ?? null;
-  if ((lat == null || lng == null) && input.address) {
-    const g = await geocodeAddress(input.address);
-    if (g) {
-      lat = g.lat;
-      lng = g.lng;
-    }
-  }
-
   const { data, error } = await admin
     .from('properties')
     .insert({
@@ -54,11 +33,9 @@ export async function seedImportedProperty(
       nickname: input.nickname,
       address: input.address ?? null,
       comuna: input.comuna ?? null,
-      bedrooms: input.bedrooms ?? null,
-      bathrooms: input.bathrooms ?? null,
       size_m2: input.sizeM2 ?? null,
-      lat,
-      lng,
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
       platform: 'airbnb',
       external_listing_id: `test:${nodeCrypto.randomUUID()}`,
     })

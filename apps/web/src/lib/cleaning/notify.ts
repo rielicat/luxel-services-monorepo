@@ -6,13 +6,9 @@ import { appUrl } from '@/lib/urls';
 
 type Supabase = ReturnType<typeof createSupabaseServiceRoleClient>;
 
-// Host-controlled strings land in email HTML — escape at the interpolation
-// sites only (the same summary goes out verbatim as WhatsApp plain text).
 const esc = (s: string) =>
   s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 
-/** Same-day turnover window derived from the listing's real times: the crew
- *  can start at check-out and must finish before the next check-in. */
 const windowText = (checkout: string | null, checkin: string | null) =>
   checkout && checkin
     ? ` Ventana sugerida: ${checkout}–${checkin}.`
@@ -20,10 +16,6 @@ const windowText = (checkout: string | null, checkin: string | null) =>
       ? ` Desde las ${checkout}.`
       : '';
 
-/** Tells everyone who runs the turnover that a cleaning is on, with a
- *  tokenized link so THEY confirm attendance — the host only watches the
- *  status flip. Own staff (a host-managed contact list) get emails; Luxel
- *  turnovers ping the ops bridge. Best-effort — never throws. */
 export async function notifyCleaningScheduled(
   supabase: Supabase,
   propertyId: string,
@@ -72,14 +64,9 @@ export async function notifyCleaningScheduled(
         `Nuevo aseo para el equipo: ${summary} Confirmar asistencia: ${confirmUrl}`,
       );
     }
-  } catch {
-    /* best-effort */
-  }
+  } catch {}
 }
 
-/** The no-busywork path: when the property has auto-confirm on (the default),
- *  fresh check-out suggestions promote themselves to scheduled and notify the
- *  crew — the host only ever intervenes to skip one. */
 export async function autoConfirmSuggested(propertyId: string, today: string): Promise<number> {
   const supabase = createSupabaseServiceRoleClient();
   const { data: prop } = await supabase

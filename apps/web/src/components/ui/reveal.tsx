@@ -3,9 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-/** Reveals its children with a soft rise as they scroll into view (once).
- *  Pairs with the `.reveal` / `.is-visible` utilities in globals.css; SSR-safe
- *  and no-ops under prefers-reduced-motion. Pass `delay` (ms) to stagger. */
 export function Reveal({
   children,
   className,

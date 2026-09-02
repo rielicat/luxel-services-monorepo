@@ -5,11 +5,8 @@ import type { LucideIcon } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { LuxelLogo } from '@/components/brand/logo';
 
-/** Clerk appearance shared by the sign-in and sign-up widgets. The surrounding
- *  shell frames the card, so the widget itself renders borderless/transparent. */
 export const authAppearance = {
   layout: {
-    // Never surface Clerk's own chrome — we render our own headings + switch link.
     unsafe_disableDevelopmentModeWarnings: true,
   },
   variables: {
@@ -22,10 +19,6 @@ export const authAppearance = {
     cardBox: 'w-full shadow-none border-0',
     card: 'w-full bg-transparent shadow-none border-0 p-0',
     header: 'hidden',
-    // Hide Clerk's whole footer: removes the "Secured by Clerk" badge (there is
-    // no stable badge-only element key on the dev/free tier) plus Clerk's own
-    // switch link — we render our own Spanish switch below. The dev-mode warning
-    // is suppressed separately via unsafe_disableDevelopmentModeWarnings.
     footer: 'hidden',
     formButtonPrimary: 'shadow-soft',
   },
@@ -51,7 +44,6 @@ export async function AuthShell({
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-2">
-      {/* Brand panel */}
       <aside
         className="relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between lg:p-12"
         style={{
@@ -63,8 +55,6 @@ export async function AuthShell({
           aria-hidden
           className="absolute inset-0"
           style={{
-            // Glows kept to the right/bottom so the logo + copy sit on the darker
-            // top-left for strong contrast.
             backgroundImage:
               'radial-gradient(45% 40% at 92% 6%, hsl(var(--lime) / 0.16) 0%, transparent 70%),' +
               'radial-gradient(50% 45% at 100% 100%, hsl(var(--secondary) / 0.24) 0%, transparent 72%)',
@@ -94,7 +84,6 @@ export async function AuthShell({
         <p className="relative text-xs text-white/50">© Servicios Luxel</p>
       </aside>
 
-      {/* Form panel */}
       <section className="flex flex-col items-center justify-center px-6 py-10 sm:px-10">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden">

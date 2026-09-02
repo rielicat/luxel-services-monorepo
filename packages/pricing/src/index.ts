@@ -12,7 +12,7 @@ export interface PricingConfig {
   subscriptionDiscountPct: Record<Exclude<ServiceFrequency, 'one_time'>, number>;
 }
 
-export interface QuoteInput {
+interface QuoteInput {
   serviceType: ServiceType;
   operationPoints: OperationPoint[];
   squareMeters: number;

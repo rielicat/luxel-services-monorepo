@@ -1,16 +1,5 @@
 import type { GuestLocale } from '@luxel/shared/i18n';
 
-/**
- * Guest-facing copy that leaves the app for the Airbnb thread. The Spanish text
- * is the host's own booking message, taken from their thread history, with one
- * sentence changed: the check-in details now arrive on a fixed day (Hospitable's
- * rule, 3 days before arrival) rather than "as soon as you fill the form".
- *
- * Dates are formatted by hand, not through Intl: ICU output differs between Node
- * versions ("3 jun 2026" vs "3 jun. 2026"), and a message that a guest receives
- * should not change shape with a runtime upgrade.
- */
-
 const MONTHS_ES = [
   'enero',
   'febrero',
@@ -73,7 +62,6 @@ function parts(isoDate: string): { y: number; m: number; d: number } {
   return { y: y ?? 0, m: m ?? 1, d: d ?? 1 };
 }
 
-/** "3 jun. 2026" / "Jun 3, 2026" / "3 de jun. de 2026" — the host's own style. */
 export function formatDate(lang: GuestLocale, isoDate: string): string {
   const { y, m, d } = parts(isoDate);
   if (lang === 'en') return `${SHORT_EN[m - 1]} ${d}, ${y}`;
@@ -81,8 +69,6 @@ export function formatDate(lang: GuestLocale, isoDate: string): string {
   return `${d} ${SHORT_ES[m - 1]}. ${y}`;
 }
 
-/** "del 29 de agosto al 02 de septiembre" — the shape the conserje already
- *  receives by hand today. Crew messages are Spanish only. */
 export function stayRangeEs(arrival: string, departure: string): string {
   return `del ${longDateEs(arrival)} al ${longDateEs(departure)}`;
 }
@@ -92,7 +78,7 @@ export function longDateEs(isoDate: string): string {
   return `${String(d).padStart(2, '0')} de ${MONTHS_ES[m - 1]}`;
 }
 
-export interface BookingMessageInput {
+interface BookingMessageInput {
   url: string;
   arrival: string;
   departure: string;

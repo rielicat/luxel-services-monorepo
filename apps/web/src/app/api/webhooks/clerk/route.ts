@@ -2,12 +2,6 @@ import { Webhook } from 'svix';
 import { NextResponse } from 'next/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
-/**
- * Clerk → Supabase customer sync.
- * Configure in Clerk dashboard → Webhooks → endpoint = https://serviciosluxel.cl/api/webhooks/clerk
- * Subscribe to: user.created, user.updated, user.deleted
- * Set CLERK_WEBHOOK_SECRET to the signing secret shown in Clerk.
- */
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET;
   if (!secret) return new NextResponse('Webhook secret not configured', { status: 500 });

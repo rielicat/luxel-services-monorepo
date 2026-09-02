@@ -15,6 +15,7 @@ import { autoConfirmSuggested } from '@/lib/cleaning/notify';
 import { checkinToken } from '@/lib/checkin/tokens';
 import { bookingMessage } from '@/lib/checkin/copy';
 import { resolveGuestLang } from '@/lib/checkin/lang';
+import { RETENTION_DAYS, santiagoToday, shiftDate } from '@/lib/checkin/window';
 import { notifyCleaningCrewOfBooking } from '@/lib/cleaning/booking-notify';
 import { appUrl } from '@/lib/urls';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
@@ -22,34 +23,19 @@ import { handleInboundMessage } from './pipeline';
 import { pruneWouldWipeEverything, relinkByConfirmationCode } from './relink';
 import { encodeRef, refPattern, type ChannelReservation } from './types';
 
-/** The stored form of a Hospitable id. Never string-concatenated at call sites:
- *  these values are what prunes and revocations match on, so the prefix lives in
- *  exactly one place. */
 const ref = (id: string) => encodeRef({ provider: 'hospitable', id });
 const HOSP = refPattern('hospitable');
 
-/**
- * The tenant filter for every central-credential fetch. With `own` scope the
- * token itself is the boundary and the list passes through; with `central` it
- * spans all managed hosts, so only listings ASSIGNED to this customer survive.
- * Anything unassigned belongs to nobody and is invisible until an operator
- * assigns it.
- */
 async function scopeToCustomer<T extends { id: string }>(
   customerId: string,
   remote: T[],
   scope: ChannelScope,
 ): Promise<T[] | null> {
   if (scope === 'own') {
-    // Everything an own token returns is theirs — record it so the assignment
-    // table stays the single authority on ownership even for self-connected
-    // hosts (otherwise the mirror and the tenant boundary drift apart).
     for (const rp of remote) await claimListing(rp.id, customerId);
     return remote;
   }
   const allowed = await allowedListingIds(customerId);
-  // null = the assignment read FAILED. Returning [] here would look identical
-  // to "assigned nothing" to every caller downstream; abort instead.
   if (!allowed) return null;
   const set = new Set(allowed);
   return remote.filter((rp) => set.has(rp.id));
@@ -57,14 +43,7 @@ async function scopeToCustomer<T extends { id: string }>(
 
 const DAY = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
-// Calendar dates are host-local: computing them in UTC would skip same-day
-// arrivals every Chilean evening (UTC rolls over at 20:00–21:00 Santiago).
-const santiagoDate = (d: Date) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d);
 
-/** ISO 639-1 as Airbnb reports it, or null. Stored raw rather than narrowed to
- *  what we translate: an unsupported language still tells the page to fall back
- *  to English instead of Spanish. */
 const languageOf = (r: HospitableReservation): string | null => {
   const code = (r.guest?.language ?? r.conversation_language ?? '')
     .trim()
@@ -73,18 +52,6 @@ const languageOf = (r: HospitableReservation): string | null => {
   return /^[a-z]{2}$/.test(code) ? code : null;
 };
 
-/** The check-in link is part of the reservation, not a button: each newly
- *  imported future reservation gets one message with its tokenized link, and a
- *  reservation that disappears upstream (cancellation) gets its unsubmitted
- *  link revoked. The unique `reservation_uid` makes the send once-only, and the
- *  cleaning crew hears about the booking from the same place, so the two can
- *  never drift apart.
- *
- *  Guests who booked before this feature existed must NEVER be messaged: the
- *  first sync that sees a property seeds anchors for its current reservations
- *  silently and stamps `checkin_links_backfilled_at`. Only reservations that
- *  show up after that stamp get a message — which covers both brand-new
- *  connections and accounts already running when the feature shipped. */
 async function sendCheckinLinksForNewReservations(
   supabase: Supabase,
   hospToken: string,
@@ -92,9 +59,6 @@ async function sendCheckinLinksForNewReservations(
   accepted: HospitableReservation[],
   today: string,
 ): Promise<void> {
-  // Revoke links whose reservation no longer exists upstream — mirrors the
-  // calendar_blocks refresh, and only runs after a successful reservations
-  // fetch, so an API failure can never mass-revoke.
   const uids = accepted.map((r) => ref(r.id));
   const notInList = (q: ReturnType<typeof revokeBase>) =>
     uids.length ? q.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`) : q;
@@ -106,10 +70,6 @@ async function sendCheckinLinksForNewReservations(
       .like('reservation_uid', HOSP)
       .is('revoked_at', null);
   }
-  // Mark first, delete second. A submitted check-in is retained for compliance,
-  // so deletion cannot be what stops its link working — without the stamp, a
-  // guest whose reservation was cancelled keeps a live view of the property's
-  // current access code.
   await notInList(revokeBase());
   let purge = supabase
     .from('checkins')
@@ -143,15 +103,10 @@ async function sendCheckinLinksForNewReservations(
         arrival_date: r.arrival_date.slice(0, 10),
         departure_date: r.departure_date.slice(0, 10),
         guest_language: lang,
-        guest_first_name: r.guest?.first_name ?? null,
         expected_guests: r.guests?.total ?? null,
         ...(backfill ? { notify_result: { hospitable: 'skipped_backfill' } } : {}),
       });
       if (error) {
-        // uid already claimed. Only skip if that claim actually concluded
-        // (sent, or deliberately skipped) — a crash between insert and send
-        // leaves notified_at AND notify_result null, and that row should
-        // resend with its already-issued token.
         const { data: existing } = await supabase
           .from('checkins')
           .select(
@@ -161,10 +116,6 @@ async function sendCheckinLinksForNewReservations(
           .maybeSingle();
         if (!existing) continue;
 
-        // Guests move their dates. calendar_blocks is refreshed wholesale every
-        // sync but this row was written once at insert, so a moved stay would
-        // keep revealing access against dates that are no longer true —
-        // including after the guest has already left.
         const arrival = r.arrival_date.slice(0, 10);
         const departure = r.departure_date.slice(0, 10);
         if (
@@ -187,7 +138,7 @@ async function sendCheckinLinksForNewReservations(
         if (existing.notified_at || existing.notify_result) continue;
         linkToken = existing.token as string;
       } else if (backfill) {
-        continue; // anchor seeded, nothing sent — booked before the feature
+        continue;
       }
       const url = `${appUrl()}/checkin/${linkToken}`;
       const sent = await sendHospitableMessage(
@@ -212,9 +163,7 @@ async function sendCheckinLinksForNewReservations(
           .eq('reservation_uid', uid)
           .is('submitted_at', null);
       }
-    } catch {
-      /* best-effort per reservation */
-    }
+    } catch {}
   }
   if (backfill) {
     await supabase
@@ -224,22 +173,18 @@ async function sendCheckinLinksForNewReservations(
   }
 }
 
-export interface HospitableSyncResult {
+interface HospitableSyncResult {
   ok: boolean;
   properties: number;
   reservations: number;
   cleanings: number;
   messagesImported: number;
   aiReplies: number;
-  /** Properties re-keyed off a previous provider's ids this pass. */
   relinked: number;
 }
 
 type Supabase = ReturnType<typeof createSupabaseServiceRoleClient>;
 
-/** Upserts one Hospitable property into the Luxel `properties` mirror (matched by
- *  external_listing_id). New rows get a default access record. Returns the row id,
- *  or null if the insert failed. Shared by the full sync and the light reconcile. */
 async function upsertHospitableProperty(
   supabase: Supabase,
   customerId: string,
@@ -250,8 +195,6 @@ async function upsertHospitableProperty(
   const lng = coords?.longitude != null ? Number(coords.longitude) : null;
 
   const fields = {
-    // The host's own nickname is the title; the public listing headline is a
-    // marketing string ("Depto 3D/2B + AC…"), not how the owner names the unit.
     nickname: rp.name || rp.public_name || 'Propiedad Airbnb',
     address: rp.address?.street ?? null,
     comuna: rp.address?.city ?? null,
@@ -275,15 +218,12 @@ async function upsertHospitableProperty(
     updated_at: new Date().toISOString(),
   };
 
-  // Atomic upsert against the (owner_id, external_listing_id) unique index —
-  // concurrent page loads can't race a select-then-insert into duplicates.
   const { data: row } = await supabase
     .from('properties')
     .upsert({ owner_id: customerId, ...fields }, { onConflict: 'owner_id,external_listing_id' })
     .select('id')
     .single();
   if (!row) return null;
-  // Seed the default access record only if none exists (PK = property_id).
   await supabase
     .from('property_access')
     .upsert(
@@ -293,19 +233,6 @@ async function upsertHospitableProperty(
   return row.id as string;
 }
 
-/** Strict mirror: the properties grid IS the Hospitable account. Any local row
- *  that isn't in the remote listing set — a legacy row without an external id,
- *  or a listing removed upstream — gets deleted. Every FK in the properties
- *  subtree is ON DELETE CASCADE (see 0010–0021 migrations), so children go too.
- *  Callers only reach this after a COMPLETE remote fetch
- *  (listHospitableProperties is complete-or-nothing).
- *
- *  An EMPTY set NEVER prunes, in either scope: freeze, don't wipe. Emptiness is
- *  ambiguous — a "0 listings" API response, a failed assignment read, or a
- *  listing set that simply isn't in this account all look the same here, and
- *  wiping a customer's whole subtree off any of them is far worse than briefly
- *  showing a listing that went away. Offboarding deletes deliberately, via
- *  `unassignListing`. */
 async function pruneToHospitable(
   supabase: Supabase,
   customerId: string,
@@ -313,10 +240,6 @@ async function pruneToHospitable(
 ): Promise<void> {
   if (!remoteIds.length) return;
 
-  // A remote set that shares NOTHING with what is stored is not a list of
-  // removals — it is a different account, or a different provider. Pruning on it
-  // deletes the customer's entire subtree while reporting success, which is
-  // exactly what a provider switch looks like from in here.
   const { data: existing } = await supabase
     .from('properties')
     .select('external_listing_id')
@@ -344,19 +267,6 @@ async function pruneToHospitable(
     .not('external_listing_id', 'in', `(${remoteIds.map((id) => `"${id}"`).join(',')})`);
 }
 
-/**
- * Repairs a mirror still keyed on a PREVIOUS provider's ids.
- *
- * `pruneToHospitable`'s disjoint guard is the floor — it stops a provider switch
- * destroying the subtree by freezing it. This is the repair: it re-keys the
- * properties, the tenant boundary and the check-in rows onto the active
- * provider's ids, matching on the OTA confirmation code, which is the only
- * identifier that survives a change of PMS.
- *
- * Runs against the UNSCOPED listing set on purpose. listing_assignments is what
- * needs re-keying, so filtering by it first would match nothing. On the steady
- * path — every stored id present remotely — it costs one query and returns.
- */
 async function relinkStrayProperties(
   supabase: Supabase,
   customerId: string,
@@ -373,15 +283,11 @@ async function relinkStrayProperties(
   const remoteIds = new Set(all.map((rp) => rp.id));
   if (!(stored ?? []).some((p) => !remoteIds.has(p.external_listing_id as string))) return 0;
 
-  // Only now is the extra fetch earned. The window is wider than the mirror's,
-  // because the bridging code may sit on a stay that has long since ended.
   const from = iso(new Date(now.getTime() - 400 * DAY));
   const to = iso(new Date(now.getTime() + 400 * DAY));
   const byListing = new Map<string, ChannelReservation[]>();
   for (const rp of all) {
     const res = await listHospitableReservations(token, rp.id, from, to);
-    // Incomplete reads as "no evidence", and no evidence leaves a property
-    // unmatched — which is exactly the state the next prune acts on. Abort.
     if (!res) return 0;
     byListing.set(
       rp.id,
@@ -407,17 +313,12 @@ async function relinkStrayProperties(
   return r.relinked;
 }
 
-export interface HospitableReconcileResult {
+interface HospitableReconcileResult {
   ok: boolean;
   properties: number;
   accountLabel: string | null;
 }
 
-/** Light, page-load-safe refresh: pulls ONLY the property list from Hospitable,
- *  upserts the rows and prunes everything else (strict mirror) — no
- *  reservations, messages or AI replies. Lets the /properties grid stay live on
- *  every load without the cost or side effects of a full sync (which stays on
- *  connect / the manual button / webhooks). */
 export async function reconcileHospitableProperties(
   customerId: string,
   token: string,
@@ -426,10 +327,6 @@ export async function reconcileHospitableProperties(
   const supabase = createSupabaseServiceRoleClient();
   const all = await listHospitableProperties(token);
   if (!all) return { ok: false, properties: 0, accountLabel: null };
-  // Under the central credential the fetch spans every managed host, so the
-  // assignment table — not the token — decides what belongs to this customer.
-  // null means the assignment read failed: abort rather than act on a set we
-  // can't trust (an empty one would look like "owns nothing").
   const remote = await scopeToCustomer(customerId, all, scope);
   if (!remote) return { ok: false, properties: 0, accountLabel: null };
   for (const rp of remote) {
@@ -452,24 +349,6 @@ export async function reconcileHospitableProperties(
   };
 }
 
-/**
- * Pulls each recent/upcoming reservation's conversation. History (anything at or
- * before the connection's watermark, or everything on the first sync) is imported
- * silently — it feeds the AI's grounding. Only guest messages NEWER than the
- * watermark run through the auto-reply pipeline, so connecting an account never
- * blasts replies at old threads.
- */
-/**
- * Imports one reservation's thread and runs anything genuinely new past the
- * watermark through the AI.
- *
- * Exported because the webhook needs exactly this and must NOT take the message
- * from the event payload. A `message.created` body is attacker-controlled if
- * anyone reaches the endpoint, and a forged one would be answered by the AI in
- * a real Airbnb thread AND stored as grounding replayed to later guests. The
- * event says only WHICH thread to look at; the content comes from Hospitable,
- * read back with our own credential.
- */
 export async function ingestThread(
   supabase: Supabase,
   token: string,
@@ -484,7 +363,6 @@ export async function ingestThread(
   if (!messages?.length) return { imported, replies };
   const guestName = messages.find((m) => m.sender_type === 'guest')?.sender?.first_name ?? null;
 
-  // One thread per reservation; created here so history imports land somewhere.
   const { data: thread } = await supabase
     .from('guest_threads')
     .upsert(
@@ -526,8 +404,6 @@ export async function ingestThread(
       if (res.action === 'sent') replies++;
       imported++;
     } else {
-      // Idempotent against the (thread_id, external_id) unique index —
-      // concurrent syncs can't double-import history.
       await supabase.from('guest_messages').upsert(
         {
           thread_id: thread.id,
@@ -566,16 +442,20 @@ async function syncConversations(
   return { imported, replies };
 }
 
-/**
- * Full sync of a customer's Hospitable account into Luxel:
- *  1) properties → upsert into `properties` (matched by external_listing_id),
- *  2) accepted reservations (-60d … +400d) → `calendar_blocks` (source 'import',
- *     external_uid encodeRef(reservation), full-refresh of that namespace so
- *     cancellations disappear),
- *  3) refresh check-out-driven cleaning suggestions per property.
- * The reservation's conversation id is kept on the block summary side-table-free
- * via guest_threads.external_thread_id when messaging starts (Phase-2 pipeline).
- */
+async function purgeExpiredGuestDocuments(supabase: Supabase, today: string): Promise<void> {
+  const { data: expired } = await supabase
+    .from('checkins')
+    .select('id')
+    .lt('departure_date', shiftDate(today, -RETENTION_DAYS));
+  const ids = (expired ?? []).map((c) => c.id as string);
+  if (!ids.length) return;
+  await supabase
+    .from('checkin_guests')
+    .update({ doc_type: null, doc_number_enc: null, doc_last4: null })
+    .in('checkin_id', ids)
+    .not('doc_number_enc', 'is', null);
+}
+
 export async function syncHospitableAccount(
   customerId: string,
   token: string,
@@ -595,13 +475,8 @@ export async function syncHospitableAccount(
       relinked: 0,
     };
 
-  // BEFORE scoping: the assignments the scope filter reads may themselves still
-  // hold a previous provider's ids, in which case scoping first would return an
-  // empty set and the account would look abandoned.
   const relinked = await relinkStrayProperties(supabase, customerId, token, all, now);
 
-  // Same tenant filter as the light reconcile: under the central credential a
-  // customer only ever gets the listings assigned to them.
   const remote = await scopeToCustomer(customerId, all, scope);
   if (!remote)
     return {
@@ -614,7 +489,6 @@ export async function syncHospitableAccount(
       relinked,
     };
 
-  // Watermark: null = first sync → import all history silently, no auto-replies.
   const { data: conn } = await supabase
     .from('channel_connections')
     .select('messages_synced_at')
@@ -627,13 +501,12 @@ export async function syncHospitableAccount(
   let cleaningCount = 0;
   let messagesImported = 0;
   let aiReplies = 0;
+  const today = santiagoToday(now);
 
   for (const rp of remote) {
-    // 1) Upsert the Luxel property, matched by the Hospitable property id.
     const propertyId = await upsertHospitableProperty(supabase, customerId, rp);
     if (!propertyId) continue;
 
-    // 2) Reservations → calendar blocks (full refresh of the hosp: namespace).
     const startDate = iso(new Date(now.getTime() - 60 * DAY));
     const endDate = iso(new Date(now.getTime() + 400 * DAY));
     const reservations = await listHospitableReservations(token, rp.id, startDate, endDate);
@@ -655,8 +528,6 @@ export async function syncHospitableAccount(
             ends_on: r.departure_date.slice(0, 10),
             source: 'import',
             summary: `Airbnb ${r.code}`,
-            // The OTA's own code — the one identifier that survives a change of
-            // PMS. Kept in a real column, not only in the summary above.
             confirmation_code: r.code || null,
             external_uid: ref(r.id),
           })),
@@ -664,27 +535,13 @@ export async function syncHospitableAccount(
       }
       reservationCount += accepted.length;
 
-      // 2b) Every NEW future reservation gets its booking message — the
-      // registration link, in the guest's language — and its cleaning crew
-      // hears about it; send-once, anchored on the reservation uid. Everything
-      // time-based after this point (reminder, check-in details at T-3,
-      // check-out, review) is Hospitable's own message rules, not ours.
-      await sendCheckinLinksForNewReservations(
-        supabase,
-        token,
-        propertyId,
-        accepted,
-        santiagoDate(now),
-      );
+      await sendCheckinLinksForNewReservations(supabase, token, propertyId, accepted, today);
     }
 
-    // 3) Cleaning suggestions from the fresh check-outs — and, unless the host
-    // opted out, they confirm themselves and notify whoever runs the turnover.
     const c = await suggestCleaningsFromCheckouts(propertyId);
     cleaningCount += c.suggested;
-    await autoConfirmSuggested(propertyId, santiagoDate(now));
+    await autoConfirmSuggested(propertyId, today);
 
-    // 4) Conversations: history feeds grounding; new guest messages get the AI.
     if (reservations?.length) {
       const conv = await syncConversations(
         supabase,
@@ -699,16 +556,13 @@ export async function syncHospitableAccount(
     }
   }
 
+  await purgeExpiredGuestDocuments(supabase, today);
   await pruneToHospitable(
     supabase,
     customerId,
     remote.map((rp) => rp.id),
   );
 
-  // Upsert, not update: a centrally-managed customer has no connection row of
-  // their own, and without one the watermark never advances — the full sync
-  // would re-run on every page load and no guest message would ever count as
-  // "new", so the AI would never reply. The row carries no token.
   await supabase.from('channel_connections').upsert(
     {
       customer_id: customerId,

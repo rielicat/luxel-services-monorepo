@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-export type Feature = {
+type Feature = {
   icon: ComponentType<{ className?: string }>;
   title: string;
   body: string;
@@ -13,7 +13,6 @@ const TONES = {
   accent: 'bg-accent text-accent-foreground',
 } as const;
 
-/** Responsive 4-up grid of icon feature cards. `tone` picks the icon-chip color. */
 export function FeatureGrid({
   features,
   tone = 'primary',

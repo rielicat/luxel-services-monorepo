@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-// Public, auth-free routes. These render without hitting Supabase/Clerk APIs,
-// so they're safe to smoke-test against a stubbed dev server.
 const PUBLIC_ROUTES = [
   '/',
   '/about',

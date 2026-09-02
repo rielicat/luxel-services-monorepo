@@ -8,9 +8,6 @@ import { DebugBench } from './debug-bench';
 
 export const dynamic = 'force-dynamic';
 
-/** Operator bench: connectivity probes and the guest/crew links, kept off the
- *  host dashboard. Not found for non-admins — an unlisted product should not
- *  confirm an operator surface exists. */
 export default async function AdminDebugPage() {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');

@@ -65,7 +65,6 @@ export async function POST(req: Request) {
 
   const openai = getOpenAI();
 
-  // Graceful degradation when the AI key isn't configured.
   if (!openai) {
     const reply =
       'El asistente con IA no está disponible en este momento. Puedes cotizar al instante en la sección Cotizar del sitio, o escribirnos por WhatsApp y te ayudamos.';
@@ -87,8 +86,6 @@ export async function POST(req: Request) {
     signedIn: Boolean(userId),
   };
 
-  // System prompt + tools form a stable prefix → OpenAI prompt caching kicks in
-  // automatically for the input tokens, cutting cost on multi-turn sessions.
   const convo: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: 'system', content: system },
     ...messages.map((m) => ({ role: m.role, content: m.content })),
@@ -115,7 +112,6 @@ export async function POST(req: Request) {
           });
 
           let content = '';
-          // Tool-call deltas arrive fragmented; accumulate by their stream index.
           const calls = new Map<number, { id: string; name: string; args: string }>();
           let finishReason: string | null = null;
 
@@ -143,9 +139,6 @@ export async function POST(req: Request) {
             break;
           }
 
-          // Parse each call's args ONCE, so what we execute and what we echo back
-          // into history always agree and are valid JSON. `ok:false` = the model
-          // produced malformed JSON → don't run the tool with empty args.
           const parsed = toolCalls.map((c) => {
             try {
               return {
@@ -204,8 +197,6 @@ export async function POST(req: Request) {
           }
         }
 
-        // Rounds exhausted while still calling tools → force a final text answer
-        // (no tools) so the user always gets a closing reply from the tool results.
         if (!completed) {
           const final = await openai.chat.completions.create({
             model: AI_MODEL,
@@ -273,8 +264,6 @@ async function persistAssistant(
   });
 }
 
-// Streams a fixed reply token-by-token so even the non-AI fallback path reads as
-// a live agent response (same SSE shape as the real LLM stream).
 function sseStream(text: string): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

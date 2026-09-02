@@ -11,12 +11,6 @@ import { autoAssignListings } from '@/lib/channels/auto-assign';
 import { appUrl } from '@/lib/urls';
 import { providerApiKey } from '@/lib/channels/credentials';
 
-/**
- * Operator debug bench. Everything here exercises a real integration or mints a
- * real link, so it is admin-only and lives away from the host dashboard —
- * hosts should never see link generators or connectivity probes.
- */
-
 async function requireAdmin(): Promise<string | null> {
   const { userId } = await auth();
   if (!userId || !(await isClerkAdmin(userId))) return null;
@@ -25,7 +19,6 @@ async function requireAdmin(): Promise<string | null> {
 
 export type ProbeResult = { name: string; ok: boolean; detail: string };
 
-/** Live connectivity for every external system the product depends on. */
 export async function runProbes(): Promise<{ ok: boolean; probes?: ProbeResult[] }> {
   if (!(await requireAdmin())) return { ok: false };
   const probes: ProbeResult[] = [];
@@ -82,8 +75,6 @@ export async function runProbes(): Promise<{ ok: boolean; probes?: ProbeResult[]
   return { ok: true, probes };
 }
 
-/** Mints a guest check-in link for inspection. Guests get theirs automatically
- *  on reservation import — this exists only to see what they see. */
 export async function debugCheckinLink(
   input: unknown,
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
@@ -99,7 +90,6 @@ export async function debugCheckinLink(
   return { ok: true, url: `${appUrl()}/checkin/${token}` };
 }
 
-/** The crew-facing confirmation page for a real upcoming cleaning. */
 export async function debugCleaningLink(
   input: unknown,
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
@@ -119,7 +109,6 @@ export async function debugCleaningLink(
   return { ok: true, url: `${appUrl()}/cleaning/confirm/${data.confirm_token}` };
 }
 
-/** Re-run attribution on demand instead of waiting for the cron. */
 export async function debugAutoAssign(): Promise<{
   ok: boolean;
   assigned?: number;

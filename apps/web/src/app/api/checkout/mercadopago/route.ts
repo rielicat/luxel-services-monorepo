@@ -26,7 +26,6 @@ export async function GET(req: Request) {
 
   const origin = url.origin;
 
-  // Dev-only: simulate a successful payment when no real MercadoPago token is set.
   if (devMockPaymentsEnabled('mercadopago')) {
     await completeMockPayment(supabase, booking.id, 'mercadopago');
     return NextResponse.redirect(new URL('/es/account?paid=1&mock=1', origin));

@@ -1,8 +1,3 @@
-/**
- * Paid add-ons: the price-optimization switch must never turn on something the
- * host has not subscribed to, subscribing snapshots the agreed price, and the
- * PriceLabs handshake starts as pending rather than pretending to be live.
- */
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -92,10 +87,8 @@ describe.skipIf(!LIVE)('paid add-ons (end to end)', () => {
       .eq('id', prop.id!)
       .single();
     expect(p!.price_optimization_enabled).toBe(true);
-    // Never claims "connected": the host still has to authorise PriceLabs.
     expect(p!.pricelabs_status).toBe('pending_connection');
 
-    // The host who performed the authorisation is the one who confirms it.
     expect((await markPricelabsConnected({ propertyId: prop.id!, connected: true })).ok).toBe(true);
     const { data: done } = await admin
       .from('properties')
@@ -114,7 +107,6 @@ describe.skipIf(!LIVE)('paid add-ons (end to end)', () => {
       .eq('property_id', prop.id!)
       .single();
 
-    // Host pauses the automation, then double-submits the offer.
     await admin.from('properties').update({ price_optimization_enabled: false }).eq('id', prop.id!);
     await admin.from('property_addons').update({ price_clp: 12345 }).eq('property_id', prop.id!);
     expect((await subscribeAddon({ propertyId: prop.id!, addon: 'dynamic_pricing' })).ok).toBe(
@@ -126,7 +118,6 @@ describe.skipIf(!LIVE)('paid add-ons (end to end)', () => {
       .select('price_clp, activated_at')
       .eq('property_id', prop.id!)
       .single();
-    // The agreed price and start date survive; the pause is respected.
     expect(again!.price_clp).toBe(12345);
     expect(again!.activated_at).toBe(first!.activated_at);
     const { data: p } = await admin
@@ -172,7 +163,6 @@ describe.skipIf(!LIVE)('paid add-ons (end to end)', () => {
     expect(p!.price_optimization_enabled).toBe(false);
     expect(p!.pricelabs_status).toBe('off');
 
-    // …and the switch can no longer turn it back on.
     const r = await setPriceOptimization({ propertyId: prop.id!, enabled: true });
     expect(r.ok).toBe(false);
     expect(r.error).toBe('addon_required');

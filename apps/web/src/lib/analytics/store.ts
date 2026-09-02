@@ -1,7 +1,7 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
-export interface EventInput {
+interface EventInput {
   event: string;
   distinctId?: string | null;
   anonId?: string | null;
@@ -16,20 +16,6 @@ export interface EventInput {
   source?: 'web' | 'server' | 'whatsapp';
 }
 
-/*
- * Visitor IPs are not collected, hashed or stored.
- *
- * They used to be salted-hashed into analytics_events.ip_hash, which nothing
- * ever read — write-only data derived from personal information. A truncated
- * SHA-256 of an IPv4 address is reversible by brute force anyway (the whole
- * space is 2^32), so the hash was not the protection it looked like. The
- * minimising fix is to stop taking the IP at all rather than to salt it better.
- */
-
-/**
- * Record an event into our owned store (analytics_events). Never throws —
- * monitoring must not break the request that triggered it.
- */
 export async function recordEvent(e: EventInput): Promise<void> {
   try {
     const supabase = createSupabaseServiceRoleClient();
@@ -47,7 +33,5 @@ export async function recordEvent(e: EventInput): Promise<void> {
       country: e.country ?? null,
       source: e.source ?? 'web',
     });
-  } catch {
-    // best-effort
-  }
+  } catch {}
 }

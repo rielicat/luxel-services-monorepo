@@ -24,8 +24,6 @@ export type Thread = {
   guest_messages: Msg[];
 };
 
-/** The AI's replies are the product — they get the highlight; guest messages
- *  read plain, imported host history stays quiet. */
 function MsgRow({ m }: { m: Msg }) {
   if (m.source === 'ai') {
     return (
@@ -47,9 +45,6 @@ function MsgRow({ m }: { m: Msg }) {
   );
 }
 
-/** Attention-first inbox: conversations awaiting the host are fully visible
- *  with an inline reply; everything the AI already handled stays out of the way
- *  behind a toggle. */
 export function MessagingPanel({
   propertyId,
   threads,

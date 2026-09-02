@@ -23,8 +23,6 @@ interface Props {
   propertyName: string;
   requireId: boolean;
   alreadyDone: boolean;
-  /** Access for a stay already checked in, so returning to the link re-reveals
-   *  it. Null while the stay is pending, or once the stay is over. */
   access?: AccessInfo | null;
 }
 
@@ -72,8 +70,6 @@ function DocFields({
   );
 }
 
-/** The one place access is rendered to a guest, so the keyless and concierge
- *  shapes can never drift apart between the two surfaces that show them. */
 function AccessCard({ access, t }: { access: AccessInfo | null; t: (k: string) => string }) {
   if (!access) return null;
   const shell = 'border-primary/30 bg-primary/5 grid gap-1.5 rounded-xl border p-4 text-center';
@@ -134,7 +130,6 @@ export function CheckinForm({
     arrival: '',
     docType: 'rut',
     docNumber: '',
-    nationality: '',
     consent: false,
   });
   const [companions, setCompanions] = useState<Companion[]>([]);
@@ -162,7 +157,6 @@ export function CheckinForm({
         arrivalAt: f.arrival ? new Date(f.arrival).toISOString() : undefined,
         docType: f.docNumber.trim() ? (f.docType as 'rut') : undefined,
         docNumber: f.docNumber.trim() || undefined,
-        nationality: f.nationality.trim() || undefined,
         companions: companions
           .filter((c) => c.fullName.trim())
           .map((c) => ({
@@ -364,8 +358,6 @@ export function CheckinForm({
               <UserPlus className="mr-1.5 h-4 w-4" /> {t('add_companion')}
             </Button>
 
-            {/* The conserje's message carries whether a car is coming — the
-                building's parking is what they get asked about at the gate. */}
             <div className="grid gap-2">
               <p className="font-medium">{t('parking')}</p>
               <div className="flex gap-2">

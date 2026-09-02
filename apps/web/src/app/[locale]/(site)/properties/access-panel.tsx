@@ -20,9 +20,6 @@ export type AccessRow = {
   unit: string | null;
 } | null;
 
-/** Check-in links reach each guest automatically when their reservation is
- *  imported — there is nothing to generate here. Operators inspect the
- *  guest-facing page from /admin/debug instead. */
 export function AccessPanel({
   propertyId,
   access,
@@ -30,8 +27,6 @@ export function AccessPanel({
 }: {
   propertyId: string;
   access: AccessRow;
-  /** The building's conserjes — notified on every completed registration,
-   *  whatever the access method: a keyless building still has a front desk. */
   contacts: PropertyContact[];
 }) {
   const t = useTranslations('properties');
@@ -51,9 +46,6 @@ export function AccessPanel({
   });
   const upd = <K extends keyof typeof s>(k: K, v: (typeof s)[K]) => setS((p) => ({ ...p, [k]: v }));
 
-  // No save button: every change persists itself after a short pause. A
-  // pending (debounced) edit is flushed if the component unmounts first, and
-  // failures surface instead of vanishing.
   const [saveError, setSaveError] = useState(false);
   const latest = useRef(s);
   latest.current = s;
@@ -127,10 +119,6 @@ export function AccessPanel({
         )}
       </div>
 
-      {/* The code is a property attribute, not a per-stay chore: no channel or
-          lock integration can issue one, so the host types their keypad code
-          once and Luxel is the thing that delivers it. Say so — an unlabelled
-          box next to "el código se entrega solo" reads as a broken promise. */}
       {s.method === 'keyless' && (
         <div className="border-border grid gap-3 rounded-lg border p-3">
           <p className="text-muted-foreground text-xs">{t('keyless_help')}</p>
@@ -183,8 +171,6 @@ export function AccessPanel({
         </div>
       )}
 
-      {/* Hospitable's listing carries the street, not the apartment. The unit
-          is what the conserje and the cleaning crew are told. */}
       <div className="border-border grid gap-3 rounded-lg border p-3">
         <div className="grid gap-1.5 sm:max-w-xs">
           <Label htmlFor="unit">{t('unit')}</Label>

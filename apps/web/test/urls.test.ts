@@ -1,8 +1,3 @@
-/**
- * appUrl() builds the links that reach guests and cleaning crews. A wrong origin
- * is not a cosmetic bug — it is a guest tapping a dead link at the door, or a
- * preview deployment quietly minting links into production data.
- */
 import { describe, it, expect, afterEach } from 'vitest';
 import { appUrl } from '../src/lib/urls';
 
@@ -41,8 +36,6 @@ describe('appUrl', () => {
   });
 
   it('never emits a localhost link in production, even with system vars disabled', () => {
-    // Vercel lets a project turn off system environment variables. Falling
-    // through to localhost there would send guests a link to their own machine.
     setEnv({ VERCEL_ENV: 'production' });
     expect(appUrl()).toBe('https://serviciosluxel.cl');
   });

@@ -4,10 +4,6 @@ import { useTranslations } from 'next-intl';
 import { CheckCircle2 } from 'lucide-react';
 import type { HostConnection } from '@/lib/host/queries';
 
-/** Connected accounts sync themselves on every visit — no card, no buttons, and
- *  deliberately no disconnect: leaving is an operator action (offboarding), not
- *  a one-tap icon. A host who tapped it deleted their own listing assignments
- *  and orphaned the account, with no self-service way back. */
 export function ConnectionNote({ connection }: { connection: HostConnection }) {
   const t = useTranslations('channel');
   return (

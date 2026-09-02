@@ -1,10 +1,3 @@
-/**
- * End-to-end proof of the SaaS Hospitable connection: token verified against the
- * (mocked, real-shape) API, stored ENCRYPTED per customer, properties imported
- * with coordinates, reservations → calendar blocks (cancellations dropped),
- * cleanings suggested, re-sync idempotent, disconnect wipes the connection.
- * API shapes mirror live captures from public.api.hospitable.com (2026-07).
- */
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -15,10 +8,9 @@ const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-hosp-${nodeCrypto.randomUUID()}`;
 process.env.LUXEL_PII_KEY = nodeCrypto.randomBytes(32).toString('hex');
-delete process.env.HOSPITABLE_API_TOKEN; // per-customer tokens only — no env fallback
+delete process.env.HOSPITABLE_API_TOKEN;
 delete process.env.OPENAI_API_KEY;
-process.env.LUXEL_DEV_MOCK = '1'; // dev-mock AI so auto-replies are deterministic
-// Crew WhatsApp goes through the worker bridge; capture what it is asked to send.
+process.env.LUXEL_DEV_MOCK = '1';
 process.env.WHATSAPP_WORKER_SEND_URL = 'http://worker.test/send';
 process.env.INTERNAL_SEND_TOKEN = 'test-internal-token';
 
@@ -87,8 +79,6 @@ const RESERVATIONS_PAYLOAD = {
       reservation_status: { current: { category: 'accepted' } },
       status: 'accepted',
       guests: { total: 3 },
-      // Real shape: Airbnb reports the guest's language; the booking message
-      // and the check-in page follow it.
       conversation_language: 'pt',
       guest: { first_name: 'Matheus', language: 'pt' },
     },
@@ -105,12 +95,8 @@ const RESERVATIONS_PAYLOAD = {
   links: { next: null },
 };
 
-// Failure-mode switch for the properties endpoint: 'paged_fail' serves page 1
-// with a next link and 429s page 2 (partial fetch); 'empty' serves a valid
-// zero-listing body. Both must leave the local mirror untouched.
 let PROPERTIES_MODE: 'normal' | 'paged_fail' | 'empty' = 'normal';
 
-// Mutable conversation state for the messages endpoint (per reservation res-1).
 // eslint-disable-next-line prefer-const
 let MESSAGES: Array<{
   id: string;
@@ -165,7 +151,6 @@ beforeAll(async () => {
         return Response.json(RESERVATIONS_PAYLOAD);
       }
       if (url.includes('/calendar')) {
-        // Real captured shape: price.amount arrives in cents.
         return Response.json({
           data: {
             days: [
@@ -226,10 +211,6 @@ afterEach(async () => {
   if (!LIVE || !customerId) return;
   await admin.from('properties').delete().eq('owner_id', customerId);
   await admin.from('channel_connections').delete().eq('customer_id', customerId);
-  // Assignments outlive everything else: they are keyed on the listing id, not
-  // on the customer, and `claimListing` never overwrites an existing row. Left
-  // behind, a previous run's customer keeps owning HOSP_PROPERTY_ID and every
-  // tenant-resolving path in this file silently resolves to a stranger.
   await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
   await admin.from('listing_assignments').delete().eq('customer_id', customerId);
   MESSAGES = [];
@@ -255,7 +236,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(r.ok).toBe(true);
     expect(r.properties).toBe(1);
 
-    // Token at rest is ciphertext, recoverable, never plaintext.
     const { data: conn } = await admin
       .from('channel_connections')
       .select('token_enc, status, last_synced_at')
@@ -266,20 +246,17 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(conn!.status).toBe('connected');
     expect(conn!.last_synced_at).toBeTruthy();
 
-    // Property imported with identity, capacity and coordinates.
     const { data: prop } = await admin
       .from('properties')
       .select('id, nickname, comuna, bedrooms, bathrooms, lat, lng, external_listing_id, platform')
       .eq('owner_id', customerId)
       .single();
     expect(prop!.external_listing_id).toBe(HOSP_PROPERTY_ID);
-    // The host's own nickname wins over the public listing headline.
     expect(prop!.nickname).toBe('JOSÉ MANUEL INFANTE 1045 - DPTO 401');
     expect(prop!.comuna).toBe('Providencia');
     expect(prop!.bedrooms).toBe(3);
     expect(Number(prop!.lat)).toBeCloseTo(-33.44095859, 4);
 
-    // Accepted reservations became blocks; the cancelled one was dropped.
     const { data: blocks } = await admin
       .from('calendar_blocks')
       .select('starts_on, ends_on, external_uid')
@@ -289,7 +266,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(blocks).toHaveLength(2);
     expect(blocks![0]).toMatchObject({ starts_on: '2027-03-03', ends_on: '2027-03-05' });
 
-    // Check-out-driven cleanings were suggested.
     const { count: cleanings } = await admin
       .from('cleanings')
       .select('*', { count: 'exact', head: true })
@@ -321,8 +297,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('mirrors the full listing record and prunes anything not in Hospitable', async () => {
-    // Rows Hospitable doesn't know about: a legacy row without an external id,
-    // and a listing that was removed upstream.
     await admin.from('properties').insert([
       { owner_id: customerId, nickname: 'Fila legada sin listing' },
       { owner_id: customerId, nickname: 'Ya no existe', external_listing_id: 'hosp-gone' },
@@ -331,7 +305,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     const r = await connectHospitable({ token: FAKE_TOKEN });
     expect(r.ok).toBe(true);
 
-    // Strict mirror: only the Hospitable listing survives…
     const { data: rows } = await admin
       .from('properties')
       .select(
@@ -342,7 +315,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     const prop = rows![0]!;
     expect(prop.external_listing_id).toBe(HOSP_PROPERTY_ID);
 
-    // …and it carries the API-defined parameters, not manual attributes.
     expect(prop.picture_url).toContain('muscache.com');
     expect(prop.max_guests).toBe(6);
     expect(prop.beds).toBe(3);
@@ -354,7 +326,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(prop.amenities).toContain('jacuzzi');
     expect((prop.house_rules as { pets_allowed?: boolean }).pets_allowed).toBe(true);
 
-    // The light page-load reconcile behaves the same way.
     await admin
       .from('properties')
       .insert({ owner_id: customerId, nickname: 'Otra fila legada post-connect' });
@@ -384,13 +355,12 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       status: { reason: 'RESERVED', available: false },
     });
     expect(days![1]!.status!.available).toBe(true);
-    expect(days![0]!.price!.amount).toBe(16645000); // cents — callers divide by 100
+    expect(days![0]!.price!.amount).toBe(16645000);
   });
 
   it('never prunes off a partial or empty fetch, and never touches another owner', async () => {
-    await connectHospitable({ token: FAKE_TOKEN }); // mirror in place: 1 row
+    await connectHospitable({ token: FAKE_TOKEN });
 
-    // A different tenant's property must be invisible to this owner's reconcile.
     const { data: other } = await admin
       .from('customers')
       .insert({
@@ -407,12 +377,10 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     try {
       const { reconcileHospitableProperties } = await import('../src/lib/channels/hospitable-sync');
 
-      // Partial fetch (page 2 rate-limited) → complete-or-nothing → NO prune.
       PROPERTIES_MODE = 'paged_fail';
       const partial = await reconcileHospitableProperties(customerId, FAKE_TOKEN);
       expect(partial.ok).toBe(false);
 
-      // Valid-but-empty body → upserts nothing AND prunes nothing.
       PROPERTIES_MODE = 'empty';
       const empty = await reconcileHospitableProperties(customerId, FAKE_TOKEN);
       expect(empty.ok).toBe(true);
@@ -422,15 +390,15 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
         .from('properties')
         .select('*', { count: 'exact', head: true })
         .eq('owner_id', customerId);
-      expect(mine).toBe(1); // mirror untouched through both failure modes
+      expect(mine).toBe(1);
 
       const { count: theirs } = await admin
         .from('properties')
         .select('*', { count: 'exact', head: true })
         .eq('owner_id', other!.id);
-      expect(theirs).toBe(1); // owner scoping held
+      expect(theirs).toBe(1);
     } finally {
-      await admin.from('customers').delete().eq('id', other!.id); // cascades their property
+      await admin.from('customers').delete().eq('id', other!.id);
       PROPERTIES_MODE = 'normal';
     }
   });
@@ -471,11 +439,8 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .from('guest_messages')
       .select('source, external_id')
       .eq('thread_id', thread!.id);
-    expect(hist).toHaveLength(3); // full history imported for grounding
-    expect(hist!.some((m) => m.source === 'ai')).toBe(false); // but nothing auto-sent
-    // The first sync that sees a property sends NOTHING: bookings that predate
-    // the feature are seeded silently (res-1 and res-2; cancelled res-3 gets
-    // none) and the property is stamped as backfilled.
+    expect(hist).toHaveLength(3);
+    expect(hist!.some((m) => m.source === 'ai')).toBe(false);
     const checkinSends = () => SENT.filter((s) => s.body.includes('/checkin/'));
     const aiSends = () => SENT.filter((s) => !s.body.includes('/checkin/'));
     expect(aiSends()).toHaveLength(0);
@@ -493,11 +458,8 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .single();
     expect(stamped!.checkin_links_backfilled_at).toBeTruthy();
 
-    // Simulate a booking that arrives AFTER connect: its anchor doesn't exist
-    // yet, so the next sync must send exactly one check-in link for it.
     await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
 
-    // A NEW guest message arrives after the watermark → the AI replies via Hospitable.
     const future = new Date(Date.now() + 60_000).toISOString();
     MESSAGES.push({
       id: 'new-1',
@@ -515,17 +477,13 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .eq('thread_id', thread!.id)
       .order('created_at');
     expect(after!.some((m) => m.external_id === 'new-1')).toBe(true);
-    // Re-syncs never double-import: every channel message appears exactly once.
     const externalIds = after!.map((m) => m.external_id).filter(Boolean) as string[];
     expect(new Set(externalIds).size).toBe(externalIds.length);
-    expect(after!.some((m) => m.source === 'ai')).toBe(true); // AI answered
-    expect(aiSends().length).toBeGreaterThan(0); // …and it went out through Hospitable
+    expect(after!.some((m) => m.source === 'ai')).toBe(true);
+    expect(aiSends().length).toBeGreaterThan(0);
     expect(aiSends()[0]!.reservationId).toBe('res-1');
-    // Post-watermark sync sent the link for the "new" booking (res-2) only —
-    // res-1's silently seeded anchor stays quiet.
     expect(checkinSends().map((s) => s.reservationId)).toEqual(['res-2']);
 
-    // Idempotent: a third sync must not duplicate or re-reply.
     const count = after!.length;
     const sends = SENT.length;
     await syncHospitable();
@@ -538,11 +496,10 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('webhook ingests a guest message and auto-replies through Hospitable', async () => {
-    await connectHospitable({ token: FAKE_TOKEN }); // creates the property + hosp:res-1 block
+    await connectHospitable({ token: FAKE_TOKEN });
     SENT.length = 0;
     const { POST } = await import('../src/app/api/channels/[provider]/route');
 
-    // The message exists at Hospitable. The event only says the thread moved.
     MESSAGES.push({
       id: 'wh-1',
       body: '¿A qué hora es el check-in?',
@@ -565,7 +522,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
     expect(SENT.some((s) => s.reservationId === 'res-1')).toBe(true);
 
-    // Events naming no thread are acknowledged and dropped.
     const res2 = await POST(
       new Request('http://localhost/api/channels/hospitable', {
         method: 'POST',
@@ -578,10 +534,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('never speaks for a guest — a forged payload body is not delivered', async () => {
-    // The reason the endpoint does not need a secret in its URL. If the payload
-    // were believed, anyone reaching this route could put words in a guest's
-    // mouth: the AI answers them in the real Airbnb thread, and the invented
-    // message is stored and replayed as grounding to every later guest.
     await connectHospitable({ token: FAKE_TOKEN });
     SENT.length = 0;
     const { POST } = await import('../src/app/api/channels/[provider]/route');
@@ -606,10 +558,8 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       }),
       { params: Promise.resolve({ provider: 'hospitable' }) },
     );
-    expect(res.status).toBe(200); // accepted, just not believed
+    expect(res.status).toBe(200);
 
-    // Hospitable's copy of the thread has no such message, so nothing is stored
-    // and nothing is answered.
     const { data: thread } = await admin
       .from('guest_threads')
       .select('id')
@@ -627,10 +577,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('re-keys a mirror left on a previous provider instead of deleting it', async () => {
-    // The migration path, proven against the live sync. A mirror whose ids come
-    // from another provider shares NOTHING with the remote set, so without the
-    // relink the property is either frozen forever or pruned away — and every
-    // access code, cleaning record and guest check-in hangs off that row by id.
     const STRAY = `oldprov-${nodeCrypto.randomUUID()}`;
     await admin.from('listing_assignments').delete().eq('customer_id', customerId);
     await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
@@ -648,8 +594,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     await admin
       .from('listing_assignments')
       .insert({ external_listing_id: STRAY, customer_id: customerId, assigned_by: 'test' });
-    // The bridge: this stay's Airbnb confirmation code is one Hospitable also
-    // reports (res-1). Nothing else ties the two namespaces together.
     const notifiedAt = new Date('2026-08-01T12:00:00Z').toISOString();
     await admin.from('checkins').insert({
       property_id: propertyId,
@@ -664,8 +608,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
 
     expect((await syncHospitable()).ok).toBe(true);
 
-    // THE assertion: same row id. A delete-and-recreate would change it, and
-    // every child row would have cascaded away first.
     const { data: after } = await admin
       .from('properties')
       .select('id, external_listing_id')
@@ -674,7 +616,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(after!.id).toBe(propertyId);
     expect(after!.external_listing_id).toBe(HOSP_PROPERTY_ID);
 
-    // The tenant boundary moved with it, or the customer loses their own listing.
     const { data: asg } = await admin
       .from('listing_assignments')
       .select('external_listing_id')
@@ -686,9 +627,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('token, reservation_uid, notified_at')
       .eq('token', 'relink-keepme')
       .single();
-    // A guest holding the link is unaffected by the migration…
     expect(ci!.reservation_uid).toBe('hosp:res-1');
-    // …and the send-once watermark carried over, so nobody is messaged twice.
     expect(new Date(ci!.notified_at as string).toISOString()).toBe(notifiedAt);
     expect(SENT.filter((s) => s.reservationId === 'res-1')).toHaveLength(0);
 
@@ -696,11 +635,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('re-keys from calendar_blocks alone, once the check-ins are long gone', async () => {
-    // The realistic production cutover. Check-ins exist only for future stays
-    // and are purged as reservations leave the window, so a property connected
-    // months ago carries none — while calendar_blocks still holds a code for
-    // every accepted reservation. Evidence has to come from both, or a mirror
-    // with nothing but past stays goes unmatched and the next prune acts on it.
     const STRAY = `oldprov-${nodeCrypto.randomUUID()}`;
     await admin.from('listing_assignments').delete().eq('customer_id', customerId);
     await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
@@ -718,7 +652,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .from('listing_assignments')
       .insert({ external_listing_id: STRAY, customer_id: customerId, assigned_by: 'test' });
 
-    // A past stay: block retains the code, no check-in row survives.
     await admin.from('calendar_blocks').insert({
       property_id: prop!.id,
       starts_on: '2026-01-10',
@@ -732,7 +665,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .from('checkins')
       .select('*', { count: 'exact', head: true })
       .eq('property_id', prop!.id);
-    expect(checkins).toBe(0); // the whole point: no check-in evidence at all
+    expect(checkins).toBe(0);
 
     const r = await syncHospitable();
     expect(r.ok).toBe(true);
@@ -742,16 +675,13 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('id, external_listing_id')
       .eq('owner_id', customerId)
       .single();
-    expect(after!.id).toBe(prop!.id); // survived, not deleted and recreated
+    expect(after!.id).toBe(prop!.id);
     expect(after!.external_listing_id).toBe(HOSP_PROPERTY_ID);
 
     await admin.from('listing_assignments').delete().eq('customer_id', customerId);
   });
 
   it('refuses to re-key onto a listing another customer already holds', async () => {
-    // external_listing_id is the PRIMARY KEY of listing_assignments, so the
-    // incoming id may already be spoken for. Moving the property anyway would
-    // hand this customer someone else's listing — worse than not migrating.
     const STRAY = `oldprov-${nodeCrypto.randomUUID()}`;
     await admin.from('listing_assignments').delete().eq('customer_id', customerId);
     await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
@@ -785,8 +715,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       departure_date: '2027-03-05',
     });
 
-    // Central scope, because that is the only mode where one account's listings
-    // span several customers and this collision is reachable.
     const syncLib = await import('../src/lib/channels/hospitable-sync');
     const r = await syncLib.syncHospitableAccount(customerId, FAKE_TOKEN, new Date(), 'central');
     expect(r.ok).toBe(true);
@@ -797,7 +725,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('id, external_listing_id')
       .eq('owner_id', customerId)
       .single();
-    // Not moved — and, just as important, not deleted either.
     expect(after!.id).toBe(prop!.id);
     expect(after!.external_listing_id).toBe(STRAY);
 
@@ -813,15 +740,9 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('a reservation webhook mirrors the booking without any scheduled pass', async () => {
-    // The whole point of webhooks: a new booking lands in the mirror and its
-    // guest gets a check-in link because Hospitable said so, not because a
-    // timer happened to fire.
-    await connectHospitable({ token: FAKE_TOKEN }); // first sync backfills silently
+    await connectHospitable({ token: FAKE_TOKEN });
     SENT.length = 0;
-    // Backfill seeded anchors for both current reservations; drop one so the
-    // event has something genuinely new to deliver, as a real booking would.
     await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
-    // The property's cleaning crew — told about every new booking.
     const { data: prop } = await admin
       .from('properties')
       .select('id')
@@ -833,7 +754,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       name: 'Aseo',
       whatsapp: '+56 9 5555 1234',
     });
-    // The debounce collapses bursts, and connect just stamped last_synced_at.
     await admin
       .from('channel_connections')
       .update({ last_synced_at: new Date(Date.now() - 120_000).toISOString() })
@@ -852,12 +772,10 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       { params: Promise.resolve({ provider: 'hospitable' }) },
     );
     const json = (await res.json()) as { ok: boolean; action: string; resync: string };
-    expect(res.status).toBe(200); // anything else and Hospitable redelivers
+    expect(res.status).toBe(200);
     expect(json.ok).toBe(true);
     expect(json.resync).toBe('syncing');
 
-    // The link went out for the new booking, and only that one — in the guest's
-    // language (Airbnb says Portuguese), in the host's own words.
     expect(SENT.filter((s) => s.body.includes('/checkin/')).map((s) => s.reservationId)).toEqual([
       'res-2',
     ]);
@@ -865,19 +783,15 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(booking.body.startsWith('Obrigado por reservar com a gente de')).toBe(true);
     const { data: row } = await admin
       .from('checkins')
-      .select('guest_language, guest_first_name, expected_guests, crew_notified_at')
+      .select('guest_language, expected_guests, crew_notified_at')
       .eq('reservation_uid', 'hosp:res-2')
       .single();
     expect(row).toMatchObject({
       guest_language: 'pt',
-      guest_first_name: 'Matheus',
       expected_guests: 3,
     });
     expect(row!.crew_notified_at).toBeTruthy();
 
-    // And the cleaning crew heard about it — once, over WhatsApp, as a template.
-    // (The free-text sends alongside are the operator's "Nuevo aseo" pings for
-    // the Luxel-managed turnovers this sync auto-confirmed.)
     const templates = WA_SENDS.filter((s) => s.template);
     expect(templates).toHaveLength(1);
     expect(templates[0]).toMatchObject({
@@ -893,7 +807,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       '14 de marzo 11:00',
     ]);
 
-    // A second event moments later collapses into the first pass.
     const again = await POST(
       new Request('http://localhost/api/channels/hospitable', {
         method: 'POST',
@@ -909,10 +822,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('authorises on source IP alone, never on a secret', async () => {
-    // Hospitable's webhook form has only Name and URL — no header, no signing
-    // key — so their published sender range is the only thing that can identify
-    // a delivery. A query-string secret is not an option: it would be written to
-    // access logs on every request.
     const { POST } = await import('../src/app/api/channels/[provider]/route');
     const post = (init: { query?: string; ip?: string }) =>
       POST(
@@ -930,18 +839,14 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect((await post({ ip: '38.80.170.42' })).status).toBe(200);
     expect((await post({ ip: '38.80.170.0' })).status).toBe(200);
     expect((await post({ ip: '38.80.170.255' })).status).toBe(200);
-    expect((await post({ ip: '38.80.171.42' })).status).toBe(401); // adjacent /24
+    expect((await post({ ip: '38.80.171.42' })).status).toBe(401);
     expect((await post({ ip: '203.0.113.9' })).status).toBe(401);
-    // No secret is honoured anywhere, in any position.
     expect((await post({ query: '?secret=anything', ip: '203.0.113.9' })).status).toBe(401);
 
-    // No platform headers at all is local development — nothing to check.
     expect((await post({})).status).toBe(200);
   });
 
   it('acks an event for a listing no tenant owns instead of guessing one', async () => {
-    // An unassigned listing has no owner to sync. Picking one would put a
-    // stranger's booking in a customer's account; 200 stops the redelivery.
     const { POST } = await import('../src/app/api/channels/[provider]/route');
     const res = await POST(
       new Request('http://localhost/api/channels/hospitable', {
@@ -958,10 +863,68 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(((await res.json()) as { resync: string }).resync).toBe('unassigned');
   });
 
+  it('purges guest documents 90 days after departure and leaves recent stays intact', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { santiagoToday, shiftDate } = await import('../src/lib/checkin/window');
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const today = santiagoToday();
+    const seedStay = async (token: string, departure: string): Promise<string> => {
+      const { data: c } = await admin
+        .from('checkins')
+        .insert({
+          property_id: prop!.id,
+          token,
+          status: 'submitted',
+          arrival_date: shiftDate(departure, -2),
+          departure_date: departure,
+          submitted_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+      await admin.from('checkin_guests').insert({
+        checkin_id: c!.id,
+        is_lead: true,
+        full_name: 'Huésped',
+        doc_type: 'rut',
+        doc_number_enc: `enc:${token}`,
+        doc_last4: '78-9',
+      });
+      return c!.id as string;
+    };
+    const expired = await seedStay('purge-expired', shiftDate(today, -91));
+    const recent = await seedStay('purge-recent', shiftDate(today, -5));
+
+    expect((await syncHospitable()).ok).toBe(true);
+
+    const { data: gone } = await admin
+      .from('checkin_guests')
+      .select('full_name, doc_type, doc_number_enc, doc_last4')
+      .eq('checkin_id', expired)
+      .single();
+    expect(gone).toEqual({
+      full_name: 'Huésped',
+      doc_type: null,
+      doc_number_enc: null,
+      doc_last4: null,
+    });
+    const { data: kept } = await admin
+      .from('checkin_guests')
+      .select('doc_type, doc_number_enc, doc_last4')
+      .eq('checkin_id', recent)
+      .single();
+    expect(kept).toEqual({
+      doc_type: 'rut',
+      doc_number_enc: 'enc:purge-recent',
+      doc_last4: '78-9',
+    });
+  });
+
   it('removing the connection makes the strict token resolver go dark', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
-    // Offboarding is an operator action now (see scope.unassignListing) — there
-    // is no host-facing disconnect to call, so drop the row the way ops would.
     await admin
       .from('channel_connections')
       .delete()
@@ -972,8 +935,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('*', { count: 'exact', head: true })
       .eq('customer_id', customerId);
     expect(count).toBe(0);
-    // Every sync path (page load, cron) resolves through this — null means no
-    // sync can run for the account anymore (env fallback removed in this test).
     const { customerHospitableToken } = await import('../src/lib/channels/hospitable');
     expect(await customerHospitableToken(customerId)).toBeNull();
     expect(apiCalls).toBeGreaterThan(0);

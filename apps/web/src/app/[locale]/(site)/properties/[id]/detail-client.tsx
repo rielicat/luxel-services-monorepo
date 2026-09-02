@@ -43,13 +43,9 @@ const fmtDay = (d: string) =>
     new Date(`${d}T00:00:00Z`),
   );
 
-/** `from` is the Santiago calendar date computed on the SERVER — the client
- *  never reads its own clock during render, so hydration is stable. */
 function stats(property: PropertyRow, liveDays: LiveDay[] | null, from: string) {
   const horizon = liveDays?.length ? liveDays.slice(0, 30) : null;
 
-  // Booked nights in [a, b) according to the synced reservation blocks — the
-  // only source that also covers the PAST (the live calendar starts today).
   const bookedNights = (a: string, b: string) => {
     const booked = new Set<string>();
     for (const blk of property.calendar_blocks) {
@@ -69,7 +65,6 @@ function stats(property: PropertyRow, liveDays: LiveDay[] | null, from: string) 
     : Math.round((bookedNights(from, addDays(from, 30)) / 30) * 100);
   const pastOccupancy = Math.round((bookedNights(addDays(from, -30), from) / 30) * 100);
 
-  // Money metrics straight from the listing's real nightly rates.
   const reservedPriced = (horizon ?? []).filter((d) => d.reserved && d.priceClp != null);
   const revenue30 = horizon ? reservedPriced.reduce((sum, d) => sum + d.priceClp!, 0) : null;
   const priced = (horizon ?? []).filter((d) => d.priceClp != null);
@@ -101,15 +96,11 @@ function stats(property: PropertyRow, liveDays: LiveDay[] | null, from: string) 
       (c) => c.status === 'suggested' && c.cleaning_date >= from,
     ).length,
     needsReply: property.guest_threads.filter((t) => t.status === 'needs_host').length,
-    // Both windows span exactly 7 days; the current one ends today inclusive.
     aiReplies7d: aiInWindow(6, -1),
     aiPrev7d: aiInWindow(13, 6),
   };
 }
 
-/** Identity only — the full listing record lives on Airbnb (and feeds the AI);
- *  repeating it here was noise. Title is the host's own nickname; status tags
- *  sit on their own row. */
 function SlimHero({ property, aiOff }: { property: PropertyRow; aiOff: boolean }) {
   const t = useTranslations('detail');
   const tp = useTranslations('properties');
@@ -171,11 +162,9 @@ export function PropertyDetailClient({
 }: {
   property: PropertyRow;
   liveDays: LiveDay[] | null;
-  /** Santiago calendar date, server-computed (YYYY-MM-DD). */
   today: string;
   turnoverPrice: number | null;
   showSim: boolean;
-  /** Nightly recommendations from the pricing engine, by date. */
   recommended?: Record<string, number> | null;
 }) {
   const t = useTranslations('detail');
@@ -183,8 +172,6 @@ export function PropertyDetailClient({
   const accessUnconfigured =
     !property.property_access?.method ||
     property.property_access.method === 'physical_none' ||
-    // Keyless with no code renders the guest an empty check-in page — a silent
-    // failure the host only hears about from the guest at the door.
     (property.property_access.method === 'keyless' &&
       !property.property_access.keyless_code?.trim());
 
@@ -199,7 +186,6 @@ export function PropertyDetailClient({
     .map((a) => a.addon)
     .filter((a): a is AddonKey => (ADDON_KEYS as readonly string[]).includes(a));
 
-  // Metric drill-downs — every number explains itself on tap.
   type MetricId = 'revenue' | 'occupancy' | 'adr' | 'ai';
   const [openMetric, setOpenMetric] = useState<MetricId | null>(null);
   const horizon = liveDays?.slice(0, 30) ?? null;
@@ -216,7 +202,6 @@ export function PropertyDetailClient({
   ).length;
   const cleaningCost30 = turnoverPrice != null ? cleanings30 * turnoverPrice : null;
 
-  // Deltas only where real history exists — never an invented trend.
   const occDelta = s.occupancy - s.pastOccupancy;
   const aiDelta = s.aiReplies7d - s.aiPrev7d;
   const signed = (n: number) => `${n >= 0 ? '+' : ''}${n}`;
@@ -320,10 +305,6 @@ export function PropertyDetailClient({
 
       <SlimHero property={property} aiOff={property.ai_enabled === false} />
 
-      {/* Status strip first — how the listing is doing, as plain figures rather
-          than four more boxes. The number carries the weight; dropping the
-          borders removes four competing frames. Still tappable for the
-          breakdown. */}
       <div className="border-border/60 mb-10 grid grid-cols-2 gap-x-6 gap-y-5 border-y py-5 lg:grid-cols-4">
         {metrics.map((m) => (
           <button
@@ -359,8 +340,6 @@ export function PropertyDetailClient({
         ))}
       </div>
 
-      {/* Then what needs you: the only items asking for the host's time, ahead
-          of the controls. */}
       {attention.length > 0 ? (
         <div className="border-warning/30 bg-warning/10 mb-10 flex flex-wrap items-center gap-2 rounded-xl border p-3">
           {attention.map((a) => (
@@ -433,9 +412,6 @@ export function PropertyDetailClient({
       </Modal>
 
       <div className="grid gap-8">
-        {/* Turnovers and calendar answer the same question — what happens this
-            week — so they share a row, calendar on the right where the eye
-            lands last. Access and the inbox each take the full width. */}
         <div className="grid gap-6 lg:grid-cols-2">
           <Section
             sectionRef={(el) => {
@@ -508,7 +484,6 @@ export function PropertyDetailClient({
   );
 }
 
-/** Always-open dashboard block — no accordion to fight, just a clear header. */
 function Section({
   sectionRef,
   icon: Icon,

@@ -11,6 +11,7 @@ export default tseslint.config(
   prettier,
   {
     rules: {
+      'no-empty': ['error', { allowEmptyCatch: true }],
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },

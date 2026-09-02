@@ -14,7 +14,6 @@ import { capture } from '@/lib/analytics/server';
 import { EVENTS } from '@/lib/analytics/events';
 
 const Schema = z.object({
-  // id or slug — fallback pricing data identifies service types by slug.
   serviceTypeId: z.string().min(1),
   squareMeters: z.coerce.number().int().positive().max(2000),
   addressLine: z.string().min(3).max(200),
@@ -49,12 +48,10 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
   if (!parsed.success) return { ok: false, error: 'validation' };
   const input = parsed.data;
 
-  // Never create a booking for a provider whose checkout isn't configured here.
   if (!availablePaymentProviders().includes(input.paymentProvider)) {
     return { ok: false, error: 'validation' };
   }
 
-  // Geocode address.
   const geocoded = await geocodeAddress(input.addressLine, input.commune);
   if (!geocoded) return { ok: false, error: 'geocode_failed' };
 
@@ -62,7 +59,6 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
   const serviceType = serviceTypes.find((s) => s.id === input.serviceTypeId);
   if (!serviceType) return { ok: false, error: 'service_not_found' };
 
-  // Quote (re-derive on the server, never trust the client total).
   let priced;
   try {
     priced = quote({
@@ -80,14 +76,12 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
     return { ok: false, error: 'generic' };
   }
 
-  // Capacity check.
   const availability = await getDayAvailability(input.scheduledDate, priced.operationPointId);
   const slot = availability.timeblocks.find((b) => b.timeblock === input.timeblock);
   if (!slot || slot.available <= 0) return { ok: false, error: 'no_availability' };
 
   const supabase = createSupabaseServiceRoleClient();
 
-  // Persist address.
   const { data: address, error: addrErr } = await supabase
     .from('addresses')
     .insert({
@@ -101,7 +95,6 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
     .single();
   if (addrErr || !address) return { ok: false, error: 'generic' };
 
-  // Persist booking.
   const { data: booking, error: bookErr } = await supabase
     .from('bookings')
     .insert({
@@ -141,6 +134,5 @@ export async function createBookingAction(formData: FormData): Promise<CreateBoo
 
   revalidatePath('/account', 'page');
 
-  // Hand off to checkout — the provider maps 1:1 to its /api/checkout/<provider> route.
   redirect(`/api/checkout/${input.paymentProvider}?bookingId=${booking.id}`);
 }

@@ -16,7 +16,6 @@ export function Nav() {
           <LuxelLogo />
         </Link>
 
-        {/* Marketing links (desktop): Servicios · Precios · Nosotros */}
         <nav className="text-muted-foreground hidden items-center gap-7 text-sm font-medium md:flex">
           <ServicesDropdown />
           <Link href="/calculator" className="hover:text-foreground transition-colors">
@@ -28,8 +27,6 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-2 text-sm sm:gap-3">
-          {/* Reserve the cluster's space while Clerk boots so it doesn't jump —
-              incl. the sm+ secondary link that the SignedIn/SignedOut clusters show. */}
           <ClerkLoading>
             <span
               aria-hidden

@@ -1,7 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 
-/** Streamed instantly while the dashboard's plan + services data loads. */
 export default function AccountLoading() {
   return (
     <main className="pb-16">

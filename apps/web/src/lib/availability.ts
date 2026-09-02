@@ -2,26 +2,21 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from './supabase/server';
 import type { Timeblock } from '@luxel/shared';
 
-export interface TimeblockAvailability {
+interface TimeblockAvailability {
   timeblock: Timeblock;
   capacity: number;
   booked: number;
   available: number;
 }
 
-export interface DayAvailability {
-  date: string; // ISO yyyy-mm-dd
+interface DayAvailability {
+  date: string;
   operationPointId: string;
   timeblocks: TimeblockAvailability[];
 }
 
 const TIMEBLOCKS: Timeblock[] = ['manana', 'tarde'];
 
-/**
- * Compute available timeblocks for a given date and operation point.
- * Capacity = active operators at that operation point.
- * Booked   = bookings on (date, timeblock, op_point) not in cancelled state.
- */
 export async function getDayAvailability(
   date: string,
   operationPointId: string,

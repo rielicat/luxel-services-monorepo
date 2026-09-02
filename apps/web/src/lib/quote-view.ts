@@ -4,7 +4,7 @@ import type { PricingConfig } from '@luxel/pricing';
 export type Frequency = 'one_time' | 'weekly' | 'biweekly' | 'monthly';
 export type Tools = 'customer' | 'company';
 
-export interface QuoteBreakdown {
+interface QuoteBreakdown {
   base: number;
   perM2: number;
   distance: number;
@@ -16,18 +16,15 @@ export interface QuoteView {
   perVisitClp: number;
   breakdown: QuoteBreakdown;
   distanceKm: number | null;
-  /** true = exact (server, includes distance); false = client estimate (no distance). */
   exact: boolean;
 }
 
-/** Average visits per month (365/12 = 30.42 days). */
-export const VISITS_PER_MONTH: Record<Exclude<Frequency, 'one_time'>, number> = {
+const VISITS_PER_MONTH: Record<Exclude<Frequency, 'one_time'>, number> = {
   weekly: 4.345,
   biweekly: 2.173,
   monthly: 1,
 };
 
-/** Instant client-side estimate (everything except distance, which needs geocoding). */
 export function estimateQuote(
   serviceType: ServiceType,
   squareMeters: number,
@@ -51,7 +48,6 @@ export function estimateQuote(
   };
 }
 
-/** Monthly recurring cost for subscription frequencies; null for one-time. */
 export function monthlyClp(perVisitClp: number, frequency: Frequency): number | null {
   if (frequency === 'one_time') return null;
   return Math.round(perVisitClp * VISITS_PER_MONTH[frequency]);

@@ -57,7 +57,6 @@ export function CalculatorForm({
 
   const serviceType = serviceTypes.find((s) => s.slug === serviceTypeSlug) ?? serviceTypes[0];
 
-  // Instant client-side estimate (no distance) — reacts to every control change.
   const estimate = useMemo<QuoteView | null>(
     () =>
       serviceType
@@ -69,10 +68,6 @@ export function CalculatorForm({
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const startedRef = useRef(false);
 
-  // Exact server quote (with distance + coverage), debounced, once an address exists.
-  // A per-run `cancelled` flag invalidates both the pending timer and any in-flight
-  // request when inputs change / the address is cleared / the component unmounts,
-  // so a stale response can never repopulate the panel.
   useEffect(() => {
     if (!selectedLocation) {
       setServerResult(null);
@@ -120,9 +115,6 @@ export function CalculatorForm({
     };
   }, [selectedLocation, serviceTypeSlug, squareMeters, toolsProvidedBy, frequency, addressLabel]);
 
-  // While a recompute is in flight, show the fresh client estimate for the
-  // CURRENT controls (dimmed) instead of clinging to the stale server value.
-  // Once settled, prefer the exact server result.
   const view: QuoteView | null = pending
     ? estimate
     : serverResult
@@ -136,8 +128,6 @@ export function CalculatorForm({
         : null
       : estimate;
 
-  // Only surface an error once the matching request has settled — never a stale
-  // out-of-area/generic from a previous address while recomputing.
   const error: 'out_of_area' | 'generic' | null =
     !pending && serverResult && !serverResult.ok
       ? serverResult.error === 'out_of_area'
@@ -148,7 +138,6 @@ export function CalculatorForm({
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[1fr_400px]">
       <div className="grid gap-4">
-        {/* Step 1 — service */}
         <StepCard n={1} icon={Home} title={t('steps.service')}>
           <RadioGroup
             value={serviceTypeSlug}
@@ -198,7 +187,6 @@ export function CalculatorForm({
           </RadioGroup>
         </StepCard>
 
-        {/* Step 2 — size */}
         <StepCard n={2} icon={Ruler} title={t('steps.size')}>
           <div className="grid gap-4">
             <div className="flex items-end justify-between">
@@ -235,7 +223,6 @@ export function CalculatorForm({
           </div>
         </StepCard>
 
-        {/* Step 3 — address */}
         <StepCard n={3} icon={MapPin} title={t('steps.address')} raise>
           <AddressAutocomplete
             label={t('fields.address')}
@@ -248,7 +235,6 @@ export function CalculatorForm({
           />
         </StepCard>
 
-        {/* Step 4 — tools */}
         <StepCard n={4} icon={Package} title={t('steps.tools')}>
           <RadioGroup
             value={toolsProvidedBy}
@@ -275,7 +261,6 @@ export function CalculatorForm({
           </RadioGroup>
         </StepCard>
 
-        {/* Step 5 — frequency */}
         <StepCard n={5} icon={Repeat} title={t('steps.frequency')}>
           <RadioGroup
             value={frequency}
@@ -323,7 +308,6 @@ export function CalculatorForm({
         </StepCard>
       </div>
 
-      {/* Live quote — sticky */}
       <div className="animate-fade-in-up grid content-start gap-4 [animation-delay:120ms] lg:sticky lg:top-24 lg:self-start">
         <QuoteResult
           view={view}
@@ -366,8 +350,6 @@ function StepCard({
   icon: LucideIcon;
   title: string;
   children: React.ReactNode;
-  /** Lift this card's stacking context so an overflowing popover (address
-   *  suggestions) paints above the following step cards. */
   raise?: boolean;
 }) {
   return (

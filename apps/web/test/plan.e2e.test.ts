@@ -1,7 +1,3 @@
-/**
- * End-to-end proof of the AI-plan subscription lifecycle: start a 14-day trial,
- * the win-back extension to 30 days, cancel, and reactivate.
- */
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -11,7 +7,6 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABAS
 const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-plan-${nodeCrypto.randomUUID()}`;
-// Enable the payment dev-mock so trial→active activation is testable without MP.
 delete process.env.MERCADOPAGO_ACCESS_TOKEN;
 process.env.LUXEL_DEV_MOCK_PAYMENTS = '1';
 
@@ -78,7 +73,6 @@ describe.skipIf(!LIVE)('AI-plan subscription (end to end)', () => {
     ).data!;
     expect(row.status).toBe('cancelled');
 
-    // Reactivate — upsert flips it back to trialing without a duplicate row.
     expect((await startPlan({ plan: 'ai' })).ok).toBe(true);
     const { data: rows } = await admin
       .from('plan_subscriptions')

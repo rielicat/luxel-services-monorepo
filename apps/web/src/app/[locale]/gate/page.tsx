@@ -1,23 +1,5 @@
 'use client';
 
-/* ─────────────────────────────────────────────────────────────────────────
- * TEMPORARY STEALTH GATE — remove before public launch.
- *
- * The middleware rewrites every page to this route while the unlock cookie is
- * absent (production only), so locked visitors get the gate straight from the
- * server and unlocked visitors never see it — no client-side flicker either
- * way. No input field and no on-screen hint: it listens for keystrokes
- * globally and unlocks the moment the last digits typed match the code, then
- * sets the cookie and reloads (the middleware lets the real page through).
- *
- * Access code: 0612
- * To LIFT the gate: delete this route + the gate block in
- * apps/web/src/middleware.ts. See AGENTS.md § Temporary.
- *
- * NOT real security — the code ships in the client bundle. It's a soft curtain
- * to keep casual visitors out during stealth.
- * ──────────────────────────────────────────────────────────────────────── */
-
 import { useEffect, useRef, useState } from 'react';
 import { LuxelMark } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
@@ -36,7 +18,6 @@ export default function GatePage() {
   const buffer = useRef('');
 
   useEffect(() => {
-    // Browsers unlocked under the old localStorage gate migrate silently.
     if (localStorage.getItem(LEGACY_KEY) === '1') {
       unlock();
       return;

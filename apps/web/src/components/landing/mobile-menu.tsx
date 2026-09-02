@@ -5,8 +5,6 @@ import { useTranslations } from 'next-intl';
 import { Menu, X, Bot, Sparkles, Users, Tag } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
-/** Mobile marketing menu — the site previously had NO mobile access to the
- *  marketing links. Custom useState + outside-click/Escape, like user-menu.tsx. */
 export function MobileMenu() {
   const t = useTranslations('nav');
   const [open, setOpen] = useState(false);

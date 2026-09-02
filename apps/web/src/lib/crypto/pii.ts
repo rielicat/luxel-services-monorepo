@@ -1,15 +1,6 @@
 import 'server-only';
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto';
 
-/**
- * AES-256-GCM at-rest encryption for guest ID numbers — the Ley 21.719 security
- * duty (Art. 14 quinquies) for the required-but-minimized identity we store. The
- * plaintext document number is never persisted; only this ciphertext + a last-4.
- *
- * LUXEL_PII_KEY is a 32-byte key given as 64-char hex or base64; any other value
- * is stretched to 32 bytes via SHA-256 so a passphrase also works. Fails closed
- * (throws) when unset — we never fall back to storing plaintext.
- */
 function key(): Buffer {
   const raw = process.env.LUXEL_PII_KEY;
   if (!raw) throw new Error('LUXEL_PII_KEY is not set');
@@ -36,7 +27,6 @@ export function decryptPII(enc: string): string {
   return Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
 }
 
-/** Last 4 characters of a document number, for host-facing display only. */
 export function last4(s: string): string {
   return s.replace(/\s+/g, '').slice(-4);
 }

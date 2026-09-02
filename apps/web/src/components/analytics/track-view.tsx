@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { track } from '@/lib/analytics/client';
 
-/** Fires a one-shot event when mounted (e.g. account_viewed). */
 export function TrackView({
   event,
   properties,
@@ -19,7 +18,6 @@ export function TrackView({
   return null;
 }
 
-/** Captures $pageview on every path change (capture_pageview is off in the provider). */
 export function PostHogPageview() {
   const pathname = usePathname();
   useEffect(() => {

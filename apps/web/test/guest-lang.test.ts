@@ -1,8 +1,3 @@
-/**
- * The check-in page speaks the guest's language. Airbnb's own signal wins over
- * the browser's, and a language we cannot serve falls to English — the guest
- * who does not read Spanish is exactly who the fallback exists for.
- */
 import { describe, it, expect } from 'vitest';
 import { guestLang, resolveGuestLang } from '../src/lib/checkin/lang';
 import { checkinMessages, GUEST_LOCALES } from '@luxel/shared/i18n';

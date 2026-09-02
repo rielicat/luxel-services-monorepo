@@ -4,29 +4,12 @@ import { hospitableAccess } from './scope';
 import { syncHospitableAccount } from './hospitable-sync';
 import { autoAssignListings } from './auto-assign';
 
-/**
- * Hospitable, as a plugin.
- *
- * This file is the ONLY place that ties the vendor's modules to the machinery
- * that drives them. Everything below it (`hospitable.ts`, `hospitable-sync.ts`)
- * is deliberately named for the vendor it speaks to; everything above it
- * (`./registry.ts`, the webhook route's resync) never learns the name. Swapping
- * providers means writing a sibling of this file, not touching either side.
- */
 export const hospitablePlugin: ChannelPlugin = {
   id: 'hospitable',
 
   capabilities: {
-    // Verified live: POST /v2/reservations/{id}/messages lands in the Airbnb
-    // thread. The whole product depends on this one being true.
     sendsGuestMessages: true,
-    // listings[].platform_email carries the host's own channel account, which
-    // is what makes attribution automatic rather than an operator step.
     hasHostIdentity: true,
-    // v2 pushes reservation.*, property.*, message.* and review.created, and
-    // retries a failed delivery 5 times out to six hours. The 404 on
-    // /v2/webhooks means there is no API to CREATE one — registration is a
-    // dashboard action (Apps > Webhooks), not a missing capability.
     webhooks: true,
   },
 

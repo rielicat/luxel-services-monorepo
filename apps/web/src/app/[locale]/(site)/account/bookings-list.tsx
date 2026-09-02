@@ -63,9 +63,6 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
                   weekday: 'long',
                   day: 'numeric',
                   month: 'long',
-                  // scheduled_date is a pure calendar date (no time); render it in
-                  // UTC so a UTC-parsed midnight isn't shifted back a day by the
-                  // local timezone.
                   timeZone: 'UTC',
                 }).format(new Date(b.scheduled_date))}
               </p>

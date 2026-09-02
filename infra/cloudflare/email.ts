@@ -2,8 +2,6 @@ import * as cloudflare from '@pulumi/cloudflare';
 import { accountId, zoneId, emailRouting, slug } from './config';
 import { importId } from './adopt';
 
-// Enabling Email Routing (and its auto-managed MX/SPF/DKIM records). Adopted via
-// import — never recreated.
 export const settings = emailRouting.enabled
   ? new cloudflare.EmailRoutingSettings(
       'email-settings',
@@ -12,8 +10,6 @@ export const settings = emailRouting.enabled
     )
   : undefined;
 
-// Verified forwarding destinations (account-level). Creating an unverified one
-// triggers Cloudflare's verification email.
 export const destinations = emailRouting.destinations.map(
   (email) =>
     new cloudflare.EmailRoutingAddress(
@@ -23,7 +19,6 @@ export const destinations = emailRouting.destinations.map(
     ),
 );
 
-// Per-address forwarding rules: match "to: <address>" → forward to <forwardTo>.
 export const rules = emailRouting.rules.map(
   (r) =>
     new cloudflare.EmailRoutingRule(
@@ -39,9 +34,6 @@ export const rules = emailRouting.rules.map(
     ),
 );
 
-// Catch-all: what happens to every other address at the domain. Gated on the
-// same `enabled` flag as `settings` so the resource set and the generated import
-// map (which keys catch-all off live routing being enabled) can never diverge.
 export const catchAll = emailRouting.enabled
   ? new cloudflare.EmailRoutingCatchAll(
       'catch-all',

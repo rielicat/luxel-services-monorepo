@@ -1,8 +1,3 @@
-// Sets the non-secret identity config Pulumi needs to adopt the web project:
-// its Vercel project name (and teamId, if the projects live under a Team). Run
-// with the `prod` stack selected (cwd = infra/vercel). Both values are
-// non-secret project metadata, read straight from the Vercel API.
-
 import { execFileSync } from 'child_process';
 import { vcProjects } from './vercel-api.mjs';
 

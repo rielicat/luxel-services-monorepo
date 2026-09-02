@@ -17,8 +17,6 @@ const TIERS: { id: AirbnbTier; name: string; desc: string }[] = [
   { id: 'handoff', name: 'plan_pro_name', desc: 'plan_pro_desc' },
 ];
 
-/** AirBnB "quote": a flat fee per listing across two tiers (base / +human
- *  handoff). Total = listings × the selected tier price. */
 export function AirbnbQuote() {
   const t = useTranslations('calculator.airbnb');
   const [listings, setListings] = useState(1);

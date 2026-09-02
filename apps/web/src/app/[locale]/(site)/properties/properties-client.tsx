@@ -25,12 +25,6 @@ import type { Cleaning } from './cleaning-panel';
 import type { PropertyContact } from './contact-list';
 import type { Thread } from './messaging-panel';
 
-export type Feed = {
-  id: string;
-  label: string | null;
-  ical_url: string;
-  last_synced_at: string | null;
-};
 export type Block = {
   id: string;
   starts_on: string;
@@ -71,7 +65,6 @@ export type PropertyRow = {
   cleaning_auto_confirm: boolean;
   property_contacts: PropertyContact[];
   property_access: AccessRow;
-  property_calendars: Feed[];
   calendar_blocks: Block[];
   cleanings: Cleaning[];
   guest_threads: Thread[];
@@ -89,9 +82,7 @@ export function PropertiesClient({
   plan: Plan;
   connection: HostConnection | null;
   syncFailed?: boolean;
-  /** Luxel runs this host's channel account — they have no token to paste. */
   centralManaged?: boolean;
-  /** A payment provider is wired and can charge. */
   billingReady?: boolean;
 }) {
   const t = useTranslations('properties');
@@ -135,8 +126,6 @@ export function PropertiesClient({
   );
 }
 
-/** Connected account, zero listings: the mirror is live — anything published on
- *  Airbnb shows up here on its own. */
 function EmptyConnected() {
   const t = useTranslations('properties');
   return (
@@ -152,8 +141,6 @@ function EmptyConnected() {
   );
 }
 
-/** Listings are import-only: the empty state IS the onboarding — three steps
- *  from zero to an imported, configured property. */
 function Onboarding({ connected }: { connected: boolean }) {
   const t = useTranslations('onboarding');
   const steps = [
@@ -209,8 +196,6 @@ function accessChip(method: string | undefined, t: (key: string) => string) {
   return { icon: TriangleAlert, cls: 'bg-warning/15 text-warning', label: t('chip_no_access') };
 }
 
-/** An imported Airbnb listing, photo first — the card mirrors the anuncio, the
- *  badges carry Luxel's operational state on top. */
 function ListingCard({ property }: { property: PropertyRow }) {
   const t = useTranslations('properties');
   const today = new Date().toISOString().slice(0, 10);

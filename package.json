@@ -2,7 +2,7 @@
   "name": "luxel-services-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "Servicios Luxel — cleaning services platform (es-CL).",
+  "description": "Servicios Luxel — Airbnb host automation platform for Santiago (es-CL).",
   "engines": {
     "node": ">=22.13.0",
     "pnpm": ">=11.0.0"

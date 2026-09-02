@@ -15,8 +15,7 @@ export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 type Frequency = 'one_time' | 'weekly' | 'biweekly' | 'monthly';
 type Tools = 'customer' | 'company';
 
-/** A structured payload forwarded to the chat widget to render rich cards / CTAs. */
-export type Widget =
+type Widget =
   | {
       kind: 'quote';
       serviceTypeSlug: string;
@@ -48,8 +47,6 @@ export type Widget =
       closeHour: number;
     };
 
-/** Curated navigation targets the agent may surface as clickable actions. Keeps
- *  the model from inventing URLs — it picks keys, we resolve label + href here. */
 const LINK_DESTINATIONS: Record<
   string,
   { label: string; href: string; style: 'primary' | 'outline' }
@@ -71,23 +68,18 @@ const LINK_DESTINATIONS: Record<
   about: { label: 'Sobre Luxel', href: '/about', style: 'outline' },
 };
 
-export interface ToolResult {
-  /** Text the model relays to the user. Must be self-contained. */
+interface ToolResult {
   content: string;
-  /** Optional rich payload for the widget UI. */
   widget?: Widget;
   handoff?: boolean;
 }
 
 export interface ToolContext {
   whatsappNumber?: string | null;
-  /** The signed-in host's customer id — unlocks the real host-status tool. */
   customerId?: string | null;
-  /** Clerk session present (a user can be signed in with no customers row yet). */
   signedIn?: boolean;
 }
 
-/** Tool schemas (OpenAI function tools) — service-type enum injected per request. */
 export function buildTools(serviceSlugs: string[]): OpenAI.Chat.Completions.ChatCompletionTool[] {
   const slugEnum = serviceSlugs.length ? serviceSlugs : ['regular', 'deep'];
   return [
@@ -289,13 +281,9 @@ function getAirbnbQuote(input: Record<string, unknown>): ToolResult {
 
 const DAY = 86_400_000;
 
-/** Real host overview: mirror rows + live Airbnb calendar per listing. Every
- *  number traces to a system of record — no estimates. */
 async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
   if (!ctx.customerId) {
     if (ctx.signedIn) {
-      // Session exists but the customers row hasn't been provisioned yet
-      // (webhook lag) — never tell a signed-in user to sign in.
       return {
         content:
           'Su cuenta está recién creada y su perfil aún se está preparando. Pídele que abra Mis propiedades (el botón ya se muestra) o reintente en unos minutos.',
@@ -317,8 +305,6 @@ async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
     };
   }
 
-  // Listings come from fetchProperties(customerId), so they are already this
-  // customer's — reading their calendars through the central credential is safe.
   const token = (await hospitableAccess(ctx.customerId))?.token ?? null;
   const today = new Date();
   const iso = (d: Date) => d.toISOString().slice(0, 10);

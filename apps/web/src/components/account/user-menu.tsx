@@ -34,8 +34,6 @@ export function UserMenu() {
     return <span className="bg-muted h-9 w-9 shrink-0 animate-pulse rounded-full" aria-hidden />;
   }
 
-  // Presentation only — /admin/* enforces this server-side (notFound for
-  // non-admins). Showing the link is not what grants access.
   const isAdmin = user?.publicMetadata?.role === 'admin';
   const name = user?.fullName || user?.firstName || '';
   const email = user?.primaryEmailAddress?.emailAddress ?? '';

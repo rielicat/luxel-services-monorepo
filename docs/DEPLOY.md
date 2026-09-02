@@ -1,74 +1,101 @@
 # Deployment
 
-Two deployable apps live in this monorepo — deploy each as its **own Vercel
-project** (a Vercel project has one root directory):
+Two deployable apps live in this monorepo. Each app is its own Vercel project. A
+Vercel project has one root directory.
 
-| App                             | Root directory | Suggested domain                             |
+| App                             | Root directory | Domain                                       |
 | ------------------------------- | -------------- | -------------------------------------------- |
 | Customer site (`@luxel/web`)    | `apps/web`     | `serviciosluxel.cl`, `www.serviciosluxel.cl` |
 | Operator panel (`@luxel/admin`) | `apps/admin`   | `panel.serviciosluxel.cl` (internal)         |
 
-The Cloudflare Worker (`workers/whatsapp`) deploys separately via `wrangler deploy`.
-The Cloudflare **zone** (DNS + Email Routing) is managed as code with Pulumi in
-[`infra/cloudflare`](../infra/cloudflare/README.md) — state in Cloudflare R2.
+The Cloudflare Worker (`workers/whatsapp`, named `luxel-whatsapp-webhook`)
+deploys separately with `wrangler deploy`.
+
+Infrastructure is code. Two Pulumi (TS) programs share a state backend in
+Cloudflare R2:
+
+| Program                                             | Manages                                                                                   | Applied by                           |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------ |
+| [`infra/cloudflare`](../infra/cloudflare/README.md) | The zone: DNS + Email Routing                                                             | `.github/workflows/infra.yml`        |
+| [`infra/vercel`](../infra/vercel/README.md)         | The two Vercel projects. Adopts `web`. Creates `admin` with its domain and non-secret env | `.github/workflows/infra-vercel.yml` |
+
+Neither program deploys app code. Vercel's Git integration deploys `web` and
+`admin` on every push to `main`.
 
 ## One-time production infrastructure (owned by the operator)
 
-These are external accounts — the code can't provision them:
+These are external accounts. The code cannot provision them:
 
-1. **Supabase** — create a project, then apply the schema:
-   `supabase link --project-ref <ref>` → `supabase db push` (applies everything in
-   `supabase/migrations/`, then run `supabase/seed.sql` for service types / pricing
-   / operation point). Copy the Project URL + the `sb_publishable_*` and
-   `sb_secret_*` keys.
-2. **Clerk** — create a production instance (or claim the dev one). Configure the
-   `supabase` JWT template (see the root README). Add **both** app domains to the
-   instance's allowed origins. Copy `pk_live_*` / `sk_live_*`.
-3. **MercadoPago** + **Stripe** — production merchant accounts (CLP). Set the
-   webhook URLs to `https://serviciosluxel.cl/api/webhooks/{mercadopago,stripe}`.
-4. **WhatsApp Cloud API** — via Meta Business; deploy the worker and set its secrets
-   with `wrangler secret put`.
-5. **OpenAI** — an API key for the "Lux" concierge (`OPENAI_API_KEY`; model
-   defaults to the cost-optimized `gpt-4o-mini`, override with `OPENAI_MODEL`).
-6. **PostHog / Sentry** — optional (in-house analytics works without PostHog).
-7. **DNS** — point the domains at Vercel.
+1. **Supabase** — create a project. Copy the Project URL, the `sb_publishable_*`
+   key and the `sb_secret_*` key. Apply the schema once:
+   `supabase link --project-ref <ref>` → `supabase db push`, then run
+   `supabase/seed.sql`. After that, `.github/workflows/db-migrate.yml` applies
+   new migrations on push (repo secret `SUPABASE_DB_URL`).
+2. **Clerk** — create a production instance. Add **both** app domains to the
+   allowed origins. Copy `pk_live_*` / `sk_live_*`. Point a Clerk webhook at
+   `https://serviciosluxel.cl/api/webhooks/clerk` and copy
+   `CLERK_WEBHOOK_SECRET`. Set `publicMetadata.role = "admin"` on each operator
+   who needs `/admin` in the customer site. Create the operator organization for
+   the panel (see `apps/admin` env below). Keep Organizations optional in the
+   instance.
+3. **Hospitable** — connect the central Luxel account and set `PROVIDER_API_KEY`.
+   Register the webhook once, in Apps > Webhooks:
+   `https://serviciosluxel.cl/api/channels/hospitable`. Add **no secret**; the
+   route authorises by source IP. See [`ENV.md`](./ENV.md) § Inbound webhook
+   access. Author the time-based guest messages as message rules. See
+   [`ENV.md`](./ENV.md) § Scheduled guest messages.
+4. **OpenAI** — an API key for Lux and the guest auto-replies (`OPENAI_API_KEY`).
+   The model defaults to `gpt-4o-mini`; override with `OPENAI_MODEL`.
+5. **Resend** — verify the sending domain. Set `RESEND_API_KEY` and
+   `RESEND_FROM`.
+6. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
+   secrets with `wrangler secret put`. Get the templates `luxel_conserje_llegada`
+   and `luxel_aseo_nueva_reserva` approved. Set `WHATSAPP_WORKER_SEND_URL` and
+   `INTERNAL_SEND_TOKEN` on the web project.
+7. **Payments** — MercadoPago, Stripe, Transbank (CLP). Set the webhook URLs to
+   `https://serviciosluxel.cl/api/webhooks/{mercadopago,stripe}`. Transbank has
+   no webhook; `/api/checkout/transbank/commit` completes the payment.
+8. **PriceLabs** — optional `PRICELABS_API_KEY` for dynamic pricing.
+9. **PostHog / Sentry** — optional. In-house analytics works without PostHog.
+10. **DNS** — records live in `infra/cloudflare`. They point the domains at
+    Vercel.
 
 ## Vercel setup (per project)
 
-- Framework preset: **Next.js**. Vercel auto-detects the pnpm workspace and runs
-  the install at the repo root; set **Root Directory** to `apps/web` (resp.
-  `apps/admin`) and enable "Include files outside the root directory".
+- `infra/vercel` sets the framework preset (**Next.js**), the Root Directory
+  (`apps/web`, resp. `apps/admin`) and the Git link to `main`. Vercel detects the
+  pnpm workspace and installs at the repo root. Enable "Include files outside
+  the root directory" in the project settings.
 - Node 22 (`.nvmrc`).
-- Set the environment variables below in the Vercel project settings.
+- Set the environment variables in the Vercel project settings. The exception is
+  the admin config managed as code below.
 
-### `apps/web` env (see `.env.example`)
+### `apps/web` env
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
-`SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`,
-`CLERK_WEBHOOK_SECRET`,
-`NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`,
-`NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/account`,
-`NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/account`,
-`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`,
-`MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`,
-`NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`, `NEXT_PUBLIC_WHATSAPP_NUMBER`,
-`OPENAI_API_KEY`, Sentry/PostHog vars.
-Do **not** set `LUXEL_DEV_MOCK_PAYMENTS` in production.
+The inventory lives in [`ENV.md`](./ENV.md): the **Required** table, the
+**Feature gates** table, and the **Payments** table. Do not keep a second list
+here. Never set `LUXEL_DEV_MOCK`, `LUXEL_DEV_MOCK_PAYMENTS`, or `E2E_SKIP_AUTH`
+in production.
 
-### `apps/admin` env (see `apps/admin/.env.example`)
+### `apps/admin` env
 
-`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
-`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`,
+Set in the Vercel dashboard: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`.
+
+Managed as code in [`infra/vercel/admin.ts`](../infra/vercel/admin.ts):
 `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`,
-`NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/`,
-`LUXEL_ADMIN_ORG_SLUG=servicios-luxel`.
+`NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/`, and `LUXEL_ADMIN_ORG_SLUG`
+(the slug of the live operator org, `servicios-luxel-1783354109102489708`).
+`LUXEL_ADMIN_ORG_ID` can replace the slug.
 
-Operator access is by **Clerk organization membership** — create a Clerk org
-with that slug and add staff as members (manage the whitelist in Clerk's
-dashboard). Enable Organizations in the Clerk instance first.
+Operator access is **Clerk organization membership**. Add staff to that org in
+the Clerk dashboard. Remove them there too. Vercel snapshots env at build time.
+After a change in `admin.ts`, redeploy the admin project.
 
 ## CI
 
 `.github/workflows/ci.yml` runs format-check + typecheck + lint + test + build on
-every push to `main` and on PRs (with stub env). It does **not** deploy — connect
-the GitHub repo to Vercel for auto-deploys on push.
+every push to `main` and on PRs, with stub env. It does **not** deploy. Vercel's
+Git integration deploys `web` and `admin` on push. `db-migrate.yml`, `infra.yml`
+and `infra-vercel.yml` run when a push touches their directories
+(`supabase/migrations`, `infra/cloudflare`, `infra/vercel`).

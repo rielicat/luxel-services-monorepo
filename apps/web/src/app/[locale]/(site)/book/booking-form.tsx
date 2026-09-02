@@ -114,9 +114,6 @@ export function BookingForm({
   const [availability, setAvailability] = useState<DayAvailabilityDTO | null>(null);
   const [paymentProvider, setPaymentProvider] = useState(paymentProviders[0] ?? '');
 
-  // Accordion: a step is expanded iff it isn't selected yet. Anything carried from
-  // the quote starts collapsed; the rest start open and auto-collapse the moment a
-  // choice is made (no "continue" step). Any header re-opens a step to edit it.
   const carried: [number, unknown][] = [
     [1, initial.serviceTypeId],
     [2, initial.squareMeters],
@@ -136,7 +133,6 @@ export function BookingForm({
       return next;
     });
 
-  // On load, jump to the first step that still needs a choice.
   const firstUnfilled = carried.find(([, v]) => !v)?.[0] ?? 6;
   useEffect(() => {
     if (firstUnfilled > 1) {
@@ -221,7 +217,6 @@ export function BookingForm({
   return (
     <form onSubmit={onSubmit} className="grid items-start gap-8 lg:grid-cols-[1fr_360px]">
       <div className="grid gap-3">
-        {/* Step 1 — service */}
         <AccordionStep
           {...stepProps(1, Boolean(selectedService), serviceName)}
           icon={Sparkles}
@@ -275,7 +270,6 @@ export function BookingForm({
           </RadioGroup>
         </AccordionStep>
 
-        {/* Step 2 — size */}
         <AccordionStep
           {...stepProps(2, true, `${squareMeters} m²`)}
           icon={Ruler}
@@ -319,7 +313,6 @@ export function BookingForm({
           </div>
         </AccordionStep>
 
-        {/* Step 3 — address (search) */}
         <AccordionStep
           {...stepProps(
             3,
@@ -347,7 +340,6 @@ export function BookingForm({
           />
         </AccordionStep>
 
-        {/* Step 4 — tools */}
         <AccordionStep
           {...stepProps(
             4,
@@ -383,7 +375,6 @@ export function BookingForm({
           </RadioGroup>
         </AccordionStep>
 
-        {/* Step 5 — frequency */}
         <AccordionStep
           {...stepProps(5, true, freqLabel(frequency))}
           icon={Repeat}
@@ -435,7 +426,6 @@ export function BookingForm({
           </RadioGroup>
         </AccordionStep>
 
-        {/* Step 6 — date + time */}
         <AccordionStep
           {...stepProps(
             6,
@@ -500,7 +490,6 @@ export function BookingForm({
           </div>
         </AccordionStep>
 
-        {/* Step 7 — payment (only providers whose credentials are configured) */}
         <AccordionStep
           {...stepProps(
             7,
@@ -542,7 +531,6 @@ export function BookingForm({
         </AccordionStep>
       </div>
 
-      {/* Sticky summary */}
       <aside className="animate-fade-in-up [animation-delay:120ms] lg:sticky lg:top-24 lg:self-start">
         <Card className="shadow-card border-border/60">
           <CardContent className="grid gap-4 p-5 sm:p-6">

@@ -123,10 +123,11 @@ while one provider exists:
 - `lib/channels/types.ts` owns the ref codec and the `ChannelPlugin` contract,
   and lists the four edits that add a provider. No prefix is string-concatenated
   at a call site any more.
-- `lib/channels/registry.ts` resolves a plugin by id from a static map. An
-  unregistered `CHANNEL_PROVIDER` is a 500, never a silent fallback.
-- `lib/channels/hospitable-plugin.ts` is the only file tying vendor modules to
-  the scheduler. A second provider is a sibling of it.
+- `lib/channels/registry.ts` resolves a plugin by id from a static map. The
+  webhook route takes that id from its `[provider]` URL segment. An unregistered
+  id answers 404, never a silent fallback.
+- `lib/channels/hospitable-plugin.ts` is the only file that ties the vendor
+  modules to the webhook route. A second provider is a sibling of it.
 - `lib/channels/relink.ts` re-keys properties, assignments and check-ins from one
   provider's ids to another's, bridging on the Airbnb confirmation code. It runs
   on every sync that finds a stored listing the account does not have, so it is

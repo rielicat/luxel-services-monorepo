@@ -8,12 +8,12 @@ compare it against the Vercel and GitHub dashboards yourself.
 Four separate places hold configuration. A variable in the wrong one has no
 effect and fails silently:
 
-| Where                              | Holds                                   |
-| ---------------------------------- | --------------------------------------- |
-| Vercel project `luxel-web`         | the customer site and all API routes    |
-| Vercel project `luxel-admin`       | the operator panel                      |
-| GitHub repo secrets                | CI, migrations, infrastructure          |
-| Cloudflare Worker `luxel-whatsapp` | the WhatsApp bridge (`wrangler secret`) |
+| Where                                      | Holds                                   |
+| ------------------------------------------ | --------------------------------------- |
+| Vercel project `luxel-web`                 | the customer site and all API routes    |
+| Vercel project `luxel-admin`               | the operator panel                      |
+| GitHub repo secrets                        | CI, migrations, infrastructure          |
+| Cloudflare Worker `luxel-whatsapp-webhook` | the WhatsApp bridge (`wrangler secret`) |
 
 ## Vercel — `luxel-web`
 
@@ -37,26 +37,25 @@ effect and fails silently:
 
 ### Feature gates: absent means the feature is silently off
 
-| Variable                                           | Absent behaviour                                                                                                 |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** No error surfaces.                     |
-| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                              |
-| `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN` |
-| `CHANNEL_PROVIDER`                                 | optional; defaults to `hospitable`, the only registered plugin. An unregistered value returns HTTP 500           |
-| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false; check-in and crew emails are skipped and recorded as `submitted`, never sent       |
-| `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                           |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp: conserjes and the cleaning crew are reached by email only where they have one                       |
-| `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                    |
-| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                        |
-| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.              |
+| Variable                                           | Absent behaviour                                                                                                                                                 |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** Guest threads go straight to `needs_host`. No error surfaces.                          |
+| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                                                                              |
+| `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN`                                                 |
+| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false. Check-in emails (guest access code, conserje fallback, host confirmation) and cleaning-confirmation emails are skipped, never sent |
+| `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                                                                           |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp. A conserje with an email gets the check-in notice by email. The cleaning-crew booking notice is WhatsApp-only, so it is not sent                    |
+| `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                                                                    |
+| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                        |
+| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.                                                              |
 
 ### Payments — only what the chosen provider needs
 
-| Provider    | Variables                                                                                      |
-| ----------- | ---------------------------------------------------------------------------------------------- |
-| MercadoPago | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`, `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` |
-| Stripe      | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`             |
-| Transbank   | `TRANSBANK_API_KEY`, `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_ENV`                                |
+| Provider    | Variables                                                       |
+| ----------- | --------------------------------------------------------------- |
+| MercadoPago | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`        |
+| Stripe      | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                    |
+| Transbank   | `TRANSBANK_API_KEY`, `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_ENV` |
 
 With none of them set, the plan bar reports `billing_not_configured` and hides
 the activate button, which is intended rather than broken.
@@ -76,8 +75,28 @@ Local development only, never set in production: `LUXEL_DEV_MOCK`,
 
 ## Vercel — `luxel-admin`
 
-`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`),
-`LUXEL_ADMIN_ORG_ID`, `LUXEL_ADMIN_ORG_SLUG`.
+Set in the Vercel dashboard:
+
+| Variable                                                      | Purpose                                                 |
+| ------------------------------------------------------------- | ------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                                    | database endpoint                                       |
+| `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) | server-side reads of analytics, leads and sessions      |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                           | sign-in (same Clerk instance as web)                    |
+| `CLERK_SECRET_KEY`                                            | session verification and organization-membership lookup |
+
+Managed as code in `infra/vercel/admin.ts` (non-secret; applied by
+`.github/workflows/infra-vercel.yml`):
+
+| Variable                                          | Value                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `/sign-in`                                                                |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/`                                                                       |
+| `LUXEL_ADMIN_ORG_SLUG`                            | slug of the operator organization (`servicios-luxel-1783354109102489708`) |
+| `LUXEL_ADMIN_ORG_ID`                              | optional alternative to the slug (`org_…`); not set today                 |
+
+With neither `LUXEL_ADMIN_ORG_ID` nor `LUXEL_ADMIN_ORG_SLUG` set, nobody is an
+operator (`apps/admin/src/lib/admin.ts`). Vercel snapshots env at build time, so
+a change in `admin.ts` needs a redeploy of the admin project.
 
 ## GitHub — repository secrets
 
@@ -89,7 +108,7 @@ Local development only, never set in production: `LUXEL_DEV_MOCK`,
 
 `GITHUB_TOKEN` is injected automatically; do not create it.
 
-## Cloudflare Worker — `luxel-whatsapp`
+## Cloudflare Worker — `luxel-whatsapp-webhook`
 
 Set with `wrangler secret put`, not in Vercel:
 `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`,
@@ -189,20 +208,10 @@ HUÉSPEDES ({{5}})
 🗓️ Check-out (aseo): {{6}}
 ```
 
-Until a template is approved the send fails, the outcome is recorded on the
-check-in (`notify_result`, recipients only), and a contact with an email gets
-that instead. Recipients are `property_contacts` rows (role `concierge` or
-`cleaning`), managed per property in `/properties`.
-
-## Known drift
-
-- `.env.example` omits `OPENAI_API_KEY`, `OPENAI_MODEL`,
-  `PROVIDER_API_KEY`, `PRICELABS_API_KEY`,
-  `RESEND_API_KEY`, `RESEND_FROM`, `LUXEL_PII_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-  `WHATSAPP_WORKER_SEND_URL`, `INTERNAL_SEND_TOKEN`, `LUXEL_ADMIN_ORG_ID`,
-  `LUXEL_ADMIN_ORG_SLUG`.
-- `.env.example` lists `ANTHROPIC_API_KEY`, which no code reads — the AI client
-  uses OpenAI.
-- `LUXEL_ADMIN_EMAILS` appears in local `.env.local` but no code reads it.
-  Admin access is decided by the Clerk `admin` role.
+Until a template is approved, the send fails. The conserje notice records the
+outcome on the check-in (`notify_result`, recipients only). A conserje with an
+email gets the notice by email instead. The cleaning-crew booking notice is
+WhatsApp-only; it has no email fallback. A failed run leaves
+`checkins.crew_notified_at` empty, so the next sync retries it. Recipients are
+`property_contacts` rows (role `concierge` or `cleaning`), managed per property
+in `/properties`.

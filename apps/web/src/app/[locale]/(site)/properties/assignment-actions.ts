@@ -15,16 +15,6 @@ import {
 import { reconcileHospitableProperties } from '@/lib/channels/hospitable-sync';
 import { providerApiKey } from '@/lib/channels/credentials';
 
-/**
- * Operator onboarding for the central account. When a host authorises their
- * Airbnb, EVERY listing on that account imports into Luxel's channel account
- * but belongs to nobody — invisible to every host until assigned here.
- *
- * Assignment IS the tenant boundary, so every action in this file is strictly
- * admin-only and delegates to `lib/channels/scope.ts`, which owns the
- * invariants (a transfer moves the mirror, an offboard deletes it).
- */
-
 async function requireAdmin(): Promise<string | null> {
   const { userId } = await auth();
   if (!userId || !(await isClerkAdmin(userId))) return null;
@@ -41,7 +31,6 @@ export type AssignedListing = {
 };
 export type AssignableCustomer = { id: string; label: string };
 
-/** Listings visible to Luxel's account that no customer owns yet. */
 export async function listUnclaimedListings(): Promise<{
   ok: boolean;
   listings?: UnclaimedListing[];
@@ -52,7 +41,6 @@ export async function listUnclaimedListings(): Promise<{
   const remote = await listHospitableProperties(token);
   if (!remote) return { ok: false };
   const unassigned = await unassignedListingIds(remote.map((r) => r.id));
-  // A failed lookup must not render every OWNED listing as free to claim.
   if (!unassigned) return { ok: false };
   const free = new Set(unassigned);
   return {
@@ -67,7 +55,6 @@ export async function listUnclaimedListings(): Promise<{
   };
 }
 
-/** Who owns what today — the current state of the tenant boundary. */
 export async function listAssignments(): Promise<{ ok: boolean; rows?: AssignedListing[] }> {
   if (!(await requireAdmin())) return { ok: false };
   const supabase = createSupabaseServiceRoleClient();
@@ -128,13 +115,9 @@ export async function listAssignableCustomers(): Promise<{
 const AssignSchema = z.object({
   externalListingId: z.string().min(1).max(200),
   customerId: z.string().uuid(),
-  /** The owner the operator SAW; null = they saw it unassigned. Compare-and-set
-   *  against it, so a stale screen can't silently transfer someone's listing. */
   expectedOwnerId: z.string().uuid().nullable(),
 });
 
-/** Hand a listing to a customer, then import it immediately so the operator can
- *  see the result instead of waiting for the next sync. */
 export async function assignListingToCustomer(
   input: unknown,
 ): Promise<{ ok: boolean; imported?: number; importOk?: boolean; error?: string }> {
@@ -153,9 +136,6 @@ export async function assignListingToCustomer(
     return { ok: false, error: 'stale' };
   }
 
-  // Scope comes from `hospitableAccess`, never hard-coded: a legacy
-  // own-connected host's listings live outside the central account, so
-  // reconciling THEM under `central` would prune their whole subtree.
   let imported = 0;
   let importOk = true;
   const access = await hospitableAccess(p.data.customerId);
@@ -171,8 +151,6 @@ export async function assignListingToCustomer(
   return { ok: true, imported, importOk };
 }
 
-/** Offboard a listing: drops the assignment AND its mirrored data. Deliberate
- *  and irreversible — the sync never does this on its own. */
 export async function unassignListingFromCustomer(
   input: unknown,
 ): Promise<{ ok: boolean; error?: string }> {

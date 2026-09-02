@@ -1,5 +1,3 @@
-/** Aurora-washed centered hero used by the service pages. Pass CTAs as children;
- *  they lay out in a responsive row. `subtitle` accepts rich nodes (t.rich). */
 export function ServiceHero({
   title,
   subtitle,

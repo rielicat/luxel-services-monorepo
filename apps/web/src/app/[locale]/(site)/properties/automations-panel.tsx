@@ -60,9 +60,6 @@ function Switch({
   );
 }
 
-/** The two automations Luxel sells, front and center: AI guest replies (part of
- *  the plan) and dynamic pricing (a paid add-on). Everything else PriceLabs
- *  offers hangs off the extras modal. */
 export function AutomationsPanel({
   propertyId,
   aiEnabled,
@@ -89,8 +86,6 @@ export function AutomationsPanel({
   const [pricesOpen, setPricesOpen] = useState(false);
   const [extrasOpen, setExtrasOpen] = useState(false);
   const [offerAddon, setOfferAddon] = useState<AddonKey | null>(null);
-  // Which add-on opened the setup guide — the pricing hand-over has a step the
-  // others don't (turning Airbnb's own smart pricing off).
   const [stepsFor, setStepsFor] = useState<AddonKey | null>(null);
   const [info, setInfo] = useState(guestInfo ?? '');
   const [saved, setSaved] = useState(false);
@@ -117,8 +112,6 @@ export function AutomationsPanel({
     });
   };
 
-  // The switch never activates an unpaid add-on: without the subscription it
-  // opens the offer instead.
   const togglePricing = () => {
     if (!pricingActive) {
       setOfferAddon('dynamic_pricing');
@@ -134,9 +127,6 @@ export function AutomationsPanel({
     ? Math.round(priced.reduce((s, d) => s + d.priceClp!, 0) / priced.length)
     : null;
 
-  // Subscribed and not paused — but only "live" once the host's authorisation
-  // actually landed. Affirmative copy and styling key off `pricingLive`, so
-  // the card never claims to be managing rates before it can.
   const pricingOn = pricingActive && priceOptEnabled;
   const pricingLive = pricingOn && pricelabsStatus === 'connected';
 
@@ -312,7 +302,6 @@ export function AutomationsPanel({
         </div>
       </Modal>
 
-      {/* The add-on offer: price up front, cancel-anytime, no dark patterns. */}
       <Modal
         open={offerAddon != null}
         onClose={() => setOfferAddon(null)}
@@ -354,7 +343,6 @@ export function AutomationsPanel({
         )}
       </Modal>
 
-      {/* Everything else PriceLabs offers, each priced on its own. */}
       <Modal open={extrasOpen} onClose={() => setExtrasOpen(false)} title={ta('extras_title')}>
         <div className="grid gap-2">
           {ADDON_KEYS.map((key) => {
@@ -413,9 +401,6 @@ export function AutomationsPanel({
         </div>
       </Modal>
 
-      {/* The one step we can't do for the host: granting Luxel manager access.
-          Once granted, the listing shows up under Luxel's account and we detect
-          it — the host never has to attest anything. */}
       <Modal open={stepsFor != null} onClose={() => setStepsFor(null)} title={ta('steps_title')}>
         <div className="grid gap-3">
           <p className="text-muted-foreground text-sm">{ta('steps_intro')}</p>
@@ -452,8 +437,6 @@ export function AutomationsPanel({
         </div>
       </Modal>
 
-      {/* Floor and ceiling: the host stays in control of how far Luxel may move
-          their rates. Written straight to the pricing engine. */}
       <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title={ta('bounds_title')}>
         <div className="grid gap-3">
           <p className="text-muted-foreground text-sm">{ta('bounds_body')}</p>

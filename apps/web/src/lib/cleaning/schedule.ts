@@ -1,17 +1,13 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { priceTurnover } from './price';
+import { santiagoToday } from '@/lib/checkin/window';
 
-/**
- * Suggests a cleaning for each future check-out (imported calendar block end),
- * priced by the turnover engine. Existing cleanings (any status) are left as-is,
- * so a host's scheduled/skipped decisions survive a refresh.
- */
 export async function suggestCleaningsFromCheckouts(
   propertyId: string,
 ): Promise<{ suggested: number }> {
   const supabase = createSupabaseServiceRoleClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = santiagoToday();
   const { data: blocks } = await supabase
     .from('calendar_blocks')
     .select('ends_on')

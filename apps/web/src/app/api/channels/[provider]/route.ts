@@ -13,27 +13,6 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-/**
- * Inbound channel events — THE mechanism. There is no scheduled pass: anything
- * time-based a guest receives (the reminder, the check-in details three days
- * out, the check-out and review messages) is Hospitable's own message rules,
- * and everything event-shaped arrives here.
- *
- * Hospitable v2 fires `reservation.created`, `reservation.changed`,
- * `property.created|changed|deleted|merged`, `message.created` and
- * `review.created`, retrying a failed delivery 5 times with backoff out to six
- * hours. Webhooks are registered in their dashboard (Apps > Webhooks) — there is
- * no API to create one. An account with none configured still mirrors when its
- * host opens /properties, which syncs whenever the last pass is stale.
- *
- * NOTHING here trusts the payload's contents. An event names a reservation or a
- * property and that is all it is read for; every value acted on is fetched back
- * from Hospitable with our own credential. That is what makes the endpoint safe
- * to expose, rather than a secret pasted into the URL — see ./webhook-auth.ts.
- */
-
-/** Events that mean the mirror is out of date for one account. Everything here
- *  resolves to the same response: re-sync that customer, now. */
 const RESYNC_ACTIONS = new Set([
   'reservation.created',
   'reservation.changed',
@@ -43,26 +22,11 @@ const RESYNC_ACTIONS = new Set([
   'property.merged',
 ]);
 
-/** A burst of events for one account collapses into a single pass. The window
- *  is short because the cost of an extra sync is a few API calls, while the
- *  cost of skipping one is a guest who never gets their check-in link — and
- *  anything this does drop is caught by the next event for the account, or by
- *  the host opening /properties. */
 const RESYNC_DEBOUNCE_MS = 30_000;
 
-// Defensive extraction over Hospitable's webhook envelope ({action, data}) —
-// exact field names vary by event version, so accept the common shapes rather
-// than declaring a type the wire is not obliged to honour.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WebhookPayload = any;
 
-/**
- * Identifiers ONLY.
- *
- * The message body, sender type and guest name are not returned, on purpose: a
- * field that does not exist cannot be trusted by accident later. Everything
- * acted on is read back from Hospitable — see the `message.created` branch.
- */
 function extractHospitable(
   payload: WebhookPayload,
   action: string,
@@ -71,14 +35,11 @@ function extractHospitable(
   const msg = d.message ?? d;
   return {
     reservationId: d.reservation_id ?? d.reservation?.id ?? msg.reservation_id ?? null,
-    // On a property.* event the subject IS the property, so `data.id` is the
-    // listing id rather than a nested reference.
     propertyExternalId:
       d.property_id ?? d.property?.id ?? (action.startsWith('property.') ? (d.id ?? null) : null),
   };
 }
 
-/** Maps an external reservation/property to the Luxel property that owns it. */
 async function resolveProperty(
   reservationId: string | null,
   propertyExternalId: string | null,
@@ -110,8 +71,6 @@ async function resolveProperty(
   return null;
 }
 
-/** The listing id an event is about, resolved through the mirror when the
- *  payload only identified a reservation. */
 async function resolveListingId(
   reservationId: string | null,
   propertyExternalId: string | null,
@@ -128,14 +87,6 @@ async function resolveListingId(
   return (data?.external_listing_id as string | undefined) ?? null;
 }
 
-/**
- * Ack first, work after.
- *
- * Hospitable retries anything that is not a prompt 200, and a mirror pass is
- * far slower than their patience — so the response must not wait on it. Outside
- * a request scope (a handler invoked directly, as in tests) `after` has nowhere
- * to defer to, and running inline is the correct behaviour there.
- */
 async function afterResponse(task: () => Promise<void>): Promise<void> {
   try {
     after(task);
@@ -144,9 +95,6 @@ async function afterResponse(task: () => Promise<void>): Promise<void> {
   }
 }
 
-/** Re-mirrors one customer's account in response to an event. Returns the
- *  reason it did not, when it did not. Vendor-agnostic: the plugin resolves the
- *  credential and owns the mirror pass. */
 async function resyncForEvent(
   plugin: ChannelPlugin,
   reservationId: string | null,
@@ -155,9 +103,6 @@ async function resyncForEvent(
   const listingId = await resolveListingId(reservationId, propertyExternalId);
   if (!listingId) return { ok: true, reason: 'unidentified' };
 
-  // Unassigned means no tenant owns it yet. The event that announces a listing
-  // is the moment to attribute it — from the channel's own host identity, never
-  // by guessing, which would put a listing in the wrong account.
   let customerId = await customerForListing(listingId);
   if (!customerId && plugin.capabilities.hasHostIdentity && plugin.autoAssign) {
     await plugin.autoAssign().catch(() => null);
@@ -181,11 +126,7 @@ async function resyncForEvent(
   await afterResponse(async () => {
     try {
       await plugin.sync(customerId, access, new Date());
-    } catch {
-      // The next event for this account, or the host opening /properties, is
-      // the retry. Throwing here would only make Hospitable redeliver an event
-      // we already accepted.
-    }
+    } catch {}
   });
   return { ok: true, reason: 'syncing' };
 }
@@ -216,13 +157,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
     const plugin = channelPlugin(provider);
     if (!plugin) return new Response('Unknown provider', { status: 404 });
 
-    // Hospitable's published source range — never a secret in the URL, which a
-    // query string would write into every access log.
     const auth = authorizeWebhook(req.headers);
     if (!auth.ok) {
-      // Loud, because the realistic cause is their sender range moving, and the
-      // symptom would otherwise be "events quietly stopped" until someone
-      // noticed the mirror was a day stale.
       console.warn('webhook.rejected', { provider, ip: auth.ip });
       return new Response('Unauthorized', { status: 401 });
     }
@@ -242,11 +178,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
       return Response.json({ ok: true, ignored: true });
     }
 
-    // The payload's body, sender and guest name are deliberately UNUSED. Acting
-    // on them would let anyone who reaches this endpoint put words in a guest's
-    // mouth: the AI answers in the real Airbnb thread, and the invented message
-    // is stored and replayed as grounding to every later guest of the property.
-    // The event tells us which thread changed; Hospitable tells us what it says.
     const propertyId = await resolveProperty(ev.reservationId, ev.propertyExternalId);
     if (!propertyId) return Response.json({ ok: true, ignored: true, reason: 'unmapped' });
 
@@ -264,18 +195,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
       .eq('customer_id', customerId)
       .eq('provider', 'hospitable')
       .maybeSingle();
-    // Same watermark the mirror pass uses: null means this account has never
-    // synced, so its history imports silently instead of the AI answering
-    // threads that went cold months ago.
     const watermark = (conn?.messages_synced_at as string | null) ?? null;
 
     const reservationId = ev.reservationId;
     await afterResponse(async () => {
       try {
         await ingestThread(supabase, access.token, propertyId, reservationId, watermark);
-      } catch {
-        // The next sync of this account imports the thread; nothing is lost.
-      }
+      } catch {}
     });
     return Response.json({ ok: true, action, ingesting: true });
   }

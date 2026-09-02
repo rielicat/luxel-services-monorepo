@@ -4,30 +4,13 @@ import { encryptPII, decryptPII } from '@/lib/crypto/pii';
 import { providerApiKey } from './credentials';
 import type { ChannelListing, ChannelReservation, ReservationState } from './types';
 
-/**
- * Hospitable Public API v2 client — the CURRENT provider adapter.
- *
- * Deliberately still named for the vendor it speaks to: the wire format, the
- * base URL and every field shape below are Hospitable's. Generic names on a
- * vendor-specific client are how a codebase ends up claiming one thing and
- * doing another. Provider-neutral naming belongs on the seams around it —
- * PROVIDER_API_KEY, the plugin registry — not here.
- *
- * The operator credential resolves through providerApiKey(); a per-customer
- * token in channel_connections takes precedence and marks that customer as
- * own-scope. Shapes verified against the live API (2026-07).
- */
-
 const BASE = 'https://public.api.hospitable.com/v2';
 
-export interface HospitableChannelListing {
+interface HospitableChannelListing {
   platform: string | null;
   platform_id?: string | null;
-  /** The channel-side host id this listing belongs to (Airbnb user id). */
   platform_user_id?: string | null;
   platform_name?: string | null;
-  /** The host's channel account email. `pat:read` scope only — present with
-   *  Luxel's operator token, and the key that attributes a listing to a client. */
   platform_email?: string | null;
 }
 
@@ -69,13 +52,11 @@ export interface HospitableProperty {
     smoking_allowed?: boolean | null;
     events_allowed?: boolean | null;
   } | null;
-  /** `include=details`. Free text the host wrote for guests, wifi included —
-   *  mirrored for the AI's context and never echoed into a thread by us. */
   details?: HospitableListingDetails | null;
   calendar_restricted?: boolean | null;
 }
 
-export interface HospitableListingDetails {
+interface HospitableListingDetails {
   space_overview?: string | null;
   guest_access?: string | null;
   house_manual?: string | null;
@@ -93,17 +74,13 @@ export interface HospitableReservation {
   platform: string | null;
   arrival_date: string;
   departure_date: string;
-  /** Full timestamps carrying the listing's times, e.g. 2026-08-04T15:00:00-04:00. */
   check_in?: string | null;
   check_out?: string | null;
   status: string | null;
   reservation_status?: { current?: { category?: string | null } | null } | null;
   guests?: { total?: number | null } | null;
   conversation_id?: string | null;
-  /** ISO 639-1 of the thread, as Airbnb reports it. */
   conversation_language?: string | null;
-  /** `include=guest`. The language decides which copy the guest receives and
-   *  which language their check-in page opens in. */
   guest?: {
     id?: string | null;
     first_name?: string | null;
@@ -124,8 +101,6 @@ async function hospGet<T>(
     });
     if (!res.ok) return { ok: false };
     const json = (await res.json()) as { data?: T[]; links?: { next?: string | null } };
-    // A 2xx whose body doesn't carry the expected `data` array is a failure, not
-    // an empty result — the strict-mirror prune must never run off a fluke body.
     if (!Array.isArray(json.data)) return { ok: false };
     return { ok: true, data: json.data, nextUrl: json.links?.next ?? null };
   } catch {
@@ -133,7 +108,6 @@ async function hospGet<T>(
   }
 }
 
-/** Validates a token by listing properties. Returns the account's property count. */
 export async function verifyHospitableToken(
   token: string,
 ): Promise<{ ok: boolean; properties?: number; firstName?: string | null }> {
@@ -146,16 +120,10 @@ export async function verifyHospitableToken(
   };
 }
 
-/** Complete-or-nothing: the result feeds the strict-mirror prune, so a partial
- *  list (a failed later page, or the page cap hit with more remaining) must
- *  return null — never a truncated array that would delete the missing tail. */
 export async function listHospitableProperties(
   token: string,
 ): Promise<HospitableProperty[] | null> {
   const out: HospitableProperty[] = [];
-  // `include=listings` carries platform_user_id / platform_email per channel —
-  // how a listing in the central account is attributed to a host client.
-  // `details` is the host's guest-facing text (wifi, access, rules) for the AI.
   let url: string | null = '/properties?per_page=100&include=listings,details';
   for (let page = 0; url && page < 10; page++) {
     const r: Awaited<ReturnType<typeof hospGet<HospitableProperty>>> = await hospGet(token, url);
@@ -163,7 +131,7 @@ export async function listHospitableProperties(
     out.push(...(r.data ?? []));
     url = r.nextUrl ?? null;
   }
-  if (url) return null; // page cap reached with more pages left → incomplete
+  if (url) return null;
   return out;
 }
 
@@ -178,9 +146,6 @@ export async function listHospitableReservations(
     `/reservations?properties%5B%5D=${encodeURIComponent(propertyId)}&start_date=${startDate}&end_date=${endDate}&per_page=100&include=guest`;
   for (let page = 0; url && page < 10; page++) {
     const r: Awaited<ReturnType<typeof hospGet<HospitableReservation>>> = await hospGet(token, url);
-    // Any page failing means the set is incomplete. Returning a partial list
-    // would read as "these are all the reservations", and callers prune against
-    // it — a half-read page would revoke live guests' check-in links.
     if (!r.ok) return null;
     out.push(...(r.data ?? []));
     url = r.nextUrl ?? null;
@@ -188,7 +153,7 @@ export async function listHospitableReservations(
   return out;
 }
 
-export interface HospitableCalendarDay {
+interface HospitableCalendarDay {
   date: string;
   day?: string | null;
   min_stay?: number | null;
@@ -202,9 +167,6 @@ export interface HospitableCalendarDay {
   price?: { amount?: number | null; currency?: string | null; formatted?: string | null } | null;
 }
 
-/** The listing's REAL calendar — per-night published price and availability as
- *  Airbnb has it (shape captured live 2026-07; price.amount arrives in cents).
- *  Returns null on any failure so callers degrade instead of inventing data. */
 export async function listHospitableCalendar(
   token: string,
   propertyId: string,
@@ -227,17 +189,16 @@ export async function listHospitableCalendar(
   }
 }
 
-export interface HospitableMessage {
+interface HospitableMessage {
   id: string;
   body: string | null;
-  sender_type: string | null; // 'guest' | 'host' | 'teammate' | ...
+  sender_type: string | null;
   created_at: string;
   conversation_id?: string | null;
   reservation_id?: string | null;
   sender?: { first_name?: string | null; full_name?: string | null } | null;
 }
 
-/** Full message thread of a reservation (shape verified live 2026-07). */
 export async function listHospitableMessages(
   token: string,
   reservationId: string,
@@ -254,7 +215,6 @@ export async function listHospitableMessages(
   return out;
 }
 
-/** Sends a message into a reservation's guest thread. Returns a message id-ish, or null. */
 export async function sendHospitableMessage(
   token: string,
   reservationId: string,
@@ -278,13 +238,6 @@ export async function sendHospitableMessage(
   }
 }
 
-/**
- * Vendor shape → the provider-agnostic contract.
- *
- * Only what the provider-neutral machinery reads (`./relink.ts`). The mirror
- * itself still consumes the raw shapes directly, because a Hospitable property
- * carries far more than any contract should pretend every provider has.
- */
 export function toChannelListing(rp: HospitableProperty): ChannelListing {
   const airbnb = (rp.listings ?? []).find((l) => l.platform === 'airbnb' && l.platform_email);
   return {
@@ -316,7 +269,6 @@ export function toChannelReservation(
   };
 }
 
-/** Stores a customer's token encrypted. */
 export async function saveHospitableConnection(
   customerId: string,
   token: string,
@@ -337,13 +289,6 @@ export async function saveHospitableConnection(
   return !error;
 }
 
-/**
- * The customer's OWN Hospitable token, or null — NO env fallback, no decrypt
- * fallthrough. This is the ONLY resolver allowed on paths that prune the
- * property mirror (page-load reconcile, full syncs): the env founder token must
- * never be applied to another tenant's rows, or their data would be replaced by
- * the founder's account and pruned away.
- */
 export async function customerHospitableToken(customerId: string): Promise<string | null> {
   const supabase = createSupabaseServiceRoleClient();
   const { data } = await supabase
@@ -361,7 +306,6 @@ export async function customerHospitableToken(customerId: string): Promise<strin
   }
 }
 
-/** Resolves the customer's Hospitable token (decrypted), else the env fallback. */
 export async function hospitableTokenForCustomer(
   customerId: string | null,
 ): Promise<string | null> {
@@ -377,9 +321,7 @@ export async function hospitableTokenForCustomer(
     if (data?.token_enc) {
       try {
         return decryptPII(data.token_enc as string);
-      } catch {
-        /* fall through to env */
-      }
+      } catch {}
     }
   }
   return providerApiKey();

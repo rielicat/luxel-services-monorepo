@@ -6,8 +6,6 @@ import { createWebpayTransaction } from '@/lib/payments/transbank';
 
 export const runtime = 'nodejs';
 
-/** Creates a Transbank Webpay Plus transaction for a booking and redirects the
- *  buyer to the Webpay payment page. Webpay returns to /commit to finalize. */
 export async function GET(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.redirect(new URL('/', req.url));
@@ -30,14 +28,11 @@ export async function GET(req: Request) {
 
   const origin = url.origin;
 
-  // Dev-only: simulate a successful payment when no real Transbank credentials.
   if (devMockPaymentsEnabled('transbank')) {
     await completeMockPayment(supabase, booking.id, 'transbank');
     return NextResponse.redirect(new URL('/es/account?paid=1&mock=1', origin));
   }
 
-  // Webpay buy_order is limited to 26 chars; the booking id (uuid) is looked up
-  // on return via the stored token, so a truncated buy_order is fine.
   const buyOrder = `LX${booking.id.replace(/-/g, '').slice(0, 24)}`;
   const tx = await createWebpayTransaction({
     buyOrder,

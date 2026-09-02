@@ -39,7 +39,6 @@ export function AssignmentsManager({
   const t = useTranslations('assign');
   const router = useRouter();
   const [pending, start] = useTransition();
-  // Which customer each pending listing goes to, keyed by listing id.
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [confirmOff, setConfirmOff] = useState<AssignedListing | null>(null);
   const [confirmMove, setConfirmMove] = useState<{
@@ -66,7 +65,6 @@ export function AssignmentsManager({
         </p>
       )}
 
-      {/* Newly connected, owned by nobody — invisible to every host until assigned. */}
       <Card>
         <CardContent className="grid gap-3 p-4 sm:p-5">
           <div>
@@ -143,7 +141,6 @@ export function AssignmentsManager({
         </CardContent>
       </Card>
 
-      {/* Current boundary: one listing, one customer. */}
       <Card>
         <CardContent className="grid gap-3 p-4 sm:p-5">
           <div>
@@ -214,7 +211,6 @@ export function AssignmentsManager({
         </CardContent>
       </Card>
 
-      {/* Transfers move the mirrored data — also never a one-keystroke action. */}
       <Modal
         open={confirmMove != null}
         onClose={() => setConfirmMove(null)}
@@ -258,7 +254,6 @@ export function AssignmentsManager({
         )}
       </Modal>
 
-      {/* Offboarding deletes the mirrored data — never a one-click action. */}
       <Modal
         open={confirmOff != null}
         onClose={() => setConfirmOff(null)}

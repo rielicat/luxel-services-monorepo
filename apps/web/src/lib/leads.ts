@@ -2,9 +2,9 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { recordEvent } from '@/lib/analytics/store';
 
-export type LeadSource = 'out_of_area' | 'chat_handoff' | 'quote' | 'newsletter' | 'contact';
+type LeadSource = 'out_of_area' | 'chat_handoff' | 'quote' | 'newsletter' | 'contact';
 
-export interface LeadInput {
+interface LeadInput {
   source: LeadSource;
   name?: string | null;
   email?: string | null;
@@ -22,7 +22,6 @@ export interface LeadInput {
   metadata?: Record<string, unknown> | null;
 }
 
-/** Persist a lead (unconverted contact intent) and log a lead_captured event. */
 export async function createLead(input: LeadInput): Promise<{ ok: boolean; id?: string }> {
   try {
     const supabase = createSupabaseServiceRoleClient();

@@ -25,22 +25,13 @@ function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 }
 
-/**
- * Routes a submitted check-in to the people who act on it: the CONSERJES get
- * the registered guest list over WhatsApp (the shape the building already
- * receives by hand), the GUEST gets the code by email on a keyless property,
- * and the HOST gets a confirmation. WhatsApp is an approved Meta template —
- * the only kind of message that reaches someone who has not written to us —
- * and a conserje without a number falls back to email. Never throws; records
- * the per-channel outcome (recipient, never content) on the check-in.
- */
 export async function notifyCheckin(checkinId: string): Promise<void> {
   const supabase = createSupabaseServiceRoleClient();
 
   const { data: checkin } = await supabase
     .from('checkins')
     .select(
-      'id, property_id, guest_name, guest_email, party_size, arrival_at, arrival_date, departure_date, parking, vehicle_plate',
+      'id, property_id, guest_name, guest_email, guest_phone, party_size, arrival_at, arrival_date, departure_date, parking, vehicle_plate',
     )
     .eq('id', checkinId)
     .maybeSingle();
@@ -147,6 +138,8 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
       const html =
         `<p>Se recibió un check-in para <strong>${place}</strong>.</p>` +
         `<p>Huésped: ${who}${checkin.party_size ? ` · ${checkin.party_size} personas` : ''}</p>` +
+        (checkin.guest_email ? `<p>Email: ${esc(checkin.guest_email)}</p>` : '') +
+        (checkin.guest_phone ? `<p>Teléfono: ${esc(checkin.guest_phone)}</p>` : '') +
         `<p>Llegada: ${arrival}.</p>`;
       const r = await sendEmail({
         to: owner.email,

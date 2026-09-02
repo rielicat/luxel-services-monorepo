@@ -4,12 +4,6 @@ import { getStripe } from '@/lib/payments/stripe';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { devMockPaymentsEnabled, completeMockPayment } from '@/lib/payments/dev-mock';
 
-/**
- * Creates a Stripe Checkout session for a booking and redirects.
- * Stripe in CLP: pass `currency: 'clp'` and amount as integer (no cents — CLP has no minor unit,
- * but Stripe expects unit_amount in the smallest currency unit, which for CLP is also the
- * peso itself, so the integer value passes through unchanged).
- */
 export async function GET(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.redirect(new URL('/', req.url));
@@ -25,7 +19,6 @@ export async function GET(req: Request) {
     .eq('id', bookingId)
     .single();
 
-  // Supabase types FK joins as arrays; bookings → customers is many-to-one so [0] is the row.
   const customer = Array.isArray(booking?.customers) ? booking.customers[0] : booking?.customers;
   if (!booking || customer?.clerk_user_id !== userId) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -33,7 +26,6 @@ export async function GET(req: Request) {
 
   const origin = url.origin;
 
-  // Dev-only: simulate a successful payment when no real Stripe key is configured.
   if (devMockPaymentsEnabled('stripe')) {
     await completeMockPayment(supabase, booking.id, 'stripe');
     return NextResponse.redirect(new URL('/es/account?paid=1&mock=1', origin));

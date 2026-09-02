@@ -1,9 +1,3 @@
-// Dumps the current Cloudflare zone state so you can reconcile Pulumi.prod.yaml
-// against reality before adopting. Read-only; prints JSON + a config skeleton.
-//
-//   CLOUDFLARE_API_TOKEN=... CF_ZONE_ID=... CF_ACCOUNT_ID=... \
-//     pnpm --filter @luxel/infra-cloudflare export
-
 import { cf, cfAll, ZONE_ID, ACCOUNT_ID } from './cf-api.mjs';
 
 if (!ZONE_ID) {
@@ -45,8 +39,6 @@ console.log('\n# ===== Email Routing rules =====');
 console.log(
   JSON.stringify(
     (rules || [])
-      // Structural filter (matches gen-imports.mjs): literal = a real forwarding
-      // rule; the "all" matcher is the catch-all, reported separately below.
       .filter((r) => r.matchers?.[0]?.type === 'literal')
       .map((r) => ({
         address: r.matchers?.[0]?.value,

@@ -178,7 +178,8 @@ export function DebugBench({
           <div>
             <p className="font-display font-semibold">Atribución automática</p>
             <p className="text-muted-foreground text-xs">
-              Corre la asignación por correo de la cuenta del anfitrión sin esperar al cron.
+              Corre la asignación por correo de la cuenta del anfitrión ahora, sin esperar al
+              próximo webhook.
             </p>
           </div>
           <Button

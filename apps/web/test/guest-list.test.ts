@@ -1,7 +1,3 @@
-/**
- * What the conserje reads off their phone: every registered guest with a
- * document, one line, the RUT punctuated the way a carnet prints it.
- */
 import { describe, it, expect } from 'vitest';
 import nodeCrypto from 'node:crypto';
 

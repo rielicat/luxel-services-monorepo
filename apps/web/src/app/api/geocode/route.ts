@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
 const USER_AGENT = 'ServiciosLuxel/1.0 (contacto@serviciosluxel.cl)';
-// Bounding box for Región Metropolitana
 const RM_VIEWBOX = '-71.5,-34.2,-69.8,-32.9';
 
 export interface GeocodeSuggestion {

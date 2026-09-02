@@ -55,8 +55,6 @@ export function Hero() {
           </ul>
         </div>
 
-        {/* Placeholder hero visual — replace with real photography/illustration.
-            See docs/BRAND.md § Assets to create separately. */}
         <div className="border-border/60 glass shadow-lift animate-fade-in-up relative mx-auto mt-16 aspect-[16/7] max-w-5xl overflow-hidden rounded-3xl border [animation-delay:400ms]">
           <div className="bg-aurora absolute inset-0" />
           <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-sm">

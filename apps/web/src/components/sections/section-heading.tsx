@@ -1,7 +1,5 @@
 import { cn } from '@/lib/utils';
 
-/** Centered section title (+ optional subtitle). Shared by service pages and
- *  marketing sections so headings stay visually consistent. */
 export function SectionHeading({
   title,
   subtitle,

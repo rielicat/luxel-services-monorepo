@@ -1,38 +1,21 @@
 import 'server-only';
 
-/**
- * PriceLabs Customer API against Luxel's ONE central account.
- *
- * Contract captured from developers.pricelabs.co (July 2026): base
- * `https://api.pricelabs.co/v1`, `X-API-Key` header, 60 req/min and 1000
- * req/hour. Every function returns null on any failure so callers degrade
- * instead of inventing prices.
- *
- * SECURITY: this module knows nothing about tenants. One credential sees EVERY
- * listing Luxel manages, so callers must only ever pass a listing resolved from
- * an owner-verified property (see `lib/pricelabs/link.ts`). Never hand it an
- * identifier that came from client input.
- */
-
 const BASE = 'https://api.pricelabs.co/v1';
 
 export const pricelabsConfigured = () => Boolean(process.env.PRICELABS_API_KEY);
 
-/** A PriceLabs listing is addressed by (id, pms) — both come from our mapping. */
 export type PricelabsRef = { id: string; pms: string };
 
-export interface PricelabsListing {
+interface PricelabsListing {
   listing_id: string;
   pms_name: string;
   listing_name?: string | null;
   channel_listing_details?: { channel_name?: string | null; channel_listing_id?: string | null }[];
 }
 
-export interface PricelabsPriceDay {
+interface PricelabsPriceDay {
   date: string;
-  /** PriceLabs' recommendation for the night. */
   price: number | null;
-  /** Last price PriceLabs saw on the PMS; -1 means unavailable. */
   user_price: number | null;
   min_stay: number | null;
   booking_status: string | null;
@@ -63,7 +46,6 @@ async function call<T>(
   }
 }
 
-/** Every listing visible to Luxel's account — used only to build the mapping. */
 export async function listPricelabsListings(): Promise<PricelabsListing[] | null> {
   const json = await call<{ listings?: PricelabsListing[] } | PricelabsListing[]>(
     '/listings_minimal',
@@ -73,7 +55,6 @@ export async function listPricelabsListings(): Promise<PricelabsListing[] | null
   return Array.isArray(rows) ? rows : null;
 }
 
-/** PriceLabs' recommended nightly prices for ONE resolved listing. */
 export async function getPricelabsPrices(
   ref: PricelabsRef,
   dateFrom: string,
@@ -89,13 +70,11 @@ export async function getPricelabsPrices(
     },
   );
   if (!json) return null;
-  // The endpoint answers per-listing; we always ask for exactly one.
   const first = Array.isArray(json) ? json[0] : json;
   const rows = first?.data;
   return Array.isArray(rows) ? rows : null;
 }
 
-/** Base / floor / ceiling and the sync switch for ONE resolved listing. */
 export async function updatePricelabsListing(
   ref: PricelabsRef,
   settings: { base?: number; min?: number; max?: number; pushEnabled?: boolean },
@@ -115,10 +94,6 @@ export async function updatePricelabsListing(
       ],
     },
   });
-  // Fail CLOSED: the response shape is captured from their docs, not a contract
-  // we control, so only a positively-recognised success counts. Reporting a
-  // silent no-op as success would tell the host their floor/ceiling is live
-  // when it never reached the engine.
   if (!json || typeof json !== 'object') return false;
   const row = json.listings?.[0];
   if (!row) return false;

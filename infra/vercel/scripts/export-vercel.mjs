@@ -1,6 +1,3 @@
-// Lists the live Vercel projects + the web project's domains. Read-only.
-//   VERCEL_API_TOKEN=... [VERCEL_TEAM_ID=...] pnpm --filter @luxel/infra-vercel export
-
 import { vc, vcProjects } from './vercel-api.mjs';
 
 const projects = await vcProjects();

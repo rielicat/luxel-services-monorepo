@@ -1,8 +1,5 @@
 import 'server-only';
 
-/** What the guest is shown or sent. Access details are method-gated in exactly
- *  one place: a concierge property must never leak a keyless code, and vice
- *  versa. Every surface that reveals access reads through `shapeAccess`. */
 export interface AccessInfo {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
   keylessCode: string | null;
@@ -11,7 +8,6 @@ export interface AccessInfo {
   conciergeHours: string | null;
 }
 
-/** Columns `shapeAccess` needs — the caller's select must cover these. */
 export const ACCESS_COLUMNS =
   'method, keyless_code, keyless_instructions, concierge_name, concierge_hours, require_id';
 
@@ -35,20 +31,3 @@ export function shapeAccess(row: AccessRow): AccessInfo | null {
     conciergeHours: concierge ? (row.concierge_hours ?? null) : null,
   };
 }
-
-/** True when there is something worth delivering. A property still set to
- *  `physical_none`, or keyless with no code, has nothing to say — sending an
- *  empty "here is your access" message is worse than sending none. */
-export function hasDeliverableAccess(a: AccessInfo | null): boolean {
-  if (!a) return false;
-  if (a.method === 'keyless') return Boolean(a.keylessCode || a.keylessInstructions);
-  if (a.method === 'physical_concierge') return true;
-  return false;
-}
-
-// There is deliberately no helper that renders access as a channel message.
-// Anything written into the guest thread is re-imported as a `host` message and
-// replayed to the AI as grounding for later guests. The check-in details that DO
-// reach the thread come from Hospitable's own rule (3 days before arrival) and
-// are redacted out of grounding in lib/ai/grounding.ts; our own messages only
-// ever carry the link, and this page reveals access behind the token.

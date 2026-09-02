@@ -65,7 +65,6 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
   const monthly = monthlyClp(view.perVisitClp, frequency);
   const pct = discountPct(frequency, config);
 
-  // Carry every selection into the booking so the customer never re-enters it.
   const bookParams = new URLSearchParams({ frequency, squareMeters: String(cta.squareMeters) });
   if (cta.serviceTypeId) bookParams.set('serviceTypeId', cta.serviceTypeId);
   if (cta.serviceTypeSlug) bookParams.set('serviceTypeSlug', cta.serviceTypeSlug);
@@ -80,7 +79,6 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
     <Card className="border-primary/15 shadow-glow relative overflow-hidden">
       <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0 opacity-70" />
       <CardContent className="relative p-6">
-        {/* Label */}
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide">
             <Sparkles className="text-secondary h-3.5 w-3.5" />
@@ -89,7 +87,6 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
           {pct > 0 && <Badge variant="default">−{pct}%</Badge>}
         </div>
 
-        {/* Per-visit price */}
         <div className={cn('mt-2 transition-opacity', pending && 'opacity-60')}>
           <div className="font-display text-primary text-5xl font-extrabold leading-none">
             <AnimatedNumber value={view.perVisitClp} format={formatCLP} />
@@ -100,7 +97,6 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
           </p>
         </div>
 
-        {/* Monthly subscription */}
         {isSub && monthly != null && (
           <div className="border-primary/15 bg-primary/5 mt-4 flex items-center justify-between rounded-xl border p-3.5">
             <span className="text-foreground inline-flex items-center gap-2 text-sm font-medium">
@@ -124,7 +120,6 @@ export function QuoteResult({ view, frequency, pending, error, config, cta }: Pr
 
         <Separator className="my-5" />
 
-        {/* Breakdown */}
         <dl className="grid gap-2 text-sm">
           <Row label={t('base')} value={formatCLP(view.breakdown.base)} />
           <Row label={t('per_m2_label')} value={formatCLP(view.breakdown.perM2)} />

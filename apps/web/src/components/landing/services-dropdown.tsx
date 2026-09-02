@@ -5,8 +5,6 @@ import { useTranslations } from 'next-intl';
 import { ChevronDown, Bot, Sparkles } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
-/** Desktop "Servicios" dropdown. Custom useState + outside-click/Escape pattern,
- *  matching components/account/user-menu.tsx (no Radix dropdown dep in the repo). */
 export function ServicesDropdown() {
   const t = useTranslations('nav');
   const [open, setOpen] = useState(false);

@@ -5,7 +5,6 @@ const TONES = {
   secondary: 'bg-secondary text-secondary-foreground',
 } as const;
 
-/** Numbered 3-step row ("cómo funciona"). `tone` picks the badge color. */
 export function Steps({
   steps,
   tone = 'primary',

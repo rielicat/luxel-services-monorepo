@@ -34,8 +34,6 @@ export default async function CheckinPage({ params }: { params: Promise<{ token:
       .maybeSingle(),
   ]);
 
-  // The one page on the site not in es-CL: it speaks the guest's language, as
-  // Airbnb reports it, before the browser's. The site around it stays Spanish.
   const lang = resolveGuestLang(
     checkin.guest_language as string | null,
     (await headers()).get('accept-language'),
@@ -45,19 +43,11 @@ export default async function CheckinPage({ params }: { params: Promise<{ token:
   const requireId = Boolean(access?.require_id);
   const today = santiagoToday();
 
-  // A link with NO departure date can never age out, which would make it a
-  // permanent door-code viewer — legacy rows and operator debug links have
-  // none, so absent means expired, not immortal. A cancelled reservation is
-  // revoked outright even after check-in: the row is kept for compliance, and
-  // retention must not mean the link still works.
   const live =
     !checkin.revoked_at &&
     Boolean(checkin.departure_date) &&
     today <= (checkin.departure_date as string);
 
-  // Access shows behind the token once the guest has checked in AND the stay is
-  // inside the same window Hospitable's rule uses to send the details, so the
-  // page never reveals earlier than the thread does.
   const mayReveal = live && done && accessWindowOpen(checkin.arrival_date as string | null, today);
 
   return (

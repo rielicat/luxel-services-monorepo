@@ -13,16 +13,12 @@ import { AssignmentsManager } from './assignments-manager';
 
 export const dynamic = 'force-dynamic';
 
-/** Operator screen: hand newly connected listings to the customer who owns them.
- *  Not found (rather than forbidden) for non-admins — this product is unlisted,
- *  so an operator surface should not confirm it exists. */
 export default async function AdminListingsPage() {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
   if (!(await isClerkAdmin(userId))) notFound();
 
   const t = await getTranslations('assign');
-  // Resolve everything attributable before listing what's left for a human.
   await autoAssignListings().catch(() => null);
   const [unclaimed, assigned, customers] = await Promise.all([
     listUnclaimedListings(),

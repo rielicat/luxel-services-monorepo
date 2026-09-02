@@ -12,9 +12,7 @@ export interface AdminCfg {
   domain: string;
 }
 
-/** Empty for a personal account; `team_xxx` for a Vercel Team. */
 export const teamId = c.get('teamId') || undefined;
-/** `owner/repo`, e.g. rielicat/luxel-services-monorepo. */
 export const gitRepo = c.require('gitRepo');
 export const productionBranch = c.get('productionBranch') ?? 'main';
 

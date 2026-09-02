@@ -70,8 +70,6 @@ const preset = {
         display: ['var(--font-display)', 'var(--font-sans)', 'ui-sans-serif', 'sans-serif'],
         serif: ['var(--font-serif)', 'ui-serif', 'Georgia', 'serif'],
       },
-      // Tuned type scale: display sizes get progressively tighter tracking for a
-      // confident, editorial feel; body sizes stay comfortable to read.
       fontSize: {
         xs: ['0.75rem', { lineHeight: '1rem' }],
         sm: ['0.875rem', { lineHeight: '1.25rem' }],
@@ -91,7 +89,6 @@ const preset = {
         card: '0 1px 3px 0 hsl(185 45% 12% / 0.06), 0 12px 30px -10px hsl(185 45% 12% / 0.13)',
         lift: '0 4px 10px -3px hsl(185 45% 12% / 0.12), 0 28px 56px -18px hsl(185 45% 12% / 0.22)',
         glow: '0 0 0 1px hsl(var(--primary) / 0.08), 0 20px 52px -16px hsl(var(--primary) / 0.38)',
-        // Glossy inner top-highlight — sits on solid buttons to kill flatness.
         sheen: 'inset 0 1px 0 0 hsl(0 0% 100% / 0.16)',
       },
       transitionTimingFunction: {

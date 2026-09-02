@@ -12,9 +12,6 @@ const ProfileSchema = z.object({
 });
 
 export async function updateProfileAction(formData: FormData) {
-  // Resolve (and lazily create) the customer row first. A fallback profile shown
-  // when Supabase has no row would otherwise UPDATE zero rows and falsely report
-  // success; a null here means we genuinely couldn't persist.
   const customer = await getOrCreateCustomer();
   if (!customer) return { ok: false, error: 'unauthorized' as const };
 
@@ -48,7 +45,6 @@ export async function setSubscriptionStatusAction(
 
   const supabase = createSupabaseServiceRoleClient();
 
-  // Resolve customer id from clerk id, then scope the update.
   const { data: customer } = await supabase
     .from('customers')
     .select('id')

@@ -1,7 +1,3 @@
-/** es-CL labels for the listing facts Hospitable mirrors from Airbnb. Curated
- *  map for the common slugs; anything unknown falls back to a prettified slug
- *  so new API values render reasonably instead of breaking. */
-
 const AMENITIES: Record<string, string> = {
   ac: 'Aire acondicionado',
   heating: 'Calefacción',
@@ -37,30 +33,4 @@ const AMENITIES: Record<string, string> = {
 
 export function amenityLabel(slug: string): string {
   return AMENITIES[slug] ?? slug.replace(/_/g, ' ');
-}
-
-const PROPERTY_TYPES: Record<string, string> = {
-  apartment: 'Departamento',
-  house: 'Casa',
-  condominium: 'Condominio',
-  loft: 'Loft',
-  cabin: 'Cabaña',
-  guesthouse: 'Casa de huéspedes',
-  townhouse: 'Casa adosada',
-};
-
-export function propertyTypeLabel(slug: string | null | undefined): string | null {
-  if (!slug) return null;
-  return PROPERTY_TYPES[slug] ?? slug.replace(/_/g, ' ');
-}
-
-const ROOM_TYPES: Record<string, string> = {
-  'Entire Home': 'Alojamiento entero',
-  'Private Room': 'Habitación privada',
-  'Shared Room': 'Habitación compartida',
-};
-
-export function roomTypeLabel(value: string | null | undefined): string | null {
-  if (!value) return null;
-  return ROOM_TYPES[value] ?? value;
 }

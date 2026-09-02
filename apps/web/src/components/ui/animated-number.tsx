@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-/** Smoothly counts from the current value to a new target (easeOutCubic). */
 export function AnimatedNumber({
   value,
   format,

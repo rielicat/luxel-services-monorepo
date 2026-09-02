@@ -20,8 +20,6 @@ export type PropertyContact = {
   whatsapp: string | null;
 };
 
-/** One notify list, one role: who gets the WhatsApp. Adding someone is a form,
- *  and a form belongs in a dialog — the primary case is seeing who is on it. */
 export function ContactList({
   propertyId,
   role,

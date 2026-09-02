@@ -1,8 +1,7 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { AI_PLAN_CLP, TRIAL_DAYS } from '@/lib/plan-pricing';
+import { TRIAL_DAYS } from '@/lib/plan-pricing';
 
-export { AI_PLAN_CLP };
 const WINBACK_DAYS = 30;
 
 export type PlanRow = {
@@ -47,7 +46,6 @@ export async function cancelPlan(customerId: string): Promise<boolean> {
   return !error;
 }
 
-/** Win-back on cancel: extend the free period to 30 days and keep the plan alive. */
 export async function extendTrial(customerId: string): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient();
   const trialEnds = new Date(Date.now() + WINBACK_DAYS * 86_400_000).toISOString();
@@ -58,8 +56,6 @@ export async function extendTrial(customerId: string): Promise<boolean> {
   return !error;
 }
 
-/** Moves a plan from trial to active with a 30-day period. In production this is
- *  called after a MercadoPago preapproval is authorized; in dev-mock it's direct. */
 export async function activatePlan(customerId: string): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient();
   const periodEnd = new Date(Date.now() + 30 * 86_400_000).toISOString();

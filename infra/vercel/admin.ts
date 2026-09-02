@@ -1,8 +1,6 @@
 import * as vercel from '@pulumiverse/vercel';
 import { teamId, gitRepo, productionBranch, admin, slug } from './config';
 
-// The operator panel — a NEW Vercel project (created, not adopted), git-linked
-// so Vercel deploys it on every push to the production branch.
 export const adminProject = new vercel.Project('admin', {
   name: admin.name,
   framework: 'nextjs',
@@ -17,15 +15,10 @@ export const adminDomain = new vercel.ProjectDomain('admin-panel', {
   teamId,
 });
 
-// Admin-specific NON-secret config, managed as code. The shared secrets
-// (Supabase URL/key, Clerk keys) are set once in the Vercel dashboard — exactly
-// like the web project's env — so there are no secrets to seed here.
 const TARGETS = ['production', 'preview'];
 const PLAIN_ENV: Record<string, string> = {
   NEXT_PUBLIC_CLERK_SIGN_IN_URL: '/sign-in',
   NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: '/',
-  // Operators = members of this Clerk organization. Slug of the live org (a
-  // cleaner LUXEL_ADMIN_ORG_ID can replace this — see apps/admin/src/lib/admin.ts).
   LUXEL_ADMIN_ORG_SLUG: 'servicios-luxel-1783354109102489708',
 };
 

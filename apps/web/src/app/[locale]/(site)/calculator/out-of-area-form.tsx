@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getSessionId, track } from '@/lib/analytics/client';
+import { EVENTS } from '@/lib/analytics/events';
 import { captureOutOfAreaLead } from './lead-actions';
 
 interface Props {
@@ -39,7 +40,7 @@ export function OutOfAreaLeadForm({ serviceSlug, squareMeters, addressLine, comm
       });
       if (r.ok) {
         setDone(true);
-        track('lead_out_of_area_submitted', { commune, service_slug: serviceSlug });
+        track(EVENTS.LEAD_OUT_OF_AREA_SUBMITTED, { commune, service_slug: serviceSlug });
       }
     });
   };

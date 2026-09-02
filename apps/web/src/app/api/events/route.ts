@@ -24,12 +24,9 @@ export async function POST(req: Request) {
   if (!parsed.success) return Response.json({ ok: false }, { status: 400 });
 
   const h = req.headers;
-  // The caller's IP is deliberately not read. Country is coarse enough to be
-  // useful without identifying anyone; an address is not.
   const userAgent = h.get('user-agent');
   const country = h.get('x-vercel-ip-country') ?? h.get('cf-ipcountry');
 
-  // Resolve the customer once if signed in (cheap; enriches attribution).
   const { userId } = await auth();
   const distinctId: string | null = userId ?? null;
   let customerId: string | null = null;

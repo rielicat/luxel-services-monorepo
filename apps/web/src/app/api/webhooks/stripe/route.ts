@@ -25,7 +25,6 @@ export async function POST(req: Request) {
 
   const supabase = createSupabaseServiceRoleClient();
 
-  // Idempotency: insert into payment_events; on conflict, exit early.
   const { error: dupErr } = await supabase.from('payment_events').insert({
     provider: 'stripe',
     event_id: event.id,

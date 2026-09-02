@@ -14,8 +14,7 @@ function uid(): string {
   }
 }
 
-/** Stable per-browser id (localStorage) — used to count unique visitors. */
-export function getAnonId(): string {
+function getAnonId(): string {
   if (typeof window === 'undefined') return '';
   let id = localStorage.getItem(ANON_KEY);
   if (!id) {
@@ -25,7 +24,6 @@ export function getAnonId(): string {
   return id;
 }
 
-/** Per-tab session id (sessionStorage). */
 export function getSessionId(): string {
   if (typeof window === 'undefined') return '';
   let id = sessionStorage.getItem(SESSION_KEY);
@@ -36,16 +34,13 @@ export function getSessionId(): string {
   return id;
 }
 
-/** First-touch UTM params, remembered for the session. */
 function captureUtm(): Record<string, string> | undefined {
   if (typeof window === 'undefined') return undefined;
   const stored = sessionStorage.getItem(UTM_KEY);
   if (stored) {
     try {
       return JSON.parse(stored) as Record<string, string>;
-    } catch {
-      /* fall through */
-    }
+    } catch {}
   }
   const p = new URLSearchParams(window.location.search);
   const utm: Record<string, string> = {};
@@ -60,18 +55,12 @@ function captureUtm(): Record<string, string> | undefined {
   return undefined;
 }
 
-/**
- * Track an event to our OWNED store (analytics_events via /api/events) and,
- * if configured, PostHog. No-ops safely on the server / when unavailable.
- */
 export function track(event: string, properties: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') return;
 
   try {
     if (posthog.__loaded) posthog.capture(event, properties);
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
   try {
     const body = JSON.stringify({
@@ -87,7 +76,6 @@ export function track(event: string, properties: Record<string, unknown> = {}): 
         },
       ],
     });
-    // sendBeacon survives page unload and includes same-origin cookies.
     if (navigator.sendBeacon) {
       navigator.sendBeacon('/api/events', new Blob([body], { type: 'application/json' }));
     } else {
@@ -98,7 +86,5 @@ export function track(event: string, properties: Record<string, unknown> = {}): 
         keepalive: true,
       });
     }
-  } catch {
-    /* best-effort */
-  }
+  } catch {}
 }

@@ -5,27 +5,19 @@ import { buildGrounding } from '@/lib/ai/grounding';
 import { getMessageSender } from './provider';
 import { hospitableTokenForCustomer } from './hospitable';
 
-export type InboundResult = {
+type InboundResult = {
   ok: boolean;
   action?: 'sent' | 'handoff' | 'duplicate';
   draft?: string;
   threadId?: string;
 };
 
-/**
- * Core Phase-2 loop: an inbound guest message is stored, the AI drafts a reply
- * grounded in the property info + learned answers + recent history, then either
- * auto-sends via the channel adapter or flags the thread for a human. Handoff
- * fires when the AI can't answer, detects frustration, or the guest asks for a
- * person — matching the agreed triggers.
- */
 export async function handleInboundMessage(input: {
   propertyId: string;
   channel?: string;
   externalThreadId?: string | null;
   guestName?: string | null;
   body: string;
-  /** Provider message id — polled/webhooked messages dedupe on it. */
   externalMessageId?: string | null;
 }): Promise<InboundResult> {
   const supabase = createSupabaseServiceRoleClient();
@@ -65,7 +57,6 @@ export async function handleInboundMessage(input: {
     external_id: input.externalMessageId ?? null,
   });
 
-  // The host's simple switch: AI off → straight to the inbox, nothing auto-sent.
   const { data: property } = await supabase
     .from('properties')
     .select('ai_enabled, owner_id')
@@ -79,9 +70,6 @@ export async function handleInboundMessage(input: {
     return { ok: true, action: 'handoff', threadId: thread.id };
   }
 
-  // Grounding = the property's own chat/automated-message experience (learned
-  // answers + past Q→A), falling back to anonymized cross-property experience
-  // when this property has no history yet — plus the current conversation tail.
   const [grounding, { data: recent }] = await Promise.all([
     buildGrounding(input.propertyId),
     supabase
@@ -112,7 +100,6 @@ export async function handleInboundMessage(input: {
     return { ok: true, action: 'handoff', draft: draft.draft, threadId: thread.id };
   }
 
-  // SaaS: sends go out with the property owner's own channel token.
   let token: string | null = null;
   if (channel === 'hospitable') {
     token = await hospitableTokenForCustomer((property?.owner_id as string | undefined) ?? null);

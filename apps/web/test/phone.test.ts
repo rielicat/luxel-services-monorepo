@@ -1,7 +1,3 @@
-/**
- * WhatsApp addresses a person by E.164 digits and nothing else. A host types a
- * number the way a Chilean writes one; the crew message has to land anyway.
- */
 import { describe, it, expect } from 'vitest';
 import { toE164Digits, formatPhone } from '../src/lib/phone';
 
@@ -23,7 +19,6 @@ describe('toE164Digits', () => {
   it('keeps foreign numbers as given, with or without an international prefix', () => {
     expect(toE164Digits('+55 11 99999 9999')).toBe('5511999999999');
     expect(toE164Digits('0055 11 99999 9999')).toBe('5511999999999');
-    // Longer than any national number: already carries its country code.
     expect(toE164Digits('5511999999999')).toBe('5511999999999');
   });
 

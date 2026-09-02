@@ -1,197 +1,157 @@
 # AGENTS.md
 
-Guidance for AI coding agents working in this repository. Human-oriented docs
-live in [`README.md`](README.md) and [`docs/DEPLOY.md`](docs/DEPLOY.md); this file
-is the practical "how to work here" for agents.
+How to work in this repository. Human docs: [`README.md`](README.md),
+[`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
-## ✍️ Write plans and docs in Simplified Technical English
+## Prose
 
-Plans, docs, migration notes and PR descriptions use **ASD-STE100 Simplified
-Technical English (STE)**: one idea per sentence, active voice, present tense,
-approved words in their approved meaning, and no synonyms for a term once chosen.
-Keep sentences under ~20 words and procedural steps under ~20.
-
-Applies to prose written FOR humans. It does not change code, identifiers,
-commit subjects, or the Spanish (`es-CL`) product copy, which follows the brand
-voice in [`docs/BRAND.md`](docs/BRAND.md).
+Write plans, docs and PR descriptions in ASD-STE100 Simplified Technical English:
+one idea per sentence, active voice, present tense, one term per concept, sentences
+under 20 words. Product copy stays `es-CL` and follows [`docs/BRAND.md`](docs/BRAND.md).
 
 ## Project
 
-**Servicios Luxel** — a short-term-rental (Airbnb) automation platform for Chile
-(`es-CL`), with professional cleaning as a second service line. A pnpm + Turborepo
-monorepo of Next.js 15 (App Router) apps plus a Cloudflare Worker, shared packages,
-Supabase, and Pulumi IaC. **Airbnb management is the primary service**; cleaning is
-secondary. Core journeys: land → pick a service → quote → start. An AI concierge
-("Lux") assists throughout.
+**Servicios Luxel** automates short-term-rental hosting in Santiago, Chile. Hosts
+connect their Hospitable account; the app mirrors listings and reservations, sends
+each guest a check-in link, renders the check-in page in the guest's language
+(es/en/pt), answers guest messages with AI ("Lux"), and tells conserjes and the
+cleaning crew what they need over WhatsApp. Professional cleaning is a secondary
+service line. pnpm + Turborepo monorepo: Next.js 15 apps, a Cloudflare Worker,
+shared packages, Supabase, Pulumi IaC.
 
-## ⚠️ Toolchain: use the pinned pnpm
+## Toolchain
 
-The `pnpm` on `PATH` is a **broken Node-16 corepack shim** (fails with
-`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`). Always invoke pnpm as:
+`pnpm` on `PATH` is a broken Node 16 corepack shim. Always run:
 
 ```bash
 PATH="/opt/homebrew/bin:$PATH" npx --yes pnpm@11.0.9 <args>
 ```
 
-- Node **22** (`.nvmrc`; `engines.node >=22.13.0`), pnpm **11.0.9**.
-- Local commits: `husky` pre-commit runs the broken shim, so hand-run the checks
-  and commit with `git commit --no-verify` (see Conventions).
+Node 22 (`.nvmrc`). Husky's pre-commit runs the broken shim: run the checks by hand,
+then `git commit --no-verify`.
 
 ## Commands
 
-Run from the repo root (prefix each with the pnpm invocation above):
+| Task     | Command                                                         |
+| -------- | --------------------------------------------------------------- |
+| Install  | `pnpm install`                                                  |
+| Dev      | `pnpm dev` or `pnpm --filter @luxel/web dev`                    |
+| Checks   | `pnpm format:check && pnpm typecheck && pnpm lint && pnpm test` |
+| Build    | `pnpm build`                                                    |
+| Format   | `pnpm format`                                                   |
+| Supabase | `pnpm supabase:start` / `:stop` / `:reset` / `:diff`            |
 
-| Task                 | Command                                                 |
-| -------------------- | ------------------------------------------------------- |
-| Install              | `pnpm install`                                          |
-| Dev (all)            | `pnpm dev` — or one app: `pnpm --filter @luxel/web dev` |
-| Typecheck            | `pnpm typecheck` (Turbo, all packages)                  |
-| Lint                 | `pnpm lint`                                             |
-| Test                 | `pnpm test` (Vitest; pricing engine is the main suite)  |
-| Format check / write | `pnpm format:check` / `pnpm format` (Prettier)          |
-| Build                | `pnpm build`                                            |
-| Supabase (local)     | `pnpm supabase:start` / `:stop` / `:reset` / `:diff`    |
-
-Scope any command to a package with `--filter <name>` (e.g.
-`--filter @luxel/infra-cloudflare typecheck`).
+Web tests need local Supabase and `apps/web/.env.local` sourced. Scope with
+`--filter <package>`.
 
 ## Layout
 
 ```
-apps/
-  web/          @luxel/web    — customer Next.js app → Vercel (serviciosluxel.cl)
-  admin/        @luxel/admin  — operator panel (metrics/leads/telemetry) → Vercel (port 3001 locally)
-workers/
-  whatsapp/     @luxel/whatsapp-worker — Cloudflare Worker (WhatsApp webhook), deployed via wrangler
-packages/
-  shared/       @luxel/shared  — i18n catalog, Zod schemas, shared types
-  pricing/      @luxel/pricing — pure pricing engine (unit-tested)
-  config/       @luxel/config  — ESLint/TS/Tailwind presets
-infra/
-  cloudflare/   @luxel/infra-cloudflare — Pulumi (TS) IaC: DNS + Email Routing (R2 state)
-supabase/       SQL migrations + seed + local config
+apps/web         @luxel/web              customer app → Vercel (serviciosluxel.cl)
+apps/admin       @luxel/admin            operator panel → Vercel
+workers/whatsapp @luxel/whatsapp-worker  Cloudflare Worker: WhatsApp webhook + /send
+packages/shared  @luxel/shared           i18n catalogs, Zod schemas, shared types
+packages/pricing @luxel/pricing          pure pricing engine
+packages/config  @luxel/config           ESLint / TS / Tailwind presets
+infra/cloudflare @luxel/infra-cloudflare Pulumi: DNS + Email Routing (R2 state)
+infra/vercel     @luxel/infra-vercel     Pulumi: Vercel projects, CI-driven
+supabase/        migrations + seed + local config
 ```
 
 ## Stack
 
-| Concern               | Tool                                                                    |
-| --------------------- | ----------------------------------------------------------------------- |
-| Hosting (web + admin) | Vercel (one project per app root)                                       |
-| Edge / DNS / email    | Cloudflare (Workers + DNS + Email Routing; DNS/email as Pulumi IaC)     |
-| Auth                  | Clerk (with a `supabase` JWT template)                                  |
-| Database              | Supabase (Postgres + RLS)                                               |
-| Payments              | MercadoPago (primary, CLP) + Stripe                                     |
-| AI concierge          | OpenAI — `gpt-4o-mini` (cost-optimized; `OPENAI_MODEL` override)        |
-| Analytics             | In-house (`analytics_events` + `leads` tables); PostHog/Sentry optional |
+| Concern       | Tool                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| Hosting       | Vercel (one project per app root)                                                                           |
+| Edge          | Cloudflare Workers, DNS, Email Routing                                                                      |
+| Auth          | Clerk. Web `/admin` = Clerk `admin` role; `apps/admin` = Clerk org membership (`LUXEL_ADMIN_ORG_ID`/`SLUG`) |
+| Database      | Supabase Postgres + RLS                                                                                     |
+| Channel (PMS) | Hospitable, as a plugin behind `apps/web/src/lib/channels/registry.ts`                                      |
+| Messaging     | WhatsApp Cloud API (worker), Resend email fallback                                                          |
+| AI            | OpenAI `gpt-4o-mini` (`OPENAI_MODEL` override)                                                              |
+| Pricing       | PriceLabs (optional add-on)                                                                                 |
+| Payments      | MercadoPago (CLP), Stripe, Transbank                                                                        |
+| Analytics     | In-house `analytics_events` + `leads`                                                                       |
 
 ## Conventions
 
-- **i18n — no hardcoded user-facing strings.** All copy lives in the single
-  catalog `packages/shared/src/i18n/es-CL.json` and is rendered via `next-intl`.
-  Locale prefix is `'never'` (clean URLs). Add a key rather than inlining text.
-- **Routes are English.** URL path segments are always English, kebab-case —
-  `/calculator`, `/book`, `/calendar`, `/account`, `/account/profile`,
-  `/sign-in`, `/sign-up` — even though every user-facing string is es-CL. Never
-  introduce a Spanish path segment; the UI stays Spanish, the URL stays English.
-- **Comments** — only explain the non-obvious _why_ (rationale, gotchas,
-  invariants). Don't restate what the code says or narrate steps. Match the
-  surrounding file's density.
-- **TypeScript** — strict; extend `tsconfig.base.json` (apps/packages use
-  `@luxel/config/tsconfig/*`). `infra/cloudflare` is deliberately standalone
-  CommonJS for Pulumi's runtime.
-- **Commits** — Conventional Commit style; end the message with
-  `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Use
-  `git commit --no-verify` (husky runs the broken pnpm shim) _after_ running the
-  checks manually. Branch off `main` for PRs.
-- **Before pushing**, make sure `format:check`, `typecheck`, `lint`, `test`,
-  `build` all pass — that's exactly what CI enforces.
+- **No code comments.** Source carries no comments; the code and the tests explain
+  themselves. Only tool directives stay (`eslint-disable`, `@ts-expect-error`).
+- **i18n.** No hardcoded user-facing strings. Site copy lives in
+  `packages/shared/src/i18n/es-CL.json`; the guest check-in page also has
+  `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix is
+  `never`.
+- **Routes are English.** `/calculator`, `/book`, `/account`,
+  `/properties`, `/checkin/[token]`. Never a Spanish path segment.
+- **TypeScript strict.** Extend `@luxel/config/tsconfig/{next,library,base}.json`.
+  `infra/cloudflare` is standalone CommonJS for Pulumi.
+- **Commits.** Conventional Commits. End the message with
+  `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. Branch off `main`.
+- **Before pushing** run format:check, typecheck, lint, test, build. CI enforces
+  exactly that.
 
-## Temporary — remove before public launch
+## Data and security rules
 
-- **Stealth access gate.** While in stealth, the **deployed** build serves a
-  "restricted access" page instead of the app: the middleware rewrites every
-  page request to `app/[locale]/gate` until the `luxel_gate` cookie is set. No
-  input field and no on-screen hint — the gate listens for keystrokes and
-  unlocks the moment the last digits typed match **`0612`** (no Enter), sets
-  the cookie and reloads. Production only (`NODE_ENV === 'production'`) —
-  local `next dev` is never gated; API routes stay open. It is obfuscation,
-  **not** real security. To LIFT it: delete
-  `apps/web/src/app/[locale]/gate/` and the `withStealthGate` block in
-  `apps/web/src/middleware.ts`.
+- Properties are an **import-only mirror** of Hospitable. There is no manual
+  property create or edit path. Do not add one.
+- Webhook payloads are **identifiers only**. Every value acted on is fetched back
+  from Hospitable with our credential (`app/api/channels/[provider]/route.ts`).
+  Webhook auth is Hospitable's source-IP range, never a secret in the URL.
+- **No cron.** Time-based guest messages (reminder, check-in details at T-3,
+  check-out, review) are Hospitable message rules authored in its dashboard.
+  Code handles events only.
+- Door codes and wifi passwords live in Hospitable custom codes and in
+  `property_access`; the AI redacts them (`lib/ai/redact.ts`). Never log them.
+- Guest documents are encrypted with `LUXEL_PII_KEY`, nulled 90 days after
+  departure by the sync pass, and reach conserjes only through the approved
+  WhatsApp template.
+- Secrets never enter the repo. `.env*` files stay untracked. Operators set
+  Vercel vars and `wrangler secret put`.
 
-## Product & marketing constraints (user-set)
+## Temporary: remove before public launch
 
-These are locked product decisions — honor them when touching site copy/IA:
+Stealth gate: in production the middleware rewrites every page to
+`app/[locale]/gate` until the `luxel_gate` cookie exists. Typing `0612` unlocks.
+To lift it, delete `apps/web/src/app/[locale]/gate/` and the `withStealthGate`
+block in `apps/web/src/middleware.ts`.
 
-- **Airbnb management is the PRIMARY service**, cleaning is secondary. Airbnb
-  leads in ordering (nav, homepage, service picker) — but do **not** label it
-  "Servicio Principal" or add "primary/flagship" badges in the UI; the emphasis
-  is order, not a badge.
-- **Marketing nav** (signed-out): `Servicios ▾` (dropdown: Administración
-  Airbnb, then Plan de Aseo) · `Precios` (→ `/calculator`) · `Nosotros`
-  (→ `/about`), in that order. No "Preguntas" item. Only a **Login** ("Ingresar")
-  action button — no "Cotizar" button in the header (quoting lives under the
-  `Precios` nav item). Mobile menu mirrors this (no header CTA).
-- **Service dropdown/card icons share one color** (`bg-primary/10 text-primary`)
-  across both services — never color-code one service differently.
-- **Never use "m²" / "metros cuadrados" as a marketing term.** Say **"tu
-  espacio"** (your space). The calculator's functional inputs may keep a real
-  unit, but marketing copy uses "tu espacio".
-- **Airbnb pricing = two flat tiers per listing/mo** (source of truth
-  `apps/web/src/lib/plan-pricing.ts`): `AI_PLAN_CLP` = 39.900 (Esencial, full AI
-  automation) and `AI_PLAN_HANDOFF_CLP` = 99.900 (Con respaldo humano — AI **plus
-  a real team taking over when the AI defers**). No per-booking commission.
-- **Competitor reference** for Airbnb-management benefits/positioning:
-  `airhost.cl` and `airhostchile.com` (full-service agencies — 24/7 guest comms,
-  dynamic pricing, cleaning between stays, check-in, transparent reporting). Our
-  angle: the same outcomes via automation + a flat fee, no % commission.
+## Product constraints (user-set)
 
-## CI
+- Airbnb management leads in nav, homepage and service picker. No "primary" badge.
+- Marketing nav: `Servicios ▾` (Administración Airbnb, Plan de Aseo) · `Precios`
+  (`/calculator`) · `Nosotros` (`/about`). One `Ingresar` button. No header CTA.
+- Service icons share one color (`bg-primary/10 text-primary`).
+- Never say "m²" or "metros cuadrados" in marketing copy. Say "tu espacio".
+- Airbnb pricing is two flat tiers per listing per month
+  (`apps/web/src/lib/plan-pricing.ts`): 39.900 Esencial, 99.900 Con respaldo
+  humano. No per-booking commission.
+- Competitor reference: `airhost.cl`, `airhostchile.com`. Our angle: same outcomes,
+  automation, flat fee.
 
-`.github/workflows/ci.yml` runs on push/PR: `install --frozen-lockfile` →
-`format:check` → `typecheck` → `lint` → `test` → `build` (with format-valid stub
-env vars; the Clerk publishable key must be _format-valid_ or the admin app's
-prerender fails). Keep `pnpm-lock.yaml` committed and frozen-install clean.
+## CI and deployment
 
-## Local development
+`.github/workflows/ci.yml`: frozen install → format:check → typecheck → lint →
+test → build. `db-migrate.yml` applies migrations to prod Supabase.
+`infra.yml` / `infra-vercel.yml` run Pulumi. Vercel deploys `apps/web` and
+`apps/admin` from their roots; the worker deploys with `wrangler deploy`.
+Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
-See the full recipe in `README.md`. Essentials:
+Open follow-ups that need operator credentials: Clerk production instance (prod
+runs the dev instance), Meta WhatsApp go-live (portfolio, number, templates).
 
-- Start Supabase locally (`pnpm supabase:start`), then `db reset` applies
-  `supabase/migrations/` + `supabase/seed.sql` (service types, pricing config,
-  the Santiago operation point).
-- Clerk needs real dev keys for `next-intl` clean-URL routing to work — keyless
-  mode drops the rewrite and 404s. Use provisioned keys.
-- **Pricing has a fallback:** `apps/web/src/lib/pricing-data.ts` returns
-  seed-equivalent defaults when Supabase is empty/unreachable, so quoting works
-  even against an unseeded database. Real rows take over once present.
+## Gotchas
 
-## Deployment
-
-Two Vercel projects (roots `apps/web` and `apps/admin`); the Worker deploys via
-`wrangler deploy`; the Cloudflare zone (DNS + Email Routing) is managed by Pulumi
-in `infra/cloudflare` (adopt existing records via import — never blind-apply).
-Full checklist and required env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md).
-
-Known production follow-ups (need operator credentials): set Clerk **production**
-keys (prod currently runs dev keys), seed the prod Supabase, deploy `apps/admin`
-as its own Vercel project, set `OPENAI_API_KEY`.
-
-## Gotchas (learned the hard way)
-
-- Broken pnpm shim → always the pinned-pnpm invocation above.
 - Supabase local image pulls can 403 from `public.ecr.aws`; mirror from Docker Hub.
-- Clerk **keyless** mode breaks next-intl routing (404s) — use real keys.
-- **Local auth — don't get stuck on the external Clerk portal.** Protected routes
-  redirect to Clerk's hosted account portal (`*.accounts.dev`), which hangs/loops
-  against a local server. When developing locally, **fake/bypass Clerk**: sign in
-  with a Clerk **test user** (`you+clerk_test@example.com`, any password, OTP
-  `424242`) and set `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` +
-  `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` so auth stays on `localhost` (uses the
-  in-app `<SignIn/>` pages, not the external hostname). For pages that don't need
-  a real user, stub the auth check in dev.
-- Admin access is gated by **Clerk organization membership** (`LUXEL_ADMIN_ORG_SLUG`);
-  staff are added to the org in Clerk. Locked by default (unset slug = nobody).
-- Cloudflare IaC adoption is **import-based** and can touch live DNS/email — run
-  `gen-imports` then `LUXEL_CF_ADOPT=1 pulumi up`, and confirm `pulumi preview`
-  shows no changes. Never blind-apply.
+- Clerk **keyless** mode breaks next-intl routing. Use real dev keys and set
+  `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`, `..._SIGN_UP_URL=/sign-up` so auth
+  stays on localhost. Test user: `you+clerk_test@example.com`, OTP `424242`.
+- Keep Clerk **Organizations optional** on the instance. Admin gating is
+  app-level.
+- Supabase free tier auto-pauses. A paused project looks deleted and blocks prod
+  migrations while CI stays green.
+- Vercel Hobby rejects sub-daily crons in `vercel.json` and silently blocks every
+  deploy. Do not add a `vercel.json` cron.
+- Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
+  `E2E_SKIP_AUTH`.
+- Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then
+  `pulumi preview`, and confirm no changes before `pulumi up`.

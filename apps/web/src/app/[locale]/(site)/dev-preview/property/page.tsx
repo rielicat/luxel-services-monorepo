@@ -2,11 +2,6 @@ import { notFound } from 'next/navigation';
 import type { PropertyRow } from '../../properties/properties-client';
 import { PropertyDetailClient, type LiveDay } from '../../properties/[id]/detail-client';
 
-/**
- * DEV-ONLY visual harness. The real property page needs a signed-in host, which
- * makes iterating on layout awkward, so this mounts the same client component
- * with fixture data. Never reachable in production.
- */
 export const dynamic = 'force-dynamic';
 
 const TODAY = '2026-07-30';
@@ -14,7 +9,6 @@ const DAY = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const plus = (n: number) => iso(new Date(new Date(`${TODAY}T00:00:00Z`).getTime() + n * DAY));
 
-// 90 days of a plausible calendar: two stays, weekend price bumps.
 const liveDays: LiveDay[] = Array.from({ length: 90 }, (_, i) => {
   const date = plus(i);
   const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
@@ -65,7 +59,6 @@ const property = {
   cleaning_auto_confirm: true,
   property_contacts: [],
   property_access: null,
-  property_calendars: [],
   calendar_blocks: [
     { id: 'b1', starts_on: plus(2), ends_on: plus(9), source: 'import', summary: 'Airbnb ABC' },
     { id: 'b2', starts_on: plus(20), ends_on: plus(26), source: 'import', summary: 'Airbnb DEF' },
@@ -138,8 +131,6 @@ const property = {
   ],
 } as unknown as PropertyRow;
 
-/** `?access=` swaps the access state — the empty-code case is a silent failure
- *  in production, so it needs to be reachable here. */
 const ACCESS = {
   keyless: {
     method: 'keyless',

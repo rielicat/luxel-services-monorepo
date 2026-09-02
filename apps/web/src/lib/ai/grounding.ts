@@ -2,12 +2,11 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { redactSecrets } from './redact';
 
-export interface Grounding {
+interface Grounding {
   source: 'property' | 'global' | 'none';
   text: string;
 }
 
-// Strip emails/phones so cross-user snippets never carry contact PII.
 function scrub(s: string): string {
   return s
     .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[correo]')
@@ -17,8 +16,6 @@ function scrub(s: string): string {
 
 type Row = { thread_id: string; source: string; body: string; created_at: string };
 
-/** Pairs each guest question with the reply that followed it (host or AI), in
- *  chronological order per thread — the "experience" the model learns from. */
 function pairQA(rows: Row[], secrets: readonly string[]): string[] {
   const byThread = new Map<string, Row[]>();
   for (const r of rows) {
@@ -43,9 +40,6 @@ function pairQA(rows: Row[], secrets: readonly string[]): string[] {
 
 type Supabase = ReturnType<typeof createSupabaseServiceRoleClient>;
 
-/** Every value that opens a door or a wifi network — for one property, or for
- *  all of them when the fallback reads other properties' threads: another
- *  host's door code is no less a leak for being someone else's. */
 async function accessSecrets(supabase: Supabase, propertyId: string | null): Promise<string[]> {
   const codes = supabase
     .from('property_access')
@@ -68,13 +62,6 @@ async function accessSecrets(supabase: Supabase, propertyId: string | null): Pro
   return out;
 }
 
-/**
- * Grounding for a guest reply: learned answers + past conversations (guest
- * question → host/AI answer) of THIS property. When the property has no history
- * yet, falls back to anonymized Q→A experience from other properties on the
- * platform ("context of other users"), scrubbed of contact data and marked as
- * generic so the model won't quote another property's specifics as fact.
- */
 export async function buildGrounding(propertyId: string): Promise<Grounding> {
   const supabase = createSupabaseServiceRoleClient();
 
@@ -116,7 +103,6 @@ export async function buildGrounding(propertyId: string): Promise<Grounding> {
     };
   }
 
-  // Fallback: anonymized experience from the rest of the platform.
   const [{ data: globalMsgs }, { data: globalLearned }, allSecrets] = await Promise.all([
     supabase
       .from('guest_messages')

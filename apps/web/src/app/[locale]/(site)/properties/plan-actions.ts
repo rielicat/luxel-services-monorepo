@@ -32,8 +32,6 @@ export async function extendMyTrial(): Promise<{ ok: boolean }> {
   return { ok };
 }
 
-/** Activate paid billing. Dev-mock simulates the MercadoPago preapproval so the
- *  trial→active transition is testable; real billing needs the preapproval flow. */
 export async function activateMyPlan(): Promise<{ ok: boolean; reason?: string }> {
   const cid = await currentCustomerId();
   if (!cid) return { ok: false };

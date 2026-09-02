@@ -1,8 +1,3 @@
-/**
- * The host's check-in message puts the door code and wifi password in the
- * thread by design. The AI reads threads as experience; it must never read
- * those.
- */
 import { describe, it, expect } from 'vitest';
 import { redactSecrets } from '../src/lib/ai/redact';
 

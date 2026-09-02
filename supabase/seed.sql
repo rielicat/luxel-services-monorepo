@@ -32,10 +32,3 @@ from op
 cross join (values ('Operador 1'), ('Operador 2')) as o(name)
 on conflict do nothing;
 
--- FAQ entries
-insert into public.faq_entries (question_key, answer_key, keywords, priority) values
-  ('faq.q.coverage', 'faq.a.coverage', array['cobertura','zona','region','santiago','llegan'], 100),
-  ('faq.q.tools',    'faq.a.tools',    array['insumos','productos','herramientas','traer'], 90),
-  ('faq.q.payment',  'faq.a.payment',  array['pago','pagar','tarjeta','transferencia','mercadopago','stripe'], 80),
-  ('faq.q.cancel',   'faq.a.cancel',   array['cancelar','suscripcion','pausar'], 70)
-on conflict do nothing;

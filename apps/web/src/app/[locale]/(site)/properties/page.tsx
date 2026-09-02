@@ -35,11 +35,6 @@ export default async function PropertiesPage() {
   let centralManaged = false;
   if (customer) {
     connection = await fetchConnection(customer.id);
-    // The grid is a strict mirror of the channel: on every load we pull the
-    // listing list live and reconcile (upsert + prune). Tenancy comes from
-    // `hospitableAccess`: a customer's own token is the boundary by itself,
-    // while Luxel's operator credential is filtered through the listing
-    // assignments — see lib/channels/scope.ts.
     const access = await hospitableAccess(customer.id);
     const token = access?.token ?? null;
     centralManaged = access?.scope === 'central';
@@ -48,24 +43,13 @@ export default async function PropertiesPage() {
         () => null,
       );
       syncFailed = !r?.ok;
-      // Only a customer's OWN token is persisted as their connection. The
-      // central credential must never be copied into a customer row — it is
-      // Luxel's, and storing it there would make every listing it can reach
-      // look like that customer's own account.
       if (r?.ok && !connection && access.scope === 'own') {
         await saveHospitableConnection(customer.id, token!, r.accountLabel);
         connection = await fetchConnection(customer.id);
       }
-      // Self-operating sync: reservations, guest messages and cleanings refresh
-      // automatically whenever the host visits and the last full sync is stale —
-      // no manual button. The heavy work runs AFTER the response streams (the
-      // page must never block on it); its results show on the next load.
-      // (Real-time messaging additionally flows through the channel webhook.)
       const syncedAt = connection?.messages_synced_at
         ? new Date(connection.messages_synced_at).getTime()
         : 0;
-      // Central-scope customers have no connection row of their own, so the
-      // staleness clock comes from the last property sync instead.
       const eligible = access.scope === 'own' ? Boolean(connection) : true;
       if (r?.ok && eligible && Date.now() - syncedAt > FULL_SYNC_STALE_MS) {
         const customerId = customer.id;
@@ -75,14 +59,8 @@ export default async function PropertiesPage() {
         });
       }
     } else if (connection?.has_token) {
-      // A real own connection whose token can't be used → the mirror is stale.
       syncFailed = true;
     } else {
-      // No access and no credential of their own: this account simply isn't
-      // managed yet (or was offboarded). That is an onboarding state, not a
-      // failure — the tokenless watermark row must not masquerade as a
-      // connection, or the host sees "conectado" next to "no pudimos
-      // sincronizar" and can do nothing about either.
       connection = null;
     }
     [properties, plan] = await Promise.all([

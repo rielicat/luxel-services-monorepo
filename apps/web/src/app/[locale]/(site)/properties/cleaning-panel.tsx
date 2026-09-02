@@ -69,7 +69,6 @@ export function CleaningPanel({
       }),
     );
 
-  // The turnover window comes straight from the listing's real times.
   const window = checkoutTime && checkinTime ? `${checkoutTime}–${checkinTime}` : null;
 
   const upcoming = [...cleanings]
@@ -78,7 +77,6 @@ export function CleaningPanel({
 
   return (
     <div className="grid gap-4">
-      {/* Who runs the turnovers — one decision, two clear options. */}
       <div className="grid gap-2 sm:grid-cols-2">
         {(
           [
@@ -109,9 +107,6 @@ export function CleaningPanel({
         ))}
       </div>
 
-      {/* Who is told about every new booking, one row each — whichever mode,
-          because a host running their own crew and Luxel running it both need
-          the people who show up to know the dates. */}
       <div className="border-border rounded-lg border p-3">
         <ContactList
           propertyId={propertyId}
@@ -123,7 +118,6 @@ export function CleaningPanel({
         />
       </div>
 
-      {/* Zero-busywork default: cleanings confirm and notify themselves. */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium">{t('auto_title')}</p>
@@ -163,8 +157,6 @@ export function CleaningPanel({
           ` ${t('price_note', { price: clp(turnoverPrice) })}`}
       </p>
 
-      {/* After each check-out, a cleaning appears here on its own. Only the
-          next few matter day-to-day; the full horizon lives in a modal. */}
       <div className="grid gap-2">
         {upcoming.length === 0 && <p className="text-muted-foreground text-sm">{t('none')}</p>}
         {upcoming.slice(0, 3).map((c) => (

@@ -2,8 +2,6 @@ import { useTranslations } from 'next-intl';
 import { Bot, Sparkles, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
-/** Homepage services block — AirBnB management as the flagship (emphasized),
- *  cleaning as the second line. Replaces the old standalone AirBnB section. */
 export function ServicesOverview() {
   const t = useTranslations('landing.services');
   return (
@@ -14,7 +12,6 @@ export function ServicesOverview() {
       </div>
 
       <div className="mx-auto mt-14 grid max-w-5xl gap-5 lg:grid-cols-5">
-        {/* Flagship — AirBnB (wider, primary-accented) */}
         <Link
           href="/services/airbnb"
           className="border-primary/20 bg-card ring-primary/10 shadow-card hover:shadow-lift hover-lift group relative overflow-hidden rounded-2xl border p-8 ring-1 lg:col-span-3"
@@ -36,7 +33,6 @@ export function ServicesOverview() {
           </div>
         </Link>
 
-        {/* Second line — cleaning */}
         <Link
           href="/services/cleaning"
           className="border-border bg-card shadow-card hover:shadow-lift hover-lift hover:border-primary/30 group flex flex-col rounded-2xl border p-8 lg:col-span-2"

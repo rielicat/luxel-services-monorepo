@@ -32,7 +32,6 @@ export function AddressAutocomplete({
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  // Guards against a slow earlier request overwriting a newer one.
   const queryRef = useRef('');
 
   const fetchSuggestions = useCallback(async (q: string) => {
@@ -47,7 +46,7 @@ export function AddressAutocomplete({
     setOpen(true);
     try {
       const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
-      if (queryRef.current !== q) return; // a newer query superseded this one
+      if (queryRef.current !== q) return;
       if (!res.ok) {
         setSuggestions([]);
         return;
@@ -124,8 +123,6 @@ export function AddressAutocomplete({
           aria-activedescendant={activeIndex >= 0 ? `address-opt-${activeIndex}` : undefined}
           className="pl-9 pr-9"
         />
-        {/* Spin lives on an inner element so it can't clash with the wrapper's
-            centering translate (which the spin transform would otherwise wipe out). */}
         {loading && (
           <span aria-hidden className="absolute right-3 top-1/2 -translate-y-1/2">
             <span className="border-primary/25 border-t-primary block h-4 w-4 animate-spin rounded-full border-2" />

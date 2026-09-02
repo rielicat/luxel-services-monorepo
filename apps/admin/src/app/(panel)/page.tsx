@@ -233,7 +233,7 @@ export default async function DashboardPage({
   );
 }
 
-export function DayRange({ active, basePath }: { active: number; basePath: string }) {
+function DayRange({ active, basePath }: { active: number; basePath: string }) {
   return (
     <div className="border-border inline-flex rounded-lg border p-0.5">
       {DAY_OPTIONS.map((n) => (

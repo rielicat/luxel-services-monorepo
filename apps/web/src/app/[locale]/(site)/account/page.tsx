@@ -11,10 +11,10 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrackView } from '@/components/analytics/track-view';
+import { EVENTS } from '@/lib/analytics/events';
 import { SubscriptionsList } from './subscriptions-list';
 import { BookingsList } from './bookings-list';
 
-// Auth-gated + reads per-request auth()/DB; never statically prerender or cache.
 export const dynamic = 'force-dynamic';
 
 type Subscription = {
@@ -52,7 +52,6 @@ export default async function CuentaPage() {
 
   if (ctx.customer) {
     const supabase = createSupabaseServiceRoleClient();
-    // Reconcile any paid plan whose subscription didn't get written at payment time.
     await backfillSubscriptionsForCustomer(supabase, ctx.customer.id);
     const [subs, bks, planRow, properties] = await Promise.all([
       supabase
@@ -90,7 +89,7 @@ export default async function CuentaPage() {
 
   return (
     <main className="pb-16">
-      <TrackView event="account_viewed" />
+      <TrackView event={EVENTS.ACCOUNT_VIEWED} />
 
       <section className="bg-aurora border-border/50 border-b">
         <div className="container flex max-w-5xl flex-col gap-4 py-10 sm:flex-row sm:items-end sm:justify-between sm:py-12">

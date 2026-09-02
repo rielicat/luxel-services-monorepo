@@ -9,7 +9,6 @@ import { hospitableTokenForCustomer } from '@/lib/channels/hospitable';
 import { handleInboundMessage } from '@/lib/channels/pipeline';
 import { devMockEnabled } from '@/lib/dev-mock';
 
-/** Dev-only: simulate an inbound guest message to exercise the auto-reply loop. */
 export async function simulateInbound(input: unknown): Promise<{ ok: boolean; action?: string }> {
   const p = z
     .object({

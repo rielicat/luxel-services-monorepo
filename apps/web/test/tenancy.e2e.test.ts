@@ -1,9 +1,3 @@
-/**
- * Central-account tenancy. Luxel manages every host from ONE Hospitable
- * credential and ONE PriceLabs account, so the ONLY thing standing between two
- * customers is the assignment table plus ownership checks. These tests exist to
- * make a cross-tenant regression fail loudly.
- */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -13,14 +7,9 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABAS
 const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 const CENTRAL_TOKEN = `tok_central_${nodeCrypto.randomBytes(12).toString('hex')}`;
-// Two hosts, each with one listing, both reachable by the SAME central token.
 const LISTING_A = 'a1111111-0000-0000-0000-00000000000a';
 const LISTING_B = 'b2222222-0000-0000-0000-00000000000b';
 
-// The code prefers PROVIDER_API_KEY, so set THAT — setting only the legacy name
-// left a real .env.local value winning and every assertion here describing the
-// developer's machine rather than the code. Both are pinned so neither ambient
-// value leaks in.
 const RETIRED_TOKEN = `tok_retired_${nodeCrypto.randomBytes(12).toString('hex')}`;
 process.env.PROVIDER_API_KEY = CENTRAL_TOKEN;
 process.env.HOSPITABLE_API_TOKEN = RETIRED_TOKEN;
@@ -69,7 +58,6 @@ beforeAll(async () => {
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url.startsWith('https://public.api.hospitable.com/')) {
-      // The central credential sees BOTH hosts' listings — exactly the hazard.
       if (url.includes('/properties')) {
         return Response.json({
           data: [remoteProperty(LISTING_A, 'Casa A'), remoteProperty(LISTING_B, 'Casa B')],
@@ -134,7 +122,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .eq('owner_id', customerA);
     expect(aRows!.map((r) => r.external_listing_id)).toEqual([LISTING_A]);
 
-    // Host B's listing was in the same API response and must NOT have leaked.
     const { data: bRows } = await admin
       .from('properties')
       .select('external_listing_id')
@@ -160,7 +147,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .select('id')
       .eq('owner_id', customerB)
       .single();
-    // Even with the add-on active and a mapping in place, ownership must win.
     await admin
       .from('property_addons')
       .insert({ property_id: bProp!.id, addon: 'dynamic_pricing', status: 'active', price_clp: 1 });
@@ -169,9 +155,7 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .update({ pricelabs_listing_id: LISTING_B, pricelabs_pms: 'hospitable' })
       .eq('id', bProp!.id);
 
-    // Host A asking for host B's property gets nothing.
     expect(await resolvePricelabsRef(customerA, bProp!.id as string)).toBeNull();
-    // The owner does get it.
     expect(await resolvePricelabsRef(customerB, bProp!.id as string)).toEqual({
       id: LISTING_B,
       pms: 'hospitable',
@@ -179,9 +163,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
   });
 
   it('withholds the operator credential from a customer with no assignments', async () => {
-    // A Hospitable token is scoped to ONE account, so the operator credential is
-    // not an all-tenant key. Handing it to a customer with an empty allowed set
-    // would make the strict mirror prune their whole tree.
     const { data: stranger } = await admin
       .from('customers')
       .insert({
@@ -192,7 +173,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .select('id')
       .single();
     expect(await hospitableAccess(stranger!.id as string)).toBeNull();
-    // …while an assigned customer does get it, in central scope.
     expect((await hospitableAccess(customerB))?.scope).toBe('central');
     await admin
       .from('customers')
@@ -202,7 +182,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
 
   it('never imports an unassigned listing, and freezes rather than wiping', async () => {
     await admin.from('listing_assignments').delete().eq('external_listing_id', LISTING_A);
-    // Un-import first so we can prove it is not re-imported while unassigned.
     await admin.from('properties').delete().eq('owner_id', customerA);
     await reconcile(customerA, CENTRAL_TOKEN, 'central');
     const { data: none } = await admin
@@ -211,8 +190,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .eq('owner_id', customerA);
     expect(none ?? []).toHaveLength(0);
 
-    // Re-assign, import, then unassign again: an empty scoped set must FREEZE
-    // the mirror, never delete it. Offboarding is explicit (unassignListing).
     await assignListing(LISTING_A, customerA, 'test', null);
     await reconcile(customerA, CENTRAL_TOKEN, 'central');
     await admin.from('listing_assignments').delete().eq('external_listing_id', LISTING_A);
@@ -223,8 +200,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .eq('owner_id', customerA);
     expect(frozen!.map((r) => r.external_listing_id)).toEqual([LISTING_A]);
 
-    // An offboard compares against the assignment the operator saw, so with no
-    // row to match it refuses — that is the stale-click protection.
     expect(await unassignListing(LISTING_A, customerA)).toBe(false);
     const { data: kept } = await admin
       .from('properties')
@@ -232,7 +207,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .eq('owner_id', customerA);
     expect(kept!.map((r) => r.external_listing_id)).toEqual([LISTING_A]);
 
-    // …and the deliberate offboard of a real assignment does remove it.
     await assignListing(LISTING_A, customerA, 'test', null);
     expect(await unassignListing(LISTING_A, customerA)).toBe(true);
     const { data: gone } = await admin
@@ -244,9 +218,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
   });
 
   it('a tokenless watermark row is not a connection of the customer’s own', async () => {
-    // 0033 gives centrally-managed customers a tokenless row to hold the sync
-    // watermarks. Reading its presence as "they have their own connection" is
-    // what showed an unmanaged host a permanent "no pudimos sincronizar".
     const { fetchConnection } = await import('../src/lib/host/queries');
     await admin
       .from('channel_connections')
@@ -272,9 +243,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
   });
 
   it('treats a stored operator credential as central, not as the customer’s own', async () => {
-    // The pre-central admin bootstrap persisted the operator token as an "own"
-    // connection. Read as `own`, it would bypass the assignment filter and
-    // mirror every reachable listing into that one tenant.
     const { encryptPII } = await import('../src/lib/crypto/pii');
     await admin.from('channel_connections').upsert(
       {
@@ -287,11 +255,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
     );
     expect((await hospitableAccess(customerA))?.scope).toBe('central');
 
-    // …and still central when the credential has been ROTATED and the row holds
-    // the PREVIOUS operator token. Comparing against only the active value would
-    // reclassify this as the customer's own connection, bypassing the assignment
-    // filter and mirroring every listing the operator account can reach into
-    // this one tenant.
     await admin.from('channel_connections').upsert(
       {
         customer_id: customerA,
@@ -303,8 +266,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
     );
     expect((await hospitableAccess(customerA))?.scope).toBe('central');
 
-    // A genuine customer token is still their own — the guard must not swallow
-    // every stored connection.
     await admin.from('channel_connections').upsert(
       {
         customer_id: customerA,

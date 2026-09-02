@@ -16,9 +16,6 @@ compatibility_flags = ["nodejs_compat"]
 [observability]
 enabled = true
 
-[vars]
-ENVIRONMENT = "production"
-
 # Backstops POST /send against a leaked INTERNAL_SEND_TOKEN. namespace_id is any
 # unique integer within the account; period must be 10 or 60.
 [[unsafe.bindings]]

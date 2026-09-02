@@ -16,9 +16,6 @@ const ContactSchema = z.object({
   email: z.union([z.string().email().max(120), z.literal('')]).optional(),
 });
 
-/** One notify list per property and role. WhatsApp is how both roles are
- *  reached, so it is the one required field: a contact without a usable number
- *  would sit on the list while the UI claims the person was told. */
 export async function addPropertyContact(
   input: unknown,
 ): Promise<{ ok: boolean; id?: string; error?: string }> {
@@ -62,8 +59,6 @@ export async function removePropertyContact(input: unknown): Promise<{ ok: boole
     .select('role')
     .maybeSingle();
 
-  // A removed cleaner still holds confirm links for pending cleanings —
-  // rotate those tokens (killing their links) and re-notify whoever remains.
   if (removed?.role === 'cleaning') {
     const { data: pendingRows } = await supabase
       .from('cleanings')

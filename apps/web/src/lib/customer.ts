@@ -2,20 +2,14 @@ import 'server-only';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from './supabase/server';
 
-export interface CustomerRow {
+interface CustomerRow {
   id: string;
   clerk_user_id: string;
   email: string;
   full_name: string | null;
   phone: string | null;
-  preferred_locale: string;
 }
 
-/**
- * Returns the Supabase customer row for the signed-in Clerk user, creating it
- * lazily on first access. The Clerk webhook is the primary path; this is a
- * fallback so a missed webhook doesn't break the account page.
- */
 export async function getOrCreateCustomer(): Promise<CustomerRow | null> {
   const { userId } = await auth();
   if (!userId) return null;
@@ -43,23 +37,17 @@ export async function getOrCreateCustomer(): Promise<CustomerRow | null> {
   return (created ?? null) as CustomerRow | null;
 }
 
-export interface AccountProfile {
+interface AccountProfile {
   email: string;
   full_name: string | null;
   phone: string | null;
 }
 
-export interface AccountContext {
+interface AccountContext {
   customer: CustomerRow | null;
   profile: AccountProfile;
 }
 
-/**
- * Resolves the signed-in user's account context for the /account pages. Returns
- * null when not signed in (callers redirect to sign-in). The profile always
- * resolves — from the Supabase customer row, or from Clerk when Supabase is
- * unseeded/unreachable — so the account never bounces the user home.
- */
 export async function getAccountContext(): Promise<AccountContext | null> {
   const { userId } = await auth();
   if (!userId) return null;

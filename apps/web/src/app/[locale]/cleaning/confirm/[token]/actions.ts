@@ -3,8 +3,6 @@
 import { z } from 'zod';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
-/** The crew's side of the loop: the notification carries this token, and
- *  tapping confirm is all they do. Token possession is the auth. */
 export async function confirmCleaningAttendance(input: unknown): Promise<{ ok: boolean }> {
   const p = z.string().uuid().safeParse(input);
   if (!p.success) return { ok: false };

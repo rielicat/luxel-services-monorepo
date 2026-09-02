@@ -1,17 +1,7 @@
 import 'server-only';
 
-/**
- * Transbank Webpay Plus via its REST API (no SDK dependency — plain fetch, like
- * the rest of this codebase). Falls back to Transbank's public **integration**
- * (sandbox) credentials when no real commerce credentials are configured, so the
- * flow works in test without any secrets. Production requires real credentials.
- *
- * Docs: https://www.transbankdevelopers.cl/referencia/webpay (v1.2)
- */
-
 const INTEGRATION = {
   baseUrl: 'https://webpay3gint.transbank.cl',
-  // Well-known public integration credentials (safe to commit; test-only).
   commerceCode: '597055555532',
   apiKey: '579B532A7440BB0C9079DED94D31EA1615BB1234',
 };
@@ -35,7 +25,6 @@ function getConfig(): TbkConfig {
       apiKey,
     };
   }
-  // No real credentials configured. Only allow the public sandbox off production.
   if (process.env.NODE_ENV === 'production') {
     throw new Error('TRANSBANK_COMMERCE_CODE / TRANSBANK_API_KEY not set');
   }
@@ -71,7 +60,7 @@ export async function createWebpayTransaction(input: {
   return (await res.json()) as { token: string; url: string };
 }
 
-export interface WebpayCommitResult {
+interface WebpayCommitResult {
   status: string;
   response_code: number;
   amount: number;

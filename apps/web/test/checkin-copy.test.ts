@@ -1,7 +1,3 @@
-/**
- * The booking message is the host's own text, in the guest's language, with
- * dates shaped the way the host writes them. It is what a guest reads first.
- */
 import { describe, it, expect } from 'vitest';
 import { bookingMessage, formatDate, longDateEs, stayRangeEs } from '../src/lib/checkin/copy';
 

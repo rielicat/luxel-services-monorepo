@@ -1,16 +1,13 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
-/** One source of truth for the host property bundle used by the overview grid
- *  and the per-property detail page. */
-export const PROPERTY_SELECT =
+const PROPERTY_SELECT =
   'id, nickname, address, comuna, guest_info, external_listing_id, platform, base_nightly_clp, ai_enabled, price_optimization_enabled, pricelabs_status, ' +
   'bedrooms, bathrooms, picture_url, max_guests, beds, property_type, room_type, checkin_time, checkout_time, listed, amenities, house_rules, ' +
   'cleaning_managed_by, cleaning_auto_confirm, ' +
   'property_contacts(id, role, name, email, whatsapp), ' +
   'property_addons(addon, status), ' +
   'property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_hours, id_basis, id_disclosed, unit), ' +
-  'property_calendars(id, label, ical_url, last_synced_at), ' +
   'calendar_blocks(id, starts_on, ends_on, source, summary), ' +
   'cleanings(id, cleaning_date, status, price_clp, source, crew_confirmed_at), ' +
   'guest_threads(id, status, guest_name, updated_at, guest_messages(id, direction, source, body, created_at))';
@@ -21,7 +18,6 @@ function normalize(p: any) {
   return {
     ...p,
     property_access: Array.isArray(pa) ? (pa[0] ?? null) : pa,
-    property_calendars: p.property_calendars ?? [],
     calendar_blocks: p.calendar_blocks ?? [],
     cleanings: p.cleanings ?? [],
     property_contacts: p.property_contacts ?? [],
@@ -59,11 +55,6 @@ export interface HostConnection {
   account_label: string | null;
   last_synced_at: string | null;
   messages_synced_at: string | null;
-  /** Whether this row carries the customer's OWN credential. Centrally-managed
-   *  customers get a tokenless row purely to hold the sync watermarks (0033),
-   *  so its presence must never be read as "they have a connection of their
-   *  own" — that is what turned an unmanaged account into a permanent
-   *  "sync failed" banner. The token itself is never exposed. */
   has_token: boolean;
 }
 

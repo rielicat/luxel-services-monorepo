@@ -70,11 +70,12 @@ Each stage lists the **on-site surface** (the route/component that exists in
 ### Concierge overlay ("Lux")
 
 The AI concierge (see [`AI.md`](./AI.md)) is not a separate stage — it is an
-**assistive layer over stages 1–6**. It can quote (`get_quote`), check coverage
-(`check_coverage`), recommend a tier (`recommend_service`), check slots
-(`check_availability`), answer FAQs, and hand off to a human. Its job is to
-compress the funnel: turn a hesitant visitor into a `booking_created` inside one
-conversation.
+**assistive layer over stages 1–6**. It can quote a cleaning (`get_quote`) or
+Airbnb management (`get_airbnb_quote`), check coverage (`check_coverage`), check
+slots (`check_availability`), show a host's real account data
+(`get_host_status`), offer navigation buttons (`share_links`), and hand off to a
+human (`escalate_to_human`). Its job is to compress the funnel: turn a hesitant
+visitor into a `booking_created` inside one conversation.
 
 ---
 
@@ -219,9 +220,9 @@ Each item is tied to tables/features that **exist today** or need to be **added*
 
 - **Brand system** ("Fresh Teal + Lime") — tokens already in
   `apps/web/src/app/globals.css`; documented in [`BRAND.md`](./BRAND.md).
-- **AI concierge "Lux"** — replace the keyword FAQ matcher (`/api/chat`,
-  `lib/faq.ts`) with a Claude-powered concierge (Anthropic TS SDK,
-  `claude-opus-4-8`, streaming, tool-use). See [`AI.md`](./AI.md).
+- **AI concierge "Lux"** — shipped. The keyword FAQ matcher is gone.
+  `/api/chat` runs a tool-using concierge on the OpenAI SDK (`gpt-4o-mini`,
+  SSE streaming). See [`AI.md`](./AI.md).
 - **Analytics instrumentation** — PostHog is mounted (`lib/posthog/provider.tsx`)
   but events are not yet emitted. Ship the full event taxonomy in
   [`METRICS.md`](./METRICS.md), especially server-side `payment_succeeded`.

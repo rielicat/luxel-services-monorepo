@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
-import posthog from 'posthog-js';
 import { Send, CalendarCheck, Sparkles, Phone, X, Home, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/routing';
 import { LuxelMark } from '@/components/brand/logo';
+import { track } from '@/lib/analytics/client';
+import { EVENTS } from '@/lib/analytics/events';
 import { cn } from '@/lib/utils';
 
 type QuoteWidget = {
@@ -82,15 +83,11 @@ export function ChatWidget() {
 
   useEffect(() => {
     setSessionId(getOrCreateSession());
-    // Survive a reload mid-handoff: stay with the person, keep polling their replies.
     if (typeof window !== 'undefined' && localStorage.getItem('luxel.chat.human') === '1') {
       setHumanMode(true);
     }
   }, []);
 
-  // Signed-in hosts get an operator greeting (manage your properties) instead of
-  // the prospect pitch. Clerk resolves after mount, so the greeting may re-render
-  // once — but never over a conversation already underway.
   useEffect(() => {
     const text = isSignedIn ? t('bot_greeting_host') : t('bot_greeting');
     setMessages((prev) => {
@@ -104,19 +101,14 @@ export function ChatWidget() {
     if (humanMode) localStorage.setItem('luxel.chat.human', '1');
   }, [humanMode]);
 
-  // While handed off to a person, poll for operator replies (routed from WhatsApp).
   useEffect(() => {
     if (!humanMode || sessionId === 'ssr') return;
-    // Resume from the last reply we actually delivered — never from the client
-    // clock, which would skip replies that landed while the tab was closed. On a
-    // fresh handoff there's no cursor, so the first poll pulls recent replies and
-    // the id-dedup below prevents showing anything twice.
     const cursorKey = `luxel.chat.cursor.${sessionId}`;
     if (!cursorRef.current && typeof window !== 'undefined') {
       cursorRef.current = localStorage.getItem(cursorKey);
     }
     let stopped = false;
-    let inFlight = false; // don't let a slow poll overlap the next interval fire
+    let inFlight = false;
     const poll = async () => {
       if (inFlight) return;
       inFlight = true;
@@ -146,7 +138,6 @@ export function ChatWidget() {
           if (typeof window !== 'undefined') localStorage.setItem(cursorKey, last.created_at);
         }
       } catch {
-        /* best-effort */
       } finally {
         inFlight = false;
       }
@@ -166,7 +157,7 @@ export function ChatWidget() {
   const openPanel = () => {
     if (!open) {
       setOpen(true);
-      tryCapture('chat_opened', { session_id: sessionId });
+      track(EVENTS.CHAT_OPENED, { session_id: sessionId });
     }
   };
 
@@ -181,7 +172,6 @@ export function ChatWidget() {
       widgets: [],
     };
 
-    // Handed off to a person: forward to WhatsApp instead of the AI, stay in chat.
     if (humanMode) {
       setMessages((prev) => [...prev, userMsg]);
       setInput('');
@@ -284,22 +274,14 @@ export function ChatWidget() {
   };
 
   const showQuickReplies = messages.length <= 1 && !pending;
-  // The bot turn currently being generated — shows the thinking dots (while a
-  // tool runs, no text yet) then the blinking stream caret. One avatar, no dupe.
   const activeId = pending ? [...messages].reverse().find((m) => m.role === 'bot')?.id : null;
 
   return (
     <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
-      {/* One cohesive agent surface: the composer is the docked bar; the
-          conversation expands above it (grid-rows trick animates the height).
-          Frosted like the top bar, with a soft primary halo so the agent reads
-          as the live thing on the page rather than another card. */}
       <div
         className={cn(
           'glass shadow-lift ease-lux relative flex w-[680px] max-w-full flex-col overflow-hidden rounded-2xl ring-1 transition-shadow duration-500',
           'before:via-primary/50 before:pointer-events-none before:absolute before:inset-x-10 before:-top-px before:h-px before:bg-gradient-to-r before:from-transparent before:to-transparent',
-          // Collapsed it has to earn a glance; open it recedes so the
-          // conversation is the thing being read.
           open
             ? 'ring-primary/15'
             : 'ring-primary/30 shadow-[0_8px_40px_-12px_hsl(var(--primary)/0.45)]',
@@ -312,7 +294,6 @@ export function ChatWidget() {
           )}
         >
           <div className="min-h-0 overflow-hidden">
-            {/* Minimal agent header — no chat chrome */}
             <div className="border-border/60 flex items-center justify-between border-b px-4 py-2.5">
               <span className="flex items-center gap-2 text-sm font-semibold">
                 <span
@@ -401,7 +382,6 @@ export function ChatWidget() {
           </div>
         </div>
 
-        {/* Composer — always visible; this row IS the docked agent bar when collapsed */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -469,7 +449,7 @@ function WidgetCard({
           <Button asChild variant="default" size="sm" className="flex-1">
             <Link
               href="/book"
-              onClick={() => tryCapture('cta_clicked', { source: 'chat_quote', cta: 'agendar' })}
+              onClick={() => track(EVENTS.CTA_CLICKED, { source: 'chat_quote', cta: 'agendar' })}
             >
               <CalendarCheck className="h-4 w-4" /> {t('book_cta')}
             </Link>
@@ -478,7 +458,7 @@ function WidgetCard({
             <Link
               href="/calculator"
               onClick={() =>
-                tryCapture('cta_clicked', { source: 'chat_quote', cta: 'calculadora' })
+                track(EVENTS.CTA_CLICKED, { source: 'chat_quote', cta: 'calculadora' })
               }
             >
               {t('quote_cta')}
@@ -513,7 +493,7 @@ function WidgetCard({
           <Link
             href="/book"
             onClick={() =>
-              tryCapture('cta_clicked', { source: 'chat_availability', cta: 'agendar' })
+              track(EVENTS.CTA_CLICKED, { source: 'chat_availability', cta: 'agendar' })
             }
           >
             <CalendarCheck className="h-4 w-4" /> {t('book_cta')}
@@ -543,7 +523,7 @@ function WidgetCard({
         <Button asChild variant="default" size="sm" className="mt-3 w-full">
           <Link
             href="/calculator?service=airbnb"
-            onClick={() => tryCapture('cta_clicked', { source: 'chat_airbnb', cta: 'trial' })}
+            onClick={() => track(EVENTS.CTA_CLICKED, { source: 'chat_airbnb', cta: 'trial' })}
           >
             {t('airbnb_trial_cta')} <ArrowRight className="h-4 w-4" />
           </Link>
@@ -559,7 +539,7 @@ function WidgetCard({
           <Button key={i} asChild size="sm" variant={a.style === 'primary' ? 'default' : a.style}>
             <Link
               href={a.href}
-              onClick={() => tryCapture('cta_clicked', { source: 'chat_links', cta: a.href })}
+              onClick={() => track(EVENTS.CTA_CLICKED, { source: 'chat_links', cta: a.href })}
             >
               {a.label}
             </Link>
@@ -569,7 +549,6 @@ function WidgetCard({
     );
   }
 
-  // handoff
   return (
     <div className="border-border bg-background shadow-soft max-w-[90%] rounded-xl border p-3.5">
       <p className="text-sm leading-relaxed">
@@ -595,12 +574,4 @@ function Dot({ delay = '0s' }: { delay?: string }) {
       style={{ animationDelay: delay }}
     />
   );
-}
-
-function tryCapture(event: string, props: Record<string, unknown>) {
-  try {
-    if (posthog.__loaded) posthog.capture(event, props);
-  } catch {
-    // ignore
-  }
 }

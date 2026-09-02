@@ -3,11 +3,6 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/**
- * Long-poll for operator replies that arrived via WhatsApp (routed to this web
- * session by the worker). The session id is an unguessable client-generated UUID
- * that acts as the bearer for its own transcript, matching /api/chat.
- */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const sessionId = url.searchParams.get('sessionId');

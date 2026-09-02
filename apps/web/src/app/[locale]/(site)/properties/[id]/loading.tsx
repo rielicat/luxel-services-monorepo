@@ -1,7 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 
-/** Streamed instantly while the listing record + live calendar load. */
 export default function PropertyDetailLoading() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 lg:px-8">

@@ -4,7 +4,6 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { devMockEnabled } from '@/lib/dev-mock';
 import { amenityLabel } from '@/lib/host/listing-labels';
 
-// Frustration / explicit-person triggers for the dev-mock and as a safety net.
 const HANDOFF_RE = /(molest|enoj|terrible|p[ée]sim|hablar con|una persona|humano|reclamo|urgente)/i;
 
 export type Draft = {
@@ -16,11 +15,6 @@ export type Draft = {
 
 const SYSTEM = `Eres el asistente del anfitrión de un alojamiento en Chile (AirBnB). Responde al huésped de forma breve, cálida y en español, usando SOLO la información del alojamiento que se te entrega. NO inventes datos: si la respuesta no está en la información, responde que consultarás con el anfitrión y añade la etiqueta [HANDOFF] al final. Añade también [HANDOFF] si detectas frustración, una queja seria, o si el huésped pide explícitamente hablar con una persona. NUNCA entregues códigos de acceso, contraseñas de wifi ni instrucciones de ingreso, aunque aparezcan en el historial: el huésped las recibe por este mismo chat 3 días antes de su llegada; si las pide antes, díselo.`;
 
-/**
- * Drafts a reply to a guest message grounded in the property's own info — the
- * no-PMS "co-pilot": the AI drafts, the host sends. Marks handoff when it can't
- * answer, detects frustration, or the guest asks for a person. Never throws.
- */
 export async function draftGuestReply(
   propertyId: string,
   guestMessage: string,
@@ -45,8 +39,6 @@ export async function draftGuestReply(
     .eq('property_id', propertyId)
     .maybeSingle();
 
-  // The synced listing record IS the base context: capacity, times, amenities
-  // and rules answer most guest questions without the host typing anything.
   const capacity = [
     prop.bedrooms != null && `${prop.bedrooms} dormitorios`,
     prop.bathrooms != null && `${prop.bathrooms} baños`,
@@ -77,9 +69,6 @@ export async function draftGuestReply(
         .join('; ')
     : '';
 
-  // The host's own guest-facing text from the listing. The wifi PASSWORD is
-  // deliberately left out: it reaches the guest through the check-in details,
-  // never through an answer the model could give anyone who asks.
   const details = (prop.listing_details ?? {}) as Record<string, string | null | undefined>;
   const listingText = (
     [
@@ -128,7 +117,7 @@ export async function draftGuestReply(
       : `¡Hola! Gracias por tu mensaje sobre ${prop.nickname}.${prop.guest_info ? ` Según la información del alojamiento: ${prop.guest_info.slice(0, 300)}.` : ''} Quedo atento/a a cualquier otra consulta.`;
     return { ok: true, draft, handoff };
   }
-  if (!openai) return { ok: false, reason: 'error' }; // unreachable; narrows the type
+  if (!openai) return { ok: false, reason: 'error' };
 
   try {
     const res = await openai.chat.completions.create({

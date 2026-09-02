@@ -1,11 +1,3 @@
-// Generates imports.json ({ pulumiResourceName: cloudflareImportId }) by matching
-// the live Cloudflare account against this program's resource-naming convention.
-// Run once, then adopt with: LUXEL_CF_ADOPT=1 pulumi up
-//
-//   CLOUDFLARE_API_TOKEN=... CF_ZONE_ID=... CF_ACCOUNT_ID=... \
-//   CF_ZONE_NAME=serviciosluxel.cl \
-//     pnpm --filter @luxel/infra-cloudflare import
-
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -17,7 +9,6 @@ if (!ZONE_ID) {
   process.exit(1);
 }
 
-// Must match slug() in config.ts exactly.
 const slug = (s) =>
   s
     .toLowerCase()
@@ -37,22 +28,13 @@ for (const r of records) {
   }
 }
 
-// Email Routing: settings + catch-all are keyed by zone; rules/addresses by tag/id.
-// Do NOT swallow API errors here — a transient failure or missing token scope
-// would otherwise produce a PARTIAL imports.json, and a missing key silently
-// turns adoption into a CREATE (re-provisioning routing / overwriting the live
-// catch-all). Any throw aborts before imports.json is written.
 const settings = await cf(`/zones/${ZONE_ID}/email/routing`);
 if (settings?.enabled) {
-  // settings + catch-all are the two per-zone singletons; both always exist when
-  // routing is enabled, and email.ts declares both under the same condition.
   imports['email-settings'] = ZONE_ID;
   imports['catch-all'] = ZONE_ID;
 
   const rules = await cfAll(`/zones/${ZONE_ID}/email/routing/rules`);
   for (const rule of rules) {
-    // Same structural predicate as export-cloudflare.mjs: literal = a real
-    // forwarding rule; the "all" matcher is the catch-all, handled above.
     if (rule.matchers?.[0]?.type !== 'literal') continue;
     const address = rule.matchers[0].value;
     if (!address) continue;

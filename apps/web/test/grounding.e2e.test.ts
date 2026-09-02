@@ -1,9 +1,3 @@
-/**
- * Proof of the AI grounding rules: a property with chat history grounds on its
- * OWN experience (learned answers + past guest→host/AI pairs); a property with
- * no history falls back to anonymized cross-property experience ("context of
- * other users") with contact PII scrubbed; an empty platform yields none.
- */
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -34,7 +28,6 @@ async function seedThread(propertyId: string, q: string, a: string, source: 'hos
     })
     .select('id')
     .single();
-  // Two statements → distinct created_at, so Q→A ordering is deterministic.
   await admin
     .from('guest_messages')
     .insert({ thread_id: thread!.id, direction: 'in', source: 'guest', body: q });
@@ -78,8 +71,8 @@ describe.skipIf(!LIVE)('AI grounding (end to end)', () => {
 
     const g = await buildGrounding(prop.id!);
     expect(g.source).toBe('property');
-    expect(g.text).toContain('mascotas pequeñas sin costo'); // host reply learned
-    expect(g.text).toContain('desde las 15:00'); // automated (AI) reply learned
+    expect(g.text).toContain('mascotas pequeñas sin costo');
+    expect(g.text).toContain('desde las 15:00');
   });
 
   it('falls back to anonymized cross-property experience when the property has none', async () => {
@@ -94,9 +87,9 @@ describe.skipIf(!LIVE)('AI grounding (end to end)', () => {
 
     const g = await buildGrounding(fresh.id!);
     expect(g.source).toBe('global');
-    expect(g.text).toContain('estacionamiento en el subterráneo'); // other users' experience
-    expect(g.text).toContain('GENÉRICA'); // marked as generic context
-    expect(g.text).not.toContain('juan@perez.cl'); // contact PII scrubbed
+    expect(g.text).toContain('estacionamiento en el subterráneo');
+    expect(g.text).toContain('GENÉRICA');
+    expect(g.text).not.toContain('juan@perez.cl');
     expect(g.text).not.toContain('1234 5678');
   });
 });

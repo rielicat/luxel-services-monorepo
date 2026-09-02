@@ -2,9 +2,6 @@ import * as cloudflare from '@pulumi/cloudflare';
 import { zoneId, zoneName, vercelTarget, panelTarget, dmarcPolicy } from './config';
 import { importId } from './adopt';
 
-// Apex + www → Vercel via CNAME. Cloudflare flattens the apex CNAME to A records
-// at the edge, so `dig` shows A records even though the stored record is a CNAME.
-// DNS-only (not proxied): Vercel terminates TLS.
 export const apexRecord = new cloudflare.DnsRecord(
   'apex',
   {
@@ -33,8 +30,6 @@ export const wwwRecord = new cloudflare.DnsRecord(
   { import: importId('www') },
 );
 
-// DMARC policy record. New (not currently present): created on first apply.
-// p=none is monitor-only and never rejects mail; tighten via `dmarcPolicy`.
 export const dmarcRecord = new cloudflare.DnsRecord(
   'dmarc',
   {
@@ -48,8 +43,6 @@ export const dmarcRecord = new cloudflare.DnsRecord(
   { import: importId('dmarc') },
 );
 
-// panel.serviciosluxel.cl → Vercel (admin app). Only created once `panelTarget`
-// is set (after the admin Vercel project exists — see infra/vercel).
 export const panelRecord = panelTarget
   ? new cloudflare.DnsRecord(
       'panel',
@@ -65,7 +58,3 @@ export const panelRecord = panelTarget
       { import: importId('panel') },
     )
   : undefined;
-
-// NOTE: not managed here (owned elsewhere, left untouched):
-//   - MX, SPF, DKIM (cf2024-1) — auto-managed by Email Routing.
-//   - _vercel TXT verification records — managed by Vercel domain verification.

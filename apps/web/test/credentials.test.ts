@@ -1,9 +1,3 @@
-/**
- * The operator channel credential is read through one accessor so a change of
- * PMS is a one-line edit. The fallback exists so neither ordering breaks
- * production: a deploy may land before the environment is updated, and the old
- * variable may be deleted afterwards without a matching deploy.
- */
 import { describe, it, expect, afterEach } from 'vitest';
 import { providerApiKey } from '../src/lib/channels/credentials';
 
@@ -43,8 +37,6 @@ describe('providerApiKey', () => {
 
   it('returns null when neither is set — never undefined', () => {
     set({});
-    // scope.ts compares this against a stored per-customer token to decide whose
-    // credential it is holding; undefined vs null there would misclassify scope.
     expect(providerApiKey()).toBeNull();
   });
 });

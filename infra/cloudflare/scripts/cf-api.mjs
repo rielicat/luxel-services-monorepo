@@ -1,6 +1,3 @@
-// Minimal Cloudflare API v4 helper shared by the export/import scripts.
-// Requires env: CLOUDFLARE_API_TOKEN, CF_ZONE_ID, CF_ACCOUNT_ID.
-
 const TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 export const ZONE_ID = process.env.CF_ZONE_ID;
 export const ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
@@ -24,11 +21,8 @@ export async function cf(path) {
   return body.result;
 }
 
-// Some collections (Email Routing rules/addresses) cap per_page at 50, so use
-// 50 everywhere and page while a full page comes back — never assume 100.
 const PER_PAGE = 50;
 
-/** GET a paginated collection (dns_records, rules, addresses). */
 export async function cfAll(path) {
   const out = [];
   let page = 1;

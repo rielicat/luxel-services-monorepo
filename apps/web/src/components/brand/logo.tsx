@@ -1,10 +1,5 @@
 import { cn } from '@/lib/utils';
 
-/**
- * Luxel sparkle mark — a clean 4-point "shine" glyph (lux = light).
- * Pure inline SVG so it themes with CSS vars and needs no external asset.
- * Real logo artwork is a placeholder — see docs/BRAND.md § Assets to create.
- */
 export function LuxelMark({ className }: { className?: string }) {
   const gid = 'luxel-mark-grad';
   return (
@@ -33,10 +28,6 @@ export function LuxelMark({ className }: { className?: string }) {
   );
 }
 
-/**
- * Full logo: mark + "Luxel" wordmark. Set `eyebrow` to show the "Servicios"
- * kicker above (used in the footer / larger surfaces).
- */
 export function LuxelLogo({
   className,
   markClassName,
