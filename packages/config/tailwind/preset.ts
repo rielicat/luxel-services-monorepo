@@ -125,7 +125,7 @@ const preset = {
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-out forwards',
-        'fade-in-up': 'fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'fade-in-up': 'fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both',
         'scale-in': 'scale-in 0.2s ease-out forwards',
         'bounce-dot': 'bounce-dot 1.2s ease-in-out infinite',
         shimmer: 'shimmer 1.6s infinite',

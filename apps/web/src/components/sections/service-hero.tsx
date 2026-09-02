@@ -21,7 +21,11 @@ export function ServiceHero({
           image ? 'grid items-center gap-12 lg:grid-cols-2 lg:gap-16 lg:py-28' : 'text-center',
         )}
       >
-        <div className={cn(image ? 'max-w-2xl text-center lg:text-left' : 'mx-auto max-w-3xl')}>
+        <div
+          className={cn(
+            image ? 'mx-auto max-w-2xl text-center lg:mx-0 lg:text-left' : 'mx-auto max-w-3xl',
+          )}
+        >
           <h1 className="text-balance font-serif text-4xl font-medium tracking-tight sm:text-6xl">
             {title}
           </h1>

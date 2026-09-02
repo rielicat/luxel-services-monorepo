@@ -201,8 +201,10 @@ function getAirbnbQuote(input: Record<string, unknown>): ToolResult {
       : plan === 'fixed'
         ? `Para ${per} el plan Fijo cuesta ${clp(monthlyClp)} al mes (+IVA). Los planes Mixto y Comisión dependen de los ingresos por reservas: pide el ingreso mensual estimado para compararlos.`
         : `El plan ${PLAN_LABELS[plan]} depende de los ingresos por reservas (${PLAN_PRICE_LINES[plan]}). Pide el ingreso mensual estimado por propiedad para calcular el monto.`;
+  const content = `Planes por propiedad al mes (+IVA): ${catalog}. ${estimate} Todo incluido en los tres planes. Comunícalo con claridad e invita a comparar planes o a solicitar el suyo.`;
+  if (revenueClp == null && plan !== 'fixed') return { content };
   return {
-    content: `Planes por propiedad al mes (+IVA): ${catalog}. ${estimate} Todo incluido en los tres planes. Comunícalo con claridad e invita a comparar planes o a solicitar el suyo.`,
+    content,
     widget: {
       kind: 'airbnb_quote',
       listings,

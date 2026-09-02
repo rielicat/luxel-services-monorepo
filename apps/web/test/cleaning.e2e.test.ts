@@ -9,7 +9,32 @@ const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 process.env.TEST_CLERK_ID = `test-clean-${nodeCrypto.randomUUID()}`;
 process.env.WHATSAPP_WORKER_SEND_URL = 'http://worker.test/send';
 process.env.INTERNAL_SEND_TOKEN = 'test-internal-token';
-const CHECKOUT = '2027-02-10';
+const plusDays = (n: number) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(
+    new Date(Date.now() + n * 86_400_000),
+  );
+const CHECKOUT = plusDays(5);
+const FAR_CHECKOUT = plusDays(120);
+const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MONTHS = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+const dateText = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const weekday = WEEKDAYS[new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay()];
+  return `${weekday} ${String(d).padStart(2, '0')} de ${MONTHS[m! - 1]}, 11:00`;
+};
 
 const EMAILS = vi.hoisted(() => [] as Array<{ to: string | string[]; subject: string }>);
 const WA_SENDS: Array<{
@@ -32,7 +57,7 @@ vi.mock('@/lib/email/send', () => ({
 
 let admin: ReturnType<typeof createClient>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
-let suggestCleaningsFromCheckouts: (id: string) => Promise<{ suggested: number }>;
+let suggestCleaningsFromCheckouts: (id: string) => Promise<{ suggested: number; skipped: number }>;
 let autoConfirmSuggested: (id: string, today: string) => Promise<number>;
 let santiagoToday: () => string;
 let customerId: string;
@@ -143,7 +168,7 @@ describe.skipIf(!LIVE)('Luxel-run cleaning coordination (end to end)', () => {
         to: '56955551234',
         template: {
           kind: 'cleaning_confirm',
-          params: ['miércoles 10 de febrero, 11:00', 'Depto Las Condes · Depto. 1203'],
+          params: [dateText(CHECKOUT), 'Depto Las Condes · Depto. 1203'],
           buttons: [`clean:${token}:yes`, `clean:${token}:no`],
         },
       },
@@ -168,6 +193,64 @@ describe.skipIf(!LIVE)('Luxel-run cleaning coordination (end to end)', () => {
     expect(after).toEqual([{ status: 'scheduled' }]);
     expect(WA_SENDS).toHaveLength(0);
     expect(EMAILS).toHaveLength(0);
+  });
+
+  it('leaves a far check-out suggested until it is close, and cancels it when the stay is gone', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Horizonte' });
+    const propertyId = prop.id!;
+    await admin.from('property_contacts').insert({
+      property_id: propertyId,
+      role: 'cleaning',
+      external_id: 'tm-far',
+      name: 'Rosa',
+      whatsapp: '+56 9 5555 1234',
+    });
+    await admin.from('calendar_blocks').insert([
+      {
+        property_id: propertyId,
+        starts_on: plusDays(118),
+        ends_on: FAR_CHECKOUT,
+        source: 'import',
+        external_uid: 'feed:far',
+        summary: 'Reserved',
+      },
+      {
+        property_id: propertyId,
+        starts_on: plusDays(3),
+        ends_on: CHECKOUT,
+        source: 'import',
+        external_uid: 'feed:soon',
+        summary: 'Reserved',
+      },
+    ]);
+
+    expect((await suggestCleaningsFromCheckouts(propertyId)).suggested).toBe(2);
+    expect(await autoConfirmSuggested(propertyId, santiagoToday())).toBe(1);
+    const rows = async () =>
+      (
+        await admin
+          .from('cleanings')
+          .select('cleaning_date, status')
+          .eq('property_id', propertyId)
+          .order('cleaning_date')
+      ).data!;
+    expect(await rows()).toEqual([
+      { cleaning_date: CHECKOUT, status: 'scheduled' },
+      { cleaning_date: FAR_CHECKOUT, status: 'suggested' },
+    ]);
+    expect(WA_SENDS.filter((s) => s.template)).toHaveLength(1);
+
+    WA_SENDS.length = 0;
+    await admin.from('calendar_blocks').delete().eq('external_uid', 'feed:soon');
+    expect((await suggestCleaningsFromCheckouts(propertyId)).skipped).toBe(1);
+    expect(await rows()).toEqual([
+      { cleaning_date: CHECKOUT, status: 'skipped' },
+      { cleaning_date: FAR_CHECKOUT, status: 'suggested' },
+    ]);
+    const fyi = WA_SENDS.filter((s) => s.text);
+    expect(fyi).toHaveLength(1);
+    expect(fyi[0]!.text).toContain('Aseo cancelado — Depto Horizonte');
+    expect(await autoConfirmSuggested(propertyId, santiagoToday())).toBe(0);
   });
 
   it('lets the crew confirm attendance via the tokenized link — once', async () => {

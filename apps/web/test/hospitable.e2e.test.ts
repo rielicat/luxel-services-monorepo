@@ -1273,31 +1273,44 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .eq('property_id', prop!.id)
       .order('cleaning_date');
     expect(cleanings!.map((c) => [c.cleaning_date, c.status])).toEqual([
-      ['2027-03-05', 'scheduled'],
-      ['2027-03-14', 'scheduled'],
+      ['2027-03-05', 'suggested'],
+      ['2027-03-14', 'suggested'],
     ]);
+    expect(WA_SENDS.filter((s) => s.template)).toHaveLength(0);
+
+    const soon = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(
+      new Date(Date.now() + 4 * 86_400_000),
+    );
+    await admin.from('calendar_blocks').insert({
+      property_id: prop!.id,
+      starts_on: soon,
+      ends_on: soon,
+      source: 'import',
+      external_uid: 'feed:soon',
+      summary: 'Reserved',
+    });
+    expect((await syncHospitable()).ok).toBe(true);
+
+    const { data: nearby } = await admin
+      .from('cleanings')
+      .select('cleaning_date, status, confirm_token')
+      .eq('property_id', prop!.id)
+      .eq('cleaning_date', soon)
+      .single();
+    expect(nearby!.status).toBe('scheduled');
 
     const templates = WA_SENDS.filter((s) => s.template);
-    expect(templates).toHaveLength(2);
-    const byToken = (token: string) =>
-      templates.find((s) => s.template!.buttons?.[0] === `clean:${token}:yes`);
-    const first = byToken(cleanings![0]!.confirm_token as string)!;
-    const second = byToken(cleanings![1]!.confirm_token as string)!;
-    expect(first).toEqual({
+    expect(templates).toHaveLength(1);
+    const token = nearby!.confirm_token as string;
+    expect(templates[0]).toEqual({
       to: '56955551234',
       template: {
         kind: 'cleaning_confirm',
-        params: ['viernes 05 de marzo, 11:00', 'JOSÉ MANUEL INFANTE 1045 - DPTO 401'],
-        buttons: [
-          `clean:${cleanings![0]!.confirm_token}:yes`,
-          `clean:${cleanings![0]!.confirm_token}:no`,
-        ],
+        params: [templates[0]!.template!.params[0]!, 'JOSÉ MANUEL INFANTE 1045 - DPTO 401'],
+        buttons: [`clean:${token}:yes`, `clean:${token}:no`],
       },
     });
-    expect(second.template!.params).toEqual([
-      'domingo 14 de marzo, 11:00',
-      'JOSÉ MANUEL INFANTE 1045 - DPTO 401',
-    ]);
+    expect(templates[0]!.template!.params[0]).toContain('11:00');
 
     WA_SENDS.length = 0;
     expect((await syncHospitable()).ok).toBe(true);

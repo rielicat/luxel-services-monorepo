@@ -114,8 +114,6 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
       const html =
         `<p>Se recibió un check-in para <strong>${place}</strong>.</p>` +
         `<p>Huésped: ${who}${checkin.party_size ? ` · ${checkin.party_size} personas` : ''}</p>` +
-        (checkin.guest_email ? `<p>Email: ${esc(checkin.guest_email)}</p>` : '') +
-        (checkin.guest_phone ? `<p>Teléfono: ${esc(checkin.guest_phone)}</p>` : '') +
         `<p>Llegada: ${arrival}.</p>`;
       const r = await sendEmail({
         to: owner.email,

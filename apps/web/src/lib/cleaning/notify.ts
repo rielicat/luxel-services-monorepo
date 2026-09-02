@@ -3,12 +3,14 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email/send';
 import { sendWhatsAppTemplate, sendWhatsAppViaWorker } from '@/lib/whatsapp/send';
 import { longDateEs } from '@/lib/checkin/copy';
+import { shiftDate } from '@/lib/checkin/window';
 import { toE164Digits } from '@/lib/phone';
 import { appUrl } from '@/lib/urls';
 
 type Supabase = ReturnType<typeof createSupabaseServiceRoleClient>;
 
 const WEEKDAYS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const NOTIFY_HORIZON_DAYS = 14;
 
 const esc = (s: string) =>
   s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
@@ -89,6 +91,24 @@ export async function notifyCleaningScheduled(
   } catch {}
 }
 
+export async function notifyCleaningCancelled(
+  propertyId: string,
+  cleaningDate: string,
+): Promise<void> {
+  try {
+    const supabase = createSupabaseServiceRoleClient();
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('nickname')
+      .eq('id', propertyId)
+      .maybeSingle();
+    if (!prop) return;
+    await sendWhatsAppViaWorker(
+      `Aseo cancelado — ${prop.nickname} el ${cleaningDate}. La reserva ya no está en el calendario; avisa al equipo.`,
+    );
+  } catch {}
+}
+
 export async function autoConfirmSuggested(propertyId: string, today: string): Promise<number> {
   const supabase = createSupabaseServiceRoleClient();
   const { data: suggested } = await supabase
@@ -96,7 +116,8 @@ export async function autoConfirmSuggested(propertyId: string, today: string): P
     .select('id')
     .eq('property_id', propertyId)
     .eq('status', 'suggested')
-    .gte('cleaning_date', today);
+    .gte('cleaning_date', today)
+    .lte('cleaning_date', shiftDate(today, NOTIFY_HORIZON_DAYS));
   if (!suggested?.length) return 0;
 
   for (const c of suggested) {

@@ -290,7 +290,7 @@
     "concierge_name": "Nombre de conserjería",
     "concierge_hours": "Horario",
     "require_id": "Exigir documento de identidad",
-    "require_id_help": "Solo actívalo si tienes una base legal o normativa (p. ej. reglamento del edificio) y la informas en la descripción del anuncio de AirBnB antes de la reserva.",
+    "require_id_help": "Solo actívalo si tienes una base legal o normativa (p. ej. reglamento del edificio) y la informas en la descripción del anuncio de Airbnb antes de la reserva.",
     "id_basis": "Base legal o normativa",
     "id_basis_ph": "Ej.: el reglamento de copropiedad exige registro de huéspedes",
     "id_disclosed": "Confirmo que informo este requisito en la descripción del anuncio antes de la reserva.",
@@ -336,6 +336,7 @@
     "cancel": "Cancelar plan",
     "cancel_title": "¿Cancelar tu plan?",
     "cancel_body": "Te contactamos para coordinar la salida con 30 días de aviso. Puedes volver cuando quieras.",
+    "cancel_body_requested": "Cancelamos tu solicitud. Puedes elegir otro plan cuando quieras.",
     "cancel_confirm": "Sí, cancelar",
     "cancel_keep": "Mantener mi plan",
     "error": "No pudimos guardar tu solicitud. Inténtalo de nuevo."

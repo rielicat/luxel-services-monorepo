@@ -169,7 +169,7 @@ Each event and the file that emits it. Paths are relative to the repo root.
 | `account_viewed`      | `apps/web/src/app/[locale]/(site)/account/page.tsx` (`<TrackView event="account_viewed" />`)                              | Client          |
 
 Planned emit points: `plan_estimate_viewed` from
-`apps/web/src/app/[locale]/(site)/calculator/airbnb-quote.tsx`; `plan_requested`
+`apps/web/src/app/[locale]/(site)/calculator/plan-comparison.tsx`; `plan_requested`
 and `plan_cancelled` from
 `apps/web/src/app/[locale]/(site)/properties/plan-actions.ts`; `plan_activated`
 from the operator action once it exists in `apps/admin`; `channel_connected`

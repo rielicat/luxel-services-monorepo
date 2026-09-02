@@ -134,7 +134,7 @@ export default function AboutPage() {
                 asChild
                 variant="outline"
                 size="xl"
-                className="text-primary-foreground hover:text-primary-foreground w-full border-white/40 bg-transparent hover:bg-white/10 sm:w-auto"
+                className="text-primary-foreground hover:text-primary-foreground w-full border-white/70 bg-white/15 hover:bg-white/10 sm:w-auto"
               >
                 <Link href="/calculator">{t('cta_button')}</Link>
               </Button>

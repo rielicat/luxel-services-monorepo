@@ -7,8 +7,6 @@ drop table if exists public.operation_points cascade;
 drop table if exists public.service_types cascade;
 drop table if exists public.pricing_config cascade;
 
-drop policy if exists "property_addons_owner_read" on public.property_addons;
-drop index if exists public.property_addons_property_idx;
 drop table if exists public.property_addons cascade;
 
 alter table public.leads

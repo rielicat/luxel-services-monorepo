@@ -35,7 +35,7 @@ export function PlanBar({ plan }: { plan: Plan }) {
 
   const current = isPlanKey(plan?.plan) ? plan.plan : null;
   const status = isStatus(plan?.status) ? plan.status : null;
-  const showPicker = !current || status === 'cancelled';
+  const showPicker = !current || status !== 'active';
 
   const run = (key: PlanKey | 'cancel', fn: () => Promise<{ ok: boolean }>) => {
     setBusy(key);
@@ -140,7 +140,9 @@ export function PlanBar({ plan }: { plan: Plan }) {
 
       <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title={t('cancel_title')}>
         <div className="grid gap-4">
-          <p className="text-muted-foreground text-sm">{t('cancel_body')}</p>
+          <p className="text-muted-foreground text-sm">
+            {t(status === 'requested' ? 'cancel_body_requested' : 'cancel_body')}
+          </p>
           {failed && <p className="text-warning text-xs">{t('error')}</p>}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="outline" disabled={pending} onClick={() => setConfirmOpen(false)}>
