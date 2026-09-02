@@ -86,7 +86,7 @@ jobs:
           fi
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            LUXEL_VC_ADOPT=$ADOPT pulumi preview
+            LUXEL_VC_ADOPT=$ADOPT pulumi preview --refresh
           else
-            LUXEL_VC_ADOPT=$ADOPT pulumi up --yes --skip-preview
+            LUXEL_VC_ADOPT=$ADOPT pulumi up --yes --skip-preview --refresh
           fi
