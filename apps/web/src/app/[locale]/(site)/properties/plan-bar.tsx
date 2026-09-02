@@ -3,23 +3,22 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { startPlan, cancelMyPlan, extendMyTrial, activateMyPlan } from './plan-actions';
+import { PLAN_KEYS, isPlanKey, type PlanKey } from '@/lib/plan-pricing';
+import { planDesc, planName, planPriceLine } from '@/lib/plan-copy';
+import { cn } from '@/lib/utils';
+import { requestMyPlan, cancelMyPlan } from './plan-actions';
 
-export type Plan = { plan: string; status: string; trial_ends_at: string | null } | null;
+export type Plan = { plan: string; status: string } | null;
 
-function daysLeft(iso: string | null): number {
-  if (!iso) return 0;
-  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
-}
-
-export function PlanBar({ plan, billingReady = false }: { plan: Plan; billingReady?: boolean }) {
+export function PlanBar({ plan }: { plan: Plan }) {
   const t = useTranslations('hostplan');
+  const tp = useTranslations('plans');
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [winback, setWinback] = useState(false);
+  const [picked, setPicked] = useState<PlanKey>(isPlanKey(plan?.plan) ? plan.plan : 'fixed');
 
   const run = (fn: () => Promise<unknown>) =>
     start(async () => {
@@ -28,67 +27,72 @@ export function PlanBar({ plan, billingReady = false }: { plan: Plan; billingRea
     });
 
   const active = Boolean(plan && plan.status !== 'cancelled');
+  const current = isPlanKey(plan?.plan) ? plan.plan : null;
 
   return (
     <Card className="border-primary/30 mb-5">
-      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="text-primary h-5 w-5" />
-          <div>
-            <p className="font-display font-semibold">{t('ai_name')}</p>
-            <p className="text-muted-foreground text-xs">
-              {!plan && t('price')}
-              {plan?.status === 'trialing' &&
-                `${t('trialing', { days: daysLeft(plan.trial_ends_at) })} · ${t('trial_note')}`}
-              {plan?.status === 'active' && t('active')}
-              {plan?.status === 'cancelled' && t('cancelled')}
-            </p>
+      <CardContent className="grid gap-4 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="text-primary h-5 w-5" />
+            <div>
+              <p className="font-display font-semibold">
+                {current ? planName(tp, current) : t('title')}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {!plan && t('hint')}
+                {plan?.status === 'requested' && t('requested')}
+                {plan?.status === 'active' && t('active')}
+                {plan?.status === 'cancelled' && t('cancelled')}
+              </p>
+            </div>
           </div>
-        </div>
-
-        {!active ? (
-          <Button disabled={pending} onClick={() => run(() => startPlan({ plan: 'ai' }))}>
-            {plan?.status === 'cancelled' ? t('reactivate') : t('start_trial')}
-          </Button>
-        ) : winback ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs">{t('winback_body')}</span>
+          {active ? (
             <Button
+              variant="outline"
               size="sm"
               disabled={pending}
-              onClick={() =>
-                run(async () => {
-                  await extendMyTrial();
-                  setWinback(false);
-                })
-              }
+              onClick={() => run(() => cancelMyPlan())}
             >
-              {t('winback_extend')}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={pending}
-              onClick={() =>
-                run(async () => {
-                  await cancelMyPlan();
-                  setWinback(false);
-                })
-              }
-            >
-              {t('winback_confirm')}
-            </Button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            {plan?.status === 'trialing' && billingReady && (
-              <Button size="sm" disabled={pending} onClick={() => run(() => activateMyPlan())}>
-                {t('activate')}
-              </Button>
-            )}
-            <Button variant="outline" size="sm" disabled={pending} onClick={() => setWinback(true)}>
               {t('cancel')}
             </Button>
+          ) : (
+            <Button disabled={pending} onClick={() => run(() => requestMyPlan({ plan: picked }))}>
+              {plan?.status === 'cancelled' ? t('reactivate') : t('request')}
+            </Button>
+          )}
+        </div>
+
+        {!active && (
+          <div className="grid gap-2 sm:grid-cols-3">
+            {PLAN_KEYS.map((key) => {
+              const selected = picked === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setPicked(key)}
+                  className={cn(
+                    'rounded-lg border p-3 text-left transition-colors',
+                    selected
+                      ? 'border-primary/50 bg-accent/60'
+                      : 'border-border hover:border-primary/30',
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold">{planName(tp, key)}</span>
+                    {selected && <Check className="text-primary h-4 w-4" />}
+                  </span>
+                  <span className="mt-1 block text-sm font-medium tabular-nums">
+                    {planPriceLine(tp, key)}
+                  </span>
+                  <span className="text-muted-foreground mt-0.5 block text-xs">
+                    {planDesc(tp, key)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </CardContent>

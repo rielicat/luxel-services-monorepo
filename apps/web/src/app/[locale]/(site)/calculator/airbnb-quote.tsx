@@ -6,23 +6,25 @@ import { Minus, Plus, Check, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { airbnbTierPrice, type AirbnbTier } from '@/lib/plan-pricing';
+import { Input } from '@/components/ui/input';
+import { PLAN_KEYS, cheapestPlan, planMonthlyCost, type PlanKey } from '@/lib/plan-pricing';
+import { planDesc, planName, planPriceLine } from '@/lib/plan-copy';
 import { formatCLP, cn } from '@/lib/utils';
 
 const MIN = 1;
 const MAX = 20;
 const INCLUDED = ['inc1', 'inc2', 'inc3', 'inc4', 'inc5'] as const;
-const TIERS: { id: AirbnbTier; name: string; desc: string }[] = [
-  { id: 'base', name: 'plan_base_name', desc: 'plan_base_desc' },
-  { id: 'handoff', name: 'plan_pro_name', desc: 'plan_pro_desc' },
-];
 
 export function AirbnbQuote() {
   const t = useTranslations('calculator.airbnb');
+  const tp = useTranslations('plans');
   const [listings, setListings] = useState(1);
-  const [tier, setTier] = useState<AirbnbTier>('base');
-  const perUnit = airbnbTierPrice(tier);
+  const [plan, setPlan] = useState<PlanKey>('fixed');
+  const [revenue, setRevenue] = useState('');
+  const revenueClp = revenue ? Number(revenue) : 0;
+  const perUnit = planMonthlyCost(plan, revenueClp);
   const total = listings * perUnit;
+  const cheapest = revenue ? cheapestPlan(revenueClp) : null;
   const clamp = (n: number) => Math.min(MAX, Math.max(MIN, n));
 
   return (
@@ -36,15 +38,15 @@ export function AirbnbQuote() {
         <CardContent className="grid gap-6 p-7">
           <div className="grid gap-3">
             <label className="text-sm font-semibold">{t('plan_label')}</label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {TIERS.map((tr) => {
-                const active = tier === tr.id;
+            <div className="grid gap-3 sm:grid-cols-3">
+              {PLAN_KEYS.map((key) => {
+                const active = plan === key;
                 return (
                   <button
-                    key={tr.id}
+                    key={key}
                     type="button"
                     aria-pressed={active}
-                    onClick={() => setTier(tr.id)}
+                    onClick={() => setPlan(key)}
                     className={cn(
                       'rounded-xl border p-4 text-left transition-all',
                       active
@@ -53,7 +55,7 @@ export function AirbnbQuote() {
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">{t(tr.name)}</span>
+                      <span className="text-sm font-semibold">{planName(tp, key)}</span>
                       <span
                         className={cn(
                           'flex h-4 w-4 items-center justify-center rounded-full border',
@@ -65,46 +67,63 @@ export function AirbnbQuote() {
                         {active && <Check className="h-3 w-3" />}
                       </span>
                     </div>
-                    <p className="text-muted-foreground mt-1 text-xs">{t(tr.desc)}</p>
-                    <p className="font-display mt-2 text-lg font-bold tabular-nums">
-                      {formatCLP(airbnbTierPrice(tr.id))}
+                    <p className="text-muted-foreground mt-1 text-xs">{planDesc(tp, key)}</p>
+                    <p className="font-display mt-2 text-base font-bold tabular-nums">
+                      {planPriceLine(tp, key)}
                     </p>
-                    <p className="text-muted-foreground text-xs">{t('per_unit')}</p>
+                    {cheapest === key && (
+                      <p className="text-primary mt-1 text-xs font-semibold">{t('cheapest')}</p>
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="grid gap-3">
-            <label className="text-sm font-semibold">{t('listings_label')}</label>
-            <div className="flex items-center gap-4">
-              <div className="border-input flex items-center rounded-lg border">
-                <button
-                  type="button"
-                  aria-label="−"
-                  disabled={listings <= MIN}
-                  onClick={() => setListings((n) => clamp(n - 1))}
-                  className="hover:bg-muted flex h-11 w-11 items-center justify-center rounded-l-lg transition-colors disabled:opacity-40"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="font-display w-14 text-center text-2xl font-bold tabular-nums">
-                  {listings}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3">
+              <label className="text-sm font-semibold">{t('listings_label')}</label>
+              <div className="flex items-center gap-4">
+                <div className="border-input flex items-center rounded-lg border">
+                  <button
+                    type="button"
+                    aria-label="−"
+                    disabled={listings <= MIN}
+                    onClick={() => setListings((n) => clamp(n - 1))}
+                    className="hover:bg-muted flex h-11 w-11 items-center justify-center rounded-l-lg transition-colors disabled:opacity-40"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="font-display w-14 text-center text-2xl font-bold tabular-nums">
+                    {listings}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="+"
+                    disabled={listings >= MAX}
+                    onClick={() => setListings((n) => clamp(n + 1))}
+                    className="hover:bg-muted flex h-11 w-11 items-center justify-center rounded-r-lg transition-colors disabled:opacity-40"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <span className="text-muted-foreground text-sm">
+                  {listings === 1 ? t('unit_one') : t('unit_many')}
                 </span>
-                <button
-                  type="button"
-                  aria-label="+"
-                  disabled={listings >= MAX}
-                  onClick={() => setListings((n) => clamp(n + 1))}
-                  className="hover:bg-muted flex h-11 w-11 items-center justify-center rounded-r-lg transition-colors disabled:opacity-40"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
               </div>
-              <span className="text-muted-foreground text-sm">
-                {listings === 1 ? t('unit_one') : t('unit_many')}
-              </span>
+            </div>
+            <div className="grid gap-3">
+              <label htmlFor="revenue" className="text-sm font-semibold">
+                {t('revenue_label')}
+              </label>
+              <Input
+                id="revenue"
+                inputMode="numeric"
+                placeholder="800000"
+                value={revenue}
+                onChange={(e) => setRevenue(e.target.value.replace(/\D/g, ''))}
+              />
+              <p className="text-muted-foreground text-xs">{t('revenue_hint')}</p>
             </div>
           </div>
 
@@ -126,11 +145,6 @@ export function AirbnbQuote() {
           <div className="grid gap-2">
             <p className="text-sm font-semibold">{t('included_title')}</p>
             <ul className="grid gap-1.5">
-              {tier === 'handoff' && (
-                <li className="text-foreground flex items-start gap-2 text-sm font-medium">
-                  <Check className="text-primary mt-0.5 h-4 w-4 shrink-0" /> {t('inc_handoff')}
-                </li>
-              )}
               {INCLUDED.map((k) => (
                 <li key={k} className="text-muted-foreground flex items-start gap-2 text-sm">
                   <Check className="text-success mt-0.5 h-4 w-4 shrink-0" /> {t(k)}

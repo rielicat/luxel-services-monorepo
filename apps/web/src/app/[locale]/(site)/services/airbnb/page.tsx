@@ -7,10 +7,11 @@ import { ServiceHero } from '@/components/sections/service-hero';
 import { SectionHeading } from '@/components/sections/section-heading';
 import { FeatureGrid } from '@/components/sections/feature-grid';
 import { Steps } from '@/components/sections/steps';
-import { AI_PLAN_CLP, AI_PLAN_HANDOFF_CLP } from '@/lib/plan-pricing';
-import { formatCLP, cn } from '@/lib/utils';
+import { PLAN_KEYS, type PlanKey } from '@/lib/plan-pricing';
+import { planDesc, planName, planPriceLine } from '@/lib/plan-copy';
+import { cn } from '@/lib/utils';
 
-export const metadata: Metadata = { title: 'Gestiona tu Airbnb con Agentes de IA' };
+export const metadata: Metadata = { title: 'Administración completa de Airbnb' };
 
 const FEATURE_ICONS = [Bot, TrendingUp, Sparkles, KeyRound];
 const STEPS = ['s1', 's2', 's3'] as const;
@@ -34,7 +35,7 @@ export default function AirbnbServicePage() {
         })}
       >
         <Button asChild variant="default" size="xl" className="w-full sm:w-auto">
-          <Link href="/calculator?service=airbnb">{t('cta_primary')}</Link>
+          <Link href="/calculator">{t('cta_primary')}</Link>
         </Button>
         <Button asChild variant="outline" size="xl" className="w-full sm:w-auto">
           <Link href="/properties">{t('cta_secondary')}</Link>
@@ -53,17 +54,10 @@ export default function AirbnbServicePage() {
 
       <section className="container pb-24">
         <SectionHeading title={t('pricing_title')} />
-        <div className="mx-auto mt-12 grid max-w-3xl items-start gap-5 sm:grid-cols-2">
-          <Tier t={t} name={t('tier_base_name')} desc={t('tier_base_desc')} price={AI_PLAN_CLP} />
-          <Tier
-            t={t}
-            name={t('tier_pro_name')}
-            desc={t('tier_pro_desc')}
-            price={AI_PLAN_HANDOFF_CLP}
-            extra={t('tier_pro_extra')}
-            handoff={t('incl_handoff')}
-            featured
-          />
+        <div className="mx-auto mt-12 grid max-w-5xl items-start gap-5 sm:grid-cols-3">
+          {PLAN_KEYS.map((key) => (
+            <Tier key={key} plan={key} featured={key === 'fixed'} />
+          ))}
         </div>
         <p className="text-muted-foreground mt-6 text-center text-sm">{t('price_note')}</p>
       </section>
@@ -71,23 +65,9 @@ export default function AirbnbServicePage() {
   );
 }
 
-function Tier({
-  t,
-  name,
-  desc,
-  price,
-  extra,
-  handoff,
-  featured,
-}: {
-  t: (key: string) => string;
-  name: string;
-  desc: string;
-  price: number;
-  extra?: string;
-  handoff?: string;
-  featured?: boolean;
-}) {
+function Tier({ plan, featured }: { plan: PlanKey; featured?: boolean }) {
+  const t = useTranslations('services.airbnb');
+  const tp = useTranslations('plans');
   return (
     <div
       className={cn(
@@ -101,25 +81,20 @@ function Tier({
         <div aria-hidden className="bg-brand-glow pointer-events-none absolute inset-0" />
       )}
       <div className="relative flex flex-1 flex-col">
-        <h3 className="font-display text-lg font-semibold">{name}</h3>
-        <p className="text-muted-foreground mt-1 text-sm">{desc}</p>
-        <p className="font-display mt-5 text-4xl font-bold tabular-nums">{formatCLP(price)}</p>
+        <h3 className="font-display text-lg font-semibold">{planName(tp, plan)}</h3>
+        <p className="text-muted-foreground mt-1 text-sm">{planDesc(tp, plan)}</p>
+        <p className="font-display mt-5 text-2xl font-bold tabular-nums">
+          {planPriceLine(tp, plan)}
+        </p>
         <p className="text-muted-foreground text-sm">{t('price_suffix')}</p>
 
         <ul className="mt-5 grid flex-1 gap-2">
-          {handoff && (
-            <li className="text-foreground flex items-start gap-2 text-sm font-medium">
-              <Check className="text-primary mt-0.5 h-4 w-4 shrink-0" /> {handoff}
-            </li>
-          )}
           {INCLUDED.map((k) => (
             <li key={k} className="text-muted-foreground flex items-start gap-2 text-sm">
               <Check className="text-success mt-0.5 h-4 w-4 shrink-0" /> {t(k)}
             </li>
           ))}
         </ul>
-
-        {extra && <p className="text-muted-foreground mt-4 text-xs">{extra}</p>}
 
         <Button
           asChild
