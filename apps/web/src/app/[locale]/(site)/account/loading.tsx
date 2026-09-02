@@ -25,6 +25,7 @@ export default function AccountLoading() {
                   <Skeleton className="h-5 w-40" />
                 </div>
                 <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
                 <div className="flex gap-2 pt-1">
                   <Skeleton className="h-9 w-32 rounded-lg" />
                 </div>

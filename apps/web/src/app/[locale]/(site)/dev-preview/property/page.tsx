@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { PropertyRow } from '../../properties/properties-client';
+import type { AccessRow } from '../../properties/access-panel';
 import { PropertyDetailClient, type LiveDay } from '../../properties/[id]/detail-client';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,7 @@ for (const d of liveDays) {
   else if (dow === 1 || dow === 2) recommended[d.date] = 152000;
 }
 
-const property = {
+const property: PropertyRow = {
   id: '00000000-0000-0000-0000-000000000001',
   nickname: 'JOSÉ MANUEL INFANTE 1045 - DPTO 401',
   address: 'José Manuel Infante 1045',
@@ -59,9 +60,9 @@ const property = {
     { id: 'b2', starts_on: plus(20), ends_on: plus(26), source: 'import', summary: 'Airbnb DEF' },
     { id: 'b3', starts_on: plus(44), ends_on: plus(52), source: 'import', summary: 'Airbnb GHI' },
   ],
-} as unknown as PropertyRow;
+};
 
-const ACCESS = {
+const ACCESS: Record<'keyless' | 'missing' | 'none', AccessRow> = {
   keyless: {
     method: 'keyless',
     require_id: false,
@@ -69,7 +70,7 @@ const ACCESS = {
     keyless_instructions: 'Piso 4, depto B — el teclado está a la derecha',
     concierge_name: null,
     concierge_hours: null,
-    unit: null,
+    unit: '401',
     id_basis: null,
     id_disclosed: false,
   },
@@ -85,23 +86,19 @@ const ACCESS = {
     id_disclosed: false,
   },
   none: null,
-} as const;
+};
 
 export default async function PreviewPropertyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ access?: keyof typeof ACCESS }>;
+  searchParams: Promise<{ access?: string }>;
 }) {
   if (process.env.NODE_ENV === 'production') notFound();
   const { access } = await searchParams;
+  const key = access && access in ACCESS ? (access as keyof typeof ACCESS) : 'keyless';
   return (
     <PropertyDetailClient
-      property={
-        {
-          ...property,
-          property_access: ACCESS[access ?? 'keyless'] ?? null,
-        } as unknown as PropertyRow
-      }
+      property={{ ...property, property_access: ACCESS[key] }}
       liveDays={liveDays}
       today={TODAY}
       recommended={recommended}

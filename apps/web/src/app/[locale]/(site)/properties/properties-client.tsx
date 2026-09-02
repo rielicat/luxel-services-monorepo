@@ -12,7 +12,6 @@ import {
   Plug,
   RefreshCw,
   Settings2,
-  BotOff,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
@@ -247,11 +246,6 @@ function ListingCard({ property }: { property: PropertyRow }) {
           >
             <ChipIcon className="h-3 w-3" /> {chip.label}
           </span>
-          {property.ai_enabled === false && (
-            <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
-              <BotOff className="h-3 w-3" /> {t('ai_off')}
-            </span>
-          )}
         </div>
 
         <div className="text-muted-foreground flex items-center justify-between text-xs">

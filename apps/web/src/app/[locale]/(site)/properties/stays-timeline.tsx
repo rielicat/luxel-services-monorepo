@@ -163,7 +163,7 @@ export function StaysTimeline({
                 key={`${y}-${m}`}
                 className="grid gap-1.5 [contain-intrinsic-size:auto_19rem] [content-visibility:auto]"
               >
-                <p className="bg-card/95 sticky top-0 z-10 py-1 text-sm font-semibold capitalize backdrop-blur">
+                <p className="bg-card/95 sticky top-0 z-10 py-1 text-sm font-semibold backdrop-blur first-letter:uppercase">
                   {monthLabel(y, m)}
                 </p>
                 <div className="grid grid-cols-7 gap-y-1 text-center">

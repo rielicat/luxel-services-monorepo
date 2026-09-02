@@ -64,7 +64,6 @@ export function AutomationsPanel({
   pricelabsStatus: 'off' | 'pending_connection' | 'connected';
 }) {
   const t = useTranslations('ai');
-  const ta = useTranslations('addons');
   const router = useRouter();
   const [pending, start] = useTransition();
   const [teachOpen, setTeachOpen] = useState(false);
@@ -139,10 +138,10 @@ export function AutomationsPanel({
           </div>
           <p className="text-muted-foreground text-xs">
             {!priceOptEnabled
-              ? ta('paused_body')
+              ? t('price_paused_body')
               : pricingLive
                 ? t('price_on_body')
-                : ta('price_waiting_body')}
+                : t('price_waiting_body')}
           </p>
 
           {pricelabsStatus !== 'connected' && (
@@ -151,7 +150,7 @@ export function AutomationsPanel({
               onClick={() => setStepsOpen(true)}
               className="text-warning flex w-fit items-center gap-1 text-xs font-medium hover:underline"
             >
-              <TriangleAlert className="h-3 w-3" /> {ta('pending_connection')}
+              <TriangleAlert className="h-3 w-3" /> {t('price_pending_connection')}
             </button>
           )}
           {pricelabsStatus === 'connected' && (
@@ -163,14 +162,14 @@ export function AutomationsPanel({
                 )}
               >
                 <Check className="h-3 w-3" />
-                {priceOptEnabled ? ta('connected') : ta('paused_still_connected')}
+                {priceOptEnabled ? t('price_connected') : t('price_paused_still_connected')}
               </p>
               <button
                 type="button"
                 onClick={() => setSettingsOpen(true)}
                 className="text-primary flex w-fit items-center gap-1 text-xs font-medium hover:underline"
               >
-                <SlidersHorizontal className="h-3 w-3" /> {ta('bounds_link')}
+                <SlidersHorizontal className="h-3 w-3" /> {t('price_bounds_link')}
               </button>
             </>
           )}
@@ -246,15 +245,15 @@ export function AutomationsPanel({
         </div>
       </Modal>
 
-      <Modal open={stepsOpen} onClose={() => setStepsOpen(false)} title={ta('steps_title')}>
+      <Modal open={stepsOpen} onClose={() => setStepsOpen(false)} title={t('price_steps_title')}>
         <div className="grid gap-3">
-          <p className="text-muted-foreground text-sm">{ta('steps_intro')}</p>
+          <p className="text-muted-foreground text-sm">{t('price_steps_intro')}</p>
           <ol className="grid list-decimal gap-1.5 pl-5 text-sm">
-            <li>{ta('step_smart_pricing')}</li>
-            <li>{ta('step_1')}</li>
-            <li>{ta('step_2')}</li>
+            <li>{t('price_step_smart_pricing')}</li>
+            <li>{t('price_step_1')}</li>
+            <li>{t('price_step_2')}</li>
           </ol>
-          <p className="text-muted-foreground text-xs">{ta('steps_help')}</p>
+          <p className="text-muted-foreground text-xs">{t('price_steps_help')}</p>
           <Button
             size="sm"
             className="justify-self-start"
@@ -271,26 +270,30 @@ export function AutomationsPanel({
               })
             }
           >
-            {ta('verify_link')}
+            {t('price_verify_link')}
           </Button>
           {linkResult === 'pending' && (
-            <p className="text-warning text-xs">{ta('verify_not_found')}</p>
+            <p className="text-warning text-xs">{t('price_verify_not_found')}</p>
           )}
           {linkResult === 'unavailable' && (
-            <p className="text-muted-foreground text-xs">{ta('verify_unavailable')}</p>
+            <p className="text-muted-foreground text-xs">{t('price_verify_unavailable')}</p>
           )}
         </div>
       </Modal>
 
-      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title={ta('bounds_title')}>
+      <Modal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        title={t('price_bounds_title')}
+      >
         <div className="grid gap-3">
-          <p className="text-muted-foreground text-sm">{ta('bounds_body')}</p>
+          <p className="text-muted-foreground text-sm">{t('price_bounds_body')}</p>
           <div className="grid gap-3 sm:grid-cols-3">
             {(
               [
-                ['base', ta('bounds_base')],
-                ['min', ta('bounds_min')],
-                ['max', ta('bounds_max')],
+                ['base', t('price_bounds_base')],
+                ['min', t('price_bounds_min')],
+                ['max', t('price_bounds_max')],
               ] as const
             ).map(([field, label]) => (
               <div key={field} className="grid gap-1.5">
@@ -325,15 +328,15 @@ export function AutomationsPanel({
                   setSettingsOpen(false);
                 } else {
                   setBoundsError(
-                    ta(`bounds_error_${r.error === 'validation' ? 'range' : r.error}`),
+                    t(`price_bounds_error_${r.error === 'validation' ? 'range' : r.error}`),
                   );
                 }
               })
             }
           >
-            {ta('bounds_save')}
+            {t('price_bounds_save')}
           </Button>
-          <p className="text-muted-foreground text-xs">{ta('bounds_note')}</p>
+          <p className="text-muted-foreground text-xs">{t('price_bounds_note')}</p>
         </div>
       </Modal>
     </div>

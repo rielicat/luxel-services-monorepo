@@ -7,8 +7,8 @@ import {
   ArrowLeft,
   CalendarDays,
   KeyRound,
-  BotOff,
   Home,
+  Sparkles,
   TriangleAlert,
   CheckCircle2,
   TrendingUp,
@@ -69,8 +69,7 @@ function stats(property: PropertyRow, liveDays: LiveDay[] | null, from: string) 
   return { occupancy, pastOccupancy, revenue30, adr };
 }
 
-function SlimHero({ property, aiOff }: { property: PropertyRow; aiOff: boolean }) {
-  const t = useTranslations('detail');
+function SlimHero({ property }: { property: PropertyRow }) {
   const tp = useTranslations('properties');
   return (
     <div className="mb-6 flex items-center gap-4">
@@ -107,11 +106,6 @@ function SlimHero({ property, aiOff }: { property: PropertyRow; aiOff: boolean }
               {tp('unlisted')}
             </span>
           )}
-          {aiOff && (
-            <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-              <BotOff className="h-3 w-3" /> {t('ai_off')}
-            </span>
-          )}
         </div>
       </div>
     </div>
@@ -132,6 +126,7 @@ export function PropertyDetailClient({
   recommended?: Record<string, number> | null;
 }) {
   const t = useTranslations('detail');
+  const ts = useTranslations('stays');
   const s = stats(property, liveDays, today);
   const accessUnconfigured =
     !property.property_access?.method ||
@@ -232,7 +227,7 @@ export function PropertyDetailClient({
         </span>
       </nav>
 
-      <SlimHero property={property} aiOff={property.ai_enabled === false} />
+      <SlimHero property={property} />
 
       <div className="border-border/60 mb-10 grid grid-cols-2 gap-x-6 gap-y-5 border-y py-5 sm:grid-cols-3">
         {metrics.map((m) => (
@@ -352,6 +347,10 @@ export function PropertyDetailClient({
             liveDays={liveDays}
             recommended={recommended}
           />
+          <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
+            <Sparkles className="text-primary mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {ts('cleaning_note')}
+          </p>
         </Section>
 
         <Section
