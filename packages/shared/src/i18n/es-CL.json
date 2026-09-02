@@ -187,7 +187,8 @@
     "airbnb_revenue": "Con {revenue} de ingresos al mes por propiedad"
   },
   "errors": {
-    "not_found": "Página no encontrada"
+    "not_found": "Página no encontrada",
+    "back_home": "Volver al inicio"
   },
   "faq": {
     "section_title": "Preguntas frecuentes",
@@ -529,7 +530,7 @@
   },
   "plans": {
     "fixed_name": "Fijo",
-    "fixed_desc": "Tarifa plana. Ideal si tu depto factura sobre ~850.000 al mes.",
+    "fixed_desc": "Monto fijo al mes. Ideal si tu depto factura sobre ~850.000.",
     "fixed_price": "{price}/mes",
     "hybrid_name": "Mixto",
     "hybrid_desc": "Base baja, comisión pequeña.",
@@ -539,5 +540,8 @@
     "commission_price": "{pct}% de tus ingresos",
     "per_listing": "por propiedad, + IVA",
     "included": "Todo incluido en los tres planes: precios dinámicos, huéspedes 24/7, aseo y lavandería, inventario, reparaciones menores, reporte mensual."
+  },
+  "ui": {
+    "close": "Cerrar"
   }
 }

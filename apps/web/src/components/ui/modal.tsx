@@ -3,6 +3,7 @@
 import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 export function Modal({
@@ -18,6 +19,7 @@ export function Modal({
   children: React.ReactNode;
   className?: string;
 }) {
+  const t = useTranslations('ui');
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogPrimitive.Portal>
@@ -36,7 +38,7 @@ export function Modal({
             </DialogPrimitive.Title>
             <DialogPrimitive.Close
               className="text-muted-foreground hover:text-foreground -m-1 rounded-md p-1 transition-colors"
-              aria-label="Cerrar"
+              aria-label={t('close')}
             >
               <X className="h-4 w-4" />
             </DialogPrimitive.Close>

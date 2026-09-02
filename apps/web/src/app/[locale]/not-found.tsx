@@ -11,7 +11,7 @@ export default function NotFound() {
         href="/"
         className="bg-primary text-primary-foreground inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium"
       >
-        Volver al inicio
+        {t('back_home')}
       </Link>
     </main>
   );
