@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
-import { Bot, TrendingUp, Sparkles, Percent } from 'lucide-react';
+import { MessageCircle, TrendingUp, Sparkles, FileText } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { LuxelLogo } from '@/components/brand/logo';
@@ -24,11 +24,11 @@ export const authAppearance = {
   },
 } as const;
 
-const POINTS: { icon: LucideIcon; key: 'ai' | 'pricing' | 'cleaning' | 'commission' }[] = [
-  { icon: Bot, key: 'ai' },
+const POINTS: { icon: LucideIcon; key: 'guests' | 'pricing' | 'cleaning' | 'report' }[] = [
+  { icon: MessageCircle, key: 'guests' },
   { icon: TrendingUp, key: 'pricing' },
   { icon: Sparkles, key: 'cleaning' },
-  { icon: Percent, key: 'commission' },
+  { icon: FileText, key: 'report' },
 ];
 
 export async function AuthShell({

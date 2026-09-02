@@ -20,9 +20,10 @@ test('the agent box is docked on the homepage', async ({ page }) => {
   await expect(page.getByPlaceholder('¿En qué te puedo ayudar hoy?')).toBeVisible();
 });
 
-test('the pricing page shows the three plans', async ({ page }) => {
+test('the pricing page compares the three plans', async ({ page }) => {
   await page.goto('/calculator');
+  await expect(page.getByRole('slider')).toBeVisible();
   for (const plan of ['Fijo', 'Mixto', 'Comisión']) {
-    await expect(page.getByRole('button', { name: plan, exact: false }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: plan, exact: true })).toBeVisible();
   }
 });

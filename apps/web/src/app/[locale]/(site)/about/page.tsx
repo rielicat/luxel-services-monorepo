@@ -1,11 +1,17 @@
 import type { Metadata } from 'next';
 import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import { Target, Compass, HandHeart, Wallet, Cpu, MapPin, Sprout, ChevronDown } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ChatOpenButton } from '@/components/chat/chat-open-button';
+import { PhotoFrame } from '@/components/sections/photo-frame';
 
-export const metadata: Metadata = { title: 'Nosotros' };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('about');
+  return { title: t('meta_title') };
+}
 
 const VALUES = [
   { key: 'v1', icon: HandHeart },
@@ -20,13 +26,14 @@ export default function AboutPage() {
     <main>
       <section className="relative overflow-hidden">
         <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0 -z-10" />
-        <div className="container py-20 text-center sm:py-28">
-          <h1 className="mx-auto max-w-3xl text-balance font-serif text-4xl font-medium tracking-tight sm:text-6xl">
-            {t('title')}
-          </h1>
-          <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-pretty text-lg">
-            {t('lead')}
-          </p>
+        <div className="container grid items-center gap-12 py-16 sm:py-24 lg:grid-cols-2 lg:gap-16">
+          <div className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+            <h1 className="text-balance font-serif text-4xl font-medium tracking-tight sm:text-6xl">
+              {t('title')}
+            </h1>
+            <p className="text-muted-foreground mt-6 max-w-2xl text-pretty text-lg">{t('lead')}</p>
+          </div>
+          <PhotoFrame src="/img/jmi/living-piano.jpg" alt={t('hero_alt')} priority />
         </div>
       </section>
 
@@ -85,13 +92,13 @@ export default function AboutPage() {
       </section>
 
       <section className="container py-16 sm:py-20">
-        <h2 className="font-display text-center text-3xl font-semibold tracking-tight">
+        <h2 className="text-center font-serif text-4xl font-medium tracking-tight sm:text-5xl">
           {t('values_title')}
         </h2>
         <div className="mx-auto mt-12 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {VALUES.map(({ key, icon: Icon }) => (
             <div key={key} className="border-border bg-card shadow-soft rounded-xl border p-6">
-              <div className="bg-accent text-accent-foreground flex h-11 w-11 items-center justify-center rounded-xl">
+              <div className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-xl">
                 <Icon className="h-5 w-5" />
               </div>
               <h3 className="font-display mt-5 font-semibold">{t(`${key}_title`)}</h3>
@@ -103,22 +110,35 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="container pb-24">
+      <section id="contacto" className="container pb-24">
         <div className="from-primary to-secondary shadow-lift relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br px-8 py-16 text-center">
           <div
             aria-hidden
             className="bg-lime/25 pointer-events-none absolute -top-20 left-1/2 h-52 w-[28rem] -translate-x-1/2 rounded-full blur-3xl"
           />
           <div className="relative">
-            <h2 className="font-display text-primary-foreground text-balance text-3xl font-semibold sm:text-4xl">
+            <h2 className="text-primary-foreground text-balance font-serif text-3xl font-medium sm:text-4xl">
               {t('cta_title')}
             </h2>
             <p className="text-primary-foreground/85 mx-auto mt-3 max-w-md text-pretty">
               {t('cta_body')}
             </p>
-            <Button asChild variant="default" size="xl" className="mt-8 shadow-lg">
-              <Link href="/calculator">{t('cta_button')}</Link>
-            </Button>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <ChatOpenButton
+                variant="default"
+                className="bg-background text-foreground hover:bg-background/90 w-full shadow-lg sm:w-auto"
+              >
+                {t('cta_chat')}
+              </ChatOpenButton>
+              <Button
+                asChild
+                variant="outline"
+                size="xl"
+                className="text-primary-foreground hover:text-primary-foreground w-full border-white/40 bg-transparent hover:bg-white/10 sm:w-auto"
+              >
+                <Link href="/calculator">{t('cta_button')}</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>

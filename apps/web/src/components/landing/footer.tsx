@@ -14,19 +14,19 @@ export function Footer() {
         </div>
         <nav className="text-muted-foreground flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <Link href="/services/airbnb" className="hover:text-foreground transition-colors">
-            {tNav('services_airbnb')}
+            {tNav('services')}
+          </Link>
+          <Link href="/calculator" className="hover:text-foreground transition-colors">
+            {tNav('precios')}
           </Link>
           <Link href="/about" className="hover:text-foreground transition-colors">
             {tNav('about')}
-          </Link>
-          <Link href="/calculator" className="hover:text-foreground transition-colors">
-            {tNav('calculator')}
           </Link>
         </nav>
       </div>
       <div className="border-border/60 border-t">
         <p className="text-muted-foreground container py-4 text-xs">
-          © {new Date().getFullYear()} Servicios Luxel · Región Metropolitana, Chile
+          {t('legal', { year: String(new Date().getFullYear()) })}
         </p>
       </div>
     </footer>

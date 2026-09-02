@@ -1,6 +1,5 @@
 {
   "nav": {
-    "calculator": "Cotizar",
     "plan": "Panel",
     "account": "Mi cuenta",
     "properties": "Mis propiedades",
@@ -8,7 +7,6 @@
     "logout": "Cerrar sesión",
     "about": "Nosotros",
     "services": "Servicio",
-    "services_airbnb": "Administración Airbnb",
     "menu": "Menú",
     "close": "Cerrar",
     "precios": "Precios",
@@ -17,90 +15,105 @@
   },
   "landing": {
     "hero": {
-      "eyebrow": "Gestión de arriendos cortos con IA",
-      "title_lead": "Tu Airbnb en piloto",
-      "title_accent": "automático.",
-      "subtitle": "Luxel responde a tus huéspedes 24/7, optimiza tus precios y coordina el aseo entre estadías — por una tarifa plana mensual, con 0% de comisión por reserva. ¿Solo necesitas aseo? También lo hacemos.",
-      "cta_primary": "Cotizar administración",
-      "cta_secondary": "Ver cómo funciona",
+      "eyebrow": "Administración de Airbnb en Santiago",
+      "title_lead": "Tu Airbnb,",
+      "title_accent": "administrado por completo.",
+      "subtitle": "Precios, huéspedes, aseo, reparaciones e inventario. Nosotros nos hacemos cargo de todo; tú recibes los ingresos y un reporte claro cada mes.",
+      "cta_primary": "Ver planes y precios",
+      "cta_secondary": "Conversemos",
       "trust": {
-        "instant": "0% comisión por reserva",
-        "operators": "Respuestas 24/7 con IA",
-        "flexible": "Precios optimizados",
-        "secure": "14 días gratis"
+        "guests": "Huéspedes atendidos 24/7",
+        "cleaning": "Aseo y lavandería incluidos",
+        "contract": "Sin contrato de permanencia",
+        "report": "Reporte mensual"
+      },
+      "image_alt": "Terraza con parrilla y vista al atardecer en un departamento administrado por Luxel"
+    },
+    "scope": {
+      "title": "Nos hacemos cargo de todo",
+      "subtitle": "Lo que antes te quitaba las tardes, ahora lo hace Luxel.",
+      "items": {
+        "pricing": {
+          "title": "Precios dinámicos",
+          "body": "Ajustamos tu tarifa por noche según demanda, temporada y competencia."
+        },
+        "guests": {
+          "title": "Huéspedes 24/7",
+          "body": "Respondemos al instante, coordinamos el check-in y pedimos la reseña."
+        },
+        "cleaning": {
+          "title": "Aseo y lavandería",
+          "body": "Cada check-out deja el depto listo para el siguiente huésped."
+        },
+        "conflicts": {
+          "title": "Resolución de conflictos",
+          "body": "Reclamos, daños y disputas con Airbnb: los tomamos nosotros."
+        },
+        "inventory": {
+          "title": "Inventario y reposición",
+          "body": "Amenities, blancos y básicos siempre completos."
+        },
+        "repairs": {
+          "title": "Reparaciones menores",
+          "body": "Lo que se rompe, se arregla rápido y sin que tengas que coordinar."
+        },
+        "setup": {
+          "title": "Puesta a punto",
+          "body": "Si hace falta, amoblamos y preparamos el depto para publicar."
+        }
+      }
+    },
+    "gallery": {
+      "title": "Así se ve un depto administrado por Luxel",
+      "caption": "Departamento en Providencia, administrado por Luxel.",
+      "alts": {
+        "living": "Living con piano, televisor y luz cálida en un departamento administrado por Luxel",
+        "bedroom": "Dormitorio principal con cama de dos plazas, veladores y lámpara colgante",
+        "kitchen": "Cocina equipada con muebles de madera clara, refrigerador y encimera",
+        "hot_tub": "Tinaja caliente bajo una pérgola en la terraza, de noche",
+        "dining": "Mesa de comedor puesta para seis personas con copas y platos",
+        "bath": "Baño con ducha de cristal, ducha negra y mueble de madera"
       }
     },
     "how": {
       "title": "Cómo funciona",
-      "subtitle": "Tu Airbnb en piloto automático, en tres pasos.",
+      "subtitle": "De la primera conversación a tus ingresos, en tres pasos.",
       "steps": {
-        "connect": {
-          "title": "1. Conecta tu Airbnb",
-          "description": "Importa tus propiedades desde Airbnb. Sin cargar nada a mano."
+        "visit": {
+          "title": "Conversamos y visitamos tu propiedad",
+          "body": "Revisamos el depto, definimos el plan y qué falta para publicar."
         },
-        "automate": {
-          "title": "2. Luxel se encarga",
-          "description": "Responde a tus huéspedes 24/7, ajusta tus precios y coordina el aseo entre estadías."
+        "publish": {
+          "title": "Lo preparamos y lo publicamos",
+          "body": "Fotos, anuncio, precios y reglas. Si ya está en Airbnb, lo conectamos."
         },
-        "relax": {
-          "title": "3. Relájate",
-          "description": "Revisa todo desde un panel simple: mensajes, calendario y reportes."
+        "earn": {
+          "title": "Tú recibes los ingresos",
+          "body": "Nosotros atendemos huéspedes, aseo y mantención. Tú ves el reporte cada mes."
         }
       }
     },
-    "features": {
-      "title": "Todo lo que necesitas para mantener tu espacio impecable",
-      "subtitle": "Diseñado para clientes exigentes en Chile.",
-      "items": {
-        "calculator": {
-          "title": "Precio claro al instante",
-          "description": "Cotiza según tu espacio y ubicación. Sin sorpresas."
-        },
-        "calendar": {
-          "title": "Agenda flexible",
-          "description": "Reserva un servicio único o suscríbete con frecuencia semanal, quincenal o mensual."
-        },
-        "chat": {
-          "title": "Atención por WhatsApp",
-          "description": "Conversa con nosotros desde la web o WhatsApp. Resolvemos tus dudas al toque."
-        },
-        "sparkles": {
-          "title": "Operadores certificados",
-          "description": "Operadores verificados, con o sin nuestros insumos. Tú eliges."
-        }
-      }
-    },
-    "pricing": {
-      "title": "Precios honestos, calculados al detalle",
-      "subtitle": "Tarifa base + el tamaño de tu espacio + distancia. Descuentos por suscripción.",
-      "cta": "Cotizar ahora"
+    "plans": {
+      "title": "Planes",
+      "subtitle": "Tres formas de pagar el mismo servicio completo. Elige la que mejor calce con tu depto.",
+      "cta": "Comparar planes"
     },
     "footer": {
-      "tagline": "Administración de Airbnb y aseo profesional en la Región Metropolitana."
+      "tagline": "Administración completa de Airbnb en Santiago.",
+      "legal": "© {year} Servicios Luxel · Santiago, Chile"
     }
   },
   "calculator": {
-    "airbnb": {
-      "title": "Cotiza tu administración Airbnb",
-      "subtitle": "Tres planes por propiedad. Elige el que más te conviene.",
-      "listings_label": "¿Cuántas propiedades administras?",
-      "unit_one": "propiedad",
-      "unit_many": "propiedades",
-      "per_unit": "por propiedad / mes",
-      "total_label": "Estimado mensual",
-      "vat_note": "+ IVA · sin contrato de permanencia",
-      "included_title": "Todo incluido",
-      "inc1": "Respuestas con IA 24/7 a tus huéspedes",
-      "inc2": "Precios dinámicos gestionados por Luxel",
-      "inc3": "Aseo y lavandería entre estadías",
-      "inc4": "Check-in sin llaves",
-      "inc5": "Panel con calendario y reportes",
-      "cta": "Solicitar mi plan",
-      "plan_label": "Elige tu plan",
-      "revenue_label": "Ingresos mensuales estimados por propiedad",
-      "revenue_hint": "Opcional. Sirve para comparar los planes Mixto y Comisión.",
-      "cheapest": "El más conveniente con esos ingresos"
-    }
+    "meta_title": "Precios",
+    "title": "Compara los planes",
+    "subtitle": "Mueve el ingreso mensual estimado de tu depto y mira cuánto cuesta cada plan ese mes.",
+    "revenue_label": "Ingresos mensuales por reservas",
+    "revenue_hint": "Lo que Airbnb te paga en un mes por este depto, antes del plan.",
+    "per_month": "al mes",
+    "cheapest": "El más conveniente",
+    "note": "Los planes Mixto y Comisión se cobran sobre los ingresos reales por reservas de cada mes. Verás el detalle en tu reporte.",
+    "cta": "Empezar",
+    "cta_hint": "Creas tu cuenta y te contactamos para activar tu plan."
   },
   "account": {
     "greeting": "Hola, {name}",
@@ -131,63 +144,68 @@
   },
   "auth": {
     "sign_in_title": "Bienvenido de vuelta",
-    "sign_in_subtitle": "Ingresa para gestionar tus servicios, plan y reservas.",
+    "sign_in_subtitle": "Ingresa para ver tus propiedades, tu plan y tus reportes.",
     "sign_up_title": "Crea tu cuenta",
-    "sign_up_subtitle": "Cotiza, agenda y controla todo desde un solo lugar.",
+    "sign_up_subtitle": "Conecta tu Airbnb y elige el plan. Nosotros hacemos el resto.",
     "panel_headline": "Tu propiedad en buenas manos",
-    "panel_subtitle": "Automatiza tu Airbnb con IA: respuestas 24/7, precios optimizados y aseo coordinado — por una tarifa plana, con 0% de comisión.",
+    "panel_subtitle": "Luxel administra tu Airbnb por completo: precios, huéspedes, aseo, reparaciones e inventario. Tú recibes los ingresos y un reporte claro cada mes.",
     "switch_to_sign_up_prompt": "¿No tienes cuenta?",
     "switch_to_sign_up_cta": "Crear cuenta",
     "switch_to_sign_in_prompt": "¿Ya tienes cuenta?",
     "switch_to_sign_in_cta": "Ingresar",
-    "point_ai": "Respuestas 24/7 con IA",
-    "point_pricing": "Precios optimizados",
-    "point_cleaning": "Aseo coordinado",
-    "point_commission": "0% de comisión"
+    "point_guests": "Huéspedes atendidos 24/7",
+    "point_pricing": "Precios dinámicos",
+    "point_cleaning": "Aseo y lavandería incluidos",
+    "point_report": "Reporte mensual claro"
   },
   "chat": {
     "assistant_name": "Lux",
-    "bot_greeting": "¡Hola! Soy Lux, el agente de IA de Luxel. Puedo contarte cómo administramos tu Airbnb por completo y cuánto cuesta. ¿Qué necesitas?",
+    "bot_greeting": "¡Hola! Soy Lux, el agente de IA de Luxel. Te cuento cómo administramos tu Airbnb por completo y cuánto cuesta. ¿Qué necesitas?",
     "bot_greeting_host": "¡Hola de nuevo! Soy Lux. Pregúntame por tus propiedades: ocupación, próximas estadías, ingresos o lo que necesites.",
     "quick_host_1": "¿Cómo van mis propiedades?",
     "bar_placeholder_host": "Pregúntame por tus propiedades…",
-    "quick_1": "¿Cuánto cuesta administrar mi Airbnb?",
-    "quick_3": "¿Qué incluye la administración?",
+    "quick_includes": "¿Qué incluye la administración?",
+    "quick_price": "¿Cuánto cuesta?",
+    "quick_start": "Quiero que administren mi depto",
     "per_month": "al mes",
+    "listing_one": "{n} propiedad",
+    "listing_many": "{n} propiedades",
     "human_name": "Asesor Luxel",
     "human_subtitle": "Estás con una persona",
     "human_banner": "🟢 Estás hablando con una persona. Te responderemos aquí mismo.",
     "human_received": "Recibimos tu mensaje. Un asesor te responderá aquí muy pronto.",
     "human_closed": "Estamos fuera de horario (atendemos {open}:00–{close}:00). Deja tu mensaje y te responderemos apenas abramos.",
     "human_error": "No pudimos enviar tu mensaje. Intenta de nuevo.",
+    "connect_error": "No pudimos conectar. Intenta de nuevo.",
     "handoff_open": "Un asesor se unió a la conversación. Escribe tu consulta aquí y te responderá.",
     "handoff_closed": "Estamos fuera de horario ({open}:00–{close}:00). Deja tu mensaje aquí y un asesor te responderá en horario hábil.",
     "handoff_whatsapp": "Continuar por WhatsApp",
     "bar_placeholder": "¿En qué te puedo ayudar hoy?",
     "agent_tagline": "agente IA · en línea",
+    "close": "Cerrar",
     "airbnb_cta": "Comparar planes",
     "airbnb_revenue": "Con {revenue} de ingresos al mes por propiedad"
   },
   "errors": {
-    "generic": "Ocurrió un error. Intenta nuevamente.",
-    "not_found": "Página no encontrada",
-    "unauthorized": "Necesitas iniciar sesión para continuar."
+    "not_found": "Página no encontrada"
   },
   "faq": {
     "section_title": "Preguntas frecuentes",
     "q": {
-      "connect": "¿Cómo conecto mi Airbnb?",
-      "commission": "¿Cobran comisión por reserva?",
-      "tiers": "¿Qué diferencia hay entre los planes?",
-      "cleaning": "¿Incluye el aseo entre estadías?",
-      "cancel": "¿Puedo cancelar cuando quiera?"
+      "furnished": "¿Necesito tener el depto amoblado?",
+      "cleaning": "¿Quién paga el aseo?",
+      "own_use": "¿Puedo usar mi depto algunos días?",
+      "income": "¿Cómo recibo mis ingresos?",
+      "contract": "¿Hay contrato de permanencia?",
+      "damage": "¿Qué pasa si un huésped daña algo?"
     },
     "a": {
-      "connect": "Conectas tu cuenta de Airbnb y tus propiedades, reservas y calendario se importan solos. No tienes que cargar nada a mano.",
-      "commission": "No. Pagas una tarifa plana por propiedad al mes, con 0% de comisión. Lo que ganas con tus reservas es tuyo.",
-      "tiers": "El plan Esencial automatiza todo con IA. Con respaldo humano suma un equipo real de Luxel que toma la conversación cuando la IA no basta.",
-      "cleaning": "Coordinamos el aseo después de cada check-out automáticamente; normalmente lo paga el huésped con la tarifa de aseo de la plataforma. También puedes contratar aseo profesional por separado.",
-      "cancel": "Sí. Pruebas 14 días gratis y puedes pausar o cancelar cuando quieras desde Mi cuenta."
+      "furnished": "No. Si hace falta, lo amoblamos y preparamos nosotros. Lo conversamos en la visita.",
+      "cleaning": "El huésped, a través de la tarifa de limpieza del anuncio. Nosotros lo coordinamos.",
+      "own_use": "Sí. Bloqueas las fechas que quieras y nosotros ajustamos el calendario.",
+      "income": "Airbnb te paga directo a ti. Nosotros te cobramos el plan a fin de mes, con el detalle.",
+      "contract": "No. Puedes salir con 30 días de aviso.",
+      "damage": "Lo documentamos, gestionamos el reclamo con Airbnb y coordinamos la reparación."
     }
   },
   "checkin": {
@@ -407,64 +425,49 @@
     "bounds_error_upstream": "No pudimos guardar los límites. Inténtalo de nuevo en un momento."
   },
   "about": {
-    "title": "Administrar tu arriendo no debería ser un segundo trabajo",
-    "lead": "Luxel nació en Santiago para que gestionar un arriendo corto deje de consumir tus tardes: la tecnología responde, cobra el precio justo y coordina cada aseo, mientras tú te enfocas en tus huéspedes.",
+    "meta_title": "Nosotros",
+    "title": "Administrar tu Airbnb no debería ser un segundo trabajo",
+    "lead": "Luxel nació en Santiago para que tu departamento trabaje para ti: nosotros atendemos huéspedes, precios, aseo y reparaciones, y tú recibes los ingresos con un reporte claro.",
+    "hero_alt": "Living con sofá, piano e instrumentos en un departamento administrado por Luxel",
     "mission_title": "Misión",
-    "mission_body": "Devolverles el tiempo a los anfitriones. Que responder, ajustar precios y coordinar el aseo pase a piloto automático, con 0% de comisión.",
+    "mission_body": "Devolverles el tiempo a los anfitriones. Que tener un Airbnb sea recibir ingresos, no coordinar personas.",
     "vision_title": "Visión",
-    "vision_body": "Ser la plataforma de administración de arriendos cortos líder en Chile: la forma más simple y rentable de operar una propiedad.",
+    "vision_body": "Ser la administradora de Airbnb más confiable de Santiago: la que de verdad se hace cargo de todo.",
     "values_title": "Lo que nos mueve",
     "v1_title": "Anfitrión primero",
     "v1_body": "Cada decisión parte de una pregunta: ¿le ahorra tiempo o dinero al anfitrión?",
-    "v2_title": "Precios justos",
-    "v2_body": "Tarifa plana y transparente. 0% de comisión por reserva, sin costos escondidos.",
+    "v2_title": "Precios claros",
+    "v2_body": "Tres planes simples, sin costos escondidos. Sabes lo que pagas antes de empezar.",
     "v3_title": "Tecnología con criterio",
-    "v3_body": "IA que responde como lo harías tú, con derivación a una persona cuando de verdad importa.",
-    "v4_title": "Hecho en Chile",
-    "v4_body": "Pensado para el mercado local: RUT, comunas, conserjería y cómo se arrienda acá.",
-    "cta_title": "¿Listo para automatizar tu Airbnb?",
-    "cta_body": "Prueba Luxel gratis por 14 días.",
-    "cta_button": "Cotizar administración",
+    "v3_body": "IA para responder al instante y personas de Luxel para lo que de verdad importa.",
+    "v4_title": "Hecho en Santiago",
+    "v4_body": "Conocemos las comunas, la conserjería y cómo se arrienda acá.",
+    "cta_title": "¿Listo para que administremos tu Airbnb?",
+    "cta_body": "Compara los planes o escríbenos. Te respondemos el mismo día.",
+    "cta_button": "Ver planes y precios",
+    "cta_chat": "Conversemos",
     "story_title": "Por qué nació Luxel",
+    "story_teaser": "La historia detrás del servicio.",
     "story_p1": "Empecé como anfitrión en Airbnb con toda la ilusión. A las pocas semanas ya estaba sobrepasado: mensajes a cualquier hora, precios que nunca sabía si estaban bien y la sensación de tener un segundo trabajo que jamás pedí.",
-    "story_p2": "Hice lo que hace todo el mundo: contraté una empresa de administración. Pero cuando de verdad se complicó —algo se rompió en el departamento— terminé coordinando la reparación yo mismo. Más de una vez me tocó ir a arreglarlo con mis propias manos.",
+    "story_p2": "Hice lo que hace todo el mundo: contraté una administradora. Pero cuando de verdad se complicó, algo se rompió en el departamento, terminé coordinando la reparación yo mismo. Más de una vez me tocó ir a arreglarlo con mis propias manos.",
     "story_quote": "Estaba pagando por un servicio… y terminé trabajando para ellos.",
-    "story_p3": "Ahí caché algo simple: lo único que de verdad necesitaba era alguien de confianza que dejara todo impecable antes de cada huésped y revisara que estuviera en orden en cada check-in y check-out. Y eso ya lo pagaba el huésped, en la tarifa de aseo de la plataforma.",
-    "story_p4": "Entonces, ¿por qué le entregaba un 20% de comisión a la administración? Básicamente, para que respondieran mensajes. Así que decidí resolverlo a mi manera: desarrollé una IA que entendía mi propiedad, respondía a mis huéspedes como lo haría yo y me sugería cómo resolver cada imprevisto.",
-    "story_p5": "Funcionó tan bien que quise ponerla en manos de otros anfitriones. Así nació Luxel: para sacarte de encima la carga de administrar tu propiedad y darte transparencia total sobre lo que pagas.",
-    "story_teaser": "La historia detrás de la plataforma."
+    "story_p3": "Ahí caché algo simple: lo que necesitaba era alguien que se hiciera cargo de verdad. Que el depto quedara impecable antes de cada huésped, que los precios estuvieran bien y que, si algo fallaba, se resolviera sin llamarme.",
+    "story_p4": "Las administradoras tradicionales cobran hasta 20% y aun así te dejan los problemas a ti. Así que armé el servicio que me habría gustado contratar: un equipo en Santiago que atiende todo, con tecnología para responder rápido y precios que puedes elegir.",
+    "story_p5": "Así nació Luxel: para sacarte de encima la carga de administrar tu propiedad y darte transparencia total sobre lo que pagas."
   },
   "services": {
     "airbnb": {
-      "title": "Gestiona tu Airbnb con Agentes de IA",
-      "subtitle": "Deja de pagar 20% de comisión. Luxel responde a tus huéspedes al instante, ajusta tus precios según la demanda y coordina el aseo entre estadías <hl>por una tarifa plana mensual, con reportes claros</hl>.",
-      "features_title": "Todo incluido",
-      "f1_title": "Respuestas con IA",
-      "f1_body": "Tus huéspedes reciben respuesta al instante, 24/7, con derivación a ti solo cuando importa.",
-      "f2_title": "Precios inteligentes",
-      "f2_body": "Detectamos noches sin reservar y sugerimos precios según demanda y temporada.",
-      "f3_title": "Aseo coordinado",
-      "f3_body": "Cada check-out agenda su aseo automáticamente, pagado por el huésped.",
-      "f4_title": "Check-in sin llaves",
-      "f4_body": "Formulario de check-in y notificación automática a conserjería o código de acceso.",
-      "how_title": "Cómo funciona",
-      "s1_title": "Conecta tu propiedad",
-      "s1_body": "Importamos tus listings desde Airbnb. Sin cargar nada a mano.",
-      "s2_title": "Enciende la IA",
-      "s2_body": "Luxel responde a tus huéspedes y sincroniza tu calendario automáticamente.",
-      "s3_title": "Relájate",
-      "s3_body": "Revisa todo desde un panel simple: mensajes, calendario, aseos y precios.",
-      "pricing_title": "Elige tu plan",
-      "cta_primary": "Cotizar administración",
-      "cta_secondary": "Ir a mis propiedades",
-      "price_suffix": "por propiedad al mes + IVA",
-      "price_note": "Todo incluido en los tres planes · sin contrato de permanencia",
-      "incl_1": "Respuestas con IA 24/7 a tus huéspedes",
-      "incl_2": "Precios sugeridos según la demanda",
-      "incl_3": "Aseo coordinado entre estadías",
-      "incl_4": "Check-in sin llaves",
-      "incl_5": "Panel y reportes claros",
-      "cta_start": "Solicitar este plan"
+      "meta_title": "Administración completa de Airbnb",
+      "title": "Administración completa de tu Airbnb en Santiago",
+      "subtitle": "Precios dinámicos, huéspedes 24/7, aseo y lavandería, conflictos, inventario y reparaciones. <hl>Nosotros nos hacemos cargo de todo</hl>; tú recibes los ingresos y un reporte cada mes.",
+      "hero_alt": "Living con piano y televisor en un departamento administrado por Luxel",
+      "cta_primary": "Ver planes y precios",
+      "cta_secondary": "Conversemos",
+      "faq_title": "¿Tienes dudas?",
+      "faq_body": "Amoblado, uso propio, daños, contrato: respondemos lo que más nos preguntan.",
+      "faq_cta": "Ver preguntas frecuentes",
+      "cta_title": "Empecemos con una visita",
+      "cta_body": "Revisamos tu depto, definimos el plan y te decimos qué falta para publicar."
     }
   },
   "stays": {
