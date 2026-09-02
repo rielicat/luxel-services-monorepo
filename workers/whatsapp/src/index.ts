@@ -155,7 +155,7 @@ async function handleCrewReply(
   }
 
   await supabase.from('cleanings').update({ crew_declined_at: now }).eq('id', cleaning.id);
-  await sendText(env, from, 'Entendido. Avisamos al anfitrión para coordinar.');
+  await sendText(env, from, 'Entendido. Avisamos al equipo Luxel para coordinar.');
   const operator = env.LUXEL_OPERATOR_WHATSAPP?.replace(/[^\d]/g, '') ?? '';
   if (!operator) return;
   const { data: prop } = await supabase

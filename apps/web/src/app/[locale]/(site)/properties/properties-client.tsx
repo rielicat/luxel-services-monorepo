@@ -7,7 +7,6 @@ import {
   KeyRound,
   ConciergeBell,
   TriangleAlert,
-  MessagesSquare,
   CalendarDays,
   ArrowRight,
   Plug,
@@ -21,9 +20,6 @@ import { PlanBar, type Plan } from './plan-bar';
 import { ConnectionNote } from './connection-note';
 import type { HostConnection } from '@/lib/host/queries';
 import type { AccessRow } from './access-panel';
-import type { Cleaning } from './cleaning-panel';
-import type { PropertyContact } from './contact-list';
-import type { Thread } from './messaging-panel';
 
 export type Block = {
   id: string;
@@ -40,11 +36,9 @@ export type PropertyRow = {
   guest_info: string | null;
   external_listing_id: string | null;
   platform: string | null;
-  base_nightly_clp: number | null;
   ai_enabled: boolean;
   price_optimization_enabled: boolean;
   pricelabs_status: 'off' | 'pending_connection' | 'connected';
-  property_addons: { addon: string; status: string }[];
   bedrooms: number | null;
   bathrooms: number | null;
   picture_url: string | null;
@@ -61,13 +55,8 @@ export type PropertyRow = {
     smoking_allowed?: boolean | null;
     events_allowed?: boolean | null;
   } | null;
-  cleaning_managed_by: 'luxel' | 'own';
-  cleaning_auto_confirm: boolean;
-  property_contacts: PropertyContact[];
   property_access: AccessRow;
   calendar_blocks: Block[];
-  cleanings: Cleaning[];
-  guest_threads: Thread[];
 };
 
 export function PropertiesClient({
@@ -76,14 +65,12 @@ export function PropertiesClient({
   connection,
   syncFailed,
   centralManaged = false,
-  billingReady = false,
 }: {
   initial: PropertyRow[];
   plan: Plan;
   connection: HostConnection | null;
   syncFailed?: boolean;
   centralManaged?: boolean;
-  billingReady?: boolean;
 }) {
   const t = useTranslations('properties');
   return (
@@ -105,7 +92,7 @@ export function PropertiesClient({
             {t('sync_failed')}
           </div>
         )}
-        <PlanBar plan={plan} billingReady={billingReady} />
+        <PlanBar plan={plan} />
         {connection && <ConnectionNote connection={connection} />}
 
         {initial.length === 0 ? (
@@ -203,7 +190,6 @@ function ListingCard({ property }: { property: PropertyRow }) {
     .filter((b) => b.source === 'import' && b.ends_on >= today)
     .map((b) => b.ends_on)
     .sort()[0];
-  const needsReply = property.guest_threads.filter((th) => th.status === 'needs_host').length;
   const chip = accessChip(property.property_access?.method, t);
   const ChipIcon = chip.icon;
 
@@ -264,11 +250,6 @@ function ListingCard({ property }: { property: PropertyRow }) {
           {property.ai_enabled === false && (
             <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
               <BotOff className="h-3 w-3" /> {t('ai_off')}
-            </span>
-          )}
-          {needsReply > 0 && (
-            <span className="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
-              <MessagesSquare className="h-3 w-3" /> {t('needs_reply', { n: needsReply })}
             </span>
           )}
         </div>

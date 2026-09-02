@@ -148,9 +148,6 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       .eq('owner_id', customerB)
       .single();
     await admin
-      .from('property_addons')
-      .insert({ property_id: bProp!.id, addon: 'dynamic_pricing', status: 'active', price_clp: 1 });
-    await admin
       .from('properties')
       .update({ pricelabs_listing_id: LISTING_B, pricelabs_pms: 'hospitable' })
       .eq('id', bProp!.id);

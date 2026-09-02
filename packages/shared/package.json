@@ -8,15 +8,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./i18n": "./src/i18n/index.ts",
-    "./schemas": "./src/schemas/index.ts",
     "./whatsapp": "./src/whatsapp.ts",
     "./constants": "./src/constants.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@luxel/config": "workspace:*",

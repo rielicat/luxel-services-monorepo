@@ -4,21 +4,6 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
-import { isAddonActive } from '@/lib/addons/store';
-
-export async function setAiEnabled(input: unknown): Promise<{ ok: boolean }> {
-  const p = z.object({ propertyId: z.string().uuid(), enabled: z.boolean() }).safeParse(input);
-  if (!p.success) return { ok: false };
-  const cid = await currentCustomerId();
-  if (!cid || !(await ownsProperty(cid, p.data.propertyId))) return { ok: false };
-  const supabase = createSupabaseServiceRoleClient();
-  await supabase
-    .from('properties')
-    .update({ ai_enabled: p.data.enabled })
-    .eq('id', p.data.propertyId);
-  revalidatePath('/properties');
-  return { ok: true };
-}
 
 export async function setPriceOptimization(
   input: unknown,
@@ -27,9 +12,6 @@ export async function setPriceOptimization(
   if (!p.success) return { ok: false, error: 'validation' };
   const cid = await currentCustomerId();
   if (!cid || !(await ownsProperty(cid, p.data.propertyId))) return { ok: false };
-  if (p.data.enabled && !(await isAddonActive(p.data.propertyId, 'dynamic_pricing'))) {
-    return { ok: false, error: 'addon_required' };
-  }
   const supabase = createSupabaseServiceRoleClient();
   await supabase
     .from('properties')

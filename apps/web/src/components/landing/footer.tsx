@@ -16,9 +16,6 @@ export function Footer() {
           <Link href="/services/airbnb" className="hover:text-foreground transition-colors">
             {tNav('services_airbnb')}
           </Link>
-          <Link href="/services/cleaning" className="hover:text-foreground transition-colors">
-            {tNav('services_cleaning')}
-          </Link>
           <Link href="/about" className="hover:text-foreground transition-colors">
             {tNav('about')}
           </Link>

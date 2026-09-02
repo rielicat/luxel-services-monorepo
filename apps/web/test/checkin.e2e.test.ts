@@ -78,7 +78,6 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     const prop = await seedImportedProperty({
       nickname: 'Depto Providencia',
       comuna: 'Providencia',
-      sizeM2: 55,
     });
     expect(prop.ok).toBe(true);
     const propertyId = prop.id!;

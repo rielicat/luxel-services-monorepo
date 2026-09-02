@@ -3,7 +3,6 @@ import { after } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { getPlan, type PlanRow } from '@/lib/plans';
-import { devMockPaymentsEnabled } from '@/lib/payments/dev-mock';
 import { fetchProperties, fetchConnection, type HostConnection } from '@/lib/host/queries';
 import { saveHospitableConnection } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
@@ -76,7 +75,6 @@ export default async function PropertiesPage() {
       connection={connection}
       syncFailed={syncFailed}
       centralManaged={centralManaged}
-      billingReady={devMockPaymentsEnabled('mercadopago')}
     />
   );
 }

@@ -1,14 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const PUBLIC_ROUTES = [
-  '/',
-  '/about',
-  '/services/airbnb',
-  '/services/cleaning',
-  '/calculator',
-  '/calculator?service=airbnb',
-  '/calculator?service=cleaning',
-];
+const PUBLIC_ROUTES = ['/', '/about', '/services/airbnb', '/calculator'];
 
 for (const route of PUBLIC_ROUTES) {
   test(`renders ${route}`, async ({ page }) => {
@@ -28,8 +20,9 @@ test('the agent box is docked on the homepage', async ({ page }) => {
   await expect(page.getByPlaceholder('¿En qué te puedo ayudar hoy?')).toBeVisible();
 });
 
-test('the calculator lets you pick either service', async ({ page }) => {
+test('the pricing page shows the three plans', async ({ page }) => {
   await page.goto('/calculator');
-  await expect(page.getByText('Administración', { exact: false }).first()).toBeVisible();
-  await expect(page.getByText('Aseo', { exact: false }).first()).toBeVisible();
+  for (const plan of ['Fijo', 'Mixto', 'Comisión']) {
+    await expect(page.getByRole('button', { name: plan, exact: false }).first()).toBeVisible();
+  }
 });

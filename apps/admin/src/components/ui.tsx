@@ -17,12 +17,6 @@ const PILL: Record<string, string> = {
   contacted: 'bg-accent text-accent-foreground',
   converted: 'bg-success/15 text-success',
   lost: 'bg-muted text-muted-foreground',
-  paid: 'bg-success/15 text-success',
-  unpaid: 'bg-warning/15 text-warning',
-  confirmed: 'bg-success/15 text-success',
-  pending: 'bg-warning/15 text-warning',
-  cancelled: 'bg-destructive/15 text-destructive',
-  completed: 'bg-primary/15 text-primary',
 };
 
 export function Pill({ tone, children }: { tone?: string; children: React.ReactNode }) {

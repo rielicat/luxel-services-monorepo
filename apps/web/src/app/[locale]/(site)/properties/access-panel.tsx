@@ -6,7 +6,6 @@ import { TriangleAlert, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateAccess } from './actions';
-import { ContactList, type PropertyContact } from './contact-list';
 
 export type AccessRow = {
   method: 'keyless' | 'physical_concierge' | 'physical_none';
@@ -20,15 +19,7 @@ export type AccessRow = {
   unit: string | null;
 } | null;
 
-export function AccessPanel({
-  propertyId,
-  access,
-  contacts,
-}: {
-  propertyId: string;
-  access: AccessRow;
-  contacts: PropertyContact[];
-}) {
+export function AccessPanel({ propertyId, access }: { propertyId: string; access: AccessRow }) {
   const t = useTranslations('properties');
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -182,12 +173,6 @@ export function AccessPanel({
           />
           <p className="text-muted-foreground text-xs">{t('unit_help')}</p>
         </div>
-        <ContactList
-          role="concierge"
-          contacts={contacts}
-          title={t('concierge_title')}
-          body={t('concierge_body')}
-        />
       </div>
 
       <div className="grid gap-2">

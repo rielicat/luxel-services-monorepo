@@ -725,7 +725,7 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
 
     expect(metaSends).toHaveLength(2);
     expect(metaSends.find((s) => s.to === CREW_DIGITS)?.body).toBe(
-      'Entendido. Avisamos al anfitrión para coordinar.',
+      'Entendido. Avisamos al equipo Luxel para coordinar.',
     );
     const warned = metaSends.find((s) => s.to === OPERATOR_DIGITS)!;
     expect(warned.body).toContain(CLEANING_DATE);

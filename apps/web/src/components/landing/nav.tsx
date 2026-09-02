@@ -1,7 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { LuxelLogo } from '@/components/brand/logo';
-import { ServicesDropdown } from '@/components/landing/services-dropdown';
 import { MobileMenu } from '@/components/landing/mobile-menu';
 import { NavAuth } from '@/components/landing/nav-auth';
 
@@ -15,7 +14,9 @@ export function Nav() {
         </Link>
 
         <nav className="text-muted-foreground hidden items-center gap-7 text-sm font-medium md:flex">
-          <ServicesDropdown />
+          <Link href="/services/airbnb" className="hover:text-foreground transition-colors">
+            {t('services')}
+          </Link>
           <Link href="/calculator" className="hover:text-foreground transition-colors">
             {t('precios')}
           </Link>

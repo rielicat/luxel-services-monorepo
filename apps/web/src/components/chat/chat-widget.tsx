@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
-import { Send, CalendarCheck, Sparkles, Phone, X, Home, ArrowRight } from 'lucide-react';
+import { Send, Phone, X, Home, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/routing';
 import { LuxelMark } from '@/components/brand/logo';
@@ -11,21 +11,6 @@ import { track } from '@/lib/analytics/client';
 import { EVENTS } from '@/lib/analytics/events';
 import { cn } from '@/lib/utils';
 
-type QuoteWidget = {
-  kind: 'quote';
-  serviceTypeSlug: string;
-  squareMeters: number;
-  frequency: string;
-  toolsProvidedBy: string;
-  totalClp: number;
-  breakdown: Record<string, number>;
-  distanceKm: number;
-};
-type AvailabilityWidget = {
-  kind: 'availability';
-  date: string;
-  timeblocks: { timeblock: string; available: number }[];
-};
 type HandoffWidget = {
   kind: 'handoff';
   whatsappUrl: string | null;
@@ -36,16 +21,16 @@ type HandoffWidget = {
 type AirbnbQuoteWidget = {
   kind: 'airbnb_quote';
   listings: number;
-  tier: 'base' | 'handoff';
-  tierLabel: string;
-  perListingClp: number;
+  plan: 'fixed' | 'hybrid' | 'commission';
+  planLabel: string;
+  revenueClp: number | null;
   monthlyClp: number;
 };
 type LinksWidget = {
   kind: 'links';
   actions: { label: string; href: string; style: 'primary' | 'outline' }[];
 };
-type Widget = QuoteWidget | AvailabilityWidget | HandoffWidget | AirbnbQuoteWidget | LinksWidget;
+type Widget = HandoffWidget | AirbnbQuoteWidget | LinksWidget;
 
 interface ChatMessage {
   id: string;
@@ -364,8 +349,8 @@ export function ChatWidget() {
               {showQuickReplies && (
                 <div className="flex flex-wrap gap-2 pl-[2.375rem]">
                   {(isSignedIn
-                    ? (['quick_host_1', 'quick_host_2', 'quick_host_3'] as const)
-                    : (['quick_1', 'quick_2', 'quick_3'] as const)
+                    ? (['quick_host_1'] as const)
+                    : (['quick_1', 'quick_3'] as const)
                   ).map((k) => (
                     <button
                       key={k}
@@ -427,89 +412,13 @@ function WidgetCard({
   widget: Widget;
   t: ReturnType<typeof useTranslations<'chat'>>;
 }) {
-  if (widget.kind === 'quote') {
-    return (
-      <div className="border-border bg-background shadow-soft max-w-[90%] rounded-xl border p-3.5">
-        <div className="flex items-center gap-2">
-          <Sparkles className="text-secondary h-4 w-4" />
-          <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-            {widget.squareMeters} m² · {widget.serviceTypeSlug}
-          </span>
-        </div>
-        <p className="font-display text-primary mt-1 text-2xl font-extrabold">
-          {clp(widget.totalClp)}{' '}
-          <span className="text-muted-foreground text-xs font-medium">{t('per_visit')}</span>
-        </p>
-        {(widget.breakdown.subscriptionDiscount ?? 0) > 0 && (
-          <p className="text-success mt-0.5 text-xs font-medium">
-            Incluye {clp(widget.breakdown.subscriptionDiscount ?? 0)} de descuento
-          </p>
-        )}
-        <div className="mt-3 flex gap-2">
-          <Button asChild variant="default" size="sm" className="flex-1">
-            <Link
-              href="/book"
-              onClick={() => track(EVENTS.CTA_CLICKED, { source: 'chat_quote', cta: 'agendar' })}
-            >
-              <CalendarCheck className="h-4 w-4" /> {t('book_cta')}
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link
-              href="/calculator"
-              onClick={() =>
-                track(EVENTS.CTA_CLICKED, { source: 'chat_quote', cta: 'calculadora' })
-              }
-            >
-              {t('quote_cta')}
-            </Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (widget.kind === 'availability') {
-    const label: Record<string, string> = { manana: 'Mañana', tarde: 'Tarde' };
-    return (
-      <div className="border-border bg-background shadow-soft max-w-[90%] rounded-xl border p-3.5">
-        <p className="text-muted-foreground text-xs font-medium">{widget.date}</p>
-        <div className="mt-2 grid gap-1.5">
-          {widget.timeblocks.map((b) => (
-            <div key={b.timeblock} className="flex items-center justify-between text-sm">
-              <span>{label[b.timeblock] ?? b.timeblock}</span>
-              <span
-                className={cn(
-                  'rounded-full px-2 py-0.5 text-xs font-semibold',
-                  b.available > 0 ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground',
-                )}
-              >
-                {b.available > 0 ? `${b.available} cupos` : 'sin cupos'}
-              </span>
-            </div>
-          ))}
-        </div>
-        <Button asChild variant="default" size="sm" className="mt-3 w-full">
-          <Link
-            href="/book"
-            onClick={() =>
-              track(EVENTS.CTA_CLICKED, { source: 'chat_availability', cta: 'agendar' })
-            }
-          >
-            <CalendarCheck className="h-4 w-4" /> {t('book_cta')}
-          </Link>
-        </Button>
-      </div>
-    );
-  }
-
   if (widget.kind === 'airbnb_quote') {
     return (
       <div className="border-border bg-background shadow-soft max-w-[90%] rounded-xl border p-3.5">
         <div className="flex items-center gap-2">
           <Home className="text-secondary h-4 w-4" />
           <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-            {widget.tierLabel} · {widget.listings}
+            {widget.planLabel} · {widget.listings}
             {widget.listings === 1 ? ' propiedad' : ' propiedades'}
           </span>
         </div>
@@ -517,15 +426,17 @@ function WidgetCard({
           {clp(widget.monthlyClp)}{' '}
           <span className="text-muted-foreground text-xs font-medium">{t('per_month')}</span>
         </p>
-        <p className="text-muted-foreground mt-0.5 text-xs font-medium">
-          {t('airbnb_per_listing', { price: clp(widget.perListingClp) })} · {t('airbnb_commission')}
-        </p>
+        {widget.revenueClp != null && (
+          <p className="text-muted-foreground mt-0.5 text-xs font-medium">
+            {t('airbnb_revenue', { revenue: clp(widget.revenueClp) })}
+          </p>
+        )}
         <Button asChild variant="default" size="sm" className="mt-3 w-full">
           <Link
-            href="/calculator?service=airbnb"
-            onClick={() => track(EVENTS.CTA_CLICKED, { source: 'chat_airbnb', cta: 'trial' })}
+            href="/calculator"
+            onClick={() => track(EVENTS.CTA_CLICKED, { source: 'chat_airbnb', cta: 'plans' })}
           >
-            {t('airbnb_trial_cta')} <ArrowRight className="h-4 w-4" />
+            {t('airbnb_cta')} <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
       </div>

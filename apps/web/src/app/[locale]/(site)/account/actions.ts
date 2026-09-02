@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { auth } from '@clerk/nextjs/server';
 import { getOrCreateCustomer } from '@/lib/customer';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
@@ -33,32 +32,5 @@ export async function updateProfileAction(formData: FormData) {
 
   revalidatePath('/account', 'page');
   revalidatePath('/account/profile', 'page');
-  return { ok: true };
-}
-
-export async function setSubscriptionStatusAction(
-  subscriptionId: string,
-  status: 'active' | 'paused' | 'cancelled',
-) {
-  const { userId } = await auth();
-  if (!userId) return { ok: false, error: 'unauthorized' as const };
-
-  const supabase = createSupabaseServiceRoleClient();
-
-  const { data: customer } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single();
-  if (!customer) return { ok: false, error: 'unauthorized' as const };
-
-  const { error } = await supabase
-    .from('subscriptions')
-    .update({ status })
-    .eq('id', subscriptionId)
-    .eq('customer_id', customer.id);
-  if (error) return { ok: false, error: 'generic' as const };
-
-  revalidatePath('/account', 'page');
   return { ok: true };
 }

@@ -5,16 +5,13 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   ArrowLeft,
-  MessagesSquare,
   CalendarDays,
-  Sparkles,
   KeyRound,
   BotOff,
   Home,
   TriangleAlert,
   CheckCircle2,
   TrendingUp,
-  Bot,
   Wallet,
   Info,
   ArrowUpRight,
@@ -23,13 +20,10 @@ import {
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
-import { ADDON_KEYS, type AddonKey } from '@/lib/addons/catalog';
 import { cn } from '@/lib/utils';
 import type { PropertyRow } from '../properties-client';
 import { AccessPanel } from '../access-panel';
 import { StaysTimeline, buildStays, type LiveDay } from '../stays-timeline';
-import { CleaningPanel } from '../cleaning-panel';
-import { MessagingPanel } from '../messaging-panel';
 import { AutomationsPanel } from '../automations-panel';
 
 export type { LiveDay } from '../stays-timeline';
@@ -72,33 +66,7 @@ function stats(property: PropertyRow, liveDays: LiveDay[] | null, from: string) 
     ? Math.round(priced.reduce((sum, d) => sum + d.priceClp!, 0) / priced.length)
     : null;
 
-  const upcoming = property.cleanings
-    .filter((c) => c.status !== 'skipped' && c.cleaning_date >= from)
-    .map((c) => c.cleaning_date)
-    .sort();
-
-  const aiInWindow = (daysBack: number, daysBackEnd: number) => {
-    const startMs = new Date(`${from}T00:00:00Z`).getTime();
-    const a = new Date(startMs - daysBack * DAY).toISOString();
-    const b = new Date(startMs - daysBackEnd * DAY).toISOString();
-    return property.guest_threads
-      .flatMap((th) => th.guest_messages ?? [])
-      .filter((m) => m.source === 'ai' && m.created_at >= a && m.created_at < b).length;
-  };
-
-  return {
-    occupancy,
-    pastOccupancy,
-    revenue30,
-    adr,
-    pendingCleanings: upcoming.length,
-    suggestedCleanings: property.cleanings.filter(
-      (c) => c.status === 'suggested' && c.cleaning_date >= from,
-    ).length,
-    needsReply: property.guest_threads.filter((t) => t.status === 'needs_host').length,
-    aiReplies7d: aiInWindow(6, -1),
-    aiPrev7d: aiInWindow(13, 6),
-  };
+  return { occupancy, pastOccupancy, revenue30, adr };
 }
 
 function SlimHero({ property, aiOff }: { property: PropertyRow; aiOff: boolean }) {
@@ -150,21 +118,17 @@ function SlimHero({ property, aiOff }: { property: PropertyRow; aiOff: boolean }
   );
 }
 
-type SectionId = 'estadias' | 'mensajes' | 'aseos' | 'acceso';
+type SectionId = 'estadias' | 'acceso';
 
 export function PropertyDetailClient({
   property,
   liveDays,
   today,
-  turnoverPrice,
-  showSim,
   recommended,
 }: {
   property: PropertyRow;
   liveDays: LiveDay[] | null;
   today: string;
-  turnoverPrice: number | null;
-  showSim: boolean;
   recommended?: Record<string, number> | null;
 }) {
   const t = useTranslations('detail');
@@ -181,12 +145,8 @@ export function PropertyDetailClient({
 
   const stays = buildStays(liveDays, property.calendar_blocks, today);
   const pricedStays = stays.filter((st) => st.revenueClp != null).slice(0, 6);
-  const activeAddons = (property.property_addons ?? [])
-    .filter((a) => a.status === 'active')
-    .map((a) => a.addon)
-    .filter((a): a is AddonKey => (ADDON_KEYS as readonly string[]).includes(a));
 
-  type MetricId = 'revenue' | 'occupancy' | 'adr' | 'ai';
+  type MetricId = 'revenue' | 'occupancy' | 'adr';
   const [openMetric, setOpenMetric] = useState<MetricId | null>(null);
   const horizon = liveDays?.slice(0, 30) ?? null;
   const reservedNights = horizon ? horizon.filter((d) => d.reserved).length : null;
@@ -196,14 +156,8 @@ export function PropertyDetailClient({
   const pricedNights = horizon ? horizon.filter((d) => d.priceClp != null) : [];
   const priceMin = pricedNights.length ? Math.min(...pricedNights.map((d) => d.priceClp!)) : null;
   const priceMax = pricedNights.length ? Math.max(...pricedNights.map((d) => d.priceClp!)) : null;
-  const cleanings30 = property.cleanings.filter(
-    (c) =>
-      c.status !== 'skipped' && c.cleaning_date >= today && c.cleaning_date < addDays(today, 30),
-  ).length;
-  const cleaningCost30 = turnoverPrice != null ? cleanings30 * turnoverPrice : null;
 
   const occDelta = s.occupancy - s.pastOccupancy;
-  const aiDelta = s.aiReplies7d - s.aiPrev7d;
   const signed = (n: number) => `${n >= 0 ? '+' : ''}${n}`;
 
   const metrics: {
@@ -225,13 +179,6 @@ export function PropertyDetailClient({
       sub: t('m_revenue_sub'),
       detail: [
         reservedNights != null ? t('d_revenue_nights', { n: reservedNights }) : t('d_no_calendar'),
-        cleaningCost30 != null
-          ? t('d_revenue_cleaning', {
-              n: cleanings30,
-              each: clp(turnoverPrice!),
-              total: clp(cleaningCost30),
-            })
-          : t('d_revenue_cleaning_unknown', { n: cleanings30 }),
         t('d_revenue_disclaimer'),
       ],
     },
@@ -263,30 +210,12 @@ export function PropertyDetailClient({
           ? [t('d_adr_range', { min: clp(priceMin), max: clp(priceMax) }), t('d_adr_note')]
           : [t('d_no_calendar')],
     },
-    {
-      id: 'ai',
-      icon: Bot,
-      tone: 'bg-accent text-accent-foreground',
-      label: t('m_ai'),
-      value: String(s.aiReplies7d),
-      sub: t('m_ai_sub'),
-      delta: { value: aiDelta, label: t('delta_prev7', { d: signed(aiDelta) }) },
-      detail: [
-        t('d_ai_threads', { n: property.guest_threads.length }),
-        s.needsReply > 0 ? t('d_ai_pending', { n: s.needsReply }) : t('d_ai_clear'),
-      ],
-    },
   ];
   const expanded = metrics.find((m) => m.id === openMetric) ?? null;
 
-  const attention: { id: SectionId; label: string }[] = [
-    s.needsReply > 0 && { id: 'mensajes' as const, label: t('att_reply', { n: s.needsReply }) },
-    s.suggestedCleanings > 0 && {
-      id: 'aseos' as const,
-      label: t('att_cleanings', { n: s.suggestedCleanings }),
-    },
-    accessUnconfigured && { id: 'acceso' as const, label: t('att_access') },
-  ].filter(Boolean) as { id: SectionId; label: string }[];
+  const attention: { id: SectionId; label: string }[] = accessUnconfigured
+    ? [{ id: 'acceso', label: t('att_access') }]
+    : [];
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
@@ -305,7 +234,7 @@ export function PropertyDetailClient({
 
       <SlimHero property={property} aiOff={property.ai_enabled === false} />
 
-      <div className="border-border/60 mb-10 grid grid-cols-2 gap-x-6 gap-y-5 border-y py-5 lg:grid-cols-4">
+      <div className="border-border/60 mb-10 grid grid-cols-2 gap-x-6 gap-y-5 border-y py-5 sm:grid-cols-3">
         {metrics.map((m) => (
           <button
             key={m.id}
@@ -361,11 +290,9 @@ export function PropertyDetailClient({
 
       <AutomationsPanel
         propertyId={property.id}
-        aiEnabled={property.ai_enabled !== false}
         priceOptEnabled={property.price_optimization_enabled === true}
         guestInfo={property.guest_info}
         liveDays={liveDays}
-        activeAddons={activeAddons}
         pricelabsStatus={property.pricelabs_status ?? 'off'}
       />
 
@@ -412,43 +339,20 @@ export function PropertyDetailClient({
       </Modal>
 
       <div className="grid gap-8">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Section
-            sectionRef={(el) => {
-              refs.current.aseos = el;
-            }}
-            icon={Sparkles}
-            title={t('tab_cleaning')}
-            badge={s.suggestedCleanings}
-          >
-            <CleaningPanel
-              propertyId={property.id}
-              cleanings={property.cleanings}
-              turnoverPrice={turnoverPrice}
-              managedBy={property.cleaning_managed_by}
-              contacts={property.property_contacts.filter((c) => c.role === 'cleaning')}
-              autoConfirm={property.cleaning_auto_confirm}
-              checkinTime={property.checkin_time}
-              checkoutTime={property.checkout_time}
-            />
-          </Section>
-
-          <Section
-            sectionRef={(el) => {
-              refs.current.estadias = el;
-            }}
-            icon={CalendarDays}
-            title={t('sec_stays')}
-          >
-            <StaysTimeline
-              stays={stays}
-              cleanings={property.cleanings}
-              today={today}
-              liveDays={liveDays}
-              recommended={recommended}
-            />
-          </Section>
-        </div>
+        <Section
+          sectionRef={(el) => {
+            refs.current.estadias = el;
+          }}
+          icon={CalendarDays}
+          title={t('sec_stays')}
+        >
+          <StaysTimeline
+            stays={stays}
+            today={today}
+            liveDays={liveDays}
+            recommended={recommended}
+          />
+        </Section>
 
         <Section
           sectionRef={(el) => {
@@ -458,26 +362,7 @@ export function PropertyDetailClient({
           title={t('tab_access')}
           warn={accessUnconfigured}
         >
-          <AccessPanel
-            propertyId={property.id}
-            access={property.property_access}
-            contacts={property.property_contacts.filter((c) => c.role === 'concierge')}
-          />
-        </Section>
-
-        <Section
-          sectionRef={(el) => {
-            refs.current.mensajes = el;
-          }}
-          icon={MessagesSquare}
-          title={t('tab_messages')}
-          badge={s.needsReply}
-        >
-          <MessagingPanel
-            propertyId={property.id}
-            threads={property.guest_threads}
-            showSim={showSim}
-          />
+          <AccessPanel propertyId={property.id} access={property.property_access} />
         </Section>
       </div>
     </div>
@@ -488,14 +373,12 @@ function Section({
   sectionRef,
   icon: Icon,
   title,
-  badge,
   warn,
   children,
 }: {
   sectionRef: (el: HTMLDivElement | null) => void;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
-  badge?: number;
   warn?: boolean;
   children: React.ReactNode;
 }) {
@@ -507,11 +390,6 @@ function Section({
             <Icon className="h-[18px] w-[18px]" />
           </span>
           <span className="font-display flex-1 font-semibold">{title}</span>
-          {badge != null && badge > 0 && (
-            <span className="bg-warning/15 text-warning rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums">
-              {badge}
-            </span>
-          )}
           {warn && <span className={cn('bg-warning h-2 w-2 rounded-full')} aria-hidden />}
         </div>
         {children}

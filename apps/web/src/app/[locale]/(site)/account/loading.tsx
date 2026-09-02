@@ -18,33 +18,19 @@ export default function AccountLoading() {
         <section>
           <Skeleton className="mb-5 h-6 w-32" />
           <div className="grid gap-4 sm:grid-cols-2">
-            {[0, 1].map((i) => (
-              <Card key={i}>
-                <CardContent className="grid gap-3 p-5">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-10 w-10 rounded-xl" />
-                    <Skeleton className="h-5 w-40" />
-                  </div>
-                  <Skeleton className="h-4 w-3/4" />
-                  <div className="flex gap-2 pt-1">
-                    <Skeleton className="h-9 w-32 rounded-lg" />
-                    <Skeleton className="h-9 w-24 rounded-lg" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            <Card>
+              <CardContent className="grid gap-3 p-5">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-xl" />
+                  <Skeleton className="h-5 w-40" />
+                </div>
+                <Skeleton className="h-4 w-3/4" />
+                <div className="flex gap-2 pt-1">
+                  <Skeleton className="h-9 w-32 rounded-lg" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </section>
-
-        <section>
-          <div className="mb-5 flex items-center gap-3">
-            <Skeleton className="h-10 w-10 rounded-xl" />
-            <div className="grid gap-1.5">
-              <Skeleton className="h-5 w-44" />
-              <Skeleton className="h-4 w-64" />
-            </div>
-          </div>
-          <Skeleton className="h-28 rounded-xl" />
         </section>
       </div>
     </main>

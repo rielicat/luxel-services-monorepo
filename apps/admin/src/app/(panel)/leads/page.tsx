@@ -1,15 +1,13 @@
 import { Radio } from 'lucide-react';
 import { getLeads } from '@/lib/stats';
-import { formatCLP, fmtDateTime } from '@/lib/utils';
+import { fmtDateTime } from '@/lib/utils';
 import { Card, Pill } from '@/components/ui';
 import { LeadStatus } from '@/components/lead-status';
 
 export const dynamic = 'force-dynamic';
 
 const SOURCE_LABEL: Record<string, string> = {
-  out_of_area: 'Fuera de zona',
   chat_handoff: 'Chat → humano',
-  quote: 'Cotización',
   newsletter: 'Newsletter',
   contact: 'Contacto',
 };
@@ -40,8 +38,6 @@ export default async function LeadsPage() {
                 <th className="px-4 py-3 font-medium">Origen</th>
                 <th className="px-4 py-3 font-medium">Contacto</th>
                 <th className="px-4 py-3 font-medium">Comuna</th>
-                <th className="px-4 py-3 font-medium">Servicio</th>
-                <th className="px-4 py-3 font-medium">Monto</th>
                 <th className="px-4 py-3 font-medium">Fecha</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
               </tr>
@@ -64,10 +60,6 @@ export default async function LeadsPage() {
                     )}
                   </td>
                   <td className="text-muted-foreground px-4 py-3">{l.commune ?? '—'}</td>
-                  <td className="text-muted-foreground px-4 py-3">{l.service_slug ?? '—'}</td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {l.quote_amount_clp != null ? formatCLP(l.quote_amount_clp) : '—'}
-                  </td>
                   <td className="text-muted-foreground px-4 py-3 text-xs">
                     {fmtDateTime(l.created_at)}
                   </td>
@@ -78,7 +70,7 @@ export default async function LeadsPage() {
               ))}
               {!leads.length && (
                 <tr>
-                  <td colSpan={7} className="text-muted-foreground px-4 py-10 text-center">
+                  <td colSpan={5} className="text-muted-foreground px-4 py-10 text-center">
                     Aún no hay leads.
                   </td>
                 </tr>

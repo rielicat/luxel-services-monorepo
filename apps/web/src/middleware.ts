@@ -5,12 +5,7 @@ import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-const isProtectedRoute = createRouteMatcher([
-  '/account(.*)',
-  '/book(.*)',
-  '/properties(.*)',
-  '/admin(.*)',
-]);
+const isProtectedRoute = createRouteMatcher(['/account(.*)', '/properties(.*)', '/admin(.*)']);
 
 const isApiRoute = (pathname: string) => pathname.startsWith('/api/');
 const isFileRoute = (pathname: string) => pathname.includes('.');

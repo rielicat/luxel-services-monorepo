@@ -5,7 +5,6 @@ export interface SeedPropertyInput {
   nickname: string;
   address?: string;
   comuna?: string;
-  sizeM2?: number;
   lat?: number;
   lng?: number;
 }
@@ -33,7 +32,6 @@ export async function seedImportedProperty(
       nickname: input.nickname,
       address: input.address ?? null,
       comuna: input.comuna ?? null,
-      size_m2: input.sizeM2 ?? null,
       lat: input.lat ?? null,
       lng: input.lng ?? null,
       platform: 'airbnb',

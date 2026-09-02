@@ -14,6 +14,7 @@ const CHECKOUT = '2027-02-10';
 const EMAILS = vi.hoisted(() => [] as Array<{ to: string | string[]; subject: string }>);
 const WA_SENDS: Array<{
   to?: string;
+  text?: string;
   template?: { kind: string; params: string[]; buttons?: string[] };
 }> = [];
 
@@ -31,9 +32,9 @@ vi.mock('@/lib/email/send', () => ({
 
 let admin: ReturnType<typeof createClient>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
-let refreshCleanings: (id: string) => Promise<{ ok: boolean; suggested?: number }>;
-let getTurnoverPrice: (id: string) => Promise<{ ok: boolean; priceClp?: number; error?: string }>;
-let setCleaningStatus: (i: unknown) => Promise<{ ok: boolean }>;
+let suggestCleaningsFromCheckouts: (id: string) => Promise<{ suggested: number }>;
+let autoConfirmSuggested: (id: string, today: string) => Promise<number>;
+let santiagoToday: () => string;
 let customerId: string;
 
 beforeAll(async () => {
@@ -48,14 +49,10 @@ beforeAll(async () => {
     return realFetch(input, init);
   });
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
-  const clean = await import('../src/app/[locale]/(site)/properties/cleaning-actions');
-  const schedule = await import('../src/lib/cleaning/schedule');
-  refreshCleanings = async (id: string) => {
-    const r = await schedule.suggestCleaningsFromCheckouts(id);
-    return { ok: true, suggested: r.suggested };
-  };
-  getTurnoverPrice = clean.getTurnoverPrice;
-  setCleaningStatus = clean.setCleaningStatus;
+  suggestCleaningsFromCheckouts = (await import('../src/lib/cleaning/schedule'))
+    .suggestCleaningsFromCheckouts;
+  autoConfirmSuggested = (await import('../src/lib/cleaning/notify')).autoConfirmSuggested;
+  santiagoToday = (await import('../src/lib/checkin/window')).santiagoToday;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin
@@ -77,17 +74,42 @@ afterEach(async () => {
   EMAILS.length = 0;
 });
 
-describe.skipIf(!LIVE)('cleaning coordination (end to end)', () => {
-  it('suggests a cleaning from a check-out, schedules it, and stays idempotent', async () => {
+describe.skipIf(!LIVE)('Luxel-run cleaning coordination (end to end)', () => {
+  it('schedules a cleaning per check-out, asks the mirrored crew and tells the operator, once', async () => {
     const prop = await seedImportedProperty({
-      nickname: 'Depto Providencia',
-      address: 'Av. Providencia 1234, Santiago',
-      sizeM2: 55,
-      lat: -33.4372,
-      lng: -70.6178,
+      nickname: 'Depto Las Condes',
+      address: 'Av. Apoquindo 1234',
+      comuna: 'Las Condes',
     });
     const propertyId = prop.id!;
-
+    await admin.from('properties').update({ checkout_time: '11:00' }).eq('id', propertyId);
+    await admin.from('property_access').update({ unit: '1203' }).eq('property_id', propertyId);
+    await admin.from('property_contacts').insert([
+      {
+        property_id: propertyId,
+        role: 'cleaning',
+        external_id: 'tm-phone',
+        name: 'Rosa',
+        whatsapp: '+56 9 5555 1234',
+        email: 'rosa@aseo.cl',
+      },
+      {
+        property_id: propertyId,
+        role: 'cleaning',
+        external_id: 'tm-email',
+        name: 'Pedro',
+        whatsapp: null,
+        email: 'pedro@aseo.cl',
+      },
+      {
+        property_id: propertyId,
+        role: 'concierge',
+        external_id: 'tm-concierge',
+        name: 'Juan',
+        whatsapp: '+56 9 7777 0000',
+        email: null,
+      },
+    ]);
     await admin.from('calendar_blocks').insert({
       property_id: propertyId,
       starts_on: '2027-02-07',
@@ -97,38 +119,59 @@ describe.skipIf(!LIVE)('cleaning coordination (end to end)', () => {
       summary: 'Reserved',
     });
 
-    const r1 = await refreshCleanings(propertyId);
-    expect(r1.ok).toBe(true);
-    expect(r1.suggested).toBe(1);
-
-    const { data: c1 } = await admin
+    expect((await suggestCleaningsFromCheckouts(propertyId)).suggested).toBe(1);
+    const { data: suggested } = await admin
       .from('cleanings')
-      .select('id, cleaning_date, status, source')
+      .select('cleaning_date, status, source')
       .eq('property_id', propertyId);
-    expect(c1).toHaveLength(1);
-    expect(c1![0].cleaning_date).toBe(CHECKOUT);
-    expect(c1![0].status).toBe('suggested');
+    expect(suggested).toEqual([
+      { cleaning_date: CHECKOUT, status: 'suggested', source: 'checkout' },
+    ]);
 
-    const st = await setCleaningStatus({ cleaningId: c1![0].id, status: 'scheduled' });
-    expect(st.ok).toBe(true);
+    expect(await autoConfirmSuggested(propertyId, santiagoToday())).toBe(1);
+    const { data: scheduled } = await admin
+      .from('cleanings')
+      .select('status, confirm_token')
+      .eq('property_id', propertyId)
+      .single();
+    expect(scheduled!.status).toBe('scheduled');
+    const token = scheduled!.confirm_token as string;
 
-    const r2 = await refreshCleanings(propertyId);
-    expect(r2.suggested).toBe(0);
-    const { data: c2 } = await admin
+    const templates = WA_SENDS.filter((s) => s.template);
+    expect(templates).toEqual([
+      {
+        to: '56955551234',
+        template: {
+          kind: 'cleaning_confirm',
+          params: ['miércoles 10 de febrero, 11:00', 'Depto Las Condes · Depto. 1203'],
+          buttons: [`clean:${token}:yes`, `clean:${token}:no`],
+        },
+      },
+    ]);
+    const fyi = WA_SENDS.filter((s) => s.text);
+    expect(fyi).toHaveLength(1);
+    expect(fyi[0]!.to).toBeUndefined();
+    expect(fyi[0]!.text).toContain('Aseo agendado — Depto Las Condes');
+    expect(fyi[0]!.text).toContain(`/cleaning/confirm/${token}`);
+    expect(EMAILS).toHaveLength(1);
+    expect(EMAILS[0]!.to).toBe('pedro@aseo.cl');
+    expect(EMAILS[0]!.subject).toContain('Depto Las Condes');
+
+    WA_SENDS.length = 0;
+    EMAILS.length = 0;
+    expect((await suggestCleaningsFromCheckouts(propertyId)).suggested).toBe(0);
+    expect(await autoConfirmSuggested(propertyId, santiagoToday())).toBe(0);
+    const { data: after } = await admin
       .from('cleanings')
       .select('status')
       .eq('property_id', propertyId);
-    expect(c2).toHaveLength(1);
-    expect(c2![0].status).toBe('scheduled');
+    expect(after).toEqual([{ status: 'scheduled' }]);
+    expect(WA_SENDS).toHaveLength(0);
+    expect(EMAILS).toHaveLength(0);
   });
 
   it('lets the crew confirm attendance via the tokenized link — once', async () => {
-    const prop = await seedImportedProperty({
-      nickname: 'Depto Ñuñoa',
-      sizeM2: 50,
-      lat: -33.4569,
-      lng: -70.5986,
-    });
+    const prop = await seedImportedProperty({ nickname: 'Depto Ñuñoa' });
     const { data: cleaning } = await admin
       .from('cleanings')
       .insert({ property_id: prop.id!, cleaning_date: CHECKOUT, status: 'scheduled' })
@@ -150,73 +193,5 @@ describe.skipIf(!LIVE)('cleaning coordination (end to end)', () => {
       .eq('id', cleaning!.id as string)
       .single();
     expect(after!.crew_confirmed_at).toBeTruthy();
-  });
-
-  it('asks the own crew to confirm: WhatsApp buttons for a phone, email for an address only', async () => {
-    const prop = await seedImportedProperty({
-      nickname: 'Depto Las Condes',
-      sizeM2: 60,
-      lat: -33.4172,
-      lng: -70.6036,
-    });
-    const propertyId = prop.id!;
-    await admin
-      .from('properties')
-      .update({ cleaning_managed_by: 'own', checkout_time: '11:00' })
-      .eq('id', propertyId);
-    await admin.from('property_access').update({ unit: '1203' }).eq('property_id', propertyId);
-    await admin.from('property_contacts').insert([
-      {
-        property_id: propertyId,
-        role: 'cleaning',
-        external_id: 'tm-phone',
-        name: 'Rosa',
-        whatsapp: '+56 9 5555 1234',
-        email: 'rosa@aseo.cl',
-      },
-      {
-        property_id: propertyId,
-        role: 'cleaning',
-        external_id: 'tm-email',
-        name: 'Pedro',
-        whatsapp: null,
-        email: 'pedro@aseo.cl',
-      },
-    ]);
-    const { data: cleaning } = await admin
-      .from('cleanings')
-      .insert({ property_id: propertyId, cleaning_date: '2027-02-09', status: 'suggested' })
-      .select('id, confirm_token')
-      .single();
-    const token = cleaning!.confirm_token as string;
-
-    expect((await setCleaningStatus({ cleaningId: cleaning!.id, status: 'scheduled' })).ok).toBe(
-      true,
-    );
-
-    expect(WA_SENDS).toHaveLength(1);
-    expect(WA_SENDS[0]).toEqual({
-      to: '56955551234',
-      template: {
-        kind: 'cleaning_confirm',
-        params: ['martes 09 de febrero, 11:00', 'Depto Las Condes · Depto. 1203'],
-        buttons: [`clean:${token}:yes`, `clean:${token}:no`],
-      },
-    });
-    expect(EMAILS).toHaveLength(1);
-    expect(EMAILS[0]!.to).toBe('pedro@aseo.cl');
-    expect(EMAILS[0]!.subject).toContain('Depto Las Condes');
-  });
-
-  it('prices a turnover for a located property without throwing', async () => {
-    const prop = await seedImportedProperty({
-      nickname: 'Depto Centro',
-      sizeM2: 45,
-      lat: -33.4489,
-      lng: -70.6693,
-    });
-    const p = await getTurnoverPrice(prop.id!);
-    expect(p.ok).toBe(true);
-    expect(typeof p.priceClp === 'number' || typeof p.error === 'string').toBe(true);
   });
 });

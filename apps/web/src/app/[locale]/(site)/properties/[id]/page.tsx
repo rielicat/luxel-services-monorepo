@@ -4,10 +4,8 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { fetchProperty } from '@/lib/host/queries';
 import { listHospitableCalendar } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
-import { priceTurnover } from '@/lib/cleaning/price';
 import { resolvePricelabsRef } from '@/lib/pricelabs/link';
 import { getPricelabsPrices } from '@/lib/pricelabs/client';
-import { devMockEnabled } from '@/lib/dev-mock';
 import { santiagoToday, shiftDate } from '@/lib/checkin/window';
 import type { PropertyRow } from '../properties-client';
 import { PropertyDetailClient, type LiveDay } from './detail-client';
@@ -54,8 +52,6 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     }
   }
 
-  const turnover = await priceTurnover(id);
-
   let recommended: Record<string, number> | null = null;
   const plRef = await resolvePricelabsRef(customer.id, id);
   if (plRef) {
@@ -73,8 +69,6 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       property={property}
       liveDays={liveDays}
       today={today}
-      turnoverPrice={'priceClp' in turnover ? turnover.priceClp : null}
-      showSim={devMockEnabled()}
       recommended={recommended}
     />
   );

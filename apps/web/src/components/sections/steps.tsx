@@ -2,7 +2,6 @@ import { cn } from '@/lib/utils';
 
 const TONES = {
   primary: 'bg-primary text-primary-foreground',
-  secondary: 'bg-secondary text-secondary-foreground',
 } as const;
 
 export function Steps({

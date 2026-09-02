@@ -2,15 +2,10 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
 const PROPERTY_SELECT =
-  'id, nickname, address, comuna, guest_info, external_listing_id, platform, base_nightly_clp, ai_enabled, price_optimization_enabled, pricelabs_status, ' +
+  'id, nickname, address, comuna, guest_info, external_listing_id, platform, ai_enabled, price_optimization_enabled, pricelabs_status, ' +
   'bedrooms, bathrooms, picture_url, max_guests, beds, property_type, room_type, checkin_time, checkout_time, listed, amenities, house_rules, ' +
-  'cleaning_managed_by, cleaning_auto_confirm, ' +
-  'property_contacts(id, role, name, email, whatsapp), ' +
-  'property_addons(addon, status), ' +
   'property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_hours, id_basis, id_disclosed, unit), ' +
-  'calendar_blocks(id, starts_on, ends_on, source, summary), ' +
-  'cleanings(id, cleaning_date, status, price_clp, source, crew_confirmed_at, crew_declined_at), ' +
-  'guest_threads(id, status, guest_name, updated_at, guest_messages(id, direction, source, body, created_at))';
+  'calendar_blocks(id, starts_on, ends_on, source, summary)';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalize(p: any) {
@@ -19,10 +14,6 @@ function normalize(p: any) {
     ...p,
     property_access: Array.isArray(pa) ? (pa[0] ?? null) : pa,
     calendar_blocks: p.calendar_blocks ?? [],
-    cleanings: p.cleanings ?? [],
-    property_contacts: p.property_contacts ?? [],
-    property_addons: p.property_addons ?? [],
-    guest_threads: p.guest_threads ?? [],
   };
 }
 

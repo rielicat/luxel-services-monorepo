@@ -49,18 +49,23 @@ afterEach(async () => {
 describe.skipIf(!LIVE)('global agent host status (end to end)', () => {
   it('reports the real account state per property', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Estado Real' });
-    await admin.from('cleanings').insert({
+    await admin.from('calendar_blocks').insert({
       property_id: prop.id!,
-      cleaning_date: '2027-02-01',
-      status: 'scheduled',
-      source: 'manual',
+      starts_on: '2027-02-01',
+      ends_on: '2027-02-04',
+      source: 'import',
+      external_uid: 'feed:evt-status',
+      summary: 'Reserved',
     });
 
     const r = await runTool('get_host_status', {}, { customerId });
+    expect(r.content).toContain('1 conectadas');
     expect(r.content).toContain('Depto Estado Real');
-    expect(r.content).toContain('próximo aseo 2027-02-01');
-    expect(r.content).toContain('0 conversaciones por responder');
     expect(r.content).toContain('ocupación no disponible');
+    expect(r.content).toContain('1 estadía próxima');
+    expect(r.content).toContain('ingresos 30 días no disponibles');
+    expect(r.content).not.toContain('próximo aseo');
+    expect(r.content).not.toContain('conversaciones');
   });
 
   it('guides signed-out users and empty accounts instead of failing', async () => {

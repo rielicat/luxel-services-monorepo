@@ -227,7 +227,6 @@ let syncHospitable: () => Promise<{
   contacts?: number;
 }>;
 let decryptPII: (s: string) => string;
-let hostReply: (i: unknown) => Promise<{ ok: boolean }>;
 let customerId: string;
 let apiCalls = 0;
 
@@ -324,7 +323,6 @@ beforeAll(async () => {
 
   const a = await import('../src/app/[locale]/(site)/properties/channel-actions');
   connectHospitable = a.connectHospitable;
-  hostReply = (await import('../src/app/[locale]/(site)/properties/messaging-actions')).hostReply;
   const syncLib = await import('../src/lib/channels/hospitable-sync');
   syncHospitable = () => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN);
   decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
@@ -1257,38 +1255,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(SENT.length).toBe(sends);
   });
 
-  it('a host reply that Hospitable rejects is reported as failed and not stored', async () => {
-    await connectHospitable({ token: FAKE_TOKEN });
-    const { data: prop } = await admin
-      .from('properties')
-      .select('id')
-      .eq('owner_id', customerId)
-      .single();
-    const { data: stale } = await admin
-      .from('guest_threads')
-      .insert({
-        property_id: prop!.id,
-        channel: 'hospitable',
-        external_thread_id: 'res-7-gone',
-        guest_name: 'Ana',
-        status: 'needs_host',
-      })
-      .select('id')
-      .single();
-    expect((await hostReply({ threadId: stale!.id, body: 'Hola Ana' })).ok).toBe(false);
-    const { count } = await admin
-      .from('guest_messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('thread_id', stale!.id);
-    expect(count).toBe(0);
-    const { data: th } = await admin
-      .from('guest_threads')
-      .select('status')
-      .eq('id', stale!.id)
-      .single();
-    expect(th!.status).toBe('needs_host');
-  });
-
   it('asks the mirrored cleaning crew to confirm each scheduled cleaning, once', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
     const { data: prop } = await admin
@@ -1296,10 +1262,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('id')
       .eq('owner_id', customerId)
       .single();
-    await admin
-      .from('properties')
-      .update({ cleaning_managed_by: 'own', cleaning_auto_confirm: true })
-      .eq('id', prop!.id);
     await admin.from('cleanings').update({ status: 'suggested' }).eq('property_id', prop!.id);
     WA_SENDS.length = 0;
 

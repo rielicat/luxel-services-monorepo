@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
+import { CalendarDays, TrendingUp } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 import type { Block } from './properties-client';
-import type { Cleaning } from './cleaning-panel';
 
 export type LiveDay = {
   date: string;
@@ -105,14 +104,6 @@ const monthLabel = (y: number, m: number) =>
   );
 const shortClp = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 
-type CleaningState = 'confirmed' | 'declined' | 'notified' | 'pending';
-const cleaningState = (c: Cleaning | undefined): CleaningState | null => {
-  if (!c) return null;
-  if (c.crew_declined_at && !c.crew_confirmed_at) return 'declined';
-  if (c.crew_confirmed_at) return 'confirmed';
-  return c.status === 'scheduled' ? 'notified' : 'pending';
-};
-
 function monthCells(year: number, month: number): (string | null)[] {
   const first = new Date(Date.UTC(year, month, 1));
   const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -127,13 +118,11 @@ function monthCells(year: number, month: number): (string | null)[] {
 
 export function StaysTimeline({
   stays,
-  cleanings,
   today,
   liveDays,
   recommended,
 }: {
   stays: Stay[];
-  cleanings: Cleaning[];
   today: string;
   liveDays?: LiveDay[] | null;
   recommended?: Record<string, number> | null;
@@ -157,12 +146,8 @@ export function StaysTimeline({
   }
   const priceOf = new Map<string, number>();
   for (const d of liveDays ?? []) if (d.priceClp != null) priceOf.set(d.date, d.priceClp);
-  const cleaningFor = (date: string) =>
-    cleanings.find((c) => c.cleaning_date === date && c.status !== 'skipped');
-
   const year = Number(today.slice(0, 4));
   const month0 = Number(today.slice(5, 7)) - 1;
-  const selCleaning = selected ? cleaningState(cleaningFor(selected.to)) : null;
   const hasRecommendations = Boolean(recommended && Object.keys(recommended).length);
 
   return (
@@ -191,7 +176,6 @@ export function StaysTimeline({
                     if (!date) return <span key={`x${ci}`} />;
                     const stay = nightOf.get(date) ?? checkoutOf.get(date);
                     const night = nightOf.has(date);
-                    const state = checkoutOf.has(date) ? cleaningState(cleaningFor(date)) : null;
                     const price = priceOf.get(date);
                     const rec = recommended?.[date];
                     const past = date < today;
@@ -230,17 +214,6 @@ export function StaysTimeline({
                             {shortClp(rec)}
                           </span>
                         )}
-                        {state && (
-                          <span
-                            className={cn(
-                              'absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full',
-                              state === 'confirmed' && 'bg-success',
-                              state === 'declined' && 'bg-destructive',
-                              state === 'notified' && 'bg-secondary',
-                              state === 'pending' && 'bg-warning',
-                            )}
-                          />
-                        )}
                       </button>
                     );
                   })}
@@ -261,18 +234,6 @@ export function StaysTimeline({
             <TrendingUp className="h-3 w-3" /> {t('legend_recommended')}
           </span>
         )}
-        <span className="flex items-center gap-1">
-          <span className="bg-success h-1.5 w-1.5 rounded-full" /> {t('legend_confirmed')}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="bg-destructive h-1.5 w-1.5 rounded-full" /> {t('legend_declined')}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="bg-secondary h-1.5 w-1.5 rounded-full" /> {t('legend_notified')}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="bg-warning h-1.5 w-1.5 rounded-full" /> {t('legend_pending')}
-        </span>
       </div>
 
       <Modal open={selected != null} onClose={() => setSelected(null)} title={t('stay_title')}>
@@ -291,27 +252,6 @@ export function StaysTimeline({
               {t('nights', { n: selected.nights })}
               {selected.revenueClp != null &&
                 ` · ${t('revenue', { amount: clp(selected.revenueClp) })}`}
-            </p>
-            <p className="flex items-center gap-1.5 text-sm">
-              <Sparkles
-                className={cn(
-                  'h-4 w-4',
-                  selCleaning === 'confirmed' && 'text-success',
-                  selCleaning === 'declined' && 'text-destructive',
-                  selCleaning === 'notified' && 'text-secondary',
-                  selCleaning === 'pending' && 'text-warning',
-                  selCleaning == null && 'text-muted-foreground',
-                )}
-              />
-              {selCleaning === 'confirmed'
-                ? t('cleaning_confirmed')
-                : selCleaning === 'declined'
-                  ? t('cleaning_declined')
-                  : selCleaning === 'notified'
-                    ? t('cleaning_notified')
-                    : selCleaning === 'pending'
-                      ? t('cleaning_pending')
-                      : t('cleaning_auto')}
             </p>
           </div>
         )}

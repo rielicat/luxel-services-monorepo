@@ -10,7 +10,6 @@ type Feature = {
 
 const TONES = {
   primary: 'bg-primary/10 text-primary',
-  accent: 'bg-accent text-accent-foreground',
 } as const;
 
 export function FeatureGrid({

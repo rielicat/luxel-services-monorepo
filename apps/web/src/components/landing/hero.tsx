@@ -38,7 +38,7 @@ export function Hero() {
 
           <div className="animate-fade-in-up mt-10 flex flex-col items-center justify-center gap-3 [animation-delay:240ms] sm:flex-row">
             <Button asChild variant="default" size="xl" className="w-full sm:w-auto">
-              <Link href="/calculator?service=airbnb">{t('cta_primary')}</Link>
+              <Link href="/calculator">{t('cta_primary')}</Link>
             </Button>
             <Button asChild variant="outline" size="xl" className="w-full sm:w-auto">
               <Link href="/services/airbnb">{t('cta_secondary')}</Link>

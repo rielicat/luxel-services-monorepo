@@ -1,7 +1,6 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { ownsProperty } from '@/lib/host/owner';
-import { isAddonActive } from '@/lib/addons/store';
 import { listPricelabsListings, pricelabsConfigured, type PricelabsRef } from './client';
 
 export async function resolvePricelabsRef(
@@ -9,7 +8,6 @@ export async function resolvePricelabsRef(
   propertyId: string,
 ): Promise<PricelabsRef | null> {
   if (!(await ownsProperty(customerId, propertyId))) return null;
-  if (!(await isAddonActive(propertyId, 'dynamic_pricing'))) return null;
   const supabase = createSupabaseServiceRoleClient();
   const { data } = await supabase
     .from('properties')

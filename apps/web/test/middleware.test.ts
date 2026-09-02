@@ -51,7 +51,7 @@ describe('middleware matcher', () => {
   it.each([
     '/_next/static/chunk.js',
     '/_vercel/insights/script.js',
-    '/api/webhooks/stripe',
+    '/api/webhooks/clerk',
     '/monitoring',
   ])('skips %s', (pathname) => {
     expect(matches(pathname)).toBe(false);

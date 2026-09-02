@@ -7,7 +7,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: true,
-  transpilePackages: ['@luxel/shared', '@luxel/pricing'],
+  transpilePackages: ['@luxel/shared'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'img.clerk.com' },

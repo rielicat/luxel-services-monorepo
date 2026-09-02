@@ -38,11 +38,9 @@ const property = {
   guest_info: null,
   external_listing_id: 'a6eb2c65',
   platform: 'airbnb',
-  base_nightly_clp: 166450,
   ai_enabled: true,
   price_optimization_enabled: true,
   pricelabs_status: 'connected',
-  property_addons: [{ addon: 'dynamic_pricing', status: 'active' }],
   bedrooms: 3,
   bathrooms: 2,
   picture_url: null,
@@ -55,82 +53,11 @@ const property = {
   listed: true,
   amenities: ['ac', 'kitchen', 'wireless_internet'],
   house_rules: { pets_allowed: true, smoking_allowed: false, events_allowed: false },
-  cleaning_managed_by: 'luxel',
-  cleaning_auto_confirm: true,
-  property_contacts: [],
   property_access: null,
   calendar_blocks: [
     { id: 'b1', starts_on: plus(2), ends_on: plus(9), source: 'import', summary: 'Airbnb ABC' },
     { id: 'b2', starts_on: plus(20), ends_on: plus(26), source: 'import', summary: 'Airbnb DEF' },
     { id: 'b3', starts_on: plus(44), ends_on: plus(52), source: 'import', summary: 'Airbnb GHI' },
-  ],
-  cleanings: [
-    {
-      id: 'c1',
-      cleaning_date: plus(9),
-      status: 'scheduled',
-      price_clp: 38000,
-      source: 'checkout',
-      crew_confirmed_at: new Date().toISOString(),
-      crew_declined_at: null,
-    },
-    {
-      id: 'c2',
-      cleaning_date: plus(26),
-      status: 'scheduled',
-      price_clp: 38000,
-      source: 'checkout',
-      crew_confirmed_at: null,
-      crew_declined_at: null,
-    },
-    {
-      id: 'c3',
-      cleaning_date: plus(52),
-      status: 'suggested',
-      price_clp: 38000,
-      source: 'checkout',
-      crew_confirmed_at: null,
-      crew_declined_at: null,
-    },
-  ],
-  guest_threads: [
-    {
-      id: 't1',
-      status: 'needs_host',
-      guest_name: 'Matheus',
-      updated_at: new Date().toISOString(),
-      guest_messages: [
-        {
-          id: 'm1',
-          direction: 'in',
-          source: 'guest',
-          body: '¿Hay estacionamiento disponible?',
-          created_at: new Date().toISOString(),
-        },
-      ],
-    },
-    {
-      id: 't2',
-      status: 'closed',
-      guest_name: 'Ana',
-      updated_at: new Date().toISOString(),
-      guest_messages: [
-        {
-          id: 'm2',
-          direction: 'in',
-          source: 'guest',
-          body: '¿A qué hora es el check-in?',
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: 'm3',
-          direction: 'out',
-          source: 'ai',
-          body: 'El check-in es desde las 15:00. ¡Te esperamos!',
-          created_at: new Date().toISOString(),
-        },
-      ],
-    },
   ],
 } as unknown as PropertyRow;
 
@@ -177,8 +104,6 @@ export default async function PreviewPropertyPage({
       }
       liveDays={liveDays}
       today={TODAY}
-      turnoverPrice={38000}
-      showSim={false}
       recommended={recommended}
     />
   );

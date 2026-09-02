@@ -27,8 +27,6 @@ let admin: ReturnType<typeof createClient>;
 let handleInboundMessage: (
   i: Inbound,
 ) => Promise<{ ok: boolean; action?: string; threadId?: string }>;
-let hostReply: (i: unknown) => Promise<{ ok: boolean }>;
-let saveLearnedAnswer: (i: unknown) => Promise<{ ok: boolean }>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let updateGuestInfo: (i: unknown) => Promise<{ ok: boolean }>;
 let customerId: string;
@@ -36,9 +34,6 @@ let customerId: string;
 beforeAll(async () => {
   if (!LIVE) return;
   handleInboundMessage = (await import('../src/lib/channels/pipeline')).handleInboundMessage;
-  const m = await import('../src/app/[locale]/(site)/properties/messaging-actions');
-  hostReply = m.hostReply;
-  saveLearnedAnswer = m.saveLearnedAnswer;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   updateGuestInfo = (await import('../src/app/[locale]/(site)/properties/copilot-actions'))
     .updateGuestInfo;
@@ -83,7 +78,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
     expect(msgs!.map((m) => `${m.source}:${m.direction}`)).toEqual(['guest:in', 'ai:out']);
   });
 
-  it('respects the host AI switch: disabled → straight to the inbox, nothing auto-sent', async () => {
+  it('routes to a Luxel human when the AI is off for the property, nothing auto-sent', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto IA Apagada' });
     await updateGuestInfo({ propertyId: prop.id, guestInfo: 'WiFi: LuxelGuest / clave 1234.' });
     await admin.from('properties').update({ ai_enabled: false }).eq('id', prop.id!);
@@ -130,41 +125,5 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
       .eq('thread_id', r.threadId!);
     expect(msgs).toHaveLength(1);
     expect(msgs![0].source).toBe('guest');
-  });
-
-  it('lets the host reply and reopen the thread, and save a learned answer', async () => {
-    const prop = await seedImportedProperty({ nickname: 'Depto Host' });
-    const propertyId = prop.id!;
-    const r = await handleInboundMessage({
-      propertyId,
-      externalThreadId: 't-3',
-      body: 'quiero hablar con una persona',
-    });
-    expect(r.action).toBe('handoff');
-
-    expect((await hostReply({ threadId: r.threadId, body: 'Hola, con gusto te ayudo.' })).ok).toBe(
-      true,
-    );
-    const { data: thread } = await admin
-      .from('guest_threads')
-      .select('status')
-      .eq('id', r.threadId!)
-      .single();
-    expect(thread!.status).toBe('open');
-    const { data: msgs } = await admin
-      .from('guest_messages')
-      .select('source, direction')
-      .eq('thread_id', r.threadId!);
-    expect(msgs!.some((m) => m.source === 'host' && m.direction === 'out')).toBe(true);
-
-    expect(
-      (await saveLearnedAnswer({ propertyId, question: '¿Hay wifi?', answer: 'Sí, clave 1234.' }))
-        .ok,
-    ).toBe(true);
-    const { count } = await admin
-      .from('learned_answers')
-      .select('*', { count: 'exact', head: true })
-      .eq('property_id', propertyId);
-    expect(count).toBe(1);
   });
 });

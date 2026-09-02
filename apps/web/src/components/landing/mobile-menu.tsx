@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Menu, X, Bot, Sparkles, Users, Tag } from 'lucide-react';
+import { Menu, X, Bot, Users, Tag } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
 export function MobileMenu() {
@@ -48,9 +48,6 @@ export function MobileMenu() {
         >
           <Item href="/services/airbnb" icon={Bot} onNavigate={close}>
             {t('services_airbnb')}
-          </Item>
-          <Item href="/services/cleaning" icon={Sparkles} onNavigate={close}>
-            {t('services_cleaning')}
           </Item>
           <Item href="/calculator" icon={Tag} onNavigate={close}>
             {t('precios')}

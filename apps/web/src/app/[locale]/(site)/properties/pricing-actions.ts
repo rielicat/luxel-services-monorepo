@@ -3,7 +3,6 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
-import { isAddonActive } from '@/lib/addons/store';
 import { resolvePricelabsRef, linkPricelabsListing } from '@/lib/pricelabs/link';
 import { updatePricelabsListing } from '@/lib/pricelabs/client';
 
@@ -43,7 +42,6 @@ export async function refreshPricingLink(
   const cid = await currentCustomerId();
   if (!cid) return { ok: false };
   if (!(await ownsProperty(cid, id.data))) return { ok: false };
-  if (!(await isAddonActive(id.data, 'dynamic_pricing'))) return { ok: false };
 
   const status = await linkPricelabsListing(id.data);
   revalidatePath('/properties');

@@ -4,7 +4,6 @@ import { auth } from '@clerk/nextjs/server';
 import { getOpenAI, AI_MODEL } from '@/lib/ai/client';
 import { buildSystemPrompt } from '@/lib/ai/system-prompt';
 import { buildTools, runTool, type ToolContext } from '@/lib/ai/tools';
-import { getPricingData } from '@/lib/pricing-data';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { capture } from '@/lib/analytics/server';
 import { EVENTS } from '@/lib/analytics/events';
@@ -67,19 +66,13 @@ export async function POST(req: Request) {
 
   if (!openai) {
     const reply =
-      'El asistente con IA no está disponible en este momento. Puedes cotizar al instante en la sección Cotizar del sitio, o escribirnos por WhatsApp y te ayudamos.';
+      'El asistente con IA no está disponible en este momento. Puedes ver los planes en la sección Precios del sitio, o escribirnos por WhatsApp y te ayudamos.';
     await persistAssistant(supabase, customerId, sessionId, reply, 'ai_unavailable');
     return sseStream(reply);
   }
 
-  const { pricingConfig, serviceTypes, operationPoints } = await getPricingData();
-  const system = buildSystemPrompt({
-    serviceTypes,
-    operationPoints,
-    pricingConfig,
-    signedIn: Boolean(userId),
-  });
-  const tools = buildTools(serviceTypes.map((s) => s.slug));
+  const system = buildSystemPrompt({ signedIn: Boolean(userId) });
+  const tools = buildTools();
   const ctx: ToolContext = {
     whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER,
     customerId,
