@@ -12,8 +12,12 @@ const isProtectedRoute = createRouteMatcher([
   '/admin(.*)',
 ]);
 
+const isApiRoute = (pathname: string) => pathname.startsWith('/api/');
+const isFileRoute = (pathname: string) => pathname.includes('.');
+const isPageRoute = (pathname: string) => !isApiRoute(pathname) && !isFileRoute(pathname);
+
 const intlOnly = (req: NextRequest) => {
-  if (req.nextUrl.pathname.startsWith('/api/')) return;
+  if (!isPageRoute(req.nextUrl.pathname)) return;
   return intlMiddleware(req);
 };
 
@@ -26,10 +30,11 @@ const isPublicTokenRoute = (pathname: string) => /^\/(checkin|cleaning\/confirm)
 const withStealthGate =
   (handler: (req: NextRequest, event: NextFetchEvent) => unknown) =>
   (req: NextRequest, event: NextFetchEvent) => {
+    const { pathname } = req.nextUrl;
     if (
       gateActive &&
-      !req.nextUrl.pathname.startsWith('/api/') &&
-      !isPublicTokenRoute(req.nextUrl.pathname) &&
+      isPageRoute(pathname) &&
+      !isPublicTokenRoute(pathname) &&
       req.cookies.get(GATE_COOKIE)?.value !== '1'
     ) {
       return NextResponse.rewrite(new URL('/es/gate', req.url));
@@ -40,23 +45,24 @@ const withStealthGate =
 const inner = skipAuth
   ? intlOnly
   : clerkMiddleware(async (auth, req) => {
+      const { pathname } = req.nextUrl;
       if (isProtectedRoute(req)) {
         const { userId } = await auth();
         if (!userId) {
-          if (req.nextUrl.pathname.startsWith('/api/')) {
+          if (isApiRoute(pathname)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
           }
           const signInUrl = new URL('/sign-in', req.url);
-          signInUrl.searchParams.set('redirect_url', req.nextUrl.pathname + req.nextUrl.search);
+          signInUrl.searchParams.set('redirect_url', pathname + req.nextUrl.search);
           return NextResponse.redirect(signInUrl);
         }
       }
-      if (req.nextUrl.pathname.startsWith('/api/')) return;
+      if (!isPageRoute(pathname)) return;
       return intlMiddleware(req);
     });
 
 export default withStealthGate(inner);
 
 export const config = {
-  matcher: ['/((?!api/webhooks|_next|_vercel|monitoring|.*\\..*).*)'],
+  matcher: ['/((?!api/webhooks|_next|_vercel|monitoring).*)'],
 };
