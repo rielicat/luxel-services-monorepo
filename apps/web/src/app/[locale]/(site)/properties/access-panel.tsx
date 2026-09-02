@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { TriangleAlert, Check } from 'lucide-react';
+import { TriangleAlert, Check, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateAccess } from './actions';
@@ -108,6 +108,9 @@ export function AccessPanel({ propertyId, access }: { propertyId: string; access
             <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {t('none_warning')}
           </p>
         )}
+        <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
+          <Sparkles className="text-primary mt-0.5 h-3.5 w-3.5 shrink-0" /> {t('ops_note')}
+        </p>
       </div>
 
       {s.method === 'keyless' && (

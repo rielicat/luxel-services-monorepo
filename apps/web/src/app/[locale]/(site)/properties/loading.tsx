@@ -12,8 +12,23 @@ export default function PropertiesLoading() {
         </div>
       </div>
 
-      <div className="grid gap-4">
-        <Skeleton className="h-[74px] rounded-xl" />
+      <div className="grid gap-6">
+        <Card className="mb-5">
+          <CardContent className="grid gap-5 p-4 sm:p-5">
+            <div className="flex items-start gap-2.5">
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <div className="grid gap-1.5">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-56" />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-40 rounded-xl" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
         <Skeleton className="h-4 w-64" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1].map((i) => (

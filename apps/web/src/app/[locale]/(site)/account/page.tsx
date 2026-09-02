@@ -4,6 +4,8 @@ import { getTranslations } from 'next-intl/server';
 import { Home, ArrowRight, UserRound } from 'lucide-react';
 import { getAccountContext } from '@/lib/customer';
 import { getPlan, type PlanRow } from '@/lib/plans';
+import { isPlanKey } from '@/lib/plan-pricing';
+import { planName, planPriceLine } from '@/lib/plan-copy';
 import { fetchProperties } from '@/lib/host/queries';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
@@ -18,6 +20,7 @@ export default async function CuentaPage() {
   if (!ctx) redirect('/sign-in');
 
   const t = await getTranslations('account');
+  const tp = await getTranslations('plans');
 
   let plan: PlanRow | null = null;
   let propertyCount = 0;
@@ -33,6 +36,7 @@ export default async function CuentaPage() {
 
   const firstName = ctx.profile.full_name?.split(' ')[0];
   const airbnbActive = Boolean(plan && plan.status !== 'cancelled');
+  const planKey = isPlanKey(plan?.plan) ? plan.plan : null;
 
   const airbnbStatus =
     plan?.status === 'requested'
@@ -40,8 +44,16 @@ export default async function CuentaPage() {
       : plan?.status === 'active'
         ? t('airbnb.active')
         : plan?.status === 'cancelled'
-          ? t('airbnb.cancelled')
+          ? t('airbnb.cancelled_body')
           : t('airbnb.none_body');
+  const airbnbDetail = airbnbActive
+    ? [
+        planKey && `${planName(tp, planKey)} · ${planPriceLine(tp, planKey)}`,
+        t('airbnb.count', { n: propertyCount }),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : undefined;
 
   return (
     <main className="pb-16">
@@ -71,7 +83,7 @@ export default async function CuentaPage() {
               icon={Home}
               title={t('airbnb.title')}
               status={airbnbStatus}
-              detail={airbnbActive ? t('airbnb.count', { n: propertyCount }) : undefined}
+              detail={airbnbDetail}
               highlighted={airbnbActive}
             >
               {airbnbActive ? (
