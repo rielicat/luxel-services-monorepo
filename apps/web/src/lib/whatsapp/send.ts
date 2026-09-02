@@ -31,6 +31,10 @@ export function sendWhatsAppTemplate(
   to: string,
   kind: WhatsAppTemplateKind,
   params: string[],
+  buttons?: string[],
 ): Promise<string | null> {
-  return postToWorker({ to, template: { kind, params } });
+  return postToWorker({
+    to,
+    template: { kind, params, ...(buttons?.length ? { buttons } : {}) },
+  });
 }

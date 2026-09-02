@@ -18,7 +18,6 @@ import { checkinToken } from '@/lib/checkin/tokens';
 import { bookingMessage } from '@/lib/checkin/copy';
 import { resolveGuestLang } from '@/lib/checkin/lang';
 import { RETENTION_DAYS, santiagoToday, shiftDate } from '@/lib/checkin/window';
-import { notifyCleaningCrewOfBooking } from '@/lib/cleaning/booking-notify';
 import { appUrl } from '@/lib/urls';
 import { toE164Digits } from '@/lib/phone';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
@@ -158,7 +157,6 @@ async function sendCheckinLinksForNewReservations(
           .from('checkins')
           .update({ notified_at: new Date().toISOString(), notify_result: { hospitable: 'sent' } })
           .eq('reservation_uid', uid);
-        await notifyCleaningCrewOfBooking(supabase, uid);
       } else {
         await supabase
           .from('checkins')

@@ -90,7 +90,8 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
 
   const reached = new Set<string>();
   if (whatsappBridgeConfigured()) {
-    const params = [stay, unit, where, parking, headcount, guestList];
+    const place = where === '—' ? unit : `${unit} · ${where}`;
+    const params = [stay, place, parking, `${headcount} · ${guestList}`];
     for (const c of conserjes ?? []) {
       const to = toE164Digits(c.whatsapp as string | null);
       if (!to || reached.has(to)) continue;

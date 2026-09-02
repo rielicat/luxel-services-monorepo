@@ -137,11 +137,9 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     });
     expect(workerSends[0]!.template!.params).toEqual([
       stayRangeEs(arrival, departure),
-      'Depto. 401',
-      'Providencia',
+      'Depto. 401 · Providencia',
       'sí · patente ABCD12',
-      '2',
-      'María Pérez · 12.345.678-9 | Pedro Pérez · 9.876.543-2',
+      '2 · María Pérez · 12.345.678-9 | Pedro Pérez · 9.876.543-2',
     ]);
 
     const { data: checkin } = await admin

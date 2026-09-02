@@ -17,7 +17,17 @@ export type Cleaning = {
   price_clp: number | null;
   source: string;
   crew_confirmed_at: string | null;
+  crew_declined_at: string | null;
 };
+
+const rowState = (c: Cleaning) =>
+  c.status !== 'scheduled'
+    ? 'suggested'
+    : c.crew_confirmed_at
+      ? 'confirmed'
+      : c.crew_declined_at
+        ? 'declined'
+        : 'notified';
 
 const clp = (n: number | null) => (n == null ? '—' : `$${n.toLocaleString('es-CL')}`);
 const fmt = (d: string) =>
@@ -196,6 +206,7 @@ function CleaningRow({
   window: string | null;
 }) {
   const t = useTranslations('cleaning');
+  const state = rowState(c);
   return (
     <div className="border-border flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
       <div>
@@ -210,16 +221,20 @@ function CleaningRow({
         <p
           className={cn(
             'text-xs',
-            c.status === 'scheduled' && c.crew_confirmed_at
+            state === 'confirmed'
               ? 'text-success'
-              : 'text-muted-foreground',
+              : state === 'declined'
+                ? 'text-destructive'
+                : 'text-muted-foreground',
           )}
         >
-          {c.status === 'scheduled'
-            ? c.crew_confirmed_at
-              ? t('status_confirmed')
-              : t('status_notified')
-            : t('status_suggested_hint')}
+          {state === 'confirmed'
+            ? t('status_confirmed')
+            : state === 'declined'
+              ? t('status_declined')
+              : state === 'notified'
+                ? t('status_notified')
+                : t('status_suggested_hint')}
           {c.price_clp != null && ` · ${clp(c.price_clp)}`}
         </p>
       </div>

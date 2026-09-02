@@ -23,6 +23,8 @@ interface InboundMessage {
   timestamp: string;
   type: string;
   text?: { body: string };
+  button?: { payload: string; text: string };
+  interactive?: { type?: string; button_reply?: { id: string; title: string } };
   context?: { id: string };
 }
 
@@ -116,6 +118,58 @@ function operatorPlaceholder(type: string): string {
   }
 }
 
+const CREW_REPLY =
+  /^clean:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):(yes|no)$/i;
+
+function buttonPayload(msg: InboundMessage): string | null {
+  if (msg.type === 'button') return msg.button?.payload ?? null;
+  if (msg.type === 'interactive') return msg.interactive?.button_reply?.id ?? null;
+  return null;
+}
+
+async function handleCrewReply(
+  env: Env,
+  supabase: SupabaseClient,
+  from: string,
+  payload: string,
+): Promise<void> {
+  const m = CREW_REPLY.exec(payload.trim());
+  if (!m) return;
+  const token = m[1]!.toLowerCase();
+  const answer = m[2]!.toLowerCase();
+  const { data: cleaning } = await supabase
+    .from('cleanings')
+    .select('id, property_id, cleaning_date, crew_confirmed_at')
+    .eq('confirm_token', token)
+    .eq('status', 'scheduled')
+    .maybeSingle();
+  if (!cleaning) return;
+  const now = new Date().toISOString();
+
+  if (answer === 'yes') {
+    if (!cleaning.crew_confirmed_at) {
+      await supabase.from('cleanings').update({ crew_confirmed_at: now }).eq('id', cleaning.id);
+    }
+    await sendText(env, from, '¡Gracias! Aseo confirmado ✅');
+    return;
+  }
+
+  await supabase.from('cleanings').update({ crew_declined_at: now }).eq('id', cleaning.id);
+  await sendText(env, from, 'Entendido. Avisamos al anfitrión para coordinar.');
+  const operator = env.LUXEL_OPERATOR_WHATSAPP?.replace(/[^\d]/g, '') ?? '';
+  if (!operator) return;
+  const { data: prop } = await supabase
+    .from('properties')
+    .select('nickname')
+    .eq('id', cleaning.property_id)
+    .maybeSingle();
+  await sendText(
+    env,
+    operator,
+    `⚠️ Aseo ${cleaning.cleaning_date} · ${prop?.nickname ?? '—'}: +${from.replace(/[^\d]/g, '')} no puede asistir.`,
+  );
+}
+
 async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promise<void> {
   const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY, {
     auth: { persistSession: false },
@@ -126,6 +180,12 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
       for (const msg of change.value.messages ?? []) {
+        if (msg.type === 'button' || msg.type === 'interactive') {
+          const reply = buttonPayload(msg);
+          if (reply) await handleCrewReply(env, supabase, msg.from, reply);
+          continue;
+        }
+
         const fromDigits = msg.from.replace(/[^\d]/g, '');
         const fromOperator = Boolean(operatorDigits) && fromDigits === operatorDigits;
 
@@ -184,10 +244,11 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 const TEMPLATES: Record<WhatsAppTemplateKind, string> = {
-  concierge_arrival: 'luxel_conserje_llegada',
-  cleaning_booking: 'luxel_aseo_nueva_reserva',
+  concierge_arrival: 'luxel_conserje_registro',
+  cleaning_confirm: 'luxel_aseo_confirmacion',
 };
 const TEMPLATE_LANG = 'es';
+const BUTTON_PAYLOAD_MAX = 128;
 
 function templateParam(s: string): string {
   return (
@@ -197,6 +258,18 @@ function templateParam(s: string): string {
       .trim()
       .slice(0, 1024) || '—'
   );
+}
+
+function parseButtons(raw: unknown): string[] | null {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) return null;
+  const out: string[] = [];
+  for (const b of raw) {
+    if (typeof b !== 'string' || !b || b.length > BUTTON_PAYLOAD_MAX || /[\r\n]/.test(b))
+      return null;
+    out.push(b);
+  }
+  return out;
 }
 
 async function graphSend(env: Env, payload: Record<string, unknown>): Promise<string | null> {
@@ -234,6 +307,7 @@ function sendTemplate(
   to: string,
   name: string,
   params: string[],
+  buttons: string[],
 ): Promise<string | null> {
   return graphSend(env, {
     to,
@@ -243,6 +317,12 @@ function sendTemplate(
       language: { code: TEMPLATE_LANG },
       components: [
         { type: 'body', parameters: params.map((p) => ({ type: 'text', text: templateParam(p) })) },
+        ...buttons.map((payload, i) => ({
+          type: 'button',
+          sub_type: 'quick_reply',
+          index: String(i),
+          parameters: [{ type: 'payload', payload }],
+        })),
       ],
     },
   });
@@ -253,7 +333,11 @@ async function handleSend(req: Request, env: Env): Promise<Response> {
   if (!env.INTERNAL_SEND_TOKEN || !token || !timingSafeEqual(token, env.INTERNAL_SEND_TOKEN)) {
     return new Response('Unauthorized', { status: 401 });
   }
-  let body: { to?: unknown; text?: unknown; template?: { kind?: unknown; params?: unknown } };
+  let body: {
+    to?: unknown;
+    text?: unknown;
+    template?: { kind?: unknown; params?: unknown; buttons?: unknown };
+  };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -278,8 +362,11 @@ async function handleSend(req: Request, env: Env): Promise<Response> {
     const params = Array.isArray(body.template.params)
       ? body.template.params.map((p) => String(p ?? ''))
       : null;
-    if (!name || !params) return Response.json({ error: 'bad_template' }, { status: 400 });
-    return Response.json({ wamid: await sendTemplate(env, to, name, params) });
+    const buttons = parseButtons(body.template.buttons);
+    if (!name || !params || !buttons) {
+      return Response.json({ error: 'bad_template' }, { status: 400 });
+    }
+    return Response.json({ wamid: await sendTemplate(env, to, name, params, buttons) });
   }
 
   const text = typeof body.text === 'string' ? body.text.trim() : '';

@@ -182,7 +182,10 @@ let MESSAGES: Array<{
   sender?: { first_name?: string };
 }> = [];
 const SENT: Array<{ reservationId: string; body: string }> = [];
-const WA_SENDS: Array<{ to?: string; template?: { kind: string; params: string[] } }> = [];
+const WA_SENDS: Array<{
+  to?: string;
+  template?: { kind: string; params: string[]; buttons?: string[] };
+}> = [];
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
@@ -935,29 +938,13 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(booking.body.startsWith('Obrigado por reservar com a gente de')).toBe(true);
     const { data: row } = await admin
       .from('checkins')
-      .select('guest_language, expected_guests, crew_notified_at')
+      .select('guest_language, expected_guests')
       .eq('reservation_uid', 'hosp:res-2')
       .single();
     expect(row).toMatchObject({
       guest_language: 'pt',
       expected_guests: 3,
     });
-    expect(row!.crew_notified_at).toBeTruthy();
-
-    const templates = WA_SENDS.filter((s) => s.template);
-    expect(templates).toHaveLength(1);
-    expect(templates[0]).toMatchObject({
-      to: '56955551234',
-      template: { kind: 'cleaning_booking' },
-    });
-    expect(templates[0]!.template!.params).toEqual([
-      'JOSÉ MANUEL INFANTE 1045 - DPTO 401',
-      'del 10 de marzo al 14 de marzo',
-      'JOSÉ MANUEL INFANTE 1045 - DPTO 401',
-      'José Manuel Infante 1045, Providencia',
-      '3',
-      '14 de marzo 11:00',
-    ]);
 
     const again = await POST(
       new Request('http://localhost/api/channels/hospitable', {
@@ -971,6 +958,59 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       { params: Promise.resolve({ provider: 'hospitable' }) },
     );
     expect(((await again.json()) as { resync: string }).resync).toBe('debounced');
+  });
+
+  it('asks the mirrored cleaning crew to confirm each scheduled cleaning, once', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    await admin
+      .from('properties')
+      .update({ cleaning_managed_by: 'own', cleaning_auto_confirm: true })
+      .eq('id', prop!.id);
+    await admin.from('cleanings').update({ status: 'suggested' }).eq('property_id', prop!.id);
+    WA_SENDS.length = 0;
+
+    expect((await syncHospitable()).ok).toBe(true);
+
+    const { data: cleanings } = await admin
+      .from('cleanings')
+      .select('cleaning_date, status, confirm_token')
+      .eq('property_id', prop!.id)
+      .order('cleaning_date');
+    expect(cleanings!.map((c) => [c.cleaning_date, c.status])).toEqual([
+      ['2027-03-05', 'scheduled'],
+      ['2027-03-14', 'scheduled'],
+    ]);
+
+    const templates = WA_SENDS.filter((s) => s.template);
+    expect(templates).toHaveLength(2);
+    const byToken = (token: string) =>
+      templates.find((s) => s.template!.buttons?.[0] === `clean:${token}:yes`);
+    const first = byToken(cleanings![0]!.confirm_token as string)!;
+    const second = byToken(cleanings![1]!.confirm_token as string)!;
+    expect(first).toEqual({
+      to: '56955551234',
+      template: {
+        kind: 'cleaning_confirm',
+        params: ['viernes 05 de marzo, 11:00', 'JOSÉ MANUEL INFANTE 1045 - DPTO 401'],
+        buttons: [
+          `clean:${cleanings![0]!.confirm_token}:yes`,
+          `clean:${cleanings![0]!.confirm_token}:no`,
+        ],
+      },
+    });
+    expect(second.template!.params).toEqual([
+      'domingo 14 de marzo, 11:00',
+      'JOSÉ MANUEL INFANTE 1045 - DPTO 401',
+    ]);
+
+    WA_SENDS.length = 0;
+    expect((await syncHospitable()).ok).toBe(true);
+    expect(WA_SENDS.filter((s) => s.template)).toHaveLength(0);
   });
 
   it('authorises on source IP alone, never on a secret', async () => {

@@ -49,8 +49,8 @@ These are external accounts. The code cannot provision them:
 5. **Resend** — verify the sending domain. Set `RESEND_API_KEY` and
    `RESEND_FROM`.
 6. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
-   secrets with `wrangler secret put`. Get the templates `luxel_conserje_llegada`
-   and `luxel_aseo_nueva_reserva` approved. Set `WHATSAPP_WORKER_SEND_URL` and
+   secrets with `wrangler secret put`. Get the templates `luxel_conserje_registro`
+   and `luxel_aseo_confirmacion` approved. Set `WHATSAPP_WORKER_SEND_URL` and
    `INTERNAL_SEND_TOKEN` on the web project.
 7. **Payments** — MercadoPago, Stripe, Transbank (CLP). Set the webhook URLs to
    `https://serviciosluxel.cl/api/webhooks/{mercadopago,stripe}`. Transbank has

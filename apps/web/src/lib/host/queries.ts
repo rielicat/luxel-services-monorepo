@@ -9,7 +9,7 @@ const PROPERTY_SELECT =
   'property_addons(addon, status), ' +
   'property_access(method, require_id, keyless_code, keyless_instructions, concierge_name, concierge_hours, id_basis, id_disclosed, unit), ' +
   'calendar_blocks(id, starts_on, ends_on, source, summary), ' +
-  'cleanings(id, cleaning_date, status, price_clp, source, crew_confirmed_at), ' +
+  'cleanings(id, cleaning_date, status, price_clp, source, crew_confirmed_at, crew_declined_at), ' +
   'guest_threads(id, status, guest_name, updated_at, guest_messages(id, direction, source, body, created_at))';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

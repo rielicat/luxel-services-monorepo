@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { seedImportedProperty } from './helpers/seed';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
@@ -8,12 +9,15 @@ const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 const OPERATOR = '+56 9 1111 2222';
 const OPERATOR_DIGITS = '56911112222';
+const CREW_DIGITS = '56955551234';
+const CLEANING_DATE = '2027-04-10';
 const APP_SECRET = 'test-app-secret';
 const SEND_TOKEN = 'test-internal-token-xyz';
 const WORKER_SEND_URL = 'http://worker.test/send';
 
 process.env.WHATSAPP_WORKER_SEND_URL = WORKER_SEND_URL;
 process.env.INTERNAL_SEND_TOKEN = SEND_TOKEN;
+process.env.TEST_CLERK_ID = `test-bridge-${nodeCrypto.randomUUID()}`;
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: null, getToken: async () => null }),
@@ -46,12 +50,18 @@ let worker: Worker;
 let humanPOST: (req: Request) => Promise<Response>;
 let pollGET: (req: Request) => Promise<Response>;
 let admin: ReturnType<typeof createClient>;
+let customerId: string | null = null;
 type MetaPayload = {
   type?: string;
   template?: {
     name: string;
     language: { code: string };
-    components: Array<{ parameters: Array<{ text: string }> }>;
+    components: Array<{
+      type: string;
+      sub_type?: string;
+      index?: string;
+      parameters: Array<{ type: string; text?: string; payload?: string }>;
+    }>;
   };
 };
 let metaSends: Array<{ to: string; body: string; payload: MetaPayload }> = [];
@@ -97,6 +107,47 @@ function inbound(opts: { from: string; id: string; text: string; contextId?: str
       },
     ],
   };
+}
+
+function buttonInbound(opts: { from: string; id: string; payload: string; text?: string }) {
+  return {
+    object: 'whatsapp_business_account',
+    entry: [
+      {
+        id: 'entry-1',
+        changes: [
+          {
+            field: 'messages',
+            value: {
+              messaging_product: 'whatsapp',
+              metadata: { display_phone_number: '111', phone_number_id: '100000000000000' },
+              contacts: [{ profile: { name: 'Rosa' }, wa_id: opts.from }],
+              messages: [
+                {
+                  from: opts.from,
+                  id: opts.id,
+                  timestamp: '1700000000',
+                  type: 'button',
+                  button: { payload: opts.payload, text: opts.text ?? 'Confirmo' },
+                  context: { id: 'wamid.template' },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+async function seedScheduledCleaning(nickname: string): Promise<{ id: string; token: string }> {
+  const prop = await seedImportedProperty({ nickname });
+  const { data } = await admin
+    .from('cleanings')
+    .insert({ property_id: prop.id!, cleaning_date: CLEANING_DATE, status: 'scheduled' })
+    .select('id, confirm_token')
+    .single();
+  return { id: data!.id as string, token: data!.confirm_token as string };
 }
 
 async function seedAnchor(sessionId: string, createdAt?: string): Promise<string> {
@@ -159,11 +210,27 @@ beforeAll(async () => {
   humanPOST = (await import('../src/app/api/chat/human/route')).POST;
   pollGET = (await import('../src/app/api/chat/poll/route')).GET;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
+  const { data: customer } = await admin
+    .from('customers')
+    .insert({
+      clerk_user_id: process.env.TEST_CLERK_ID!,
+      email: 'bridge@test.cl',
+      full_name: 'Bridge Host',
+    })
+    .select('id')
+    .single();
+  customerId = (customer?.id as string) ?? null;
+});
+
+afterAll(async () => {
+  if (!LIVE || !customerId) return;
+  await admin.from('customers').delete().eq('id', customerId);
 });
 
 afterEach(async () => {
   if (!LIVE) return;
   await drain();
+  if (customerId) await admin.from('properties').delete().eq('owner_id', customerId);
   await admin.from('messages').delete().like('session_id', 'test-e2e-%');
   if (createdWamids.length)
     await admin.from('messages').delete().in('whatsapp_message_id', createdWamids);
@@ -513,7 +580,7 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
     const last = metaSends.at(-1)!;
     expect(last.to).toBe('56987654321');
     expect(last.payload.type).toBe('template');
-    expect(last.payload.template?.name).toBe('luxel_conserje_llegada');
+    expect(last.payload.template?.name).toBe('luxel_conserje_registro');
     expect(last.payload.template?.language.code).toBe('es');
     const texts = last.payload.template!.components[0]!.parameters.map((p) => p.text);
     expect(texts).toHaveLength(6);
@@ -538,5 +605,166 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
       (await send({ text: 'hola' }, { ...workerEnv, LUXEL_OPERATOR_WHATSAPP: undefined })).status,
     ).toBe(400);
     expect(metaSends).toHaveLength(0);
+  });
+
+  it('sends the cleaning confirmation template with two quick-reply buttons', async () => {
+    const token = nodeCrypto.randomUUID();
+    const res = await worker.fetch(
+      new Request(WORKER_SEND_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-luxel-internal-token': SEND_TOKEN },
+        body: JSON.stringify({
+          to: '+56 9 5555 1234',
+          template: {
+            kind: 'cleaning_confirm',
+            params: ['martes 02 de septiembre, 11:00', 'Depto Providencia · Depto. 401'],
+            buttons: [`clean:${token}:yes`, `clean:${token}:no`],
+          },
+        }),
+      }),
+      workerEnv,
+      ctx,
+    );
+    expect(res.status).toBe(200);
+    const last = metaSends.at(-1)!;
+    expect(last.to).toBe(CREW_DIGITS);
+    expect(last.payload.template?.name).toBe('luxel_aseo_confirmacion');
+    expect(last.payload.template?.language.code).toBe('es');
+    const [body, ...buttons] = last.payload.template!.components;
+    expect(body!.type).toBe('body');
+    expect(body!.parameters.map((p) => p.text)).toEqual([
+      'martes 02 de septiembre, 11:00',
+      'Depto Providencia · Depto. 401',
+    ]);
+    expect(buttons.map((b) => [b.type, b.sub_type, b.index, b.parameters[0]!.payload])).toEqual([
+      ['button', 'quick_reply', '0', `clean:${token}:yes`],
+      ['button', 'quick_reply', '1', `clean:${token}:no`],
+    ]);
+
+    const bad = await worker.fetch(
+      new Request(WORKER_SEND_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-luxel-internal-token': SEND_TOKEN },
+        body: JSON.stringify({
+          to: '+56 9 5555 1234',
+          template: { kind: 'cleaning_confirm', params: ['a', 'b'], buttons: ['x\ny'] },
+        }),
+      }),
+      workerEnv,
+      ctx,
+    );
+    expect(bad.status).toBe(400);
+    expect(metaSends).toHaveLength(1);
+  });
+
+  it('records attendance from the Confirmo button, thanks the sender, stores no chat', async () => {
+    const c = await seedScheduledCleaning('Depto Botón Sí');
+    const deliver = async () => {
+      const id = `wamid.btn-${nodeCrypto.randomBytes(5).toString('hex')}`;
+      createdWamids.push(id);
+      const res = await worker.fetch(
+        signedWebhook(buttonInbound({ from: CREW_DIGITS, id, payload: `clean:${c.token}:yes` })),
+        workerEnv,
+        ctx,
+      );
+      expect(res.status).toBe(200);
+      await drain();
+      return id;
+    };
+    const id = await deliver();
+
+    const { data: after } = await admin
+      .from('cleanings')
+      .select('crew_confirmed_at, crew_declined_at')
+      .eq('id', c.id)
+      .single();
+    expect(after!.crew_confirmed_at).toBeTruthy();
+    expect(after!.crew_declined_at).toBeNull();
+    expect(metaSends).toHaveLength(1);
+    expect(metaSends[0]).toMatchObject({ to: CREW_DIGITS, body: '¡Gracias! Aseo confirmado ✅' });
+
+    const { count } = await admin
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('whatsapp_message_id', id);
+    expect(count).toBe(0);
+
+    await deliver();
+    const { data: again } = await admin
+      .from('cleanings')
+      .select('crew_confirmed_at')
+      .eq('id', c.id)
+      .single();
+    expect(again!.crew_confirmed_at).toBe(after!.crew_confirmed_at);
+    expect(metaSends).toHaveLength(2);
+    expect(metaSends[1]!.body).toBe('¡Gracias! Aseo confirmado ✅');
+  });
+
+  it('records a decline from the No puedo button and warns the operator', async () => {
+    const c = await seedScheduledCleaning('Depto Botón No');
+    const id = `wamid.btn-${nodeCrypto.randomBytes(5).toString('hex')}`;
+    createdWamids.push(id);
+    const res = await worker.fetch(
+      signedWebhook(
+        buttonInbound({ from: CREW_DIGITS, id, payload: `clean:${c.token}:no`, text: 'No puedo' }),
+      ),
+      workerEnv,
+      ctx,
+    );
+    expect(res.status).toBe(200);
+    await drain();
+
+    const { data: after } = await admin
+      .from('cleanings')
+      .select('crew_confirmed_at, crew_declined_at, status')
+      .eq('id', c.id)
+      .single();
+    expect(after!.crew_declined_at).toBeTruthy();
+    expect(after!.crew_confirmed_at).toBeNull();
+    expect(after!.status).toBe('scheduled');
+
+    expect(metaSends).toHaveLength(2);
+    expect(metaSends.find((s) => s.to === CREW_DIGITS)?.body).toBe(
+      'Entendido. Avisamos al anfitrión para coordinar.',
+    );
+    const warned = metaSends.find((s) => s.to === OPERATOR_DIGITS)!;
+    expect(warned.body).toContain(CLEANING_DATE);
+    expect(warned.body).toContain('Depto Botón No');
+    expect(warned.body).toContain(`+${CREW_DIGITS}`);
+    expect(warned.body).toContain('no puede asistir');
+
+    const { count } = await admin
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('whatsapp_message_id', id);
+    expect(count).toBe(0);
+  });
+
+  it('ignores an unknown or malformed button payload and still acks', async () => {
+    const c = await seedScheduledCleaning('Depto Botón Ajeno');
+    for (const payload of [`clean:${nodeCrypto.randomUUID()}:yes`, 'clean:not-a-uuid:no', 'hola']) {
+      const id = `wamid.btn-${nodeCrypto.randomBytes(5).toString('hex')}`;
+      createdWamids.push(id);
+      const res = await worker.fetch(
+        signedWebhook(buttonInbound({ from: CREW_DIGITS, id, payload })),
+        workerEnv,
+        ctx,
+      );
+      expect(res.status).toBe(200);
+    }
+    await drain();
+
+    const { data: after } = await admin
+      .from('cleanings')
+      .select('crew_confirmed_at, crew_declined_at')
+      .eq('id', c.id)
+      .single();
+    expect(after).toEqual({ crew_confirmed_at: null, crew_declined_at: null });
+    expect(metaSends).toHaveLength(0);
+    const { count } = await admin
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .in('whatsapp_message_id', createdWamids);
+    expect(count).toBe(0);
   });
 });

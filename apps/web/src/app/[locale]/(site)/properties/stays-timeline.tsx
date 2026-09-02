@@ -105,9 +105,10 @@ const monthLabel = (y: number, m: number) =>
   );
 const shortClp = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 
-type CleaningState = 'confirmed' | 'notified' | 'pending';
+type CleaningState = 'confirmed' | 'declined' | 'notified' | 'pending';
 const cleaningState = (c: Cleaning | undefined): CleaningState | null => {
   if (!c) return null;
+  if (c.crew_declined_at && !c.crew_confirmed_at) return 'declined';
   if (c.crew_confirmed_at) return 'confirmed';
   return c.status === 'scheduled' ? 'notified' : 'pending';
 };
@@ -234,6 +235,7 @@ export function StaysTimeline({
                             className={cn(
                               'absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full',
                               state === 'confirmed' && 'bg-success',
+                              state === 'declined' && 'bg-destructive',
                               state === 'notified' && 'bg-secondary',
                               state === 'pending' && 'bg-warning',
                             )}
@@ -261,6 +263,9 @@ export function StaysTimeline({
         )}
         <span className="flex items-center gap-1">
           <span className="bg-success h-1.5 w-1.5 rounded-full" /> {t('legend_confirmed')}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="bg-destructive h-1.5 w-1.5 rounded-full" /> {t('legend_declined')}
         </span>
         <span className="flex items-center gap-1">
           <span className="bg-secondary h-1.5 w-1.5 rounded-full" /> {t('legend_notified')}
@@ -292,6 +297,7 @@ export function StaysTimeline({
                 className={cn(
                   'h-4 w-4',
                   selCleaning === 'confirmed' && 'text-success',
+                  selCleaning === 'declined' && 'text-destructive',
                   selCleaning === 'notified' && 'text-secondary',
                   selCleaning === 'pending' && 'text-warning',
                   selCleaning == null && 'text-muted-foreground',
@@ -299,11 +305,13 @@ export function StaysTimeline({
               />
               {selCleaning === 'confirmed'
                 ? t('cleaning_confirmed')
-                : selCleaning === 'notified'
-                  ? t('cleaning_notified')
-                  : selCleaning === 'pending'
-                    ? t('cleaning_pending')
-                    : t('cleaning_auto')}
+                : selCleaning === 'declined'
+                  ? t('cleaning_declined')
+                  : selCleaning === 'notified'
+                    ? t('cleaning_notified')
+                    : selCleaning === 'pending'
+                      ? t('cleaning_pending')
+                      : t('cleaning_auto')}
             </p>
           </div>
         )}

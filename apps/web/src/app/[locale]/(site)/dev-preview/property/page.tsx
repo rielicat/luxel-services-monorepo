@@ -72,6 +72,7 @@ const property = {
       price_clp: 38000,
       source: 'checkout',
       crew_confirmed_at: new Date().toISOString(),
+      crew_declined_at: null,
     },
     {
       id: 'c2',
@@ -80,6 +81,7 @@ const property = {
       price_clp: 38000,
       source: 'checkout',
       crew_confirmed_at: null,
+      crew_declined_at: null,
     },
     {
       id: 'c3',
@@ -88,6 +90,7 @@ const property = {
       price_clp: 38000,
       source: 'checkout',
       crew_confirmed_at: null,
+      crew_declined_at: null,
     },
   ],
   guest_threads: [

@@ -44,7 +44,7 @@ effect and fails silently:
 | `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN`                                                 |
 | `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false. Check-in emails (guest access code, conserje fallback, host confirmation) and cleaning-confirmation emails are skipped, never sent |
 | `PRICELABS_API_KEY`                                | price optimisation reports unavailable                                                                                                                           |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp. A conserje with an email gets the check-in notice by email. The cleaning-crew booking notice is WhatsApp-only, so it is not sent                    |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp. A conserje with an email gets the check-in notice by email. A cleaner gets the cleaning confirmation by email instead                               |
 | `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                                                                    |
 | `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                        |
 | _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.                                                              |
@@ -171,8 +171,8 @@ Nothing to deploy: no `CRON_SECRET`, no `vercel.json`, no cron route.
 
 The app sends exactly one guest message itself: the booking message with the
 registration link, in the guest's language (`lib/checkin/copy.ts`), from the
-`reservation.created` webhook. The cleaning crew hears about the booking at the
-same moment; the conserjes hear when the registration is submitted.
+`reservation.created` webhook. The cleaning crew hears when a turnover cleaning is
+scheduled; the conserjes hear when the registration is submitted.
 
 ## WhatsApp to the crew
 
@@ -183,44 +183,46 @@ every time. The worker maps an intent to a template name (`TEMPLATES` in
 `workers/whatsapp/src/index.ts`); register both in Meta Business Manager,
 category _Utility_, language `es`, with these bodies. Parameters may not
 contain newlines, so the guest list arrives as one line. Meta rejects bodies whose
-variable count is high for their length, so both bodies carry a static intro and
-closing sentence.
+variable count is high for their length and bodies that end with a variable, so
+both templates keep a static first and last line.
 
-`luxel_conserje_llegada` — sent when a guest completes registration (submitted to Meta 2026-09-02, language `es`):
+`luxel_conserje_registro` — sent when a guest completes registration (language `es`, four parameters: stay, unit + address, parking, headcount + guest list):
 
 ```
-Hola, les avisamos la llegada de nuevos huéspedes para su registro en conserjería. Estos son los datos de la estadía:
-
+Registro de huéspedes en conserjería
 📅 Estadía: {{1}}
 🏠 Departamento: {{2}}
-📍 Dirección: {{3}}
-🚗 Estacionamiento: {{4}}
-
-HUÉSPEDES ({{5}})
-{{6}}
-
-Cualquier duda pueden responder por este medio. Muchas gracias por su ayuda, equipo Luxel.
+🚗 Estacionamiento: {{3}}
+👥 Huéspedes: {{4}}
+Gracias, equipo Luxel
 ```
 
-`luxel_aseo_nueva_reserva` — sent when a booking is created (submitted to Meta 2026-09-02, language `es`):
+`luxel_aseo_confirmacion` — sent when a cleaning is scheduled (language `es`, two parameters: date and time, property; two quick-reply buttons):
 
 ```
-Hola, les avisamos que entró una nueva reserva en {{1}}. Estos son los datos para coordinar el aseo:
-
-📅 Estadía: {{2}}
-🏠 Departamento: {{3}}
-📍 Dirección: {{4}}
-👥 Huéspedes: {{5}}
-🗓️ Check-out (aseo): {{6}}
-
-Cualquier duda pueden responder por este medio. Muchas gracias, equipo Luxel.
+Tienes un aseo asignado el {{1}} en {{2}}. ¿Confirmas tu asistencia?
 ```
+
+Buttons (quick reply): `Confirmo` and `No puedo`. `{{1}}` is the cleaning date
+and time in host voice (`martes 02 de septiembre, 11:00`); `{{2}}` is the
+property nickname, plus ` · Depto. <unit>` when `property_access.unit` exists.
+Each button carries a payload: `clean:<confirm_token>:yes` for Confirmo,
+`clean:<confirm_token>:no` for No puedo. `confirm_token` is the
+`cleanings.confirm_token` uuid. The worker reads the payload from the inbound
+`button` message. `yes` stamps `cleanings.crew_confirmed_at` and replies
+"¡Gracias! Aseo confirmado ✅". `no` stamps `cleanings.crew_declined_at`, replies
+"Entendido. Avisamos al anfitrión para coordinar." and texts
+`LUXEL_OPERATOR_WHATSAPP` with the date, the property and the sender. An unknown
+payload is ignored. Button replies never enter the chat bridge.
 
 Until a template is approved, the send fails. The conserje notice records the
 outcome on the check-in (`notify_result`, recipients only). A conserje with an
-email gets the notice by email instead. The cleaning-crew booking notice is
-WhatsApp-only; it has no email fallback. A failed run leaves
-`checkins.crew_notified_at` empty, so the next sync retries it.
+email gets the notice by email instead. The cleaning confirmation goes to each
+cleaner with a phone when a cleaning is scheduled: by the sync pass when
+`cleaning_auto_confirm` is on, or by the host's Confirmar in the panel. A cleaner
+with only an email, or a failed send, gets an email with the tokenized confirm
+link (`/cleaning/confirm/<token>`) instead. Nothing goes to the crew at booking
+time.
 
 Recipients are `property_contacts` rows. That table is an **import-only mirror**
 of Hospitable's Teammates (Operations → Teammates). The host adds crew there,

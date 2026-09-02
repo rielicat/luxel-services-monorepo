@@ -149,8 +149,8 @@ These cannot be unblocked by writing more code:
 - [ ] Set `RESEND_API_KEY` and `RESEND_FROM`. Optional: `PRICELABS_API_KEY`
 - [ ] Verify a Meta Business account → enable WhatsApp Cloud API → add a phone
       number → deploy `workers/whatsapp`
-- [ ] Get the two WhatsApp templates approved: `luxel_conserje_llegada` and
-      `luxel_aseo_nueva_reserva`. Bodies in [`docs/ENV.md`](docs/ENV.md)
+- [ ] Get the two WhatsApp templates approved: `luxel_conserje_registro` and
+      `luxel_aseo_confirmacion`. Bodies in [`docs/ENV.md`](docs/ENV.md)
       § WhatsApp to the crew
 - [ ] Open merchant accounts (CLP): MercadoPago, Stripe, Transbank
 - [ ] Set the GitHub repo secrets listed in [`docs/ENV.md`](docs/ENV.md)

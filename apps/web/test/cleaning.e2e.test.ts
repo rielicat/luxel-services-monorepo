@@ -7,12 +7,27 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABAS
 const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-clean-${nodeCrypto.randomUUID()}`;
+process.env.WHATSAPP_WORKER_SEND_URL = 'http://worker.test/send';
+process.env.INTERNAL_SEND_TOKEN = 'test-internal-token';
 const CHECKOUT = '2027-02-10';
+
+const EMAILS = vi.hoisted(() => [] as Array<{ to: string | string[]; subject: string }>);
+const WA_SENDS: Array<{
+  to?: string;
+  template?: { kind: string; params: string[]; buttons?: string[] };
+}> = [];
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
 }));
 vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: unknown) => fn }));
+vi.mock('@/lib/email/send', () => ({
+  emailConfigured: () => true,
+  sendEmail: async (opts: { to: string | string[]; subject: string }) => {
+    EMAILS.push(opts);
+    return { id: `em_${EMAILS.length}` };
+  },
+}));
 
 let admin: ReturnType<typeof createClient>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
@@ -23,6 +38,15 @@ let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
+  const realFetch = globalThis.fetch.bind(globalThis);
+  vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    if (url === process.env.WHATSAPP_WORKER_SEND_URL) {
+      WA_SENDS.push(JSON.parse((init?.body as string) ?? '{}'));
+      return Response.json({ wamid: 'wamid.test' });
+    }
+    return realFetch(input, init);
+  });
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   const clean = await import('../src/app/[locale]/(site)/properties/cleaning-actions');
   const schedule = await import('../src/lib/cleaning/schedule');
@@ -49,6 +73,8 @@ beforeAll(async () => {
 afterEach(async () => {
   if (!LIVE || !customerId) return;
   await admin.from('properties').delete().eq('owner_id', customerId);
+  WA_SENDS.length = 0;
+  EMAILS.length = 0;
 });
 
 describe.skipIf(!LIVE)('cleaning coordination (end to end)', () => {
@@ -124,6 +150,62 @@ describe.skipIf(!LIVE)('cleaning coordination (end to end)', () => {
       .eq('id', cleaning!.id as string)
       .single();
     expect(after!.crew_confirmed_at).toBeTruthy();
+  });
+
+  it('asks the own crew to confirm: WhatsApp buttons for a phone, email for an address only', async () => {
+    const prop = await seedImportedProperty({
+      nickname: 'Depto Las Condes',
+      sizeM2: 60,
+      lat: -33.4172,
+      lng: -70.6036,
+    });
+    const propertyId = prop.id!;
+    await admin
+      .from('properties')
+      .update({ cleaning_managed_by: 'own', checkout_time: '11:00' })
+      .eq('id', propertyId);
+    await admin.from('property_access').update({ unit: '1203' }).eq('property_id', propertyId);
+    await admin.from('property_contacts').insert([
+      {
+        property_id: propertyId,
+        role: 'cleaning',
+        external_id: 'tm-phone',
+        name: 'Rosa',
+        whatsapp: '+56 9 5555 1234',
+        email: 'rosa@aseo.cl',
+      },
+      {
+        property_id: propertyId,
+        role: 'cleaning',
+        external_id: 'tm-email',
+        name: 'Pedro',
+        whatsapp: null,
+        email: 'pedro@aseo.cl',
+      },
+    ]);
+    const { data: cleaning } = await admin
+      .from('cleanings')
+      .insert({ property_id: propertyId, cleaning_date: '2027-02-09', status: 'suggested' })
+      .select('id, confirm_token')
+      .single();
+    const token = cleaning!.confirm_token as string;
+
+    expect((await setCleaningStatus({ cleaningId: cleaning!.id, status: 'scheduled' })).ok).toBe(
+      true,
+    );
+
+    expect(WA_SENDS).toHaveLength(1);
+    expect(WA_SENDS[0]).toEqual({
+      to: '56955551234',
+      template: {
+        kind: 'cleaning_confirm',
+        params: ['martes 09 de febrero, 11:00', 'Depto Las Condes · Depto. 1203'],
+        buttons: [`clean:${token}:yes`, `clean:${token}:no`],
+      },
+    });
+    expect(EMAILS).toHaveLength(1);
+    expect(EMAILS[0]!.to).toBe('pedro@aseo.cl');
+    expect(EMAILS[0]!.subject).toContain('Depto Las Condes');
   });
 
   it('prices a turnover for a located property without throwing', async () => {
