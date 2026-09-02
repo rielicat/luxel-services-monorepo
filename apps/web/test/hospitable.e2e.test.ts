@@ -96,6 +96,7 @@ const RESERVATIONS_PAYLOAD = {
 };
 
 let PROPERTIES_MODE: 'normal' | 'paged_fail' | 'empty' = 'normal';
+let RES_ID_SUFFIX = '';
 
 const TEAMMATE_CLEANER_ID = 'c1ea0000-0000-4000-8000-000000000001';
 const TEAMMATE_CONCIERGE_ID = 'c0c1e000-0000-4000-8000-000000000002';
@@ -232,7 +233,10 @@ beforeAll(async () => {
         });
       }
       if (url.includes('/reservations')) {
-        return Response.json(RESERVATIONS_PAYLOAD);
+        return Response.json({
+          ...RESERVATIONS_PAYLOAD,
+          data: RESERVATIONS_PAYLOAD.data.map((r) => ({ ...r, id: r.id + RES_ID_SUFFIX })),
+        });
       }
       if (url.includes('/calendar')) {
         return Response.json({
@@ -958,6 +962,66 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       { params: Promise.resolve({ provider: 'hospitable' }) },
     );
     expect(((await again.json()) as { resync: string }).resync).toBe('debounced');
+  });
+
+  it('a reconnect that re-issues reservation ids never resends the booking link', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const propertyId = prop!.id as string;
+    await admin.from('checkins').delete().eq('property_id', propertyId);
+    SENT.length = 0;
+    expect((await syncHospitable()).ok).toBe(true);
+
+    const checkinSends = () => SENT.filter((s) => s.body.includes('/checkin/'));
+    expect(
+      checkinSends()
+        .map((s) => s.reservationId)
+        .sort(),
+    ).toEqual(['res-1', 'res-2']);
+    const rows = async () =>
+      (
+        await admin
+          .from('checkins')
+          .select('id, token, reservation_uid, revoked_at, notified_at')
+          .eq('property_id', propertyId)
+          .order('arrival_date')
+      ).data!;
+    const before = await rows();
+    expect(before.map((r) => r.reservation_uid)).toEqual(['hosp:res-1', 'hosp:res-2']);
+    expect(before.every((r) => r.notified_at)).toBe(true);
+    const sends = SENT.length;
+
+    RES_ID_SUFFIX = '-reissued';
+    try {
+      expect((await syncHospitable()).ok).toBe(true);
+    } finally {
+      RES_ID_SUFFIX = '';
+    }
+
+    expect(SENT.length).toBe(sends);
+    expect(
+      checkinSends()
+        .map((s) => s.reservationId)
+        .sort(),
+    ).toEqual(['res-1', 'res-2']);
+    const after = await rows();
+    expect(after).toHaveLength(before.length);
+    expect(after.map((r) => r.reservation_uid)).toEqual([
+      'hosp:res-1-reissued',
+      'hosp:res-2-reissued',
+    ]);
+    expect(after.map((r) => r.id)).toEqual(before.map((r) => r.id));
+    expect(after.map((r) => r.token)).toEqual(before.map((r) => r.token));
+    expect(after.every((r) => r.revoked_at === null)).toBe(true);
+    const { count: cleanings } = await admin
+      .from('cleanings')
+      .select('*', { count: 'exact', head: true })
+      .eq('property_id', propertyId);
+    expect(cleanings).toBe(2);
   });
 
   it('asks the mirrored cleaning crew to confirm each scheduled cleaning, once', async () => {

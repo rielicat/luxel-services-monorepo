@@ -12,6 +12,37 @@ interface RelinkResult {
   unmatched: string[];
 }
 
+export async function rekeyCheckinsByConfirmationCode(
+  supabase: Supabase,
+  propertyId: string,
+  uidByCode: Map<string, string>,
+): Promise<number> {
+  if (!uidByCode.size) return 0;
+  const { data: rows } = await supabase
+    .from('checkins')
+    .select('id, reservation_uid, confirmation_code, revoked_at')
+    .eq('property_id', propertyId)
+    .in('confirmation_code', [...uidByCode.keys()]);
+  if (!rows?.length) return 0;
+
+  const taken = new Set(rows.map((r) => r.reservation_uid as string | null));
+  let moved = 0;
+  for (const [code, next] of uidByCode) {
+    if (taken.has(next)) continue;
+    const mine = rows.filter((r) => String(r.confirmation_code).trim() === code);
+    const row = mine.find((r) => r.revoked_at == null) ?? mine[0];
+    if (!row) continue;
+    const { error } = await supabase
+      .from('checkins')
+      .update({ reservation_uid: next, revoked_at: null })
+      .eq('id', row.id);
+    if (error) continue;
+    taken.add(next);
+    moved += 1;
+  }
+  return moved;
+}
+
 export async function relinkByConfirmationCode(
   supabase: Supabase,
   customerId: string,
@@ -116,18 +147,14 @@ export async function relinkByConfirmationCode(
       .eq('id', property.id);
     result.relinked += 1;
 
-    for (const row of mine ?? []) {
-      const code = String(row.confirmation_code).trim();
-      const newId = matched.byCode.get(code);
-      if (!newId) continue;
-      const next = encodeRef({ provider, id: newId });
-      if (row.reservation_uid === next) continue;
-      const { error } = await supabase
-        .from('checkins')
-        .update({ reservation_uid: next })
-        .eq('id', row.id);
-      if (!error) result.checkinsMoved += 1;
-    }
+    const uidByCode = new Map(
+      [...matched.byCode].map(([code, id]) => [code, encodeRef({ provider, id })] as const),
+    );
+    result.checkinsMoved += await rekeyCheckinsByConfirmationCode(
+      supabase,
+      property.id as string,
+      uidByCode,
+    );
   }
 
   return result;

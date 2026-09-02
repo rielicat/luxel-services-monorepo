@@ -22,7 +22,11 @@ import { appUrl } from '@/lib/urls';
 import { toE164Digits } from '@/lib/phone';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
-import { pruneWouldWipeEverything, relinkByConfirmationCode } from './relink';
+import {
+  pruneWouldWipeEverything,
+  rekeyCheckinsByConfirmationCode,
+  relinkByConfirmationCode,
+} from './relink';
 import { encodeRef, refPattern, type ChannelReservation } from './types';
 
 const ref = (id: string) => encodeRef({ provider: 'hospitable', id });
@@ -61,6 +65,14 @@ async function sendCheckinLinksForNewReservations(
   accepted: HospitableReservation[],
   today: string,
 ): Promise<void> {
+  const uidByCode = new Map<string, string>();
+  for (const r of accepted) {
+    const code = (r.code || '').trim();
+    if (code && !uidByCode.has(code)) uidByCode.set(code, ref(r.id));
+  }
+  const rekeyed = await rekeyCheckinsByConfirmationCode(supabase, propertyId, uidByCode);
+  if (rekeyed) console.warn('sync.checkins_rekeyed', { propertyId, rekeyed });
+
   const uids = accepted.map((r) => ref(r.id));
   const notInList = (q: ReturnType<typeof revokeBase>) =>
     uids.length ? q.not('reservation_uid', 'in', `(${uids.map((u) => `"${u}"`).join(',')})`) : q;
