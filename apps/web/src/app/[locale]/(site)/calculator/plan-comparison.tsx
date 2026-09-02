@@ -11,9 +11,9 @@ import { planDesc, planName, planPriceLine } from '@/lib/plan-copy';
 import { formatCLP, cn } from '@/lib/utils';
 
 const MIN = 0;
-const MAX = 3_000_000;
+const MAX = 4_000_000;
 const STEP = 50_000;
-const DEFAULT = 800_000;
+const DEFAULT = 1_500_000;
 
 export function PlanComparison() {
   const t = useTranslations('calculator');

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 const STATES: Record<string, Plan> = {
   none: null,
   requested: { plan: 'hybrid', status: 'requested' },
-  active: { plan: 'fixed', status: 'active' },
+  active: { plan: 'commission', status: 'active' },
   cancelled: { plan: 'commission', status: 'cancelled' },
 };
 

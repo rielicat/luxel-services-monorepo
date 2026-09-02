@@ -22,7 +22,7 @@ Administración completa de Airbnb: el anfitrión recibe los ingresos y un repor
 - Puesta a punto: si hace falta, amoblamos y preparamos el depto para publicar.
 - Check-in con registro de huéspedes y aviso automático a conserjería.
 
-# Planes (por propiedad, al mes, +IVA; todo incluido en los tres)
+# Planes (por propiedad, al mes, IVA incluido; todo incluido en los tres)
 ${plans}
 Sin contrato de permanencia. Luxel factura el plan a fin de mes; Airbnb paga los ingresos directo al anfitrión. El aseo lo paga el huésped con la tarifa de limpieza del anuncio.
 

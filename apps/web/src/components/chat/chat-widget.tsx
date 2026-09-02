@@ -22,7 +22,7 @@ type HandoffWidget = {
 type AirbnbQuoteWidget = {
   kind: 'airbnb_quote';
   listings: number;
-  plan: 'fixed' | 'hybrid' | 'commission';
+  plan: 'commission' | 'hybrid' | 'fixed';
   planLabel: string;
   revenueClp: number | null;
   monthlyClp: number;

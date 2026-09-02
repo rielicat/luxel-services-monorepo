@@ -48,8 +48,8 @@ moments.
 | Human handoff | "Te paso con una persona por WhatsApp al toque."           | "Su solicitud será derivada a un ejecutivo."     |
 | Empty state   | "Aún no tienes propiedades conectadas."                    | "No hay datos disponibles."                      |
 
-**Style rules:** Prices with Chilean thousands separator (`99.900 CLP`, never
-`$99,900`). Percentages as `6%` and `12%` of "tus ingresos". Never say
+**Style rules:** Prices with Chilean thousands separator (`189.900 CLP`, never
+`$189,900`), IVA included. Percentages as `6%` and `12%` of "tus ingresos". Never say
 "0% comisión", "14 días gratis" or "m²". The host never "answers guests" or
 "manages the crew": Luxel does. Never hardcode strings in components — all copy
 lives in `packages/shared/src/i18n/es-CL.json`.

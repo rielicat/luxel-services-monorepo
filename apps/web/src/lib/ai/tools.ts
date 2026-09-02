@@ -19,17 +19,17 @@ import { hospitableAccess } from '@/lib/channels/scope';
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 
 export const PLAN_LABELS: Record<PlanKey, string> = {
-  fixed: 'Fijo',
-  hybrid: 'Mixto',
   commission: 'Comisión',
+  hybrid: 'Mixto',
+  fixed: 'Fijo',
 };
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 export const PLAN_PRICE_LINES: Record<PlanKey, string> = {
-  fixed: `${clp(PLAN_FIXED_CLP)} por propiedad al mes`,
-  hybrid: `${clp(PLAN_HYBRID_BASE_CLP)} por propiedad al mes + ${pct(PLAN_HYBRID_PCT)} de los ingresos por reservas`,
   commission: `${pct(PLAN_COMMISSION_PCT)} de los ingresos por reservas, sin costo fijo`,
+  hybrid: `${clp(PLAN_HYBRID_BASE_CLP)} por propiedad al mes + ${pct(PLAN_HYBRID_PCT)} de los ingresos por reservas`,
+  fixed: `${clp(PLAN_FIXED_CLP)} por propiedad al mes, sin comisión`,
 };
 
 type Widget =
@@ -186,22 +186,22 @@ function getAirbnbQuote(input: Record<string, unknown>): ToolResult {
     ? input.plan
     : revenueClp != null
       ? cheapestPlan(revenueClp)
-      : 'fixed';
+      : 'commission';
   const perListing = (p: PlanKey) => planMonthlyCost(p, revenueClp ?? 0);
   const monthlyClp = perListing(plan) * listings;
   const per = listings === 1 ? 'la propiedad' : `${listings} propiedades`;
   const catalog = PLAN_KEYS.map((p) => `${PLAN_LABELS[p]}: ${PLAN_PRICE_LINES[p]}`).join('; ');
   const estimate =
     revenueClp != null
-      ? `Con ingresos de ${clp(revenueClp)} al mes por propiedad, para ${per} el plan ${PLAN_LABELS[plan]} cuesta ${clp(monthlyClp)} al mes (+IVA); los otros planes: ${PLAN_KEYS.filter(
+      ? `Con ingresos de ${clp(revenueClp)} al mes por propiedad, para ${per} el plan ${PLAN_LABELS[plan]} cuesta ${clp(monthlyClp)} al mes (IVA incluido); los otros planes: ${PLAN_KEYS.filter(
           (p) => p !== plan,
         )
           .map((p) => `${PLAN_LABELS[p]} ${clp(perListing(p) * listings)}`)
           .join(', ')}.`
       : plan === 'fixed'
-        ? `Para ${per} el plan Fijo cuesta ${clp(monthlyClp)} al mes (+IVA). Los planes Mixto y Comisión dependen de los ingresos por reservas: pide el ingreso mensual estimado para compararlos.`
+        ? `Para ${per} el plan Fijo cuesta ${clp(monthlyClp)} al mes (IVA incluido), sin comisión. Los planes Comisión y Mixto dependen de los ingresos: pide el ingreso mensual estimado para compararlos.`
         : `El plan ${PLAN_LABELS[plan]} depende de los ingresos por reservas (${PLAN_PRICE_LINES[plan]}). Pide el ingreso mensual estimado por propiedad para calcular el monto.`;
-  const content = `Planes por propiedad al mes (+IVA): ${catalog}. ${estimate} Todo incluido en los tres planes. Comunícalo con claridad e invita a comparar planes o a solicitar el suyo.`;
+  const content = `Planes por propiedad al mes (IVA incluido): ${catalog}. ${estimate} Todo incluido en los tres planes. Comunícalo con claridad e invita a comparar planes o a solicitar el suyo.`;
   if (revenueClp == null && plan !== 'fixed') return { content };
   return {
     content,

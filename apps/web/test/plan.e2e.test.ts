@@ -66,12 +66,12 @@ describe.skipIf(!LIVE)('management plan request (end to end)', () => {
   });
 
   it('keeps an operator-activated plan and never activates one itself', async () => {
-    expect((await requestMyPlan({ plan: 'fixed' })).ok).toBe(true);
+    expect((await requestMyPlan({ plan: 'hybrid' })).ok).toBe(true);
     await admin
       .from('plan_subscriptions')
       .update({ status: 'active' })
       .eq('customer_id', customerId);
-    expect((await requestMyPlan({ plan: 'fixed' })).ok).toBe(true);
+    expect((await requestMyPlan({ plan: 'hybrid' })).ok).toBe(true);
     expect((await row()).status).toBe('requested');
   });
 

@@ -1,5 +1,7 @@
 import type { useTranslations } from 'next-intl';
 import {
+  FIXED_BEATS_HYBRID_CLP,
+  HYBRID_BEATS_COMMISSION_CLP,
   PLAN_COMMISSION_PCT,
   PLAN_FIXED_CLP,
   PLAN_HYBRID_BASE_CLP,
@@ -15,7 +17,13 @@ export function planName(t: PlansT, plan: PlanKey): string {
 }
 
 export function planDesc(t: PlansT, plan: PlanKey): string {
-  return t(`${plan}_desc`);
+  if (plan === 'fixed') return t('fixed_desc', { from: formatCLP(FIXED_BEATS_HYBRID_CLP) });
+  if (plan === 'hybrid')
+    return t('hybrid_desc', {
+      from: formatCLP(HYBRID_BEATS_COMMISSION_CLP),
+      to: formatCLP(FIXED_BEATS_HYBRID_CLP),
+    });
+  return t('commission_desc', { to: formatCLP(HYBRID_BEATS_COMMISSION_CLP) });
 }
 
 export function planPriceLine(t: PlansT, plan: PlanKey): string {

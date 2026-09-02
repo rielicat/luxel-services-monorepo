@@ -18,12 +18,12 @@ The AI does two jobs. Both use the same client
 
 ### Lux by journey stage
 
-| Journey stage | How Lux helps                                                                                                                                                                                                         |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Host pre-sale | "¿Cuánto cuesta administrar 3 deptos?" → `get_airbnb_quote` returns the three plans (Fijo 99.900; Mixto 49.900 + 6%; Comisión 12%). With the monthly revenue it returns the estimate per plan and marks the cheapest. |
-| Host support  | A signed-in host asks about occupancy, upcoming stays or revenue → `get_host_status`.                                                                                                                                 |
-| Navigation    | `share_links` renders 1–3 buttons to real routes. The model never writes a URL.                                                                                                                                       |
-| Human handoff | Anything it cannot or must not do → `escalate_to_human` (WhatsApp).                                                                                                                                                   |
+| Journey stage | How Lux helps                                                                                                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host pre-sale | "¿Cuánto cuesta administrar 3 deptos?" → `get_airbnb_quote` returns the three plans (Comisión 12%; Mixto 49.900 + 6%; Fijo 189.900). With the monthly revenue it returns the estimate per plan and marks the cheapest. |
+| Host support  | A signed-in host asks about occupancy, upcoming stays or revenue → `get_host_status`.                                                                                                                                  |
+| Navigation    | `share_links` renders 1–3 buttons to real routes. The model never writes a URL.                                                                                                                                        |
+| Human handoff | Anything it cannot or must not do → `escalate_to_human` (WhatsApp).                                                                                                                                                    |
 
 Lux compresses the funnel. It turns a visitor into a plan request inside one
 conversation. It hands off when a human is the right answer.

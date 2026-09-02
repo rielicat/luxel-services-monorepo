@@ -1,10 +1,17 @@
-export const PLAN_FIXED_CLP = 99_900;
+export const PLAN_FIXED_CLP = 189_900;
 export const PLAN_HYBRID_BASE_CLP = 49_900;
 export const PLAN_HYBRID_PCT = 0.06;
 export const PLAN_COMMISSION_PCT = 0.12;
 
-export const PLAN_KEYS = ['fixed', 'hybrid', 'commission'] as const;
+export const PLAN_KEYS = ['commission', 'hybrid', 'fixed'] as const;
 export type PlanKey = (typeof PLAN_KEYS)[number];
+
+export const HYBRID_BEATS_COMMISSION_CLP = Math.round(
+  PLAN_HYBRID_BASE_CLP / (PLAN_COMMISSION_PCT - PLAN_HYBRID_PCT),
+);
+export const FIXED_BEATS_HYBRID_CLP = Math.round(
+  (PLAN_FIXED_CLP - PLAN_HYBRID_BASE_CLP) / PLAN_HYBRID_PCT,
+);
 
 export function isPlanKey(value: unknown): value is PlanKey {
   return (PLAN_KEYS as readonly string[]).includes(String(value));

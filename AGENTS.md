@@ -3,6 +3,19 @@
 How to work in this repository. Human docs: [`README.md`](README.md),
 [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
+Compacted per-section copies of this file live in `docs/`:
+[`ARCHITECTURE.md`](docs/ARCHITECTURE.md) (Project, Layout, Stack),
+[`CONVENTIONS.md`](docs/CONVENTIONS.md) (Prose, Conventions),
+[`SECURITY-RULES.md`](docs/SECURITY-RULES.md) (Data and security rules),
+[`PRODUCT-CONSTRAINTS.md`](docs/PRODUCT-CONSTRAINTS.md) (Product constraints,
+stealth gate),
+[`GOTCHAS.md`](docs/GOTCHAS.md) (Toolchain, Commands, CI, Gotchas). This file
+stays the source of truth; update both when a rule changes.
+
+Repo is indexed in `codebase-memory-mcp` as project
+`luxel-services-monorepo`. Query it (`search_graph`, `get_architecture`,
+`trace_path`) before grepping cold.
+
 ## Prose
 
 Write plans, docs and PR descriptions in ASD-STE100 Simplified Technical English:
@@ -143,7 +156,7 @@ block in `apps/web/src/middleware.ts`.
   `Nosotros` (`/about`). One `Ingresar` button. No dropdown. No header CTA.
 - Service icons share one color (`bg-primary/10 text-primary`).
 - Three plans per listing per month (`apps/web/src/lib/plan-pricing.ts`): Fijo
-  99.900 CLP; Mixto 49.900 CLP + 6% of booking revenue; Comisión 12% of booking
+  189.900 CLP; Mixto 49.900 CLP + 6% of booking revenue; Comisión 12% of booking
   revenue. Luxel bills monthly, off-platform. No free trial. No "recomendado"
   badge; the calculator marks the cheapest plan for the entered revenue.
 - Hosts never see the crew or the guest messages. Those are Luxel operations.

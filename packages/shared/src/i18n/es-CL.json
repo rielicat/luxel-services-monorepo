@@ -111,7 +111,7 @@
     "revenue_hint": "Lo que Airbnb te paga en un mes por este depto, antes del plan.",
     "per_month": "al mes",
     "cheapest": "El más conveniente",
-    "note": "Los planes Mixto y Comisión se cobran sobre los ingresos reales por reservas de cada mes. Verás el detalle en tu reporte.",
+    "note": "Los planes Comisión y Mixto se cobran sobre los ingresos reales por reservas de cada mes. Verás el detalle en tu reporte.",
     "cta": "Empezar",
     "cta_hint": "Creas tu cuenta y te contactamos para activar tu plan."
   },
@@ -530,16 +530,16 @@
     "move_confirm": "Sí, reasignar"
   },
   "plans": {
-    "fixed_name": "Fijo",
-    "fixed_desc": "Monto fijo al mes. Ideal si tu depto factura sobre ~850.000.",
-    "fixed_price": "{price}/mes",
-    "hybrid_name": "Mixto",
-    "hybrid_desc": "Base baja, comisión pequeña.",
-    "hybrid_price": "{price}/mes + {pct}% de tus ingresos",
     "commission_name": "Comisión",
-    "commission_desc": "Sin costo fijo. Si no arriendas, no pagas.",
+    "commission_desc": "Sin costo fijo: si no arriendas, no pagas. Conviene hasta {to} al mes.",
     "commission_price": "{pct}% de tus ingresos",
-    "per_listing": "por propiedad, + IVA",
+    "hybrid_name": "Mixto",
+    "hybrid_desc": "Base baja y comisión a la mitad. Conviene entre {from} y {to} al mes.",
+    "hybrid_price": "{price}/mes + {pct}% de tus ingresos",
+    "fixed_name": "Fijo",
+    "fixed_desc": "Tu costo no cambia aunque arriendes más. Conviene sobre {from} al mes.",
+    "fixed_price": "{price}/mes",
+    "per_listing": "por propiedad, IVA incluido",
     "included": "Todo incluido en los tres planes: precios dinámicos, huéspedes 24/7, aseo y lavandería, inventario, reparaciones menores, reporte mensual."
   },
   "ui": {

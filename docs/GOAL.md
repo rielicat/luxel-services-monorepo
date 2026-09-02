@@ -80,20 +80,22 @@ Lux, the site chat, works across stages 1–4. Its tools are `get_airbnb_quote`
 
 ## 4. Plans & unit economics
 
-Three plans per listing per month, plus IVA. Constants live in
+Three plans per listing per month, IVA included. Constants live in
 `apps/web/src/lib/plan-pricing.ts`.
 
-| Plan key     | Name     | Price                              | For                                                |
-| ------------ | -------- | ---------------------------------- | -------------------------------------------------- |
-| `fixed`      | Fijo     | 99.900 CLP                         | Listings that bill above about 835.000 CLP a month |
-| `hybrid`     | Mixto    | 49.900 CLP + 6% of booking revenue | A low base with a small share                      |
-| `commission` | Comisión | 12% of booking revenue             | No fixed cost. No bookings, no fee.                |
+| Plan key     | Name     | Price                              | Cheapest when the listing bills |
+| ------------ | -------- | ---------------------------------- | ------------------------------- |
+| `commission` | Comisión | 12% of booking revenue             | up to 831.700 CLP a month       |
+| `hybrid`     | Mixto    | 49.900 CLP + 6% of booking revenue | 831.700 to 2.333.300 CLP        |
+| `fixed`      | Fijo     | 189.900 CLP                        | over 2.333.300 CLP              |
 
-Worked example, one listing with 1.200.000 CLP of monthly booking revenue: Fijo
-99.900; Mixto 49.900 + 72.000 = 121.900; Comisión 144.000. At 600.000 CLP: Fijo
-99.900; Mixto 85.900; Comisión 72.000. Break-even sits near 832.000 CLP. Below it
-the Comisión plan costs least. Above it the Fijo plan costs least. The
-`/calculator` page shows this per listing and marks the cheapest plan.
+The Comisión plan is the full fee: Luxel earns only when the host earns. The
+other two trade part of that share for a fixed floor, so they cost less as the
+listing bills more. Worked example, one listing with 1.750.000 CLP of monthly
+booking revenue (the managed unit in Providencia bills about that at half
+occupancy): Comisión 210.000; Mixto 154.900; Fijo 189.900. At 600.000 CLP:
+Comisión 72.000; Mixto 85.900; Fijo 189.900. The `/calculator` page shows this
+per listing and marks the cheapest plan.
 
 Every plan includes the same service. The guest pays the cleaning through the
 listing's cleaning fee. Billing is off-platform today: Luxel invoices at the end
