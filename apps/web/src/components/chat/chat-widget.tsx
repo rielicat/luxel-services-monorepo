@@ -10,6 +10,7 @@ import { LuxelMark } from '@/components/brand/logo';
 import { track } from '@/lib/analytics/client';
 import { EVENTS } from '@/lib/analytics/events';
 import { cn } from '@/lib/utils';
+import { CHAT_OPEN_EVENT } from './open-event';
 
 type HandoffWidget = {
   kind: 'handoff';
@@ -64,7 +65,20 @@ export function ChatWidget() {
   const [sessionId, setSessionId] = useState('ssr');
   const [humanMode, setHumanMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const cursorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const onOpen = () => {
+      setOpen((prev) => {
+        if (!prev) track(EVENTS.CHAT_OPENED, { session_id: sessionId, source: 'cta' });
+        return true;
+      });
+      inputRef.current?.focus();
+    };
+    window.addEventListener(CHAT_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(CHAT_OPEN_EVENT, onOpen);
+  }, [sessionId]);
 
   useEffect(() => {
     setSessionId(getOrCreateSession());
@@ -251,7 +265,7 @@ export function ChatWidget() {
         }
       }
     } catch {
-      update((m) => ({ ...m, text: m.text || 'Error al conectar. Intenta de nuevo.' }));
+      update((m) => ({ ...m, text: m.text || t('connect_error') }));
     } finally {
       setPending(false);
       setWorking(false);
@@ -294,7 +308,7 @@ export function ChatWidget() {
               </span>
               <button
                 type="button"
-                aria-label="Cerrar"
+                aria-label={t('close')}
                 onClick={() => setOpen(false)}
                 className="text-muted-foreground hover:bg-muted hover:text-foreground -mr-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
               >
@@ -350,7 +364,7 @@ export function ChatWidget() {
                 <div className="flex flex-wrap gap-2 pl-[2.375rem]">
                   {(isSignedIn
                     ? (['quick_host_1'] as const)
-                    : (['quick_1', 'quick_3'] as const)
+                    : (['quick_includes', 'quick_price', 'quick_start'] as const)
                   ).map((k) => (
                     <button
                       key={k}
@@ -388,6 +402,7 @@ export function ChatWidget() {
             )}
           </span>
           <input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onFocus={openPanel}
@@ -418,8 +433,10 @@ function WidgetCard({
         <div className="flex items-center gap-2">
           <Home className="text-secondary h-4 w-4" />
           <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-            {widget.planLabel} · {widget.listings}
-            {widget.listings === 1 ? ' propiedad' : ' propiedades'}
+            {widget.planLabel} ·{' '}
+            {t(widget.listings === 1 ? 'listing_one' : 'listing_many', {
+              n: widget.listings,
+            })}
           </span>
         </div>
         <p className="font-display text-primary mt-1 text-2xl font-extrabold">
