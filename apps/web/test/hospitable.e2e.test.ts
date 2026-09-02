@@ -648,13 +648,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .like('reservation_uid', 'hosp:%');
     expect(anchors!.map((a) => a.reservation_uid).sort()).toEqual(['hosp:res-1', 'hosp:res-2']);
     expect(anchors!.every((a) => a.notified_at === null)).toBe(true);
-    const { data: stamped } = await admin
-      .from('properties')
-      .select('checkin_links_backfilled_at')
-      .eq('owner_id', customerId)
-      .single();
-    expect(stamped!.checkin_links_backfilled_at).toBeTruthy();
-
     await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
 
     const future = new Date(Date.now() + 60_000).toISOString();
@@ -679,7 +672,13 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(after!.some((m) => m.source === 'ai')).toBe(true);
     expect(aiSends().length).toBeGreaterThan(0);
     expect(aiSends()[0]!.reservationId).toBe('res-1');
-    expect(checkinSends().map((s) => s.reservationId)).toEqual(['res-2']);
+    expect(checkinSends()).toHaveLength(0);
+    const { data: recreated } = await admin
+      .from('checkins')
+      .select('reservation_uid, notified_at')
+      .eq('reservation_uid', 'hosp:res-2')
+      .single();
+    expect(recreated).toMatchObject({ reservation_uid: 'hosp:res-2', notified_at: null });
 
     const count = after!.length;
     const sends = SENT.length;
@@ -962,11 +961,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(json.ok).toBe(true);
     expect(json.resync).toBe('syncing');
 
-    expect(SENT.filter((s) => s.body.includes('/checkin/')).map((s) => s.reservationId)).toEqual([
-      'res-2',
-    ]);
-    const booking = SENT.find((s) => s.reservationId === 'res-2')!;
-    expect(booking.body.startsWith('Obrigado por reservar com a gente de')).toBe(true);
+    expect(SENT.filter((s) => s.body.includes('/checkin/'))).toHaveLength(0);
     const { data: row } = await admin
       .from('checkins')
       .select('guest_language, expected_guests')
@@ -1005,11 +1000,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect((await syncHospitable()).ok).toBe(true);
 
     const checkinSends = () => SENT.filter((s) => s.body.includes('/checkin/'));
-    expect(
-      checkinSends()
-        .map((s) => s.reservationId)
-        .sort(),
-    ).toEqual(['res-1', 'res-2']);
+    expect(checkinSends()).toHaveLength(0);
     const rows = async () =>
       (
         await admin
@@ -1020,7 +1011,6 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       ).data!;
     const before = await rows();
     expect(before.map((r) => r.reservation_uid)).toEqual(['hosp:res-1', 'hosp:res-2']);
-    expect(before.every((r) => r.notified_at)).toBe(true);
     const sends = SENT.length;
     const threadRows = async () =>
       (
@@ -1049,11 +1039,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     }
 
     expect(SENT.length).toBe(sends);
-    expect(
-      checkinSends()
-        .map((s) => s.reservationId)
-        .sort(),
-    ).toEqual(['res-1', 'res-2']);
+    expect(checkinSends()).toHaveLength(0);
     const after = await rows();
     expect(after).toHaveLength(before.length);
     expect(after.map((r) => r.reservation_uid)).toEqual([
@@ -1167,7 +1153,12 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     SENT.length = 0;
     expect((await syncHospitable()).ok).toBe(true);
     const sends = SENT.length;
-    expect(SENT.filter((s) => s.body.includes('/checkin/'))).toHaveLength(2);
+    expect(SENT.filter((s) => s.body.includes('/checkin/'))).toHaveLength(0);
+    const { count: created } = await admin
+      .from('checkins')
+      .select('*', { count: 'exact', head: true })
+      .eq('property_id', propertyId);
+    expect(created).toBe(2);
 
     RESERVATIONS_FILTER = () => false;
     try {

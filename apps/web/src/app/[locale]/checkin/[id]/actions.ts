@@ -6,6 +6,7 @@ import { encryptPII, last4 } from '@/lib/crypto/pii';
 import { notifyCheckin } from '@/lib/checkin/notify';
 import { MAX_PARTY, NATIONALITIES, SLOT_RE } from '@/lib/checkin/slots';
 import { santiagoToday } from '@/lib/checkin/window';
+import { findCheckin } from '@/lib/checkin/resolve';
 
 const GuestSchema = z.object({
   fullName: z.string().min(1).max(120),
@@ -15,7 +16,7 @@ const GuestSchema = z.object({
 });
 
 const Schema = z.object({
-  token: z.string().min(10).max(64),
+  id: z.string().min(4).max(64),
   guests: z.array(GuestSchema).min(1).max(MAX_PARTY),
   email: z.string().email().max(120),
   phone: z.string().max(30).optional(),
@@ -37,11 +38,11 @@ export async function submitCheckin(input: unknown): Promise<Result> {
   const lead = d.guests[0]!;
   const supabase = createSupabaseServiceRoleClient();
 
-  const { data: checkin } = await supabase
-    .from('checkins')
-    .select('id, status, property_id, arrival_date, departure_date, revoked_at')
-    .eq('token', d.token)
-    .maybeSingle();
+  const checkin = await findCheckin(
+    supabase,
+    d.id,
+    'id, status, property_id, arrival_date, departure_date, revoked_at',
+  );
   if (!checkin) return { ok: false, error: 'not_found' };
   if (checkin.revoked_at) return { ok: false, error: 'expired' };
   if (checkin.status !== 'pending') return { ok: false, error: 'already_submitted' };
@@ -53,7 +54,7 @@ export async function submitCheckin(input: unknown): Promise<Result> {
   const { data: access } = await supabase
     .from('property_access')
     .select('require_id')
-    .eq('property_id', checkin.property_id)
+    .eq('property_id', checkin.property_id as string)
     .maybeSingle();
   if (access?.require_id && d.guests.some((g) => !g.docType || !g.docNumber)) {
     return { ok: false, error: 'id_required' };
@@ -62,7 +63,7 @@ export async function submitCheckin(input: unknown): Promise<Result> {
   let rows: Array<Record<string, unknown>>;
   try {
     rows = d.guests.map((g, i) => ({
-      checkin_id: checkin.id,
+      checkin_id: checkin.id as string,
       is_lead: i === 0,
       full_name: g.fullName,
       nationality: g.nationality ?? null,
@@ -97,10 +98,13 @@ export async function submitCheckin(input: unknown): Promise<Result> {
   if (e1) return { ok: false, error: 'store' };
   if (!claimed?.length) return { ok: false, error: 'already_submitted' };
 
-  await supabase.from('checkin_guests').delete().eq('checkin_id', checkin.id);
+  await supabase
+    .from('checkin_guests')
+    .delete()
+    .eq('checkin_id', checkin.id as string);
   const { error: e3 } = await supabase.from('checkin_guests').insert(rows);
   if (e3) return { ok: false, error: 'store_guests' };
 
-  await notifyCheckin(checkin.id);
+  await notifyCheckin(checkin.id as string);
   return { ok: true };
 }

@@ -175,4 +175,4 @@ and `plan_cancelled` from
 from the operator action once it exists in `apps/admin`; `channel_connected`
 from `apps/web/src/lib/channels/auto-assign.ts` and the `/admin/listings`
 assignment actions; `checkin_submitted` from
-`apps/web/src/app/[locale]/checkin/[token]/actions.ts`.
+`apps/web/src/app/[locale]/checkin/[id]/actions.ts`.

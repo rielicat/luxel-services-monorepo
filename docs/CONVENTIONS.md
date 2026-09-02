@@ -18,7 +18,7 @@ concept, sentences under 20 words. Product copy stays `es-CL` and follows
   `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix
   is `never`.
 - Routes are English: `/calculator`, `/account`, `/properties`,
-  `/checkin/[token]`, `/cleaning/confirm/[token]`. Never a Spanish path
+  `/checkin/[id]`, `/cleaning/confirm/[token]`. Never a Spanish path
   segment.
 - TypeScript strict. Extend `@luxel/config/tsconfig/{next,library,base}.json`.
   `infra/cloudflare` is standalone CommonJS for Pulumi.

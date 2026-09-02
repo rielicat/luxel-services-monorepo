@@ -29,8 +29,8 @@ signs up, picks a plan and grants Luxel access to the listing in Hospitable. Lux
 then runs the whole operation: dynamic pricing, guest replies 24/7 with AI ("Lux")
 and Luxel humans, cleaning and laundry between stays, conflict resolution,
 inventory, small repairs and furnishing. The app mirrors listings and reservations.
-It sends each guest a check-in link and renders the check-in page in the guest's
-language (es/en/pt). It tells conserjes and the cleaning crew what they need over
+It renders the check-in page in the guest's language (es/en/pt); Hospitable's
+own "New reservation" rule sends the guest the link. It tells conserjes and the cleaning crew what they need over
 WhatsApp. Hosts see their properties, calendar, revenue and plan. Hosts never see
 the crew or the guest messages; those are Luxel operations. pnpm + Turborepo
 monorepo: Next.js 15 apps, a Cloudflare Worker, shared packages, Supabase, Pulumi
@@ -97,7 +97,7 @@ supabase/        migrations + local config
   `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix is
   `never`.
 - **Routes are English.** `/calculator`, `/account`, `/properties`,
-  `/checkin/[token]`, `/cleaning/confirm/[token]`. Never a Spanish path segment.
+  `/checkin/[id]`, `/cleaning/confirm/[token]`. Never a Spanish path segment.
 - **TypeScript strict.** Extend `@luxel/config/tsconfig/{next,library,base}.json`.
   `infra/cloudflare` is standalone CommonJS for Pulumi.
 - **Commits.** Conventional Commits. End the message with
@@ -128,9 +128,11 @@ supabase/        migrations + local config
 - Webhook payloads are **identifiers only**. Every value acted on is fetched back
   from Hospitable with our credential (`app/api/channels/[provider]/route.ts`).
   Webhook auth is Hospitable's source-IP range, never a secret in the URL.
-- **No cron.** Time-based guest messages (reminder, check-in details at T-3,
-  check-out, review) are Hospitable message rules authored in its dashboard.
-  Code handles events only.
+- **No guest messages from our code.** Every guest message is a Hospitable rule
+  authored in its dashboard: the booking message with the check-in link on "New
+  reservation", the reminder, the check-in details at T-3, the check-out message
+  and the review request. The sync only mirrors reservations into `checkins`
+  rows. There is no cron either; code handles events only.
 - Door codes and wifi passwords live in Hospitable custom codes and in
   `property_access`; the AI redacts them (`lib/ai/redact.ts`). Never log them.
   The guest receives the door code only through Hospitable's T-3 message rule.

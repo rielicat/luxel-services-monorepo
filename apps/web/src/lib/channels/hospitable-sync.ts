@@ -5,7 +5,6 @@ import {
   listHospitableReservations,
   listHospitableMessages,
   listHospitableTeammates,
-  sendHospitableMessage,
   toChannelListing,
   toChannelReservation,
   type HospitableProperty,
@@ -15,10 +14,7 @@ import {
 import { suggestCleaningsFromCheckouts } from '@/lib/cleaning/schedule';
 import { autoConfirmSuggested } from '@/lib/cleaning/notify';
 import { checkinToken } from '@/lib/checkin/tokens';
-import { bookingMessage } from '@/lib/checkin/copy';
-import { resolveGuestLang } from '@/lib/checkin/lang';
 import { RETENTION_DAYS, santiagoToday, shiftDate } from '@/lib/checkin/window';
-import { appUrl } from '@/lib/urls';
 import { toE164Digits } from '@/lib/phone';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
@@ -60,9 +56,8 @@ const languageOf = (r: HospitableReservation): string | null => {
   return /^[a-z]{2}$/.test(code) ? code : null;
 };
 
-async function sendCheckinLinksForNewReservations(
+async function mirrorCheckinsForReservations(
   supabase: Supabase,
-  hospToken: string,
   propertyId: string,
   accepted: HospitableReservation[],
   today: string,
@@ -119,93 +114,49 @@ async function sendCheckinLinksForNewReservations(
     .is('submitted_at', null)
     .lt('revoked_at', shiftDate(today, -REVOKE_GRACE_DAYS));
 
-  const { data: prop } = await supabase
-    .from('properties')
-    .select('checkin_links_backfilled_at')
-    .eq('id', propertyId)
-    .maybeSingle();
-  const backfill = prop != null && prop.checkin_links_backfilled_at == null;
   for (const r of accepted) {
     try {
       if (r.arrival_date.slice(0, 10) < today) continue;
       const uid = ref(r.id);
       const lang = languageOf(r);
-      let linkToken = checkinToken();
+      const arrival = r.arrival_date.slice(0, 10);
+      const departure = r.departure_date.slice(0, 10);
       const { error } = await supabase.from('checkins').insert({
         property_id: propertyId,
-        token: linkToken,
+        token: checkinToken(),
         status: 'pending',
         reservation_uid: uid,
         confirmation_code: r.code || null,
-        arrival_date: r.arrival_date.slice(0, 10),
-        departure_date: r.departure_date.slice(0, 10),
+        arrival_date: arrival,
+        departure_date: departure,
         guest_language: lang,
         expected_guests: r.guests?.total ?? null,
-        ...(backfill ? { notify_result: { hospitable: 'skipped_backfill' } } : {}),
       });
-      if (error) {
-        const { data: existing } = await supabase
-          .from('checkins')
-          .select(
-            'token, notified_at, notify_result, arrival_date, departure_date, confirmation_code, guest_language',
-          )
-          .eq('reservation_uid', uid)
-          .maybeSingle();
-        if (!existing) continue;
+      if (!error) continue;
 
-        const arrival = r.arrival_date.slice(0, 10);
-        const departure = r.departure_date.slice(0, 10);
-        if (
-          existing.arrival_date !== arrival ||
-          existing.departure_date !== departure ||
-          (r.code && !existing.confirmation_code) ||
-          (lang && !existing.guest_language)
-        ) {
-          await supabase
-            .from('checkins')
-            .update({
-              arrival_date: arrival,
-              departure_date: departure,
-              ...(r.code ? { confirmation_code: r.code } : {}),
-              ...(lang && !existing.guest_language ? { guest_language: lang } : {}),
-            })
-            .eq('reservation_uid', uid);
-        }
-
-        if (existing.notified_at || existing.notify_result) continue;
-        linkToken = existing.token as string;
-      } else if (backfill) {
-        continue;
-      }
-      const url = `${appUrl()}/checkin/${linkToken}`;
-      const sent = await sendHospitableMessage(
-        hospToken,
-        r.id,
-        bookingMessage(resolveGuestLang(lang, null), {
-          url,
-          arrival: r.arrival_date.slice(0, 10),
-          departure: r.departure_date.slice(0, 10),
-        }),
-      );
-      if (sent) {
+      const { data: existing } = await supabase
+        .from('checkins')
+        .select('arrival_date, departure_date, confirmation_code, guest_language')
+        .eq('reservation_uid', uid)
+        .maybeSingle();
+      if (!existing) continue;
+      if (
+        existing.arrival_date !== arrival ||
+        existing.departure_date !== departure ||
+        (r.code && !existing.confirmation_code) ||
+        (lang && !existing.guest_language)
+      ) {
         await supabase
           .from('checkins')
-          .update({ notified_at: new Date().toISOString(), notify_result: { hospitable: 'sent' } })
+          .update({
+            arrival_date: arrival,
+            departure_date: departure,
+            ...(r.code ? { confirmation_code: r.code } : {}),
+            ...(lang && !existing.guest_language ? { guest_language: lang } : {}),
+          })
           .eq('reservation_uid', uid);
-      } else {
-        await supabase
-          .from('checkins')
-          .delete()
-          .eq('reservation_uid', uid)
-          .is('submitted_at', null);
       }
     } catch {}
-  }
-  if (backfill) {
-    await supabase
-      .from('properties')
-      .update({ checkin_links_backfilled_at: new Date().toISOString() })
-      .eq('id', propertyId);
   }
 }
 
@@ -692,7 +643,7 @@ export async function syncHospitableAccount(
       }
       reservationCount += accepted.length;
 
-      await sendCheckinLinksForNewReservations(supabase, token, propertyId, accepted, today);
+      await mirrorCheckinsForReservations(supabase, propertyId, accepted, today);
     }
 
     const c = await suggestCleaningsFromCheckouts(propertyId);

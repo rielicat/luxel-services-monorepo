@@ -8,9 +8,10 @@ Servicios Luxel manages Airbnb listings in Santiago, Chile, end to end. A host
 signs up, picks a plan, and grants Luxel access to the listing in Hospitable.
 Luxel runs the operation: dynamic pricing, guest replies (AI "Lux" plus Luxel
 humans), cleaning, laundry, conflict resolution, inventory, small repairs,
-furnishing. The app mirrors listings and reservations from Hospitable. It sends
-each guest a check-in link and renders the check-in page in the guest's
-language (es/en/pt). It notifies conserjes and the cleaning crew over
+furnishing. The app mirrors listings and reservations from Hospitable. It
+renders the check-in page in the guest's language (es/en/pt); Hospitable's own
+"New reservation" rule sends the guest the link. It notifies conserjes and the
+cleaning crew over
 WhatsApp. Hosts see their properties, calendar, revenue, and plan. Hosts never
 see the crew or the guest messages.
 

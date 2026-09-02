@@ -163,10 +163,13 @@ and the review request — is a **message rule in Hospitable's own dashboard**
 (Inbox → Rules), with the property-specific values as Hospitable custom codes.
 Nothing to deploy: no `CRON_SECRET`, no `vercel.json`, no cron route.
 
-The app sends exactly one guest message itself: the reservation message with the
-registration link, in the guest's language (`lib/checkin/copy.ts`), from the
-`reservation.created` webhook. The cleaning crew hears when a turnover cleaning is
-scheduled; the conserjes hear when the registration is submitted.
+The booking message with the registration link is a rule too: Hospitable's stock
+"New reservation" rule, with the link built from the Airbnb confirmation code
+(`https://serviciosluxel.cl/checkin/<code>`). The app sends the guest nothing.
+Its sync only mirrors each reservation into a `checkins` row, so the code in the
+link already resolves when the guest opens it. The cleaning crew hears when a
+turnover cleaning is scheduled; the conserjes hear when the registration is
+submitted.
 
 ## WhatsApp to the crew
 

@@ -50,7 +50,7 @@ beforeAll(async () => {
     const r = await debugCheckinLink({ propertyId });
     return { ok: r.ok, token: r.url?.split('/checkin/')[1] };
   };
-  submitCheckin = (await import('../src/app/[locale]/checkin/[token]/actions')).submitCheckin;
+  submitCheckin = (await import('../src/app/[locale]/checkin/[id]/actions')).submitCheckin;
   decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
   stayRangeEs = (await import('../src/lib/checkin/copy')).stayRangeEs;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
@@ -115,7 +115,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     });
 
     const res = await submitCheckin({
-      token,
+      id: token,
       guests: [
         { fullName: 'María Pérez', docType: 'rut', docNumber: '12.345.678-9', nationality: 'CL' },
         { fullName: 'Pedro Pérez', docType: 'rut', docNumber: '9.876.543-2', nationality: 'AR' },
@@ -195,7 +195,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
   it('rejects a party without an arrival slot, an empty party, or an unknown nationality', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Estricto' });
     const link = await mintCheckinLink(prop.id!);
-    const base = { token: link.token, email: 'x@guest.cl', consent: true };
+    const base = { id: link.token, email: 'x@guest.cl', consent: true };
     const noSlot = await submitCheckin({ ...base, guests: [{ fullName: 'Sin Hora' }] });
     expect(noSlot).toMatchObject({ ok: false, error: 'validation' });
     const empty = await submitCheckin({ ...base, guests: [], arrivalTime: '15:00' });
@@ -225,7 +225,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .update({ arrival_date: plusDays(10), departure_date: plusDays(13) })
       .eq('token', link.token!);
     const res = await submitCheckin({
-      token: link.token,
+      id: link.token,
       guests: [{ fullName: 'Llega En Diez Días' }],
       email: 'diez@guest.cl',
       arrivalTime: '22:30+',
@@ -257,7 +257,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .update({ arrival_date: plusDays(3), departure_date: plusDays(5) })
       .eq('token', link.token!);
     const input = {
-      token: link.token,
+      id: link.token,
       guests: [{ fullName: 'Ana Uno' }, { fullName: 'Beto Dos' }],
       email: 'ana@guest.cl',
       arrivalTime: '18:00',
@@ -280,6 +280,56 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(workerSends).toHaveLength(1);
   });
 
+  it('opens by Airbnb confirmation code as well as by token, whatever the casing', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Código' });
+    const propertyId = prop.id!;
+    const link = await mintCheckinLink(propertyId);
+    await admin
+      .from('checkins')
+      .update({
+        confirmation_code: 'HMTESTCODE',
+        arrival_date: plusDays(4),
+        departure_date: plusDays(6),
+      })
+      .eq('token', link.token!);
+
+    const { findCheckin } = await import('../src/lib/checkin/resolve');
+    const byToken = await findCheckin(admin, link.token!, 'id, property_id, confirmation_code');
+    const byCode = await findCheckin(admin, 'hmtestcode', 'id, property_id, confirmation_code');
+    const spaced = await findCheckin(admin, ' HMTESTCODE ', 'id, property_id, confirmation_code');
+    expect(byToken?.id).toBe(byCode?.id);
+    expect(spaced?.id).toBe(byCode?.id);
+    expect(await findCheckin(admin, 'HMNOSUCHCODE', 'id, property_id')).toBeNull();
+
+    const res = await submitCheckin({
+      id: 'hmtestcode',
+      guests: [{ fullName: 'Entra Por Código' }],
+      email: 'codigo@guest.cl',
+      arrivalTime: '18:00',
+      consent: true,
+    });
+    expect(res.ok).toBe(true);
+    const { data: row } = await admin
+      .from('checkins')
+      .select('status, guest_name')
+      .eq('token', link.token!)
+      .single();
+    expect(row).toMatchObject({ status: 'notified', guest_name: 'Entra Por Código' });
+  });
+
+  it('refuses a confirmation code that two properties share', async () => {
+    const a = await seedImportedProperty({ nickname: 'Depto Uno' });
+    const b = await seedImportedProperty({ nickname: 'Depto Dos' });
+    const linkA = await mintCheckinLink(a.id!);
+    const linkB = await mintCheckinLink(b.id!);
+    for (const t of [linkA.token!, linkB.token!]) {
+      await admin.from('checkins').update({ confirmation_code: 'HMSHARED01' }).eq('token', t);
+    }
+    const { findCheckin } = await import('../src/lib/checkin/resolve');
+    expect(await findCheckin(admin, 'HMSHARED01', 'id, property_id')).toBeNull();
+    expect((await findCheckin(admin, linkA.token!, 'id, property_id'))?.id).toBeTruthy();
+  });
+
   it('a revoked link is refused, so a cancelled stay cannot register', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Cancelado' });
     const link = await mintCheckinLink(prop.id!);
@@ -288,7 +338,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .update({ revoked_at: new Date().toISOString() })
       .eq('token', link.token!);
     const res = await submitCheckin({
-      token: link.token,
+      id: link.token,
       guests: [{ fullName: 'Ya No Viene' }],
       email: 'no@guest.cl',
       arrivalTime: '15:00',
@@ -305,7 +355,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     delete process.env.LUXEL_PII_KEY;
     try {
       const res = await submitCheckin({
-        token: link.token,
+        id: link.token,
         guests: [{ fullName: 'Sin Clave', docType: 'rut', docNumber: '11.111.111-1' }],
         email: 'sin@guest.cl',
         arrivalTime: '15:00',
@@ -336,7 +386,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     });
     const link = await mintCheckinLink(propertyId);
     const res = await submitCheckin({
-      token: link.token,
+      id: link.token,
       guests: [
         { fullName: 'Líder Con Doc', docType: 'rut', docNumber: '11.111.111-1' },
         { fullName: 'Acompañante Sin Doc' },
@@ -369,7 +419,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
 
     const link = await mintCheckinLink(propertyId);
     const res = await submitCheckin({
-      token: link.token,
+      id: link.token,
       guests: [{ fullName: 'Sin Documento' }],
       email: 'x@guest.cl',
       arrivalTime: '15:00',

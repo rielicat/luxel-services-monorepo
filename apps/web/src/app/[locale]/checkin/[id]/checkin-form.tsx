@@ -53,7 +53,7 @@ export interface RegisteredGuest {
 }
 
 export interface CheckinFormProps {
-  token: string;
+  id: string;
   requireId: boolean;
   alreadyDone: boolean;
   stay: Stay;
@@ -477,7 +477,7 @@ function DoneView({
 }
 
 export function CheckinForm({
-  token,
+  id,
   requireId,
   alreadyDone,
   stay,
@@ -585,7 +585,7 @@ export function CheckinForm({
     setMessage(null);
     startTransition(async () => {
       const r = await submitCheckin({
-        token,
+        id,
         guests: guests.map((g) => {
           const n = g.docNumber.trim();
           return {

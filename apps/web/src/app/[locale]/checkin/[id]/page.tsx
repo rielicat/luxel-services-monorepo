@@ -6,6 +6,7 @@ import { checkinMessages } from '@luxel/shared/i18n';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { CheckinForm, type RegisteredGuest } from './checkin-form';
 import { resolveGuestLang } from '@/lib/checkin/lang';
+import { findCheckin } from '@/lib/checkin/resolve';
 import { MAX_PARTY, guestSlots } from '@/lib/checkin/slots';
 
 export const dynamic = 'force-dynamic';
@@ -18,17 +19,15 @@ type HouseRules = {
   events_allowed?: boolean | null;
 } | null;
 
-export default async function CheckinPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+export default async function CheckinPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = createSupabaseServiceRoleClient();
 
-  const { data: checkin } = await supabase
-    .from('checkins')
-    .select(
-      'id, status, property_id, arrival_date, departure_date, revoked_at, guest_language, expected_guests, arrival_time, departure_time',
-    )
-    .eq('token', token)
-    .maybeSingle();
+  const checkin = await findCheckin(
+    supabase,
+    id,
+    'id, status, property_id, arrival_date, departure_date, revoked_at, guest_language, expected_guests, arrival_time, departure_time',
+  );
   if (!checkin || checkin.revoked_at) notFound();
 
   const done = checkin.status !== 'pending';
@@ -37,18 +36,18 @@ export default async function CheckinPage({ params }: { params: Promise<{ token:
     supabase
       .from('properties')
       .select('nickname, address, comuna, checkin_time, checkout_time, house_rules, max_guests')
-      .eq('id', checkin.property_id)
+      .eq('id', checkin.property_id as string)
       .maybeSingle(),
     supabase
       .from('property_access')
       .select('require_id')
-      .eq('property_id', checkin.property_id)
+      .eq('property_id', checkin.property_id as string)
       .maybeSingle(),
     done
       ? supabase
           .from('checkin_guests')
           .select('is_lead, full_name, nationality, doc_type, doc_last4')
-          .eq('checkin_id', checkin.id)
+          .eq('checkin_id', checkin.id as string)
           .order('is_lead', { ascending: false })
           .order('created_at', { ascending: true })
       : null,
@@ -79,7 +78,7 @@ export default async function CheckinPage({ params }: { params: Promise<{ token:
     >
       <main lang={lang} className="mx-auto w-full max-w-md px-4 pb-32 pt-6 sm:pt-10">
         <CheckinForm
-          token={token}
+          id={id}
           requireId={requireId}
           alreadyDone={done}
           stay={{

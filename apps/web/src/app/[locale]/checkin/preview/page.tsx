@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { checkinMessages, GUEST_LOCALES, type GuestLocale } from '@luxel/shared/i18n';
-import { CheckinForm, type RegisteredGuest } from '../[token]/checkin-form';
+import { CheckinForm, type RegisteredGuest } from '../[id]/checkin-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +37,7 @@ export default async function CheckinPreviewPage({
     >
       <main lang={lang} className="mx-auto w-full max-w-md px-4 pb-32 pt-6 sm:pt-10">
         <CheckinForm
-          token="preview"
+          id="preview"
           requireId={false}
           alreadyDone={done}
           stay={{
