@@ -1,13 +1,13 @@
 # Servicios Luxel — Analytics, Events & Data Strategy
 
 > In-house event store (`analytics_events` in Supabase) + optional PostHog
-> mirror + Sentry. Events are emitted today from the client (`track()`) and the
-> server (`capture()`). This doc defines the taxonomy, the funnels, and the
+> mirror + Sentry. Events are emitted from the client (`track()`) and the
+> server (`capture()`). This doc defines the taxonomy, the funnels and the
 > instrumentation map. Ties back to [`GOAL.md`](./GOAL.md).
 
 ---
 
-## 1. Measurement Philosophy
+## 1. Measurement philosophy
 
 **Every meaningful action is an event.** If it moves the North Star or explains
 why it moved, it emits a typed event with consistent properties. Names live in
@@ -25,150 +25,154 @@ explicitly.
 Two non-negotiables:
 
 1. **Consistent property naming** — `snake_case` keys, CLP integers named
-   `amount_clp`, service identified by `service_slug`, location by `commune`.
-2. **Revenue-bearing events are captured server-side** — bookings and payments
-   are emitted from server actions and webhooks, never trusted from the client
-   (see §6).
+   `amount_clp`, the plan as `plan` (`fixed | hybrid | commission`), location by
+   `commune`.
+2. **Plan and channel events are captured server-side** — a plan request, a
+   plan activation and a connected listing are emitted from server actions and
+   the sync pass, never trusted from the client (see §6).
 
 ---
 
-## 2. Event Taxonomy
+## 2. Event taxonomy
 
-Property conventions: `service_slug` (`regular|deep`), `amount_clp` (integer
-CLP), `frequency` (`one_time|weekly|biweekly|monthly`), `commune`,
-`payment_provider` (`mercadopago|transbank|stripe`), `booking_id`,
-`session_id`, `tool`.
+Property conventions: `plan` (`fixed | hybrid | commission`), `amount_clp`
+(integer CLP), `listings` (integer), `commune`, `session_id`, `tool`, `source`.
 
-| Event (snake_case)           | Fires when                                              | Key properties                                                                                                                                              | Funnel stage         |
-| ---------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| `$pageview`                  | Every path change (PostHog auto-pageview is off)        | `$current_url`                                                                                                                                              | Awareness            |
-| `quote_started`              | The calculator has enough input to quote                | `service_slug`, `square_meters`                                                                                                                             | Quote                |
-| `quote_calculated`           | The server returns a successful quote                   | `amount_clp`, `service_slug`, `square_meters`, `frequency`, `tools_provided_by`                                                                             | Quote                |
-| `quote_out_of_area`          | The quote resolves to `out_of_area`                     | `service_slug`                                                                                                                                              | Quote (leak)         |
-| `lead_out_of_area_submitted` | An out-of-area visitor leaves contact details           | `commune`, `service_slug`                                                                                                                                   | Quote (leak → lead)  |
-| `booking_started`            | The booking form mounts with a quote                    | `frequency` and the quote fields                                                                                                                            | Book                 |
-| `booking_created`            | Booking row inserted (server)                           | `square_meters`, `tools_provided_by`, `payment_provider`, `commune`, …                                                                                      | Book                 |
-| `checkout_started`           | Redirect to a provider checkout (server)                | `booking_id`, `amount_clp`, `payment_provider`                                                                                                              | Pay                  |
-| `payment_succeeded`          | A provider confirms payment (server)                    | `booking_id`, `amount_clp`, `payment_provider`                                                                                                              | Pay (activation)     |
-| `subscription_created`       | A subscription row is created (server)                  | `subscription_id`, `booking_id`, `frequency`, `amount_per_visit_clp`                                                                                        | Retention            |
-| `chat_opened`                | User opens the Lux widget                               | `session_id`                                                                                                                                                | Assist (cross-stage) |
-| `chat_message_sent`          | A user message reaches `/api/chat` or `/api/chat/human` | `session_id`, `mode: 'human'` on the human bridge                                                                                                           | Assist               |
-| `ai_tool_called`             | Lux invokes a tool (one per call)                       | `tool` (`check_coverage` / `get_quote` / `get_airbnb_quote` / `get_host_status` / `share_links` / `check_availability` / `escalate_to_human`), `session_id` | Assist               |
-| `ai_handoff_to_human`        | A tool sets `handoff` (`escalate_to_human`)             | `session_id`                                                                                                                                                | Assist → Human       |
-| `cta_clicked`                | A button inside a chat widget card is clicked           | `source` (`chat_quote` / `chat_availability` / `chat_airbnb` / `chat_links`), `cta`                                                                         | Assist → Funnel      |
-| `account_viewed`             | `/account` rendered                                     | —                                                                                                                                                           | Retention            |
+### Instrumented today
 
-Guidance: keep one event per real action. `quote_calculated` and
-`quote_out_of_area` are mutually exclusive outcomes of one request.
+| Event (snake_case)    | Fires when                                              | Key properties                                                                                      | Funnel stage               |
+| --------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------- |
+| `$pageview`           | Every path change (PostHog auto-pageview is off)        | `$current_url`                                                                                      | Awareness / Plans          |
+| `chat_opened`         | User opens the Lux widget                               | `session_id`                                                                                        | Assist (cross-stage)       |
+| `chat_message_sent`   | A user message reaches `/api/chat` or `/api/chat/human` | `session_id`, `mode: 'human'` on the human bridge                                                   | Assist                     |
+| `ai_tool_called`      | Lux invokes a tool (one per call)                       | `tool` (`get_airbnb_quote` / `get_host_status` / `share_links` / `escalate_to_human`), `session_id` | Assist                     |
+| `ai_handoff_to_human` | A tool sets `handoff` (`escalate_to_human`)             | `session_id`                                                                                        | Assist → Human             |
+| `cta_clicked`         | A button inside a chat widget card is clicked           | `source` (`chat_airbnb` / `chat_links`), `cta`                                                      | Assist → Funnel            |
+| `lead_captured`       | A `leads` row is inserted (server)                      | `source` (`chat_handoff` / `newsletter` / `contact`)                                                | Lead                       |
+| `account_viewed`      | `/account` rendered                                     | —                                                                                                   | Sign-up (activation proxy) |
 
-**Not instrumented today:** failed payments, subscription pause and
-subscription cancel emit no event. The `bookings` and `subscriptions` rows in
-Supabase are the record for those.
+### Planned, not instrumented today
 
----
+The `plan_subscriptions`, `listing_assignments` and `checkins` rows are the
+record until these ship. Add each name to `EVENTS` when it lands.
 
-## 3. Key Funnels
+| Event                  | Fires when                                              | Key properties                   | Funnel stage   |
+| ---------------------- | ------------------------------------------------------- | -------------------------------- | -------------- |
+| `plan_estimate_viewed` | `/calculator` shows a total (client)                    | `plan`, `listings`, `amount_clp` | Plans          |
+| `plan_requested`       | `requestMyPlan` upserts `requested` (server)            | `plan`                           | Plan requested |
+| `plan_activated`       | An operator sets `active` (server)                      | `plan`                           | Plan active    |
+| `plan_cancelled`       | `cancelMyPlan` or an operator sets `cancelled` (server) | `plan`                           | Churn          |
+| `channel_connected`    | A listing gets an owner (`listing_assignments`, server) | `provider`                       | Connected      |
+| `checkin_submitted`    | A guest submits the check-in form (server)              | `property_id`                    | Operations     |
 
-1. **Quote → Book → Pay**
-   `quote_calculated` → `booking_created` → `checkout_started` →
-   `payment_succeeded`. The core conversion funnel. Break it down by
-   `service_slug`, `commune`, and `frequency`.
-
-2. **Visitor → Activated**
-   `$pageview` → `quote_started` → `quote_calculated` → `booking_created` →
-   `payment_succeeded` (first ever = activation). This is the acquisition
-   funnel. Its last step is the activation definition from
-   [`GOAL.md`](./GOAL.md) §4.
-
-3. **Chat → Booking-influenced**
-   `chat_opened` / `ai_tool_called{tool=get_quote}` → later `booking_created`
-   in the same `session_id` / person. Compares conversion for **AI-assisted**
-   and **self-serve** sessions.
-
-Supporting leak analyses: `quote_out_of_area` rate (coverage gaps by comuna),
-`lead_out_of_area_submitted` (recovered demand), and the drop-off between
-`booking_created` and `payment_succeeded`.
+Guidance: keep one event per real action. `plan_requested` and `plan_activated`
+are two events, because two different people trigger them.
 
 ---
 
-## 4. Cohorts & Segments
+## 3. Key funnels
 
-- **By comuna** — conversion, out-of-area rate, and demand density per comuna.
-  Drives SEO landing-page and next-operation-point decisions.
-- **By service type** — `regular` vs `deep` economics and volume.
-- **One-time vs subscriber** — the retention split; track attach rate and LTV.
+1. **Visitor → Active plan**
+   `$pageview` (`/`) → `$pageview` (`/calculator`) → sign-up (Clerk user
+   created; `account_viewed` is the proxy today) → `plan_requested` →
+   `plan_activated`. The core conversion funnel. Break it down by `plan` and
+   `listings`.
+
+2. **Requested → Connected → Active**
+   `plan_requested` → `channel_connected` → `plan_activated`. Measures how fast
+   Luxel onboards a host after the request. Today read it from
+   `plan_subscriptions.updated_at` and `listing_assignments.created_at`.
+
+3. **Chat → Plan-influenced**
+   `chat_opened` / `ai_tool_called{tool=get_airbnb_quote}` → later
+   `plan_requested` in the same `session_id` / person. Compares conversion for
+   **AI-assisted** and **self-serve** sessions.
+
+Supporting leak analyses: `ai_handoff_to_human` rate (what Lux cannot answer),
+`lead_captured` by `source` (recovered demand), and the drop-off between
+`plan_requested` and `plan_activated`.
+
+---
+
+## 4. Cohorts & segments
+
+- **By listing count** — one listing, 2–5, small portfolios. Drives the sales
+  conversation and the plan mix.
+- **By plan** — `fixed` vs `hybrid` vs `commission`: revenue and churn.
 - **AI-assisted vs self-serve** — sessions that used Lux vs those that did not,
-  compared on conversion and average `amount_clp`.
-- **Activated vs not** — customers with ≥1 `payment_succeeded`.
-- **Tools policy** — `customer` vs `company` (surcharge attach rate).
+  compared on plan requests.
+- **Active vs requested** — hosts with an `active` plan vs hosts still waiting.
+- **By comuna** — occupancy and revenue per comuna, from the property mirror.
 
 ---
 
-## 5. KPIs / North-Star Tie-In & Dashboards
+## 5. KPIs / North-Star tie-in & dashboards
 
-The North Star and its input metrics are defined in [`GOAL.md`](./GOAL.md) §8.
-This event taxonomy makes each of them measurable. The operator panel
-(`apps/admin`) reads the in-house store directly.
+The North Star and its input metrics are defined in [`GOAL.md`](./GOAL.md) §5.
+The operator panel (`apps/admin`) reads the in-house store directly: traffic,
+daily events, event counts, leads and sessions (`converted` = the session
+reached `/account`).
 
 Dashboards to build:
 
-1. **Acquisition funnel** — the Visitor → Activated funnel with per-stage
-   conversion, sliced by comuna and service type.
-2. **Activation cohort** — new customers → first `payment_succeeded`, cohorted
-   by signup week.
-3. **Retention & MRR-equivalent** — active-subscriber count, attach rate, and
-   summed `amount_per_visit_clp` × frequency from the `subscriptions` table.
-4. **Concierge impact** — AI-assisted vs self-serve conversion and revenue;
+1. **Acquisition funnel** — Visitor → Active plan with per-stage conversion,
+   sliced by plan and listing count.
+2. **MRR** — `planMonthlyCost(plan, revenue)` summed over active
+   `plan_subscriptions`. Fixed fees today; revenue share once the revenue mirror
+   exists.
+3. **Occupancy & ADR** — from the Hospitable calendar (`calendar_blocks`), per
+   listing and per comuna.
+4. **Operations health** — AI answer rate (`guest_messages.source = 'ai'` vs
+   `needs_host` threads), check-in completion (`checkins.status`), cleaning
+   confirmation (`cleanings.crew_confirmed_at`).
+5. **Concierge impact** — AI-assisted vs self-serve conversion;
    `ai_tool_called` by `tool`; `ai_handoff_to_human` rate.
-5. **Coverage health** — `quote_out_of_area` and `lead_out_of_area_submitted`
-   by comuna.
 
 ---
 
-## 6. Data Governance
+## 6. Data governance
 
-- **PII.** Email, phone, `full_name`, and street address are PII. They live in
-  `customers` / `addresses` under Supabase RLS. **Do not send raw PII to
-  PostHog.** Identify persons by a stable id (Clerk user id). Send `commune` for
-  geo analysis, never the street `line`. Chat `body` text is not forwarded to
-  analytics; only metadata like `tool` and `session_id`.
+- **PII.** Email, phone and `full_name` live in `customers`. Property addresses
+  and access data live in `properties` and `property_access`. Guest identity
+  documents live encrypted in `checkin_identity` (`LUXEL_PII_KEY`) and are nulled
+  90 days after departure. All of it sits under Supabase RLS. **Do not send raw
+  PII to PostHog.** Identify persons by a stable id (Clerk user id). Send
+  `commune` for geo analysis, never the street address. Chat and guest-message
+  bodies are not forwarded to analytics; only metadata like `tool` and
+  `session_id`.
 - **Retention.** Set a defined retention window on raw analytics events in
-  PostHog. The authoritative business record (bookings, payments,
-  subscriptions) is Supabase.
-- **Server-side capture for trustworthy revenue.** `booking_created`,
-  `checkout_started`, `payment_succeeded`, `subscription_created` and the `ai_*`
-  events are captured server-side with `capture()`, keyed by the person's Clerk
-  user id (or the booking / session id when signed out). Client-only capture is
-  unreliable (ad-blockers, tab closes, spoofing). Client events (`$pageview`,
-  `quote_*`, `booking_started`, `chat_opened`, `cta_clicked`, `account_viewed`,
-  `lead_out_of_area_submitted`) are fine from the browser.
+  PostHog. The authoritative business record (`customers`, `properties`,
+  `plan_subscriptions`, `checkins`, `cleanings`) is Supabase.
+- **Server-side capture for trustworthy funnel steps.** `plan_*`,
+  `channel_connected`, `checkin_submitted`, `lead_captured` and the `ai_*`
+  events are captured server-side with `capture()` or `recordEvent()`, keyed by
+  the person's Clerk user id (or the session id when signed out). Client-only
+  capture is unreliable (ad-blockers, tab closes, spoofing). Client events
+  (`$pageview`, `chat_opened`, `cta_clicked`, `account_viewed`,
+  `plan_estimate_viewed`) are fine from the browser.
 
 ---
 
-## 7. Instrumentation Map
+## 7. Instrumentation map
 
 Each event and the file that emits it. Paths are relative to the repo root.
 
-| Event                        | Emit from                                                                                                                                                                                                            | Client / Server |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| `$pageview`                  | `apps/web/src/components/analytics/track-view.tsx` (`PostHogPageview`), mounted in `apps/web/src/app/[locale]/layout.tsx`                                                                                            | Client          |
-| `quote_started`              | `apps/web/src/app/[locale]/(site)/calculator/calculator-form.tsx`                                                                                                                                                    | Client          |
-| `quote_calculated`           | `apps/web/src/app/[locale]/(site)/calculator/calculator-form.tsx` (after `getQuoteAction` returns `ok`)                                                                                                              | Client          |
-| `quote_out_of_area`          | `apps/web/src/app/[locale]/(site)/calculator/calculator-form.tsx` (`out_of_area` branch)                                                                                                                             | Client          |
-| `lead_out_of_area_submitted` | `apps/web/src/app/[locale]/(site)/calculator/out-of-area-form.tsx`                                                                                                                                                   | Client          |
-| `booking_started`            | `apps/web/src/app/[locale]/(site)/book/booking-form.tsx`                                                                                                                                                             | Client          |
-| `booking_created`            | `apps/web/src/app/[locale]/(site)/book/actions.ts` (`createBookingAction`, after insert)                                                                                                                             | Server          |
-| `checkout_started`           | `apps/web/src/app/[locale]/(site)/book/actions.ts` (before the redirect to `/api/checkout/<provider>`)                                                                                                               | Server          |
-| `payment_succeeded`          | `apps/web/src/app/api/webhooks/stripe/route.ts`, `apps/web/src/app/api/webhooks/mercadopago/route.ts`, `apps/web/src/app/api/checkout/transbank/commit/route.ts`; `apps/web/src/lib/payments/dev-mock.ts` (dev only) | Server          |
-| `subscription_created`       | `apps/web/src/lib/subscriptions.ts` (`ensureSubscriptionForBooking`)                                                                                                                                                 | Server          |
-| `chat_opened`                | `apps/web/src/components/chat/chat-widget.tsx` (open toggle)                                                                                                                                                         | Client          |
-| `chat_message_sent`          | `apps/web/src/app/api/chat/route.ts`; `apps/web/src/app/api/chat/human/route.ts` (`mode: 'human'`)                                                                                                                   | Server          |
-| `ai_tool_called`             | `apps/web/src/app/api/chat/route.ts` (tool loop, per tool execution)                                                                                                                                                 | Server          |
-| `ai_handoff_to_human`        | `apps/web/src/app/api/chat/route.ts` (when a tool result sets `handoff`)                                                                                                                                             | Server          |
-| `cta_clicked`                | `apps/web/src/components/chat/chat-widget.tsx` (quote, availability, Airbnb and link cards)                                                                                                                          | Client          |
-| `account_viewed`             | `apps/web/src/app/[locale]/(site)/account/page.tsx` (`<TrackView event="account_viewed" />`)                                                                                                                         | Client          |
+| Event                 | Emit from                                                                                                                 | Client / Server |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `$pageview`           | `apps/web/src/components/analytics/track-view.tsx` (`PostHogPageview`), mounted in `apps/web/src/app/[locale]/layout.tsx` | Client          |
+| `chat_opened`         | `apps/web/src/components/chat/chat-widget.tsx` (open toggle)                                                              | Client          |
+| `chat_message_sent`   | `apps/web/src/app/api/chat/route.ts`; `apps/web/src/app/api/chat/human/route.ts` (`mode: 'human'`)                        | Server          |
+| `ai_tool_called`      | `apps/web/src/app/api/chat/route.ts` (tool loop, per tool execution)                                                      | Server          |
+| `ai_handoff_to_human` | `apps/web/src/app/api/chat/route.ts` (when a tool result sets `handoff`)                                                  | Server          |
+| `cta_clicked`         | `apps/web/src/components/chat/chat-widget.tsx` (Airbnb quote and link cards)                                              | Client          |
+| `lead_captured`       | `apps/web/src/lib/leads.ts` (`createLead`, after insert)                                                                  | Server          |
+| `account_viewed`      | `apps/web/src/app/[locale]/(site)/account/page.tsx` (`<TrackView event="account_viewed" />`)                              | Client          |
 
-**Idempotency note:** `payment_succeeded` fires from webhooks that already
-deduplicate via the `payment_events` ledger (`0002_payments.sql`). The event is
-emitted inside the non-duplicate branch, so a retried webhook delivery does not
-double-count revenue.
+Planned emit points: `plan_estimate_viewed` from
+`apps/web/src/app/[locale]/(site)/calculator/airbnb-quote.tsx`; `plan_requested`
+and `plan_cancelled` from
+`apps/web/src/app/[locale]/(site)/properties/plan-actions.ts`; `plan_activated`
+from the operator action once it exists in `apps/admin`; `channel_connected`
+from `apps/web/src/lib/channels/auto-assign.ts` and the `/admin/listings`
+assignment actions; `checkin_submitted` from
+`apps/web/src/app/[locale]/checkin/[token]/actions.ts`.

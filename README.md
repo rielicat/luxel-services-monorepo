@@ -1,12 +1,14 @@
 # Servicios Luxel — Monorepo
 
-Servicios Luxel automates short-term-rental hosting in Santiago. A host connects
-a Hospitable account. The app mirrors the listings and reservations. At booking,
-it sends the guest a check-in link in the guest's language. The check-in page
-renders in `es`, `en`, or `pt`. **Lux**, the AI concierge (OpenAI `gpt-4o-mini`),
-answers guest messages from the property's own data. It hands off to the host
-when it cannot answer. Conserjes and the cleaning crew get WhatsApp templates.
-Professional cleaning is a second service line.
+Servicios Luxel manages Airbnb listings in Santiago end to end. A host picks a
+plan and grants Luxel access to the listing in Hospitable. Luxel runs dynamic
+pricing, guest replies 24/7, cleaning and laundry between stays, inventory and
+small repairs. The app mirrors the listings and reservations. When a reservation
+arrives, it sends the guest a check-in link in the guest's language. The check-in
+page renders in `es`, `en`, or `pt`. **Lux**, the AI concierge (OpenAI
+`gpt-4o-mini`), answers guest messages from the property's own data. It hands off
+to a Luxel human when it cannot answer. Conserjes and the cleaning crew get
+WhatsApp templates from Luxel. The host receives the income and a monthly report.
 
 ## Strategy & design docs
 
@@ -15,10 +17,10 @@ The founding strategy, brand system, AI design, and analytics plan live in
 
 | Doc                                                                      | What's inside                                                                      |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| [`docs/GOAL.md`](docs/GOAL.md)                                           | North-star goal, user journey, unit economics, roadmap, KPIs                       |
-| [`docs/BRAND.md`](docs/BRAND.md)                                         | Brand identity, "Fresh Teal + Lime" design system, asset-generation prompts        |
+| [`docs/GOAL.md`](docs/GOAL.md)                                           | North-star goal, value proposition, host journey, plans, KPIs, roadmap             |
+| [`docs/BRAND.md`](docs/BRAND.md)                                         | Brand identity, "Fresh Teal + Lime" design system, asset specs                     |
 | [`docs/AI.md`](docs/AI.md)                                               | The "Lux" concierge and the guest-reply pipeline — architecture, tools, guardrails |
-| [`docs/METRICS.md`](docs/METRICS.md)                                     | Event taxonomy, funnels, cohorts, instrumentation map                              |
+| [`docs/METRICS.md`](docs/METRICS.md)                                     | Event taxonomy, plan funnel, cohorts, instrumentation map                          |
 | [`docs/ENV.md`](docs/ENV.md)                                             | Every environment variable, where it lives, what breaks without it                 |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md)                                       | Production setup: Vercel projects, external accounts, CI                           |
 | [`docs/channel-provider-decision.md`](docs/channel-provider-decision.md) | Why Hospitable, and what a provider change costs                                   |
@@ -33,13 +35,12 @@ luxel-services-monorepo/
 ├── workers/
 │   └── whatsapp/             # Cloudflare Worker `luxel-whatsapp-webhook` — WhatsApp Cloud API
 ├── packages/
-│   ├── shared/               # i18n catalogs, Zod schemas, shared types
-│   ├── pricing/              # Pure pricing engine (unit-tested)
+│   ├── shared/               # i18n catalogs, WhatsApp template kinds, constants
 │   └── config/               # ESLint/TS/Tailwind presets
 ├── infra/
 │   ├── cloudflare/           # Pulumi (TS) IaC — DNS + Email Routing, R2 state
 │   └── vercel/               # Pulumi (TS) IaC — Vercel projects (web adopted, admin created), CI-driven
-├── supabase/                 # SQL migrations + seed + local config
+├── supabase/                 # SQL migrations + local config
 └── .github/workflows/        # CI, DB migrations, infra
 ```
 
@@ -55,8 +56,7 @@ luxel-services-monorepo/
 | Channel (PMS)   | Hospitable — plugin behind `apps/web/src/lib/channels/registry.ts`        |
 | AI concierge    | OpenAI (`gpt-4o-mini`, cost-optimized; `OPENAI_MODEL` override)           |
 | Email           | Resend                                                                    |
-| Dynamic pricing | PriceLabs                                                                 |
-| Payments        | MercadoPago (primary CL) + Stripe + Transbank (Webpay Plus)               |
+| Dynamic pricing | PriceLabs (part of every plan)                                            |
 | Messaging       | WhatsApp Business Cloud API, through the worker `luxel-whatsapp-webhook`  |
 | Monitoring      | In-house event store + `apps/admin` dashboard (Sentry + PostHog optional) |
 | Source control  | GitHub                                                                    |
@@ -74,7 +74,7 @@ cp .env.example apps/web/.env.local
 
 # 3. Local Supabase (Docker required)
 pnpm supabase:start
-# applies supabase/migrations/* and supabase/seed.sql
+# applies supabase/migrations/*
 
 # 4. Dev server
 pnpm dev
@@ -109,14 +109,15 @@ key set in `packages/shared/src/i18n/index.ts`. A missing key is a build error.
 
 The customer app captures every meaningful action into our own Supabase table
 (`analytics_events`). The client uses `track()` (`sendBeacon` → `/api/events`).
-The server uses `capture()`. Traffic, funnel, and revenue metrics do not depend
-on PostHog. Unconverted contact intent (out-of-area, chat→human) is stored as
-`leads`. PostHog is an optional external mirror.
+The server uses `capture()`. Traffic and funnel metrics do not depend on PostHog.
+Unconverted contact intent (chat→human) is stored as `leads`. PostHog is an
+optional external mirror.
 
 The operator app [`apps/admin`](apps/admin) is a distinct Next.js site (port
 3001). It reads that data with the Supabase secret key and Clerk auth. Pages:
-**Panel** (KPIs, conversion funnel, traffic chart), **Leads** (inbox with status
-management), **Sesiones** (session records + per-session journey), **Telemetría**
+**Panel** (traffic KPIs, daily event chart, event counts, lead counts), **Leads**
+(inbox with status management), **Sesiones** (session records + per-session
+journey; `converted` marks a session that reached `/account`), **Telemetría**
 (raw filterable event explorer). Heavy aggregation runs in SQL (`admin_traffic`
 / `admin_event_counts` / `admin_daily_events` / `admin_sessions`). Access is gated
 by Clerk organization membership (`LUXEL_ADMIN_ORG_ID` or `LUXEL_ADMIN_ORG_SLUG`,
@@ -124,7 +125,9 @@ set in `infra/vercel/admin.ts`; unset = locked). Run it with
 `pnpm --filter @luxel/admin dev`.
 
 The `/admin` pages inside `apps/web` use a different gate. The Clerk user needs
-`publicMetadata.role = "admin"` (`apps/web/src/lib/auth/admin.ts`).
+`publicMetadata.role = "admin"` (`apps/web/src/lib/auth/admin.ts`). They assign
+imported listings to hosts (`/admin/listings`) and show sync diagnostics
+(`/admin/debug`).
 
 ## External setup (one-time, owned by the operator)
 
@@ -142,17 +145,17 @@ These cannot be unblocked by writing more code:
       See [`docs/ENV.md`](docs/ENV.md) § Inbound webhook access
 - [ ] Author the time-based guest messages as Hospitable message rules. See
       [`docs/ENV.md`](docs/ENV.md) § Scheduled guest messages
-- [ ] Add the crew in Hospitable → Operations → Teammates, each with a phone
-      number. Services Cleaning or Laundry make the cleaning crew; Concierge,
-      Check-in or Check-out make the conserjes. The app mirrors them; it has no
-      contact form
-- [ ] Set `RESEND_API_KEY` and `RESEND_FROM`. Optional: `PRICELABS_API_KEY`
+- [ ] Add the Luxel crew in Hospitable → Operations → Teammates, each with a
+      phone number. Services Cleaning or Laundry make the cleaning crew;
+      Concierge, Check-in or Check-out make the conserjes. The app mirrors them;
+      it has no contact form and hosts never see them
+- [ ] Set `RESEND_API_KEY` and `RESEND_FROM`. Set `PRICELABS_API_KEY` for dynamic
+      pricing
 - [ ] Verify a Meta Business account → enable WhatsApp Cloud API → add a phone
       number → deploy `workers/whatsapp`
 - [ ] Get the two WhatsApp templates approved: `luxel_conserje_registro` and
       `luxel_aseo_confirmacion`. Bodies in [`docs/ENV.md`](docs/ENV.md)
       § WhatsApp to the crew
-- [ ] Open merchant accounts (CLP): MercadoPago, Stripe, Transbank
 - [ ] Set the GitHub repo secrets listed in [`docs/ENV.md`](docs/ENV.md)
       § GitHub
 

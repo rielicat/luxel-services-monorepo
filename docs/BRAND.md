@@ -1,85 +1,85 @@
 # Servicios Luxel — Brand Identity & Design System
 
-> "Fresh Teal + Lime" — clean, hygienic, modern, trustworthy, premium-but-accessible.
-> The color tokens documented here are the source of truth for
-> `apps/web/src/app/globals.css`. Prose is English; example UI copy is es-CL.
+> "Fresh Teal + Lime" — calm, hospitable, precise, modern, trustworthy,
+> premium-but-accessible. The color tokens documented here are the source of
+> truth for `apps/web/src/app/globals.css`. Prose is English; example UI copy
+> is es-CL.
 
 ---
 
 ## 1. Brand Essence
 
-**Essence:** _Light that leaves a space renewed._ Luxel makes cleanliness feel
-effortless, transparent, and a little bit premium — the calm of walking into a
-freshly cleaned room, delivered by software that respects your time.
+**Essence:** _Light that keeps a home ready._ Luxel makes hosting feel
+effortless: the calm of a unit that runs itself, delivered by a team and by
+software that respect the owner's time.
 
-**Personality (adjectives):** Fresh · Trustworthy · Effortless · Modern ·
+**Personality (adjectives):** Calm · Trustworthy · Effortless · Modern ·
 Warm-professional · Precise.
 
 **Positioning statement:**
 
-> For busy households, hosts, and small offices in Santiago who want a spotless
-> space without the hassle of managing a cleaner, **Servicios Luxel** is the
-> online cleaning platform that gives an honest price instantly and a service you
-> can schedule and trust — unlike informal WhatsApp referrals with opaque pricing
-> and no guarantee.
+> For Santiago Airbnb hosts who want the income without the work,
+> **Servicios Luxel** manages the whole listing — pricing, guests, cleaning,
+> repairs and inventory — for a transparent monthly plan, unlike informal
+> administrators with opaque fees and no reporting.
 
 ---
 
 ## 2. Voice & Tone
 
 **Voice:** Chilean, warm, and clear. We speak like a competent friend who happens
-to run an excellent cleaning service — never a corporate call center, never
-slangy to the point of unprofessional. We use **tú**, not **usted**. We keep
-sentences short. We are honest about coverage and never oversell.
+to run an excellent property-management team — never a corporate call center,
+never slangy to the point of unprofessional. We use **tú**, not **usted**. We
+keep sentences short. We are honest about what we do and never oversell.
 
-**Tone by context:** upbeat and confident on the landing page; calm and precise in
-the quote/booking flow; reassuring and human in error and support moments.
+**Tone by context:** upbeat and confident on the landing page; calm and precise
+in the plan and onboarding flow; reassuring and human in error and support
+moments.
 
 ### Do / Don't (es-CL example copy)
 
-| Context       | ✅ Do                                                                               | ❌ Don't                                         |
-| ------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Hero CTA      | "Cotizar mi servicio"                                                               | "SOLICITE UNA COTIZACIÓN AHORA"                  |
-| Price shown   | "Precio claro al instante. Sin sorpresas."                                          | "Precios sujetos a evaluación posterior."        |
-| Out of area   | "Aún no llegamos a esta zona. Estamos creciendo — déjanos tus datos y te avisamos." | "Error: ubicación no válida."                    |
-| Chat greeting | "¡Hola! Soy Lux, tu asistente. ¿Te ayudo a cotizar?"                                | "Bienvenido al chatbot. Seleccione una opción."  |
-| Confirmation  | "Listo, agendado para el jueves en la mañana. Te esperamos."                        | "Su transacción ha sido procesada exitosamente." |
-| Human handoff | "Te paso con una persona por WhatsApp al toque."                                    | "Su solicitud será derivada a un ejecutivo."     |
-| Empty state   | "Aún no tienes reservas. ¿Cotizamos tu primer aseo?"                                | "No hay datos disponibles."                      |
+| Context       | ✅ Do                                                      | ❌ Don't                                         |
+| ------------- | ---------------------------------------------------------- | ------------------------------------------------ |
+| Hero CTA      | "Ver planes y precios"                                     | "SOLICITE UNA COTIZACIÓN AHORA"                  |
+| Price shown   | "Tres planes por propiedad. Elige el que más te conviene." | "Precios sujetos a evaluación posterior."        |
+| Plan status   | "Plan solicitado — te contactamos para activarlo."         | "Su solicitud está en proceso."                  |
+| Chat greeting | "¡Hola! Soy Lux. ¿Te cuento cómo administramos tu Airbnb?" | "Bienvenido al chatbot. Seleccione una opción."  |
+| Confirmation  | "Listo, tu Airbnb ya está conectado."                      | "Su transacción ha sido procesada exitosamente." |
+| Human handoff | "Te paso con una persona por WhatsApp al toque."           | "Su solicitud será derivada a un ejecutivo."     |
+| Empty state   | "Aún no tienes propiedades conectadas."                    | "No hay datos disponibles."                      |
 
-**Style rules:** Prices with Chilean thousands separator (`35.020 CLP`, never
-`$35,020`). Time blocks as **mañana (08:00–12:00)** / **tarde (14:00–18:00)**.
-Never hardcode strings in components — all copy lives in
-`packages/shared/src/i18n/es-CL.json`.
+**Style rules:** Prices with Chilean thousands separator (`99.900 CLP`, never
+`$99,900`). Percentages as `6%` and `12%` of "tus ingresos". Never say
+"0% comisión", "14 días gratis" or "m²". The host never "answers guests" or
+"manages the crew": Luxel does. Never hardcode strings in components — all copy
+lives in `packages/shared/src/i18n/es-CL.json`.
 
 ---
 
 ## 3. Name, Wordmark & Logo
 
 **"Luxel"** reads as **lux** (Latin for _light_) + a modern product suffix. Light
-connotes clean, bright, hygienic, and premium — exactly the feeling of a
-freshly-cleaned space. The name is short, brandable, and `.cl`-friendly
-(`serviciosluxel.cl`).
+connotes a bright, well-kept home that is ready for its next guest. The name is
+short, brandable, and `.cl`-friendly (`serviciosluxel.cl`).
 
 **Wordmark:** "Luxel" set in **Manrope**, semibold, tight tracking, with a
 **sparkle/shine mark** integrated near the "L" or replacing the dot energy of the
 "x". The sparkle (a 4-point shine / "destello") is the core motif — it appears as
 favicon, loading state, and success/confirmation micro-illustration.
 
-> **⚠️ All brand imagery below is a placeholder.** The current build ships CSS
-> gradients and a dotted-grid backdrop (`.bg-dot-grid`, `.bg-brand-glow` in
-> `globals.css`) in place of real art. The specs in §4 are generation-ready
-> instructions for a designer or an image model.
+> **⚠️ Logo, favicon and OG image are placeholders.** The current build ships
+> CSS gradients and a dotted-grid backdrop (`.bg-dot-grid`, `.bg-brand-glow` in
+> `globals.css`) in place of logo art. The photography is real: see §4.3.
 
 ---
 
-## 4. Assets to Create Separately (placeholders today)
+## 4. Assets
 
 Palette hexes to use across all assets:
 Teal-700 `#0F766E` · Teal-500 `#14B8A6` · Deep ink `#0B3B39` · Lime `#D8F84B` ·
 Text-on-lime `#14532D` · Surface `#F6FBF9` · White `#FFFFFF`.
 
-### 4.1 Logo / wordmark
+### 4.1 Logo / wordmark (placeholder today)
 
 - **Deliverables:** horizontal lockup, stacked lockup, icon-only (sparkle).
   Formats: SVG (primary), PNG @1x/2x/3x. Light and dark variants.
@@ -87,9 +87,9 @@ Text-on-lime `#14532D` · Surface `#F6FBF9` · White `#FFFFFF`.
   (Manrope-like), semibold, tight tracking, deep teal `#0F766E`. A single clean
   4-point sparkle/shine mark in lime `#D8F84B` integrated to the upper-right of
   the final letter. Flat, no gradients in the mark, generous whitespace, vector,
-  transparent background. Conveys clean, bright, premium, trustworthy."
+  transparent background. Conveys calm, bright, premium, trustworthy."
 
-### 4.2 Favicon
+### 4.2 Favicon (placeholder today)
 
 - **Sizes:** 16, 32, 48 px `.ico` + 180 px `apple-touch-icon.png` + 512 px
   maskable PNG.
@@ -97,40 +97,48 @@ Text-on-lime `#14532D` · Surface `#F6FBF9` · White `#FFFFFF`.
   rounded-square background, centered, high contrast, legible at 16px, no text,
   flat." Keep the icon identical across sizes.
 
-### 4.3 Hero background image / illustration
+### 4.3 Hero and gallery photography (real, shipped)
 
-- **Dimensions:** 2560×1440 (16:9), plus a mobile 1080×1920 crop.
-- **Prompt/spec:** "Bright, airy, sunlit modern Santiago apartment interior after
-  cleaning — soft teal and white palette, gentle depth of field, a subtle lime
-  accent object (a plant, a cloth). Calm, premium, hygienic mood. Faint sparkle
-  particles in the light. Leave the upper-left third uncluttered for headline
-  text overlay. Photographic or clean semi-flat illustration, no clutter, no
-  visible brands." Must sit behind teal `#0F766E` text at AA contrast.
+The hero image is a real unit that Luxel manages: José Manuel Infante 1045,
+depto 401, Providencia. The photos live in `apps/web/public/img/jmi/*.jpg`
+(1800 px wide, 200–400 KB each). Use `next/image` with `sizes`; `priority` only
+on the hero.
 
-### 4.4 OG / social share image
+| File                                                                                     | Use                                              |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `terrace-sunset.jpg`                                                                     | Hero (skyline at dusk, BBQ). Warm, aspirational. |
+| `living.jpg`, `bedroom-main.jpg`, `kitchen.jpg`, `hot-tub.jpg`, `dining.jpg`, `bath.jpg` | Gallery grid (6).                                |
+| `living-piano.jpg`, `bedroom-2.jpg`, `terrace-night.jpg`                                 | Secondary: services section, about page.         |
+| `entry.jpg`, `laundry.jpg`, `bath-2.jpg`, `bedroom-3.jpg`                                | Available, optional.                             |
+
+Alt text in es-CL describes the room and the management: "Terraza con parrilla
+y vista al atardecer en un departamento administrado por Luxel". Gallery
+caption: "Departamento en Providencia, administrado por Luxel." Frames use
+`rounded-3xl` and `shadow-soft`. In dark mode the frame keeps a dark border, no
+white halo.
+
+### 4.4 OG / social share image (placeholder today)
 
 - **Dimensions:** 1200×630.
 - **Prompt/spec:** "Teal `#0F766E` → teal `#14B8A6` gradient background, the Luxel
-  wordmark centered, tagline 'Aseo profesional, sin complicaciones.' in white
-  Inter, a lime `#D8F84B` sparkle accent. Clean, high-contrast, readable as a
-  thumbnail." One default + per-comuna variants for SEO pages.
+  wordmark centered, tagline 'Tu Airbnb, administrado.' in white Inter, a lime
+  `#D8F84B` sparkle accent. Clean, high-contrast, readable as a thumbnail."
+  Alternative: the hero photo with a teal overlay and the same tagline.
 
-### 4.5 Service-type illustrations (×3)
+### 4.5 Service icons
 
-- **Dimensions:** 480×480 each, matching set, transparent PNG/SVG.
-- **Prompt/spec:** "Set of three cohesive semi-flat icons on soft teal wash
-  `#F6FBF9`: (1) **Aseo regular** — a sparkling living room; (2) **Aseo profundo**
-  — a scrub brush with deep-clean shine lines; (3) **Aseo de entrega** — an empty
-  handed-over apartment with keys and a sparkle. Consistent line weight, teal
-  primary `#0F766E`, lime `#D8F84B` accents, rounded, friendly, premium."
+The seven services (precios dinámicos, huéspedes 24/7, aseo y lavandería,
+resolución de conflictos, inventario y reposición, reparaciones menores, puesta
+a punto) use lucide icons in one color: `bg-primary/10 text-primary`. No
+custom illustrations.
 
-### 4.6 Operator / trust photography
+### 4.6 Crew and host trust photography (to shoot)
 
-- **Prompt/spec:** "Warm, authentic photos of professional cleaners (diverse,
-  Chilean context) in clean uniforms with a subtle teal accent, smiling, working
-  in bright real homes/offices. Natural light, trustworthy and respectful — real
-  people, not stock-cheesy. Used for the 'Operadores certificados' trust section."
-  Use consented, real operator photography before launch; stock is placeholder.
+- **Prompt/spec:** "Warm, authentic photos of the Luxel crew (cleaning, laundry,
+  small repairs) and of a host reading a report on a phone, in bright real
+  Santiago apartments. Natural light, trustworthy and respectful — real people,
+  not stock-cheesy. Used for the 'Luxel se encarga' trust section." Use
+  consented, real crew photography before launch; stock is placeholder.
 
 ---
 
@@ -245,18 +253,23 @@ Enable `font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1` (already set on
 ## 8. Component Style Guidance
 
 - **Buttons.** Primary = solid teal `primary` / white text. **High-intent CTAs**
-  (Cotizar, Agendar, Pagar) = **lime `lime` background / deep-green
-  `lime-foreground` text** — lime is reserved for the money-making action so it
-  reads as _the_ next step. Secondary = outline teal. Ghost for tertiary. Radius
-  `0.75rem`, min height 44 px.
+  (Ver planes, Elegir plan, Solicitar este plan) = **lime `lime` background /
+  deep-green `lime-foreground` text** — lime is reserved for the next step toward
+  a plan so it reads as _the_ action. Secondary = outline teal. Ghost for
+  tertiary. Radius `0.75rem`, min height 44 px.
 - **Cards.** White (`card`) on tinted `background`, `border` hairline, `sm`
-  shadow, `1rem` radius, 20–24 px padding. Quote-result and booking-summary cards
-  use an `accent` (soft teal) header band.
+  shadow, `1rem` radius, 20–24 px padding. Plan cards and property cards use an
+  `accent` (soft teal) header band. No "recomendado" badge; the calculator marks
+  the cheapest plan with a text line.
 - **Inputs.** `input` border, `0.75rem` radius, focus = 2 px `ring` with a soft
-  offset. The m² **slider** uses a teal track with a lime-accented thumb.
-- **Badges.** Status badges map to semantic tokens: `pending` → muted, `confirmed`
-  → primary, `in_progress` → secondary, `completed` → success, `cancelled` →
-  destructive; `payment_status: paid` → success, `refunded` → warning.
+  offset. The listings stepper and the revenue input keep the same radius.
+- **Status labels.** Map to semantic tokens: plan `requested` → warning,
+  `active` → success, `cancelled` → muted; check-in `pending` → muted,
+  `submitted` → primary, `notified` → success, `failed` → destructive; cleaning
+  `scheduled` → primary, crew confirmed → success, crew declined → destructive.
+  Cleaning states are operator-facing only.
+- **Photos.** `rounded-3xl`, `shadow-soft`, `object-cover`. Gallery: 2 columns
+  on mobile, 3 on desktop. Every section stays legible at 375 px.
 - **Chat widget "Lux".** Fixed bottom-right (`bottom-5 right-5`), 56 px teal FAB
   with the sparkle mark. Panel 360×480, `card` surface, `lg` shadow, `0.75rem`
   radius. Bot bubbles `muted`; user bubbles `primary` right-aligned. A persistent
@@ -272,11 +285,13 @@ Enable `font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1` (already set on
   place lime text on white or teal on lime; always pair lime with
   `lime-foreground` (deep green `#175231`), which passes AA.
 - **Focus:** always-visible focus ring using `ring`; never `outline: none` without
-  a replacement. Keyboard order follows visual order in the quote → book flow.
-- **Tap targets:** minimum 44×44 px for all interactive elements (buttons, slider
-  thumb, chat FAB, time-block selectors).
+  a replacement. Keyboard order follows visual order in the plan → sign-in →
+  connect flow.
+- **Tap targets:** minimum 44×44 px for all interactive elements (buttons, plan
+  cards, stepper controls, chat FAB).
 - **Motion:** honor `prefers-reduced-motion` — disable the sparkle shine and panel
   scale animations.
-- **Semantics:** label every input (`aria-label`/`<label>`), announce quote
-  results and errors politely to screen readers, and ensure the color-coded status
-  badges also carry a text label (never color alone).
+- **Semantics:** label every input (`aria-label`/`<label>`), announce plan
+  estimates and errors politely to screen readers, give every photo a
+  descriptive `alt`, and ensure the color-coded status labels also carry a text
+  label (never color alone).
