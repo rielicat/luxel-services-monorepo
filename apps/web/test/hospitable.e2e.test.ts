@@ -182,6 +182,28 @@ let MESSAGES: Array<{
   created_at: string;
   sender?: { first_name?: string };
 }> = [];
+const threadHistory = (): typeof MESSAGES => [
+  {
+    id: 'h1',
+    body: '¿Aceptan mascotas?',
+    sender_type: 'guest',
+    created_at: '2026-01-01T10:00:00Z',
+    sender: { first_name: 'Matheus' },
+  },
+  {
+    id: 'h2',
+    body: 'Sí, mascotas pequeñas.',
+    sender_type: 'host',
+    created_at: '2026-01-01T11:00:00Z',
+  },
+  {
+    id: 'h3',
+    body: 'Gracias!',
+    sender_type: 'guest',
+    created_at: '2026-01-01T12:00:00Z',
+    sender: { first_name: 'Matheus' },
+  },
+];
 const SENT: Array<{ reservationId: string; body: string }> = [];
 const WA_SENDS: Array<{
   to?: string;
@@ -204,6 +226,7 @@ let syncHospitable: () => Promise<{
   contacts?: number;
 }>;
 let decryptPII: (s: string) => string;
+let hostReply: (i: unknown) => Promise<{ ok: boolean }>;
 let customerId: string;
 let apiCalls = 0;
 
@@ -223,12 +246,13 @@ beforeAll(async () => {
       const msgMatch = url.match(/\/reservations\/([^/]+)\/messages/);
       if (msgMatch) {
         if ((init?.method ?? 'GET').toUpperCase() === 'POST') {
+          if (msgMatch[1]!.endsWith('-gone')) return new Response('Not found', { status: 404 });
           const body = JSON.parse((init?.body as string) ?? '{}') as { body?: string };
           SENT.push({ reservationId: msgMatch[1]!, body: body.body ?? '' });
           return Response.json({ data: { id: `sent-${SENT.length}` } });
         }
         return Response.json({
-          data: msgMatch[1] === 'res-1' ? MESSAGES : [],
+          data: msgMatch[1] === `res-1${RES_ID_SUFFIX}` ? MESSAGES : [],
           links: { next: null },
         });
       }
@@ -297,6 +321,7 @@ beforeAll(async () => {
 
   const a = await import('../src/app/[locale]/(site)/properties/channel-actions');
   connectHospitable = a.connectHospitable;
+  hostReply = (await import('../src/app/[locale]/(site)/properties/messaging-actions')).hostReply;
   const syncLib = await import('../src/lib/channels/hospitable-sync');
   syncHospitable = () => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN);
   decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
@@ -965,6 +990,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('a reconnect that re-issues reservation ids never resends the booking link', async () => {
+    MESSAGES = threadHistory();
     await connectHospitable({ token: FAKE_TOKEN });
     const { data: prop } = await admin
       .from('properties')
@@ -994,6 +1020,24 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(before.map((r) => r.reservation_uid)).toEqual(['hosp:res-1', 'hosp:res-2']);
     expect(before.every((r) => r.notified_at)).toBe(true);
     const sends = SENT.length;
+    const threadRows = async () =>
+      (
+        await admin
+          .from('guest_threads')
+          .select('id, external_thread_id')
+          .eq('property_id', propertyId)
+          .eq('channel', 'hospitable')
+          .order('created_at')
+      ).data!;
+    const threadsBefore = await threadRows();
+    expect(threadsBefore.map((t) => t.external_thread_id)).toEqual(['res-1']);
+    await admin.from('guest_messages').insert({
+      thread_id: threadsBefore[0]!.id,
+      direction: 'out',
+      source: 'host',
+      body: 'Respuesta del anfitrión',
+      external_id: null,
+    });
 
     RES_ID_SUFFIX = '-reissued';
     try {
@@ -1022,6 +1066,123 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('*', { count: 'exact', head: true })
       .eq('property_id', propertyId);
     expect(cleanings).toBe(2);
+
+    const threadsAfter = await threadRows();
+    expect(threadsAfter.map((t) => t.external_thread_id)).toEqual(['res-1-reissued']);
+    expect(threadsAfter[0]!.id).toBe(threadsBefore[0]!.id);
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('external_id, source')
+      .eq('thread_id', threadsAfter[0]!.id);
+    expect(msgs).toHaveLength(4);
+    expect(msgs!.filter((m) => m.source === 'host' && m.external_id === null)).toHaveLength(1);
+  });
+
+  it('folds a thread the reconnect already duplicated back into the original one', async () => {
+    MESSAGES = threadHistory();
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const propertyId = prop!.id as string;
+    const { data: original } = await admin
+      .from('guest_threads')
+      .select('id')
+      .eq('property_id', propertyId)
+      .eq('external_thread_id', 'res-1')
+      .single();
+    await admin.from('guest_messages').insert({
+      thread_id: original!.id,
+      direction: 'out',
+      source: 'ai',
+      body: 'Respuesta de Lux',
+      external_id: null,
+    });
+    const { data: dup } = await admin
+      .from('guest_threads')
+      .insert({
+        property_id: propertyId,
+        channel: 'hospitable',
+        external_thread_id: 'res-1-reissued',
+        guest_name: 'Matheus',
+      })
+      .select('id')
+      .single();
+    await admin.from('guest_messages').insert(
+      [...threadHistory(), { id: 'h9', body: 'Nuevo mensaje', sender_type: 'guest' }].map((m) => ({
+        thread_id: dup!.id,
+        direction: m.sender_type === 'guest' ? 'in' : 'out',
+        source: m.sender_type === 'guest' ? 'guest' : 'host',
+        body: m.body,
+        external_id: m.id,
+      })),
+    );
+    await admin
+      .from('checkins')
+      .update({ reservation_uid: 'hosp:res-1-reissued' })
+      .eq('property_id', propertyId)
+      .eq('reservation_uid', 'hosp:res-1');
+
+    RES_ID_SUFFIX = '-reissued';
+    try {
+      expect((await syncHospitable()).ok).toBe(true);
+    } finally {
+      RES_ID_SUFFIX = '';
+    }
+
+    const { data: threads } = await admin
+      .from('guest_threads')
+      .select('id, external_thread_id')
+      .eq('property_id', propertyId)
+      .eq('channel', 'hospitable');
+    expect(threads!.map((t) => [t.id, t.external_thread_id])).toEqual([
+      [original!.id, 'res-1-reissued'],
+    ]);
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('external_id, source')
+      .eq('thread_id', original!.id);
+    expect(msgs).toHaveLength(5);
+    expect(
+      msgs!
+        .map((m) => m.external_id)
+        .filter(Boolean)
+        .sort(),
+    ).toEqual(['h1', 'h2', 'h3', 'h9']);
+  });
+
+  it('a host reply that Hospitable rejects is reported as failed and not stored', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const { data: stale } = await admin
+      .from('guest_threads')
+      .insert({
+        property_id: prop!.id,
+        channel: 'hospitable',
+        external_thread_id: 'res-7-gone',
+        guest_name: 'Ana',
+        status: 'needs_host',
+      })
+      .select('id')
+      .single();
+    expect((await hostReply({ threadId: stale!.id, body: 'Hola Ana' })).ok).toBe(false);
+    const { count } = await admin
+      .from('guest_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('thread_id', stale!.id);
+    expect(count).toBe(0);
+    const { data: th } = await admin
+      .from('guest_threads')
+      .select('status')
+      .eq('id', stale!.id)
+      .single();
+    expect(th!.status).toBe('needs_host');
   });
 
   it('asks the mirrored cleaning crew to confirm each scheduled cleaning, once', async () => {

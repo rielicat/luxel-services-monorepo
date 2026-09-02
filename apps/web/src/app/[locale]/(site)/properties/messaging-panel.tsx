@@ -59,6 +59,7 @@ export function MessagingPanel({
   const [pending, start] = useTransition();
   const [sim, setSim] = useState('');
   const [reply, setReply] = useState<Record<string, string>>({});
+  const [failed, setFailed] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
   const run = (fn: () => Promise<unknown>) =>
@@ -106,14 +107,16 @@ export function MessagingPanel({
               disabled={pending || !reply[th.id]?.trim()}
               onClick={() =>
                 run(async () => {
-                  await hostReply({ threadId: th.id, body: reply[th.id] });
-                  setReply((p) => ({ ...p, [th.id]: '' }));
+                  const r = await hostReply({ threadId: th.id, body: reply[th.id] });
+                  setFailed(r.ok ? null : th.id);
+                  if (r.ok) setReply((p) => ({ ...p, [th.id]: '' }));
                 })
               }
             >
               <Send className="h-3.5 w-3.5" />
             </Button>
           </div>
+          {failed === th.id && <p className="text-destructive text-xs">{t('reply_failed')}</p>}
         </div>
       ))}
 

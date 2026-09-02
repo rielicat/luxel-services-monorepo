@@ -529,6 +529,7 @@
     "status_needs_host": "Requiere tu respuesta",
     "status_closed": "Cerrado",
     "reply_ph": "Tu respuesta…",
+    "reply_failed": "No se pudo enviar la respuesta. Inténtalo de nuevo.",
     "sim_ph": "Simular mensaje de huésped (dev)…",
     "sim": "Probar",
     "all_handled": "Todo respondido — la IA está al día con tus huéspedes.",

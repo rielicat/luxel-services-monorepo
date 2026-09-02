@@ -23,6 +23,7 @@ import { toE164Digits } from '@/lib/phone';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
 import { handleInboundMessage } from './pipeline';
 import {
+  mergeOrphanThreads,
   pruneWouldWipeEverything,
   rekeyCheckinsByConfirmationCode,
   relinkByConfirmationCode,
@@ -71,6 +72,10 @@ async function sendCheckinLinksForNewReservations(
     if (code && !uidByCode.has(code)) uidByCode.set(code, ref(r.id));
   }
   const rekeyed = await rekeyCheckinsByConfirmationCode(supabase, propertyId, uidByCode);
+  if (rekeyed === null) {
+    console.warn('sync.checkins_rekey_failed', { propertyId });
+    return;
+  }
   if (rekeyed) console.warn('sync.checkins_rekeyed', { propertyId, rekeyed });
 
   const uids = accepted.map((r) => ref(r.id));
@@ -677,6 +682,12 @@ export async function syncHospitableAccount(
     await autoConfirmSuggested(propertyId, today);
 
     if (reservations?.length) {
+      const merged = await mergeOrphanThreads(
+        supabase,
+        propertyId,
+        new Set(reservations.map((r) => r.id)),
+      );
+      if (merged) console.warn('sync.threads_merged', { propertyId, merged });
       const conv = await syncConversations(
         supabase,
         token,

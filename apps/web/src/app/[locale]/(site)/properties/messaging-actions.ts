@@ -56,6 +56,7 @@ export async function hostReply(input: unknown): Promise<{ ok: boolean }> {
   const extId = await getMessageSender(t.channel).send(t.external_thread_id, p.data.body, {
     token,
   });
+  if (!extId) return { ok: false };
   await supabase.from('guest_messages').insert({
     thread_id: p.data.threadId,
     direction: 'out',
