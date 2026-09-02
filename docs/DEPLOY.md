@@ -49,8 +49,13 @@ These are external accounts. The code cannot provision them:
 5. **Resend** — verify the sending domain. Set `RESEND_API_KEY` and
    `RESEND_FROM`.
 6. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
-   secrets with `wrangler secret put`. Get the templates `luxel_conserje_registro`
-   and `luxel_aseo_confirmacion` approved. Set `WHATSAPP_WORKER_SEND_URL` and
+   secrets with `wrangler secret put`. Use a System User token, never the 24-hour
+   token from the app dashboard. Subscribe the webhook with the Graph API:
+   `POST /{app-id}/subscriptions` (`object=whatsapp_business_account`,
+   `fields=messages`, `callback_url=<worker>/webhook`, the worker's verify token,
+   `access_token=<app-id>|<app-secret>`), then `POST /{waba-id}/subscribed_apps`
+   with the System User token. Get the templates `luxel_conserje_registro` and
+   `luxel_aseo_confirmacion` approved. Set `WHATSAPP_WORKER_SEND_URL` and
    `INTERNAL_SEND_TOKEN` on the web project.
 7. **Payments** — MercadoPago, Stripe, Transbank (CLP). Set the webhook URLs to
    `https://serviciosluxel.cl/api/webhooks/{mercadopago,stripe}`. Transbank has
