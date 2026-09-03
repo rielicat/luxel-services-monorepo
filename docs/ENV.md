@@ -37,17 +37,17 @@ effect and fails silently:
 
 ### Feature gates: absent means the feature is silently off
 
-| Variable                                           | Absent behaviour                                                                                                                                                 |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** Guest threads go straight to `needs_host` (a Luxel human answers). No error surfaces.  |
-| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                                                                              |
-| `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN`                                                 |
-| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false. Check-in emails (guest access code, conserje fallback, host confirmation) and cleaning-confirmation emails are skipped, never sent |
-| `PRICELABS_API_KEY`                                | dynamic pricing (part of every plan) unavailable; the pricing panel reports `unavailable`                                                                        |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp. A conserje with an email gets the check-in notice by email. A cleaner gets the cleaning confirmation by email instead                               |
-| `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                                                                    |
-| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                        |
-| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.                                                              |
+| Variable                                           | Absent behaviour                                                                                                                                                             |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** Guest threads go straight to `needs_host` (a Luxel human answers). No error surfaces.              |
+| `OPENAI_MODEL`                                     | optional; defaults to `gpt-4o-mini`                                                                                                                                          |
+| `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN`                                                             |
+| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false. Check-in emails (conserje fallback, host confirmation) and cleaning-confirmation emails are skipped, never sent. Our code never emails a guest |
+| `PRICELABS_API_KEY`                                | dynamic pricing (part of every plan) unavailable; the pricing panel reports `unavailable`                                                                                    |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp. A conserje with an email gets the check-in notice by email. A cleaner gets the cleaning confirmation by email instead                                           |
+| `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                                                                                |
+| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                                    |
+| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.                                                                          |
 
 ### Billing
 

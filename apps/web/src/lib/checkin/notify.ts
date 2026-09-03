@@ -15,13 +15,17 @@ function esc(s: string): string {
 export async function notifyCheckin(checkinId: string): Promise<void> {
   const supabase = createSupabaseServiceRoleClient();
 
-  const { data: checkin } = await supabase
+  const { data: checkin, error: checkinError } = await supabase
     .from('checkins')
     .select(
-      'id, property_id, guest_name, guest_email, guest_phone, party_size, arrival_time, arrival_date, departure_date, parking, vehicle_plate',
+      'id, property_id, guest_name, party_size, arrival_time, arrival_date, departure_date, parking, vehicle_plate',
     )
     .eq('id', checkinId)
     .maybeSingle();
+  if (checkinError) {
+    console.warn('checkin.notify_query_failed', { checkinId, message: checkinError.message });
+    return;
+  }
   if (!checkin) return;
 
   const [{ data: property }, { data: access }, { data: conserjes }, { data: guests }] =

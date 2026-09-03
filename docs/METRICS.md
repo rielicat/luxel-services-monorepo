@@ -134,9 +134,11 @@ Dashboards to build:
 
 - **PII.** Email, phone and `full_name` live in `customers`. Property addresses
   and access data live in `properties` and `property_access`. Guest identity
-  documents live encrypted in `checkin_identity` (`LUXEL_PII_KEY`) and are nulled
-  90 days after departure. All of it sits under Supabase RLS. **Do not send raw
-  PII to PostHog.** Identify persons by a stable id (Clerk user id). Send
+  documents live encrypted in `checkin_guests` (`LUXEL_PII_KEY`).
+  `purgeExpiredGuestDocuments` in `apps/web/src/lib/channels/hospitable-sync.ts`
+  nulls them 90 days after departure. All of it sits under Supabase RLS. **Do
+  not send raw PII to PostHog.** Identify persons by a stable id (Clerk user
+  id). Send
   `commune` for geo analysis, never the street address. Chat and guest-message
   bodies are not forwarded to analytics; only metadata like `tool` and
   `session_id`.
