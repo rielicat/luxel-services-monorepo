@@ -48,6 +48,7 @@ const property: PropertyRow = {
   address: 'José Manuel Infante 1045',
   comuna: 'Providencia',
   guest_info: null,
+  guest_context: null,
   external_listing_id: 'a6eb2c65',
   platform: 'airbnb',
   ai_enabled: true,

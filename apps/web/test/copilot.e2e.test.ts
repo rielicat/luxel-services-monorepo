@@ -16,7 +16,7 @@ vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
 let admin: ReturnType<typeof createClient>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
-let updateGuestInfo: (i: unknown) => Promise<{ ok: boolean }>;
+let updatePropertyContext: (i: unknown) => Promise<{ ok: boolean }>;
 let comparableMarketReference: (q: {
   comuna?: string | null;
   bedrooms?: number | null;
@@ -67,7 +67,7 @@ beforeAll(async () => {
   if (!LIVE) return;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   const cp = await import('../src/app/[locale]/(site)/properties/copilot-actions');
-  updateGuestInfo = cp.updateGuestInfo;
+  updatePropertyContext = cp.updatePropertyContext;
   comparableMarketReference = (await import('../src/lib/ai/pricing-reference'))
     .comparableMarketReference;
   runTool = (await import('../src/lib/ai/tools')).runTool;
@@ -91,25 +91,99 @@ afterEach(async () => {
 });
 
 describe.skipIf(!LIVE)('AI messaging co-pilot (end to end)', () => {
-  it('saves property knowledge on the listing', async () => {
-    const prop = await seedImportedProperty({ nickname: 'Depto Copiloto' });
+  it('writes the structured answers and the composed lines together', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Contexto' });
     const propertyId = prop.id!;
 
-    const save = await updateGuestInfo({
+    const save = await updatePropertyContext({
       propertyId,
-      guestInfo: 'WiFi: LuxelGuest / clave 1234. Check-in 15:00.',
+      answers: {
+        wifi: 'La senal llega debil a la pieza del fondo.',
+        recommend: 'La panaderia de la esquina abre temprano.',
+      },
     });
     expect(save.ok).toBe(true);
+
     const { data } = await admin
       .from('properties')
-      .select('guest_info')
+      .select('guest_info, guest_context')
       .eq('id', propertyId)
       .maybeSingle();
-    expect(data!.guest_info).toContain('WiFi');
+    expect(data!.guest_context).toEqual({
+      wifi: 'La senal llega debil a la pieza del fondo.',
+      recommend: 'La panaderia de la esquina abre temprano.',
+    });
+    const info = data!.guest_info as string;
+    expect(info.split('\n')).toHaveLength(2);
+    expect(info).toContain('La senal llega debil a la pieza del fondo.');
+    expect(info).toContain('La panaderia de la esquina abre temprano.');
   });
 
-  it('rejects knowledge for a property the caller does not own', async () => {
-    const r = await updateGuestInfo({ propertyId: nodeCrypto.randomUUID(), guestInfo: 'hola' });
+  it('composes a line only for the fields the host filled', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Parcial' });
+    const propertyId = prop.id!;
+
+    const save = await updatePropertyContext({
+      propertyId,
+      answers: { wifi: 'El router esta detras del televisor.', devices: '   ', parking: '' },
+    });
+    expect(save.ok).toBe(true);
+
+    const { data } = await admin
+      .from('properties')
+      .select('guest_info, guest_context')
+      .eq('id', propertyId)
+      .maybeSingle();
+    expect(Object.keys(data!.guest_context as Record<string, string>)).toEqual(['wifi']);
+    const info = data!.guest_info as string;
+    expect(info.split('\n')).toHaveLength(1);
+    expect(info).toContain('El router esta detras del televisor.');
+  });
+
+  it('drops keys that are not part of the form', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Extra' });
+    const propertyId = prop.id!;
+
+    const save = await updatePropertyContext({
+      propertyId,
+      answers: { wifi: 'Sin maña.', door_code: '4821' },
+    });
+    expect(save.ok).toBe(true);
+
+    const { data } = await admin
+      .from('properties')
+      .select('guest_info, guest_context')
+      .eq('id', propertyId)
+      .maybeSingle();
+    expect(data!.guest_context).toEqual({ wifi: 'Sin maña.' });
+    expect(data!.guest_info as string).not.toContain('4821');
+  });
+
+  it('clears both columns when every answer is blank', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Vacio' });
+    const propertyId = prop.id!;
+
+    await updatePropertyContext({ propertyId, answers: { wifi: 'Algo que contar.' } });
+    const cleared = await updatePropertyContext({
+      propertyId,
+      answers: { wifi: '  ', arrival: '', recommend: '' },
+    });
+    expect(cleared.ok).toBe(true);
+
+    const { data } = await admin
+      .from('properties')
+      .select('guest_info, guest_context')
+      .eq('id', propertyId)
+      .maybeSingle();
+    expect(data!.guest_info).toBeNull();
+    expect(data!.guest_context).toBeNull();
+  });
+
+  it('rejects context for a property the caller does not own', async () => {
+    const r = await updatePropertyContext({
+      propertyId: nodeCrypto.randomUUID(),
+      answers: { wifi: 'hola' },
+    });
     expect(r.ok).toBe(false);
   });
 });

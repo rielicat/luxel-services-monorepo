@@ -26,17 +26,28 @@ type Inbound = {
 let admin: ReturnType<typeof createClient>;
 let handleInboundMessage: (
   i: Inbound,
-) => Promise<{ ok: boolean; action?: string; threadId?: string }>;
+) => Promise<{ ok: boolean; action?: string; threadId?: string; draftId?: string }>;
+let sendReplyDraft: (
+  id: string,
+  body: string,
+  actor: string,
+) => Promise<{ ok: boolean; reason?: string }>;
+let simulateThreadReply: (
+  threadId: string,
+) => Promise<{ ok: boolean; reason?: string; draft?: { id: string; body: string } }>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
-let updateGuestInfo: (i: unknown) => Promise<{ ok: boolean }>;
+let updatePropertyContext: (i: unknown) => Promise<{ ok: boolean }>;
 let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
   handleInboundMessage = (await import('../src/lib/channels/pipeline')).handleInboundMessage;
+  const drafts = await import('../src/lib/messaging/drafts');
+  sendReplyDraft = drafts.sendReplyDraft;
+  simulateThreadReply = drafts.simulateThreadReply;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
-  updateGuestInfo = (await import('../src/app/[locale]/(site)/properties/copilot-actions'))
-    .updateGuestInfo;
+  updatePropertyContext = (await import('../src/app/[locale]/(site)/properties/copilot-actions'))
+    .updatePropertyContext;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin
@@ -57,10 +68,11 @@ afterEach(async () => {
 });
 
 describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
-  it('auto-replies to a benign message and stores the thread', async () => {
+  it('auto-replies to a benign message when the property sends without review', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Mensajes' });
     const propertyId = prop.id!;
-    await updateGuestInfo({ propertyId, guestInfo: 'WiFi: LuxelGuest / clave 1234.' });
+    await updatePropertyContext({ propertyId, answers: { wifi: 'Hay wifi en todo el depto.' } });
+    await admin.from('properties').update({ ai_review: false }).eq('id', propertyId);
 
     const r = await handleInboundMessage({
       propertyId,
@@ -78,9 +90,106 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
     expect(msgs!.map((m) => `${m.source}:${m.direction}`)).toEqual(['guest:in', 'ai:out']);
   });
 
+  it('holds the reply as a pending draft by default, and nothing reaches the guest', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Borrador' });
+    const propertyId = prop.id!;
+    await updatePropertyContext({ propertyId, answers: { wifi: 'Hay wifi en todo el depto.' } });
+
+    const r = await handleInboundMessage({
+      propertyId,
+      externalThreadId: 't-draft',
+      body: '¿Hay wifi?',
+    });
+    expect(r.action).toBe('drafted');
+    expect(r.draftId).toBeTruthy();
+
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('source')
+      .eq('thread_id', r.threadId!);
+    expect(msgs).toHaveLength(1);
+    expect(msgs![0].source).toBe('guest');
+
+    const { data: draft } = await admin
+      .from('guest_reply_drafts')
+      .select('status, body, origin')
+      .eq('id', r.draftId!)
+      .single();
+    expect(draft!.status).toBe('pending');
+    expect(draft!.origin).toBe('inbound');
+    expect(String(draft!.body).length).toBeGreaterThan(0);
+  });
+
+  it('sends the draft only when an operator approves it', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Aprobado' });
+    const r = await handleInboundMessage({
+      propertyId: prop.id!,
+      externalThreadId: 't-approve',
+      body: '¿Hay wifi?',
+    });
+    expect(r.action).toBe('drafted');
+
+    const sent = await sendReplyDraft(
+      r.draftId!,
+      'Sí, hay wifi. Te dejo la clave al llegar.',
+      'op',
+    );
+    expect(sent.ok).toBe(true);
+
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('source, body')
+      .eq('thread_id', r.threadId!)
+      .order('created_at', { ascending: true });
+    expect(msgs).toHaveLength(2);
+    expect(msgs![1].source).toBe('host');
+
+    const { data: draft } = await admin
+      .from('guest_reply_drafts')
+      .select('status, decided_by')
+      .eq('id', r.draftId!)
+      .single();
+    expect(draft!.status).toBe('sent');
+    expect(draft!.decided_by).toBe('op');
+
+    const again = await sendReplyDraft(r.draftId!, 'Otra vez', 'op');
+    expect(again.ok).toBe(false);
+    expect(again.reason).toBe('already_decided');
+  });
+
+  it('simulates a reply for a thread already on record without sending it', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Simulado' });
+    const r = await handleInboundMessage({
+      propertyId: prop.id!,
+      externalThreadId: 't-sim',
+      body: '¿Hay wifi?',
+    });
+
+    const sim = await simulateThreadReply(r.threadId!);
+    expect(sim.ok).toBe(true);
+    expect(sim.draft!.id).not.toBe(r.draftId);
+
+    const { data: drafts } = await admin
+      .from('guest_reply_drafts')
+      .select('id, status, origin')
+      .eq('thread_id', r.threadId!);
+    const pending = drafts!.filter((d) => d.status === 'pending');
+    expect(pending).toHaveLength(1);
+    expect(pending[0].origin).toBe('simulation');
+
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('source')
+      .eq('thread_id', r.threadId!);
+    expect(msgs).toHaveLength(1);
+  });
+
   it('routes to a Luxel human when the AI is off for the property, nothing auto-sent', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto IA Apagada' });
-    await updateGuestInfo({ propertyId: prop.id, guestInfo: 'WiFi: LuxelGuest / clave 1234.' });
+    await updatePropertyContext({
+      propertyId: prop.id,
+      answers: { wifi: 'Hay wifi en todo el depto.' },
+    });
     await admin.from('properties').update({ ai_enabled: false }).eq('id', prop.id!);
 
     const r = await handleInboundMessage({

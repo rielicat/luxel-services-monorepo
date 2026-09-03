@@ -638,12 +638,13 @@ export async function ingestThread(
   propertyId: string,
   reservationId: string,
   watermark: string | null,
-): Promise<{ imported: number; replies: number }> {
+): Promise<{ imported: number; replies: number; drafts: number }> {
   let imported = 0;
   let replies = 0;
+  let drafts = 0;
 
   const messages = await listHospitableMessages(token, reservationId);
-  if (!messages?.length) return { imported, replies };
+  if (!messages?.length) return { imported, replies, drafts };
   const guestName = messages.find((m) => m.sender_type === 'guest')?.sender?.first_name ?? null;
 
   const { data: thread } = await supabase
@@ -660,7 +661,7 @@ export async function ingestThread(
     )
     .select('id')
     .single();
-  if (!thread) return { imported, replies };
+  if (!thread) return { imported, replies, drafts };
 
   const { data: existing } = await supabase
     .from('guest_messages')
@@ -685,6 +686,7 @@ export async function ingestThread(
         externalMessageId: m.id,
       });
       if (res.action === 'sent') replies++;
+      if (res.action === 'drafted') drafts++;
       imported++;
     } else {
       await supabase.from('guest_messages').upsert(
@@ -701,7 +703,7 @@ export async function ingestThread(
     }
     seen.add(m.id);
   }
-  return { imported, replies };
+  return { imported, replies, drafts };
 }
 
 async function syncConversations(
@@ -711,9 +713,10 @@ async function syncConversations(
   reservations: HospitableReservation[],
   watermark: string | null,
   now: Date,
-): Promise<{ imported: number; replies: number }> {
+): Promise<{ imported: number; replies: number; drafts: number }> {
   let imported = 0;
   let replies = 0;
+  let drafts = 0;
   const recentCutoff = iso(new Date(now.getTime() - 14 * DAY));
   const active = reservations.filter((r) => r.departure_date.slice(0, 10) >= recentCutoff);
 
@@ -721,8 +724,9 @@ async function syncConversations(
     const one = await ingestThread(supabase, token, propertyId, r.id, watermark);
     imported += one.imported;
     replies += one.replies;
+    drafts += one.drafts;
   }
-  return { imported, replies };
+  return { imported, replies, drafts };
 }
 
 async function purgeExpiredGuestDocuments(supabase: Supabase, today: string): Promise<void> {

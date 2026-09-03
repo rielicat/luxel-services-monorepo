@@ -1,15 +1,16 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { draftGuestReply } from '@/lib/ai/copilot';
-import { buildGrounding } from '@/lib/ai/grounding';
+import { buildThreadHistory, recordReplyDraft } from '@/lib/messaging/drafts';
 import { getMessageSender } from './provider';
 import { hospitableTokenForCustomer } from './hospitable';
 
 type InboundResult = {
   ok: boolean;
-  action?: 'sent' | 'handoff' | 'duplicate';
+  action?: 'sent' | 'drafted' | 'handoff' | 'duplicate';
   draft?: string;
   threadId?: string;
+  draftId?: string;
 };
 
 export async function handleInboundMessage(input: {
@@ -49,17 +50,21 @@ export async function handleInboundMessage(input: {
     .single();
   if (!thread) return { ok: false };
 
-  await supabase.from('guest_messages').insert({
-    thread_id: thread.id,
-    direction: 'in',
-    source: 'guest',
-    body: input.body,
-    external_id: input.externalMessageId ?? null,
-  });
+  const { data: inbound } = await supabase
+    .from('guest_messages')
+    .insert({
+      thread_id: thread.id,
+      direction: 'in',
+      source: 'guest',
+      body: input.body,
+      external_id: input.externalMessageId ?? null,
+    })
+    .select('id')
+    .maybeSingle();
 
   const { data: property } = await supabase
     .from('properties')
-    .select('ai_enabled, owner_id')
+    .select('ai_enabled, ai_review, owner_id')
     .eq('id', input.propertyId)
     .maybeSingle();
   if (property && property.ai_enabled === false) {
@@ -70,25 +75,7 @@ export async function handleInboundMessage(input: {
     return { ok: true, action: 'handoff', threadId: thread.id };
   }
 
-  const [grounding, { data: recent }] = await Promise.all([
-    buildGrounding(input.propertyId),
-    supabase
-      .from('guest_messages')
-      .select('source, body')
-      .eq('thread_id', thread.id)
-      .order('created_at', { ascending: false })
-      .limit(8),
-  ]);
-  const history = [
-    grounding.text,
-    'Conversación actual:',
-    ...(recent ?? [])
-      .reverse()
-      .map((m) => `${m.source === 'guest' ? 'Huésped' : 'Anfitrión'}: ${m.body}`),
-  ]
-    .filter(Boolean)
-    .join('\n');
-
+  const history = await buildThreadHistory(supabase, thread.id as string, input.propertyId);
   const draft = await draftGuestReply(input.propertyId, input.body, { history });
   if (!draft.ok) return { ok: false, threadId: thread.id };
 
@@ -98,6 +85,25 @@ export async function handleInboundMessage(input: {
       .update({ status: 'needs_host', updated_at: new Date().toISOString() })
       .eq('id', thread.id);
     return { ok: true, action: 'handoff', draft: draft.draft, threadId: thread.id };
+  }
+
+  if (property?.ai_review !== false) {
+    const pending = await recordReplyDraft(supabase, {
+      threadId: thread.id as string,
+      inboundMessageId: inbound?.id ?? null,
+      guestMessage: input.body,
+      body: draft.draft,
+      handoff: false,
+      origin: 'inbound',
+    });
+    if (!pending) return { ok: false, threadId: thread.id };
+    return {
+      ok: true,
+      action: 'drafted',
+      draft: draft.draft,
+      threadId: thread.id,
+      draftId: pending.id,
+    };
   }
 
   let token: string | null = null;

@@ -277,6 +277,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: unknown) => fn }));
 
 let admin: ReturnType<typeof createClient>;
+let sendWithoutReview: () => Promise<void>;
 let connectHospitable: (
   i: unknown,
 ) => Promise<{ ok: boolean; error?: string; properties?: number }>;
@@ -409,6 +410,9 @@ beforeAll(async () => {
 
   const a = await import('../src/app/[locale]/(site)/properties/channel-actions');
   connectHospitable = a.connectHospitable;
+  sendWithoutReview = async () => {
+    await admin.from('properties').update({ ai_review: false }).eq('owner_id', customerId);
+  };
   const syncLib = await import('../src/lib/channels/hospitable-sync');
   syncHospitable = () => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN);
   syncHospitableAt = (now: Date) => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN, now);
@@ -740,6 +744,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(anchors!.map((a) => a.reservation_uid).sort()).toEqual(['hosp:res-1', 'hosp:res-2']);
     expect(anchors!.every((a) => a.notified_at === null)).toBe(true);
     await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
+    await sendWithoutReview();
 
     const future = new Date(Date.now() + 60_000).toISOString();
     MESSAGES.push({
@@ -784,6 +789,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
 
   it('webhook ingests a guest message and auto-replies through Hospitable', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
+    await sendWithoutReview();
     SENT.length = 0;
     const { POST } = await import('../src/app/api/channels/[provider]/route');
 
@@ -818,6 +824,44 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       { params: Promise.resolve({ provider: 'hospitable' }) },
     );
     expect(((await res2.json()) as { ignored?: boolean }).ignored).toBe(true);
+  });
+
+  it('holds the webhook reply as a draft while the property waits for review', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    SENT.length = 0;
+    const { POST } = await import('../src/app/api/channels/[provider]/route');
+
+    MESSAGES.push({
+      id: 'wh-draft-1',
+      body: '¿El depto tiene estacionamiento?',
+      sender_type: 'guest',
+      created_at: new Date(Date.now() + 60_000).toISOString(),
+      sender: { first_name: 'Matheus' },
+    });
+
+    const res = await POST(
+      new Request('http://localhost/api/channels/hospitable', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'message.created', data: { reservation_id: 'res-1' } }),
+      }),
+      { params: Promise.resolve({ provider: 'hospitable' }) },
+    );
+    expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
+    expect(SENT).toHaveLength(0);
+
+    const { data: thread } = await admin
+      .from('guest_threads')
+      .select('id')
+      .eq('external_thread_id', 'res-1')
+      .single();
+    const { data: drafts } = await admin
+      .from('guest_reply_drafts')
+      .select('status, guest_message')
+      .eq('thread_id', thread!.id)
+      .eq('status', 'pending');
+    expect(drafts).toHaveLength(1);
+    expect(drafts![0].guest_message).toBe('¿El depto tiene estacionamiento?');
   });
 
   it('never speaks for a guest — a forged payload body is not delivered', async () => {

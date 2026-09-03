@@ -27,6 +27,10 @@ export default async function AdminDebugPage() {
             Estado de integraciones y enlaces de prueba.{' '}
             <Link href="/admin/listings" className="text-primary hover:underline">
               Asignar propiedades
+            </Link>{' '}
+            ·{' '}
+            <Link href="/admin/inbox" className="text-primary hover:underline">
+              Bandeja de huéspedes
             </Link>
           </p>
         </div>

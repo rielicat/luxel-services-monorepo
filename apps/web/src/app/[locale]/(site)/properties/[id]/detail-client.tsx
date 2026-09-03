@@ -295,8 +295,6 @@ export function PropertyDetailClient({
         ))}
       </div>
 
-      <ContextPanel propertyId={property.id} guestInfo={property.guest_info} />
-
       <Modal open={expanded != null} onClose={() => setOpenMetric(null)} title={expanded?.label}>
         {expanded && (
           <div className="grid gap-3">
@@ -340,6 +338,8 @@ export function PropertyDetailClient({
       </Modal>
 
       <div className="grid gap-8">
+        <ContextPanel propertyId={property.id} guestContext={property.guest_context} />
+
         <Section icon={CalendarDays} title={t('sec_stays')}>
           <StaysTimeline
             stays={stays}

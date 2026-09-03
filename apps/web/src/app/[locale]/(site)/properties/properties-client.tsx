@@ -23,6 +23,7 @@ export type PropertyRow = {
   address: string | null;
   comuna: string | null;
   guest_info: string | null;
+  guest_context: Record<string, string> | null;
   external_listing_id: string | null;
   platform: string | null;
   ai_enabled: boolean;
