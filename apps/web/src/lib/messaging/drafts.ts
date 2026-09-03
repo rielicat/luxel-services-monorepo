@@ -262,22 +262,6 @@ export async function discardReplyDraft(
   return { ok: true };
 }
 
-export async function setPropertyAiReview(
-  propertyId: string,
-  review: boolean,
-): Promise<{ ok: boolean }> {
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase
-    .from('properties')
-    .update({ ai_review: review })
-    .eq('id', propertyId);
-  if (error) {
-    console.error('drafts.review_toggle_failed', { propertyId, message: error.message });
-    return { ok: false };
-  }
-  return { ok: true };
-}
-
 export async function listInboxThreads(limit = 30): Promise<InboxThread[]> {
   const supabase = createSupabaseServiceRoleClient();
   const { data: threads } = await supabase

@@ -11,7 +11,6 @@ import {
   approveDraft,
   rejectDraft,
   simulateReply,
-  toggleAiReview,
   type InboxActionResult,
   type InboxThread,
 } from './actions';
@@ -229,24 +228,6 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
               </Button>
             </div>
           )}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={working}
-              onClick={() =>
-                run(
-                  thread.id,
-                  () => toggleAiReview({ propertyId: thread.propertyId, review: !thread.aiReview }),
-                  t('review_saved'),
-                )
-              }
-            >
-              {thread.aiReview ? t('review_switch_off') : t('review_switch_on')}
-            </Button>
-            <span className="text-muted-foreground text-xs">{t('review_hint')}</span>
-          </div>
         </CardContent>
       </Card>
     );

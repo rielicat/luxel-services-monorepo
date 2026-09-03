@@ -24,7 +24,9 @@ export default async function AdminInboxPage() {
         </span>
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">{t('title')}</h1>
-          <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
+          <p className="text-muted-foreground text-sm">
+            {t('subtitle')} {t('review_managed')}
+          </p>
         </div>
       </div>
 

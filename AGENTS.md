@@ -141,9 +141,10 @@ supabase/        migrations + local config
   edits it if needed, and approves it; only then does the message reach the
   guest. An approved text that differs from the draft is stored as `host`, not
   `ai`. `simulateThreadReply` drafts a reply for a thread already on record
-  without sending it. Set `ai_review` to `false` per property to let Lux answer
-  on its own. Only one pending draft per thread: a newer guest message
-  supersedes the older draft.
+  without sending it. `ai_enabled` and `ai_review` are operator-managed in
+  `apps/admin` at `/ai`, per property or for every property at once; there is no
+  host-facing switch, and the web inbox only shows the mode. Only one pending
+  draft per thread: a newer guest message supersedes the older draft.
 - Plans live in `plan_subscriptions`: `plan` is always `commission`, the only
   plan, `status` ∈ `requested | active | cancelled`. The host requests the plan
   (`requestPlan`); a Luxel operator activates it. There is no billing code and no

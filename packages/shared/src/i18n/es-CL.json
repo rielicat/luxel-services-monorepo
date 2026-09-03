@@ -558,12 +558,7 @@
     "ai_off": "IA apagada para esta propiedad",
     "review_on": "Revisión antes de enviar",
     "review_off": "Envío automático",
-    "review_switch_on": "Pedir revisión",
-    "review_switch_off": "Enviar sin revisar",
-    "review_hint": "Con revisión activa, Lux redacta y espera tu visto bueno.",
-    "review_saved": "Guardamos el modo de esta propiedad.",
     "draft_title": "Borrador de Lux",
-    "draft_from": "Responde a: {message}",
     "origin_inbound": "Generado al llegar el mensaje",
     "origin_simulation": "Generado en una simulación",
     "model": "Modelo: {model}",
@@ -590,6 +585,7 @@
     "error_send_failed": "No pudimos entregar el mensaje al canal. No lo dimos por enviado.",
     "error_no_access": "No hay credencial del canal para esta propiedad.",
     "error_already_decided": "Ese borrador ya se resolvió. Recarga la página.",
-    "error_generic": "No pudimos completar la acción. Inténtalo de nuevo."
+    "error_generic": "No pudimos completar la acción. Inténtalo de nuevo.",
+    "review_managed": "El modo de cada propiedad se cambia en el panel de operación."
   }
 }

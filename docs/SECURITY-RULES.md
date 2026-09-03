@@ -30,9 +30,10 @@ rules. Do not add code paths that break them.
   edits it if needed, and approves it. Only then does the message reach the
   guest. An approved text that differs from the draft is stored as `host`, not
   `ai`. `simulateThreadReply` drafts a reply for a thread already on record
-  without sending it. Set `ai_review` to `false` per property to let Lux answer
-  on its own. One pending draft per thread: a newer guest message supersedes the
-  older draft.
+  without sending it. `ai_enabled` and `ai_review` are operator-managed in
+  `apps/admin` at `/ai`, per property or for every property at once. There is no
+  host-facing switch, and the web inbox only shows the mode. One pending draft
+  per thread: a newer guest message supersedes the older draft.
 - Plans live in `plan_subscriptions`: `plan` is always `commission`, the only
   plan; `status` is `requested`, `active`, or `cancelled`. The host requests the
   plan (`requestPlan`); a Luxel operator activates it. No billing code, no
