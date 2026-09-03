@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { appUrl } from '../src/lib/urls';
+import { appUrl } from '@luxel/core/urls';
 
 const KEYS = ['VERCEL_ENV', 'VERCEL_URL', 'VERCEL_PROJECT_PRODUCTION_URL'] as const;
 const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));

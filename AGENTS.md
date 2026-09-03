@@ -69,6 +69,7 @@ Web tests need local Supabase and `apps/web/.env.local` sourced. Scope with
 apps/web         @luxel/web              customer app → Vercel (serviciosluxel.cl)
 apps/admin       @luxel/admin            operator panel → Vercel
 workers/whatsapp @luxel/whatsapp-worker  Cloudflare Worker: WhatsApp webhook + /send
+packages/core    @luxel/core             server domain: channels, AI, messaging, Supabase, crew
 packages/shared  @luxel/shared           i18n catalogs, WhatsApp template kinds, constants
 packages/config  @luxel/config           ESLint / TS / Tailwind presets
 infra/cloudflare @luxel/infra-cloudflare Pulumi: DNS + Email Routing (R2 state)
@@ -78,17 +79,17 @@ supabase/        migrations + local config
 
 ## Stack
 
-| Concern         | Tool                                                                                                        |
-| --------------- | ----------------------------------------------------------------------------------------------------------- |
-| Hosting         | Vercel (one project per app root)                                                                           |
-| Edge            | Cloudflare Workers, DNS, Email Routing                                                                      |
-| Auth            | Clerk. Web `/admin` = Clerk `admin` role; `apps/admin` = Clerk org membership (`LUXEL_ADMIN_ORG_ID`/`SLUG`) |
-| Database        | Supabase Postgres + RLS                                                                                     |
-| Channel (PMS)   | Hospitable, as a plugin behind `apps/web/src/lib/channels/registry.ts`                                      |
-| Messaging       | WhatsApp Cloud API (worker), Resend email fallback                                                          |
-| AI              | OpenAI `gpt-5.6-terra`, pinned in `lib/ai/client.ts` (no env override)                                      |
-| Dynamic pricing | PriceLabs (part of the plan)                                                                                |
-| Analytics       | In-house `analytics_events` + `leads`                                                                       |
+| Concern         | Tool                                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| Hosting         | Vercel (one project per app root)                                                                        |
+| Edge            | Cloudflare Workers, DNS, Email Routing                                                                   |
+| Auth            | Clerk. `apps/web` = host sign-in only; `apps/admin` = Clerk org membership (`LUXEL_ADMIN_ORG_ID`/`SLUG`) |
+| Database        | Supabase Postgres + RLS                                                                                  |
+| Channel (PMS)   | Hospitable, as a plugin behind `packages/core/src/channels/registry.ts`                                  |
+| Messaging       | WhatsApp Cloud API (worker), Resend email fallback                                                       |
+| AI              | OpenAI `gpt-5.6-terra`, pinned in `lib/ai/client.ts` (no env override)                                   |
+| Dynamic pricing | PriceLabs (part of the plan)                                                                             |
+| Analytics       | In-house `analytics_events` + `leads`                                                                    |
 
 ## Conventions
 
@@ -126,7 +127,7 @@ supabase/        migrations + local config
 - Crew is **Luxel-owned**, not mirrored. `crew_member` (internal or external)
   and `crew_assignment` (member, property, role) are operator-managed in
   `apps/admin` at `/crew`. The sync never touches them. `recipients()` in
-  `apps/web/src/lib/crew/index.ts` decides who is notified: assigned crew
+  `packages/core/src/crew/index.ts` decides who is notified: assigned crew
   first, the Hospitable teammate mirror only when the assignment reaches
   nobody. Both notifiers call it; neither queries `property_contacts`.
 - Cleanings are a **Luxel-run operation**. The sync pass creates one per imported
@@ -157,7 +158,7 @@ supabase/        migrations + local config
   `origin` filter can reach a cascade.
 - Lux replies to guests **behind a review gate**. `properties.ai_reviews` defaults to
   `true`: the pipeline stores the AI reply in `guest_reply_drafts` with status
-  `pending` and sends nothing. A Luxel operator reviews it at `/admin/inbox`,
+  `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in `apps/admin`,
   edits it if needed, and approves it; only then does the message reach the
   guest. An approved text that differs from the draft is stored as `host`, not
   `ai`. `simulateThreadReply` drafts a reply for a thread already on record
@@ -216,7 +217,7 @@ block in `apps/web/src/middleware.ts`.
 - The commission base is the booking only. The guest cleaning fee is 100% for
   the cleaning crew, and Luxel charges no commission on it. The sync mirrors
   it as `reservation_revenue.cleaning_fee_clp`, and `commissionBaseClp` in
-  `apps/web/src/lib/revenue.ts` is the host payout minus that fee. Luxel pays
+  `packages/core/src/revenue.ts` is the host payout minus that fee. Luxel pays
   the crew against a document — a contract or a boleta de honorarios — so the
   fee is a documented pass-through and not undeclared Luxel revenue.
 - **Not true yet.** Airbnb co-host payout splitting is not configured on any

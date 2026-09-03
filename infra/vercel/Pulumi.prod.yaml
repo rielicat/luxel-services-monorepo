@@ -12,4 +12,4 @@ config:
   luxel-vercel:admin:
     name: luxel-admin
     rootDirectory: apps/admin
-    domain: panel.serviciosluxel.cl
+    domain: admin.serviciosluxel.cl

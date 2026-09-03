@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { capture } from '@/lib/analytics/server';
-import { EVENTS } from '@/lib/analytics/events';
-import { workingHoursStatus } from '@/lib/working-hours';
-import { whatsappBridgeConfigured, sendWhatsAppViaWorker } from '@/lib/whatsapp/send';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { capture } from '@luxel/core/analytics/server';
+import { EVENTS } from '@luxel/core/analytics/events';
+import { workingHoursStatus } from '@luxel/core/working-hours';
+import { whatsappBridgeConfigured, sendWhatsAppViaWorker } from '@luxel/core/whatsapp/send';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import type * as CrewModule from '../src/lib/crew';
+import type * as CrewModule from '@luxel/core/crew';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
@@ -46,15 +46,18 @@ beforeAll(async () => {
     return realFetch(input, init);
   });
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
-  const { debugCheckinLink } = await import('../src/app/[locale]/(site)/admin/debug/actions');
+  const { checkinToken } = await import('@luxel/core/checkin/tokens');
   mintCheckinLink = async (propertyId) => {
-    const r = await debugCheckinLink({ propertyId });
-    return { ok: r.ok, token: r.url?.split('/checkin/')[1] };
+    const token = checkinToken();
+    const { error } = await admin
+      .from('checkins')
+      .insert({ property_id: propertyId, token, status: 'pending' });
+    return { ok: !error, token };
   };
   submitCheckin = (await import('../src/app/[locale]/checkin/[id]/actions')).submitCheckin;
-  decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
-  stayRangeEs = (await import('../src/lib/checkin/copy')).stayRangeEs;
-  crew = await import('../src/lib/crew');
+  decryptPII = (await import('@luxel/core/crypto/pii')).decryptPII;
+  stayRangeEs = (await import('@luxel/core/checkin/copy')).stayRangeEs;
+  crew = await import('@luxel/core/crew');
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin
@@ -370,7 +373,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       })
       .eq('token', link.token!);
 
-    const { findCheckin } = await import('../src/lib/checkin/resolve');
+    const { findCheckin } = await import('@luxel/core/checkin/resolve');
     const byToken = await findCheckin(admin, link.token!, 'id, property_id, confirmation_code');
     const byCode = await findCheckin(admin, 'hmtestcode', 'id, property_id, confirmation_code');
     const spaced = await findCheckin(admin, ' HMTESTCODE ', 'id, property_id, confirmation_code');
@@ -400,7 +403,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     for (const t of [linkA.token!, linkB.token!]) {
       await admin.from('checkins').update({ confirmation_code: 'HMSHARED01' }).eq('token', t);
     }
-    const { findCheckin } = await import('../src/lib/checkin/resolve');
+    const { findCheckin } = await import('@luxel/core/checkin/resolve');
     expect(await findCheckin(admin, 'HMSHARED01', 'id, property_id')).toBeNull();
     expect((await findCheckin(admin, linkA.token!, 'id, property_id'))?.id).toBeTruthy();
   });

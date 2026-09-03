@@ -1,12 +1,12 @@
 'use server';
 
 import { z } from 'zod';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { encryptPII, last4 } from '@/lib/crypto/pii';
-import { notifyCheckin } from '@/lib/checkin/notify';
-import { MAX_PARTY, SLOT_RE } from '@/lib/checkin/slots';
-import { santiagoToday } from '@/lib/checkin/window';
-import { findCheckin } from '@/lib/checkin/resolve';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { encryptPII, last4 } from '@luxel/core/crypto/pii';
+import { notifyCheckin } from '@luxel/core/checkin/notify';
+import { MAX_PARTY, SLOT_RE } from '@luxel/core/checkin/slots';
+import { santiagoToday } from '@luxel/core/checkin/window';
+import { findCheckin } from '@luxel/core/checkin/resolve';
 
 const GuestSchema = z.object({
   fullName: z.string().min(1).max(120),

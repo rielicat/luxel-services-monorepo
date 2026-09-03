@@ -55,7 +55,7 @@ luxel-services-monorepo/
 | Infrastructure  | Pulumi (TS): `infra/cloudflare` (zone), `infra/vercel` (projects)         |
 | Auth            | Clerk                                                                     |
 | Database        | Supabase (Postgres + RLS); the server uses the secret key                 |
-| Channel (PMS)   | Hospitable — plugin behind `apps/web/src/lib/channels/registry.ts`        |
+| Channel (PMS)   | Hospitable — plugin behind `packages/core/src/channels/registry.ts`       |
 | AI concierge    | OpenAI (`gpt-5.6-terra`, pinned in `lib/ai/client.ts`)                    |
 | Email           | Resend                                                                    |
 | Dynamic pricing | PriceLabs (part of the plan)                                              |
@@ -126,10 +126,9 @@ by Clerk organization membership (`LUXEL_ADMIN_ORG_ID` or `LUXEL_ADMIN_ORG_SLUG`
 set in `infra/vercel/admin.ts`; unset = locked). Run it with
 `pnpm --filter @luxel/admin dev`.
 
-The `/admin` pages inside `apps/web` use a different gate. The Clerk user needs
-`publicMetadata.role = "admin"` (`apps/web/src/lib/auth/admin.ts`). They assign
-imported listings to hosts (`/admin/listings`) and show sync diagnostics
-(`/admin/debug`).
+The customer app has no operator pages. Assigning imported listings to hosts
+(`/listings`), the guest inbox (`/inbox`) and the sync diagnostics (`/debug`)
+all live in the operator panel, behind the same organization gate.
 
 ## External setup (one-time, owned by the operator)
 

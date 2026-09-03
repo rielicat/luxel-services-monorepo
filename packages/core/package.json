@@ -1,0 +1,30 @@
+{
+  "name": "@luxel/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./crew": "./src/crew/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.0.0",
+    "@luxel/shared": "workspace:*",
+    "@supabase/ssr": "^0.5.1",
+    "@supabase/supabase-js": "^2.45.4",
+    "openai": "^6.45.0",
+    "server-only": "^0.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@luxel/config": "workspace:*",
+    "@types/node": "^22.7.4",
+    "eslint": "^9.11.1",
+    "next": "^15.0.0",
+    "typescript": "^5.6.2"
+  }
+}

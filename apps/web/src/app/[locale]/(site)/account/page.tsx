@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { getAccountContext } from '@/lib/customer';
-import { getPlan, type PlanRow } from '@/lib/plans';
+import { getAccountContext } from '@luxel/core/customer';
+import { getPlan, type PlanRow } from '@luxel/core/plans';
 import { planPriceLine } from '@/lib/plan-copy';
 import { Card } from '@/components/ui/card';
 import { TrackView } from '@/components/analytics/track-view';
-import { EVENTS } from '@/lib/analytics/events';
+import { EVENTS } from '@luxel/core/analytics/events';
 import { ProfileForm } from './profile-form';
 import { PlanSettings } from './plan-settings';
 

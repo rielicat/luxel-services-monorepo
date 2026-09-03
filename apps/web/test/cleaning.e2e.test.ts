@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import type * as CrewModule from '../src/lib/crew';
+import type * as CrewModule from '@luxel/core/crew';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
@@ -48,7 +48,7 @@ vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
 }));
 vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: unknown) => fn }));
-vi.mock('@/lib/email/send', () => ({
+vi.mock('@luxel/core/email/send', () => ({
   emailConfigured: () => true,
   sendEmail: async (opts: { to: string | string[]; subject: string }) => {
     EMAILS.push(opts);
@@ -77,11 +77,11 @@ beforeAll(async () => {
     return realFetch(input, init);
   });
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
-  suggestCleaningsFromCheckouts = (await import('../src/lib/cleaning/schedule'))
+  suggestCleaningsFromCheckouts = (await import('@luxel/core/cleaning/schedule'))
     .suggestCleaningsFromCheckouts;
-  autoConfirmSuggested = (await import('../src/lib/cleaning/notify')).autoConfirmSuggested;
-  santiagoToday = (await import('../src/lib/checkin/window')).santiagoToday;
-  crew = await import('../src/lib/crew');
+  autoConfirmSuggested = (await import('@luxel/core/cleaning/notify')).autoConfirmSuggested;
+  santiagoToday = (await import('@luxel/core/checkin/window')).santiagoToday;
+  crew = await import('@luxel/core/crew');
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin

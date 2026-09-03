@@ -49,7 +49,7 @@ async function seedPropertyWithManualStay(listingId: string): Promise<string> {
 
 beforeAll(async () => {
   if (!LIVE) return;
-  unassignListing = (await import('../src/lib/channels/scope')).unassignListing;
+  unassignListing = (await import('@luxel/core/channels/scope')).unassignListing;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
   const { data } = await admin
     .from('customers')

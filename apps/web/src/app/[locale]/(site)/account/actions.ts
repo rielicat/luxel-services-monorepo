@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { getOrCreateCustomer } from '@/lib/customer';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { getOrCreateCustomer } from '@luxel/core/customer';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
 
 const ProfileSchema = z.object({
   full_name: z.string().min(2).max(120).optional(),

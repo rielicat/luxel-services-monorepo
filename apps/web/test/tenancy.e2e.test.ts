@@ -69,13 +69,13 @@ beforeAll(async () => {
     return realFetch(input as RequestInfo, init);
   });
 
-  reconcile = (await import('../src/lib/channels/hospitable-sync'))
+  reconcile = (await import('@luxel/core/channels/hospitable-sync'))
     .reconcileHospitableProperties as typeof reconcile;
-  const scopeMod = await import('../src/lib/channels/scope');
+  const scopeMod = await import('@luxel/core/channels/scope');
   assignListing = scopeMod.assignListing;
   unassignListing = scopeMod.unassignListing;
   hospitableAccess = scopeMod.hospitableAccess as typeof hospitableAccess;
-  resolvePricelabsRef = (await import('../src/lib/pricelabs/link'))
+  resolvePricelabsRef = (await import('@luxel/core/pricelabs/link'))
     .resolvePricelabsRef as typeof resolvePricelabsRef;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
@@ -215,7 +215,7 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
   });
 
   it('a tokenless watermark row is not a connection of the customer’s own', async () => {
-    const { fetchConnection } = await import('../src/lib/host/queries');
+    const { fetchConnection } = await import('@luxel/core/host/queries');
     await admin
       .from('channel_connections')
       .upsert(
@@ -224,7 +224,7 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
       );
     expect((await fetchConnection(customerB))?.has_token).toBe(false);
 
-    const { encryptPII } = await import('../src/lib/crypto/pii');
+    const { encryptPII } = await import('@luxel/core/crypto/pii');
     await admin
       .from('channel_connections')
       .update({ token_enc: encryptPII('tok_real_own_token_value_x') })
@@ -240,7 +240,7 @@ describe.skipIf(!LIVE)('central-account tenancy', () => {
   });
 
   it('treats a stored operator credential as central, not as the customer’s own', async () => {
-    const { encryptPII } = await import('../src/lib/crypto/pii');
+    const { encryptPII } = await import('@luxel/core/crypto/pii');
     await admin.from('channel_connections').upsert(
       {
         customer_id: customerA,

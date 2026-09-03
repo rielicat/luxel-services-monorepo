@@ -1,5 +1,5 @@
 import * as cloudflare from '@pulumi/cloudflare';
-import { zoneId, zoneName, vercelTarget, panelTarget, dmarcPolicy } from './config';
+import { zoneId, zoneName, vercelTarget, adminTarget, dmarcPolicy } from './config';
 import { importId } from './adopt';
 
 export const apexRecord = new cloudflare.DnsRecord(
@@ -43,18 +43,18 @@ export const dmarcRecord = new cloudflare.DnsRecord(
   { import: importId('dmarc') },
 );
 
-export const panelRecord = panelTarget
+export const adminRecord = adminTarget
   ? new cloudflare.DnsRecord(
-      'panel',
+      'admin',
       {
         zoneId,
-        name: `panel.${zoneName}`,
+        name: `admin.${zoneName}`,
         type: 'CNAME',
-        content: panelTarget,
+        content: adminTarget,
         ttl: 1,
         proxied: false,
-        comment: 'Admin panel → Vercel — managed by Pulumi',
+        comment: 'Operator panel → Vercel — managed by Pulumi',
       },
-      { import: importId('panel') },
+      { import: importId('admin') },
     )
   : undefined;

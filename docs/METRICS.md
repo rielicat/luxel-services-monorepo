@@ -11,7 +11,7 @@
 
 **Every meaningful action is an event.** If it moves the North Star or explains
 why it moved, it emits a typed event with consistent properties. Names live in
-`apps/web/src/lib/analytics/events.ts` (`EVENTS`). Client and server import the
+`packages/core/src/analytics/events.ts` (`EVENTS`). Client and server import the
 same constants, so names never drift.
 
 The store is ours. `track()` (`lib/analytics/client.ts`) sends client events to
@@ -135,7 +135,7 @@ Dashboards to build:
 - **PII.** Email, phone and `full_name` live in `customers`. Property addresses
   and access data live in `properties` and `property_access`. Guest identity
   documents live encrypted in `checkin_guests` (`LUXEL_PII_KEY`).
-  `purgeExpiredGuestDocuments` in `apps/web/src/lib/channels/hospitable-sync.ts`
+  `purgeExpiredGuestDocuments` in `packages/core/src/channels/hospitable-sync.ts`
   nulls them 90 days after departure. All of it sits under Supabase RLS. **Do
   not send raw PII to PostHog.** Identify persons by a stable id (Clerk user
   id). Send
@@ -167,7 +167,7 @@ Each event and the file that emits it. Paths are relative to the repo root.
 | `ai_tool_called`      | `apps/web/src/app/api/chat/route.ts` (tool loop, per tool execution)                                                      | Server          |
 | `ai_handoff_to_human` | `apps/web/src/app/api/chat/route.ts` (when a tool result sets `handoff`)                                                  | Server          |
 | `cta_clicked`         | `apps/web/src/components/chat/chat-widget.tsx` (Airbnb quote and link cards)                                              | Client          |
-| `lead_captured`       | `apps/web/src/lib/leads.ts` (`createLead`, after insert)                                                                  | Server          |
+| `lead_captured`       | `packages/core/src/leads.ts` (`createLead`, after insert)                                                                 | Server          |
 | `account_viewed`      | `apps/web/src/app/[locale]/(site)/account/page.tsx` (`<TrackView event="account_viewed" />`)                              | Client          |
 
 Planned emit points: `plan_estimate_viewed` from
@@ -175,6 +175,6 @@ Planned emit points: `plan_estimate_viewed` from
 and `plan_cancelled` from
 `apps/web/src/app/[locale]/(site)/properties/plan-actions.ts`; `plan_activated`
 from the operator action once it exists in `apps/admin`; `channel_connected`
-from `apps/web/src/lib/channels/auto-assign.ts` and the `/admin/listings`
+from `packages/core/src/channels/auto-assign.ts` and the `/listings`
 assignment actions; `checkin_submitted` from
 `apps/web/src/app/[locale]/checkin/[id]/actions.ts`.

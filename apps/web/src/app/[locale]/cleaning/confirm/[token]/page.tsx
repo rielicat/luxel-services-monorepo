@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { CheckCircle2, Sparkles, XCircle } from 'lucide-react';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
 import { ConfirmButton } from './confirm-button';
 
 export const dynamic = 'force-dynamic';

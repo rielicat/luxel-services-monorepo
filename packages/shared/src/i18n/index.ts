@@ -1,9 +1,13 @@
 import esCL from './es-CL.json';
+import adminEsCL from './admin-es-CL.json';
 import checkinEn from './checkin.en.json';
 import checkinPt from './checkin.pt.json';
 
 export const messages = esCL;
 export type Messages = typeof esCL;
+
+export const adminMessages = adminEsCL;
+export type AdminMessages = typeof adminEsCL;
 
 export const GUEST_LOCALES = ['es', 'en', 'pt'] as const;
 export type GuestLocale = (typeof GUEST_LOCALES)[number];

@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import type OpenAI from 'openai';
 import { auth } from '@clerk/nextjs/server';
-import { getOpenAI, AI_MODEL } from '@/lib/ai/client';
-import { buildSystemPrompt } from '@/lib/ai/system-prompt';
-import { buildTools, runTool, type ToolContext } from '@/lib/ai/tools';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { capture } from '@/lib/analytics/server';
-import { EVENTS } from '@/lib/analytics/events';
-import { createLead } from '@/lib/leads';
+import { getOpenAI, AI_MODEL } from '@luxel/core/ai/client';
+import { buildSystemPrompt } from '@luxel/core/ai/system-prompt';
+import { buildTools, runTool, type ToolContext } from '@luxel/core/ai/tools';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { capture } from '@luxel/core/analytics/server';
+import { EVENTS } from '@luxel/core/analytics/events';
+import { createLead } from '@luxel/core/leads';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

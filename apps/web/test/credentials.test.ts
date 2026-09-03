@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { providerApiKey } from '../src/lib/channels/credentials';
+import { providerApiKey } from '@luxel/core/channels/credentials';
 
 const KEYS = ['PROVIDER_API_KEY', 'HOSPITABLE_API_TOKEN'] as const;
 const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));

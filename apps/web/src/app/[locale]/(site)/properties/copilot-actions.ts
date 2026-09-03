@@ -3,8 +3,8 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { messages } from '@luxel/shared/i18n';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { currentCustomerId, ownsProperty } from '@/lib/host/owner';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { currentCustomerId, ownsProperty } from '@luxel/core/host/owner';
 
 const CONTEXT_FIELDS = [
   'wifi',

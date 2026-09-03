@@ -26,7 +26,7 @@ let customerId: string;
 beforeAll(async () => {
   if (!LIVE) return;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
-  runTool = (await import('../src/lib/ai/tools')).runTool;
+  runTool = (await import('@luxel/core/ai/tools')).runTool;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin
@@ -110,7 +110,7 @@ describe.skipIf(!LIVE)('realized revenue rollup (end to end)', () => {
     await seedStay(id, 'FEB-EDGE', '2027-02-24', '2027-02-28', 4, 400000);
 
     const { realizedRevenueForProperty, realizedRevenueForCustomer, santiagoMonth, monthBounds } =
-      await import('../src/lib/revenue');
+      await import('@luxel/core/revenue');
     const after = new Date('2027-05-02T03:00:00Z');
 
     expect(monthBounds('2027-02')).toEqual({ from: '2027-02-01', to: '2027-03-01' });
@@ -154,7 +154,7 @@ describe.skipIf(!LIVE)('realized revenue rollup (end to end)', () => {
     await seedStay(id, 'CLEAN-B', '2027-06-10', '2027-06-12', 2, 200000, 0);
     await seedStay(id, 'CLEAN-UNKNOWN', '2027-06-20', '2027-06-22', 2, 100000, null);
 
-    const { realizedRevenueForProperty } = await import('../src/lib/revenue');
+    const { realizedRevenueForProperty } = await import('@luxel/core/revenue');
     const { planMonthlyCost } = await import('@luxel/shared/plan-pricing');
     const june = await realizedRevenueForProperty(id, '2027-06', new Date('2027-07-02T03:00:00Z'));
 
@@ -175,7 +175,7 @@ describe.skipIf(!LIVE)('realized revenue rollup (end to end)', () => {
     await seedStay(id, 'NO-CLP', '2027-06-10', '2027-06-13', 3, null);
     await seedStay(id, 'WITH-CLP', '2027-06-20', '2027-06-22', 2, 180000);
 
-    const { realizedRevenueForProperty } = await import('../src/lib/revenue');
+    const { realizedRevenueForProperty } = await import('@luxel/core/revenue');
     const june = await realizedRevenueForProperty(id, '2027-06', new Date('2027-07-05T12:00:00Z'));
     expect(june).toMatchObject({
       stays: 2,
@@ -191,7 +191,7 @@ describe.skipIf(!LIVE)('realized revenue rollup (end to end)', () => {
     const asOf = new Date('2027-11-05T12:00:00Z');
 
     const { realizedRevenueForProperty, realizedRevenueForCustomer } =
-      await import('../src/lib/revenue');
+      await import('@luxel/core/revenue');
     const october = await realizedRevenueForProperty(id, '2027-10', asOf);
     expect(october).toMatchObject({
       stays: 0,
@@ -217,7 +217,7 @@ describe.skipIf(!LIVE)('realized revenue rollup (end to end)', () => {
     const id = prop.id!;
     await seedStay(id, 'FUTURE', '2027-08-10', '2027-08-14', 4, 500000);
 
-    const { realizedRevenueForProperty } = await import('../src/lib/revenue');
+    const { realizedRevenueForProperty } = await import('@luxel/core/revenue');
     const asOf = new Date('2027-08-12T12:00:00Z');
     const running = await realizedRevenueForProperty(id, '2027-08', asOf);
     expect(running.stays).toBe(0);

@@ -1,6 +1,6 @@
 import { Webhook } from 'svix';
 import { NextResponse } from 'next/server';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
 
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET;

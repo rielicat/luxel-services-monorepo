@@ -38,7 +38,7 @@ async function seedThread(propertyId: string, q: string, a: string, source: 'hos
 
 beforeAll(async () => {
   if (!LIVE) return;
-  buildGrounding = (await import('../src/lib/ai/grounding')).buildGrounding;
+  buildGrounding = (await import('@luxel/core/ai/grounding')).buildGrounding;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
   const { data } = await admin

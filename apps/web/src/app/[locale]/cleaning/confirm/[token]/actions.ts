@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
 
 export async function confirmCleaningAttendance(input: unknown): Promise<{ ok: boolean }> {
   const p = z.string().uuid().safeParse(input);

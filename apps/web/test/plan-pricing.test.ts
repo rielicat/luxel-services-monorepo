@@ -5,12 +5,12 @@ import {
   isPlanKey,
   planMonthlyCost,
 } from '@luxel/shared/plan-pricing';
-import { runTool } from '../src/lib/ai/tools';
+import { runTool } from '@luxel/core/ai/tools';
 import {
   MIN_COMPARABLE_LISTINGS,
   summarizeComparables,
   type ComparableStay,
-} from '../src/lib/ai/pricing-reference';
+} from '@luxel/core/ai/pricing-reference';
 
 describe('plan pricing', () => {
   it('charges 12% of the monthly booking revenue', () => {

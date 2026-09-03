@@ -2,8 +2,8 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { currentCustomerId } from '@/lib/host/owner';
-import { claimAirbnbEmail, verifyConnection } from '@/lib/channels/connection';
+import { currentCustomerId } from '@luxel/core/host/owner';
+import { claimAirbnbEmail, verifyConnection } from '@luxel/core/channels/connection';
 
 export type ConnectError = 'validation' | 'auth' | 'store' | 'check';
 

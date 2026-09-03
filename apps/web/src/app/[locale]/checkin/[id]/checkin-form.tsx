@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { arrivalSlots, departureSlots, nightsBetween } from '@/lib/checkin/slots';
+import { arrivalSlots, departureSlots, nightsBetween } from '@luxel/core/checkin/slots';
 import { submitCheckin } from './actions';
 
 export type DocType = 'rut' | 'passport' | 'dni' | 'other';

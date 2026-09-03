@@ -26,7 +26,7 @@ export const accountId = c.require('accountId');
 export const zoneId = c.require('zoneId');
 export const zoneName = c.get('zoneName') ?? 'serviciosluxel.cl';
 export const vercelTarget = c.require('vercelTarget');
-export const panelTarget = c.get('panelTarget') ?? '';
+export const adminTarget = c.get('adminTarget') ?? '';
 export const dmarcPolicy = c.get('dmarcPolicy') ?? 'none';
 export const emailRouting = c.requireObject<EmailRoutingConfig>('emailRouting');
 

@@ -78,15 +78,28 @@ Set in the Vercel dashboard:
 | `CLERK_SECRET_KEY`                                            | session verification and organization-membership lookup  |
 | `PROVIDER_API_KEY` (or legacy `HOSPITABLE_API_TOKEN`)         | blocks and releases nights for a direct stay at `/stays` |
 
+Shared with `luxel-web` — same values, best set once as **team-level shared
+variables** linked to both projects, so the two can never drift:
+
+| Variable                                           | Needed by                                                   | Absent behaviour                                              |
+| -------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| `LUXEL_PII_KEY`                                    | `/inbox` approve — decrypts the customer's Hospitable token | **approving a draft throws.** Must be byte-identical to web's |
+| `OPENAI_API_KEY`                                   | `/inbox` draft and simulate                                 | empty draft, no error                                         |
+| `PROVIDER_API_KEY`                                 | `/listings` and the `/debug` channel probe                  | listings cannot read the central account                      |
+| `PRICELABS_API_KEY`                                | `/debug` probe only                                         | probe reports unconfigured                                    |
+| `RESEND_API_KEY` + `RESEND_FROM`                   | `/debug` probe only                                         | probe reports email broken when it is not                     |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | `/debug` probe only                                         | probe reports WhatsApp broken when it is not                  |
+
 Managed as code in `infra/vercel/admin.ts` (non-secret; applied by
 `.github/workflows/infra-vercel.yml`):
 
-| Variable                                          | Value                                                                     |
-| ------------------------------------------------- | ------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `/sign-in`                                                                |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/`                                                                       |
-| `LUXEL_ADMIN_ORG_SLUG`                            | slug of the operator organization (`servicios-luxel-1783354109102489708`) |
-| `LUXEL_ADMIN_ORG_ID`                              | optional alternative to the slug (`org_…`); not set today                 |
+| Variable                                          | Value                                                                       |
+| ------------------------------------------------- | --------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `/sign-in`                                                                  |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/`                                                                         |
+| `LUXEL_ADMIN_ORG_SLUG`                            | slug of the operator organization (`servicios-luxel-1783354109102489708`)   |
+| `LUXEL_ADMIN_ORG_ID`                              | optional alternative to the slug (`org_…`); not set today                   |
+| `NEXT_PUBLIC_WEB_URL`                             | `https://serviciosluxel.cl` — the `/debug` bench mints check-in links there |
 
 Without `PROVIDER_API_KEY`, `/stays` loads but refuses to create or cancel a
 direct stay: it never writes locally what it could not block in Hospitable.
