@@ -99,6 +99,7 @@ export async function POST(req: Request) {
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
           const llm = await openai.chat.completions.create({
             model: AI_MODEL,
+            reasoning_effort: 'none',
             max_completion_tokens: 1024,
             messages: convo,
             tools,
@@ -194,6 +195,7 @@ export async function POST(req: Request) {
         if (!completed) {
           const final = await openai.chat.completions.create({
             model: AI_MODEL,
+            reasoning_effort: 'none',
             max_completion_tokens: 1024,
             messages: convo,
             stream: true,

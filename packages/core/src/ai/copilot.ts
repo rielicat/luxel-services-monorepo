@@ -122,6 +122,7 @@ export async function draftGuestReply(
   try {
     const res = await openai.chat.completions.create({
       model: AI_MODEL,
+      reasoning_effort: 'none',
       messages: [
         { role: 'system', content: `${SYSTEM}\n\n--- Información del alojamiento ---\n${context}` },
         { role: 'user', content: guestMessage },
