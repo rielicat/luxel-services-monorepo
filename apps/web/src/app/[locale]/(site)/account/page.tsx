@@ -35,7 +35,8 @@ export default async function CuentaPage() {
   }
 
   const firstName = ctx.profile.full_name?.split(' ')[0];
-  const airbnbActive = Boolean(plan && plan.status !== 'cancelled');
+  const airbnbOpen = Boolean(plan && plan.status !== 'cancelled');
+  const airbnbActive = plan?.status === 'active';
   const planKey = isPlanKey(plan?.plan) ? plan.plan : null;
 
   const airbnbStatus =
@@ -46,9 +47,10 @@ export default async function CuentaPage() {
         : plan?.status === 'cancelled'
           ? t('airbnb.cancelled_body')
           : t('airbnb.none_body');
-  const airbnbDetail = airbnbActive
+  const airbnbDetail = airbnbOpen
     ? [
-        planKey && `${planName(tp, planKey)} · ${planPriceLine(tp, planKey)}`,
+        planKey && planName(tp, planKey),
+        planKey && airbnbActive && `${planPriceLine(tp, planKey)} · ${tp('per_listing')}`,
         t('airbnb.count', { n: propertyCount }),
       ]
         .filter(Boolean)
@@ -86,7 +88,7 @@ export default async function CuentaPage() {
               detail={airbnbDetail}
               highlighted={airbnbActive}
             >
-              {airbnbActive ? (
+              {airbnbOpen ? (
                 <Button asChild variant="outline" size="sm">
                   <Link href="/properties">
                     {t('airbnb.manage')} <ArrowRight className="h-4 w-4" />

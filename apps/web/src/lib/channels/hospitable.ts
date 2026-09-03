@@ -183,6 +183,62 @@ export async function listHospitableReservations(
   return out;
 }
 
+interface HospitableFinancialLine {
+  amount?: number | null;
+  formatted?: string | null;
+  label?: string | null;
+  category?: string | null;
+}
+
+export interface HospitableFinancials {
+  currency?: string | null;
+  guest?: { total_price?: HospitableFinancialLine | null } | null;
+  host?: { revenue?: HospitableFinancialLine | null } | null;
+}
+
+export interface HospitablePricedReservation extends HospitableReservation {
+  nights?: number | null;
+  financials?: HospitableFinancials | null;
+}
+
+function formattedClp(formatted: string | null | undefined): number | null {
+  const digits = (formatted ?? '').replace(/\D/g, '');
+  return digits ? Number(digits) : null;
+}
+
+export function hospitableAmountToClp(
+  line: HospitableFinancialLine | null | undefined,
+  currency: string | null | undefined,
+): number | null {
+  if ((currency ?? '').trim().toUpperCase() !== 'CLP') return null;
+  const amount = line?.amount;
+  if (typeof amount !== 'number' || !Number.isFinite(amount)) return null;
+  const shown = formattedClp(line?.formatted);
+  if (shown && Math.round(Math.abs(amount) / shown) === 100) return Math.round(amount / 100);
+  return Math.round(amount);
+}
+
+export async function listHospitablePricedReservations(
+  token: string,
+  propertyId: string,
+  startDate: string,
+  endDate: string,
+): Promise<HospitablePricedReservation[] | null> {
+  const out: HospitablePricedReservation[] = [];
+  let url: string | null =
+    `/reservations?properties%5B%5D=${encodeURIComponent(propertyId)}&start_date=${startDate}&end_date=${endDate}&date_query=checkout&per_page=100&include=financials`;
+  for (let page = 0; url && page < 10; page++) {
+    const r: Awaited<ReturnType<typeof hospGet<HospitablePricedReservation>>> = await hospGet(
+      token,
+      url,
+    );
+    if (!r.ok) return null;
+    out.push(...(r.data ?? []));
+    url = r.nextUrl ?? null;
+  }
+  return out;
+}
+
 export async function getHospitableReservation(
   token: string,
   reservationId: string,

@@ -14,11 +14,20 @@ const MIN = 0;
 const MAX = 4_000_000;
 const STEP = 50_000;
 const DEFAULT = 1_500_000;
+const MIN_LISTINGS = 1;
+const MAX_LISTINGS = 50;
+
+function clampListings(value: number): number {
+  if (!Number.isFinite(value)) return MIN_LISTINGS;
+  return Math.min(MAX_LISTINGS, Math.max(MIN_LISTINGS, Math.round(value)));
+}
 
 export function PlanComparison() {
   const t = useTranslations('calculator');
   const tp = useTranslations('plans');
   const [revenue, setRevenue] = useState(DEFAULT);
+  const [listingsInput, setListingsInput] = useState(String(MIN_LISTINGS));
+  const listings = clampListings(Number(listingsInput));
   const cheapest = cheapestPlan(revenue);
 
   return (
@@ -63,6 +72,27 @@ export function PlanComparison() {
             <p className="text-muted-foreground text-xs">{t('revenue_hint')}</p>
           </div>
 
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+              <label htmlFor="listings" className="text-sm font-semibold">
+                {t('listings_label')}
+              </label>
+              <input
+                id="listings"
+                type="number"
+                inputMode="numeric"
+                min={MIN_LISTINGS}
+                max={MAX_LISTINGS}
+                step={1}
+                value={listingsInput}
+                onChange={(e) => setListingsInput(e.target.value)}
+                onBlur={() => setListingsInput(String(listings))}
+                className="border-border focus:border-primary w-20 rounded-lg border bg-transparent px-3 py-1.5 text-right text-sm font-semibold tabular-nums outline-none"
+              />
+            </div>
+            <p className="text-muted-foreground text-xs">{t('listings_hint')}</p>
+          </div>
+
           <ul className="grid gap-3">
             {PLAN_KEYS.map((plan) => {
               const best = plan === cheapest;
@@ -89,12 +119,19 @@ export function PlanComparison() {
                     </p>
                     <p className="text-muted-foreground mt-1 text-xs">{planDesc(tp, plan)}</p>
                   </div>
-                  <p className="font-display shrink-0 text-2xl font-bold tabular-nums sm:text-right">
-                    {formatCLP(planMonthlyCost(plan, revenue))}{' '}
-                    <span className="text-muted-foreground text-xs font-medium">
-                      {t('per_month')}
-                    </span>
-                  </p>
+                  <div className="shrink-0 sm:text-right">
+                    <p className="font-display text-2xl font-bold tabular-nums">
+                      {formatCLP(planMonthlyCost(plan, revenue) * listings)}{' '}
+                      <span className="text-muted-foreground text-xs font-medium">
+                        {t('per_month')}
+                      </span>
+                    </p>
+                    {listings > 1 && (
+                      <p className="text-muted-foreground text-xs tabular-nums">
+                        {t('total_listings', { n: listings })}
+                      </p>
+                    )}
+                  </div>
                 </li>
               );
             })}

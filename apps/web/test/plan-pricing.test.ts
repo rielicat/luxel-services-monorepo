@@ -7,7 +7,7 @@ import {
   cheapestPlan,
   isPlanKey,
   planMonthlyCost,
-} from '../src/lib/plan-pricing';
+} from '@luxel/shared/plan-pricing';
 import { runTool } from '../src/lib/ai/tools';
 
 describe('plan pricing', () => {

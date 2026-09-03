@@ -13,7 +13,7 @@ import {
   type PlanKey,
 } from '@/lib/plan-pricing';
 import { fetchProperties } from '@/lib/host/queries';
-import { listHospitableCalendar } from '@/lib/channels/hospitable';
+import { hospitableAmountToClp, listHospitableCalendar } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
 
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
@@ -261,9 +261,11 @@ async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
       if (days?.length) {
         const reserved = days.filter((d) => d.status?.reason === 'RESERVED');
         occupancy = `ocupación 30 días ${Math.round((reserved.length / days.length) * 100)}%`;
-        const priced = reserved.map((d) => d.price?.amount).filter((a): a is number => a != null);
+        const priced = reserved
+          .map((d) => hospitableAmountToClp(d.price, d.price?.currency))
+          .filter((a): a is number => a != null);
         if (priced.length) {
-          const total = priced.reduce((sum, a) => sum + Math.round(a / 100), 0);
+          const total = priced.reduce((sum, a) => sum + a, 0);
           revenue = `ingresos estimados 30 días ${clp(total)}`;
         }
       }

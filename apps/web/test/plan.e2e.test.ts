@@ -10,6 +10,13 @@ process.env.TEST_CLERK_ID = `test-plan-${nodeCrypto.randomUUID()}`;
 
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
+  currentUser: async () => ({
+    id: process.env.TEST_CLERK_ID,
+    emailAddresses: [{ emailAddress: 'plan@test.cl' }],
+    phoneNumbers: [],
+    firstName: 'Plan',
+    lastName: 'Host',
+  }),
 }));
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
@@ -67,12 +74,49 @@ describe.skipIf(!LIVE)('management plan request (end to end)', () => {
 
   it('keeps an operator-activated plan and never activates one itself', async () => {
     expect((await requestMyPlan({ plan: 'hybrid' })).ok).toBe(true);
+    expect((await row()).status).toBe('requested');
+
     await admin
       .from('plan_subscriptions')
       .update({ status: 'active' })
       .eq('customer_id', customerId);
-    expect((await requestMyPlan({ plan: 'hybrid' })).ok).toBe(true);
-    expect((await row()).status).toBe('requested');
+
+    expect((await requestMyPlan({ plan: 'commission' })).ok).toBe(false);
+    const r = await row();
+    expect(r.status).toBe('active');
+    expect(r.plan).toBe('hybrid');
+  });
+
+  it('reports no plan to cancel when the customer has no row', async () => {
+    expect((await cancelMyPlan()).ok).toBe(false);
+    const { count } = await admin
+      .from('plan_subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .eq('customer_id', customerId);
+    expect(count).toBe(0);
+  });
+
+  it('creates the customer row for a host who never opened the account page', async () => {
+    const original = process.env.TEST_CLERK_ID!;
+    const fresh = `test-plan-${nodeCrypto.randomUUID()}`;
+    process.env.TEST_CLERK_ID = fresh;
+    try {
+      expect((await requestMyPlan({ plan: 'fixed' })).ok).toBe(true);
+      const { data: created } = await admin
+        .from('customers')
+        .select('id')
+        .eq('clerk_user_id', fresh)
+        .single();
+      const { data: sub } = await admin
+        .from('plan_subscriptions')
+        .select('plan, status')
+        .eq('customer_id', created!.id as string)
+        .single();
+      expect(sub).toEqual({ plan: 'fixed', status: 'requested' });
+    } finally {
+      await admin.from('customers').delete().eq('clerk_user_id', fresh);
+      process.env.TEST_CLERK_ID = original;
+    }
   });
 
   it('rejects unknown plan keys', async () => {

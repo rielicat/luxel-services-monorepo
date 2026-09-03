@@ -1,13 +1,16 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import {
+  hospitableAmountToClp,
   listHospitableProperties,
+  listHospitablePricedReservations,
   listHospitableReservations,
   listHospitableMessages,
   listHospitableTeammates,
   toChannelListing,
   toChannelReservation,
   type HospitableProperty,
+  type HospitablePricedReservation,
   type HospitableReservation,
   type HospitableTeammate,
 } from './hospitable';
@@ -29,6 +32,7 @@ import { encodeRef, refPattern, type ChannelReservation } from './types';
 const ref = (id: string) => encodeRef({ provider: 'hospitable', id });
 const HOSP = refPattern('hospitable');
 const REVOKE_GRACE_DAYS = 7;
+const REVENUE_LOOKBACK_DAYS = 400;
 
 async function scopeToCustomer<T extends { id: string }>(
   customerId: string,
@@ -191,6 +195,147 @@ export async function mirrorCheckinForReservation(
   }
 }
 
+interface ReservationRevenueRow {
+  property_id: string;
+  booking_key: string;
+  reservation_uid: string;
+  confirmation_code: string | null;
+  arrival_date: string;
+  departure_date: string;
+  nights: number;
+  currency: string | null;
+  host_revenue_clp: number;
+  guest_total_clp: number | null;
+  synced_at: string;
+}
+
+const PRUNE_BATCH = 100;
+const UNSAFE_BOOKING_KEY = /["',]/;
+
+const bookingKeyOf = (r: HospitablePricedReservation): string => (r.code || '').trim() || ref(r.id);
+
+function nightsOf(r: HospitablePricedReservation, arrival: string, departure: string): number {
+  if (typeof r.nights === 'number' && Number.isFinite(r.nights) && r.nights > 0) return r.nights;
+  const span = Math.round(
+    (Date.parse(`${departure}T00:00:00Z`) - Date.parse(`${arrival}T00:00:00Z`)) / DAY,
+  );
+  return Number.isFinite(span) && span > 0 ? span : 0;
+}
+
+function toRevenueRow(
+  propertyId: string,
+  r: HospitablePricedReservation,
+  syncedAt: string,
+): ReservationRevenueRow | null {
+  const arrival = r.arrival_date.slice(0, 10);
+  const departure = r.departure_date.slice(0, 10);
+  const code = (r.code || '').trim() || null;
+  const currency = r.financials?.currency?.trim().toUpperCase() || null;
+  const hostRevenueClp = hospitableAmountToClp(r.financials?.host?.revenue, currency);
+  if (hostRevenueClp === null) return null;
+  return {
+    property_id: propertyId,
+    booking_key: bookingKeyOf(r),
+    reservation_uid: ref(r.id),
+    confirmation_code: code,
+    arrival_date: arrival,
+    departure_date: departure,
+    nights: nightsOf(r, arrival, departure),
+    currency,
+    host_revenue_clp: hostRevenueClp,
+    guest_total_clp: hospitableAmountToClp(r.financials?.guest?.total_price, currency),
+    synced_at: syncedAt,
+  };
+}
+
+export async function mirrorReservationRevenue(
+  supabase: Supabase,
+  token: string,
+  propertyId: string,
+  listingId: string,
+  today: string,
+): Promise<number> {
+  const from = shiftDate(today, -REVENUE_LOOKBACK_DAYS);
+  const priced = await listHospitablePricedReservations(token, listingId, from, today);
+  if (!priced) {
+    console.warn('sync.revenue_fetch_failed', { propertyId });
+    return 0;
+  }
+
+  const syncedAt = new Date().toISOString();
+  const byKey = new Map<string, ReservationRevenueRow>();
+  const keep = new Set<string>();
+  for (const r of priced) {
+    if (!isAcceptedReservation(r)) continue;
+    const departure = r.departure_date.slice(0, 10);
+    if (departure < from || departure >= today) continue;
+    const key = bookingKeyOf(r);
+    if (UNSAFE_BOOKING_KEY.test(key)) {
+      console.warn('sync.revenue_key_rejected', { propertyId, reservationUid: ref(r.id) });
+      continue;
+    }
+    keep.add(key);
+    const row = toRevenueRow(propertyId, r, syncedAt);
+    if (!row) {
+      console.warn('sync.revenue_amount_missing', {
+        propertyId,
+        reservationUid: ref(r.id),
+        currency: r.financials?.currency ?? null,
+      });
+      continue;
+    }
+    byKey.set(row.booking_key, row);
+  }
+  const rows = [...byKey.values()];
+
+  if (!rows.length) {
+    const { count } = await supabase
+      .from('reservation_revenue')
+      .select('id', { count: 'exact', head: true })
+      .eq('property_id', propertyId)
+      .gte('departure_date', from)
+      .lt('departure_date', today);
+    if (count) {
+      console.warn('sync.revenue_frozen', { propertyId, live: count });
+      return 0;
+    }
+  }
+
+  if (rows.length) {
+    const { error } = await supabase
+      .from('reservation_revenue')
+      .upsert(rows, { onConflict: 'property_id,booking_key' });
+    if (error) {
+      console.warn('sync.revenue_upsert_failed', { propertyId, message: error.message });
+      return 0;
+    }
+  }
+
+  const { data: mirrored, error: staleError } = await supabase
+    .from('reservation_revenue')
+    .select('id, booking_key')
+    .eq('property_id', propertyId)
+    .gte('departure_date', from)
+    .lt('departure_date', today);
+  if (staleError) {
+    console.warn('sync.revenue_prune_failed', { propertyId, message: staleError.message });
+    return rows.length;
+  }
+
+  const doomed = (mirrored ?? [])
+    .filter((m) => !keep.has(String(m.booking_key)))
+    .map((m) => String(m.id));
+  for (let i = 0; i < doomed.length; i += PRUNE_BATCH) {
+    const { error } = await supabase
+      .from('reservation_revenue')
+      .delete()
+      .in('id', doomed.slice(i, i + PRUNE_BATCH));
+    if (error) console.warn('sync.revenue_prune_failed', { propertyId, message: error.message });
+  }
+
+  return rows.length;
+}
+
 interface HospitableSyncResult {
   ok: boolean;
   properties: number;
@@ -200,6 +345,7 @@ interface HospitableSyncResult {
   messagesImported: number;
   aiReplies: number;
   relinked: number;
+  revenueStays: number;
 }
 
 type Supabase = ReturnType<typeof createSupabaseServiceRoleClient>;
@@ -607,6 +753,7 @@ export async function syncHospitableAccount(
       messagesImported: 0,
       aiReplies: 0,
       relinked: 0,
+      revenueStays: 0,
     };
 
   const relinked = await relinkStrayProperties(supabase, customerId, token, all, now);
@@ -622,6 +769,7 @@ export async function syncHospitableAccount(
       messagesImported: 0,
       aiReplies: 0,
       relinked,
+      revenueStays: 0,
     };
 
   const { data: conn } = await supabase
@@ -636,6 +784,7 @@ export async function syncHospitableAccount(
   let cleaningCount = 0;
   let messagesImported = 0;
   let aiReplies = 0;
+  let revenueStays = 0;
   const today = santiagoToday(now);
 
   const mirrored: (MirroredProperty & { rp: HospitableProperty })[] = [];
@@ -673,6 +822,8 @@ export async function syncHospitableAccount(
 
       await mirrorCheckinsForReservations(supabase, propertyId, accepted, today);
     }
+
+    revenueStays += await mirrorReservationRevenue(supabase, token, propertyId, rp.id, today);
 
     const c = await suggestCleaningsFromCheckouts(propertyId);
     cleaningCount += c.suggested;
@@ -725,5 +876,6 @@ export async function syncHospitableAccount(
     messagesImported,
     aiReplies,
     relinked,
+    revenueStays,
   };
 }

@@ -6,8 +6,15 @@ export async function capture(
   event: EventName | string,
   distinctId: string,
   properties: Record<string, unknown> = {},
+  options: { customerId?: string | null } = {},
 ): Promise<void> {
-  void recordEvent({ event, distinctId, properties, source: 'server' });
+  void recordEvent({
+    event,
+    distinctId,
+    customerId: options.customerId ?? null,
+    properties,
+    source: 'server',
+  });
 
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   if (!key) return;

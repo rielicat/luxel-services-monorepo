@@ -2,7 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { fetchProperty } from '@/lib/host/queries';
-import { listHospitableCalendar } from '@/lib/channels/hospitable';
+import { hospitableAmountToClp, listHospitableCalendar } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
 import { resolvePricelabsRef } from '@/lib/pricelabs/link';
 import { getPricelabsPrices } from '@/lib/pricelabs/client';
@@ -45,7 +45,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           date: d.date,
           available: d.status?.available === true,
           reserved: d.status?.reason === 'RESERVED',
-          priceClp: d.price?.amount != null ? Math.round(d.price.amount / 100) : null,
+          priceClp: hospitableAmountToClp(d.price, d.price?.currency),
           minStay: d.min_stay ?? null,
         }));
       }

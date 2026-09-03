@@ -63,10 +63,16 @@ const RESERVATIONS_PAYLOAD = {
       platform: 'airbnb',
       arrival_date: '2027-03-03T00:00:00-04:00',
       departure_date: '2027-03-05T00:00:00-04:00',
+      nights: 2,
       reservation_status: { current: { category: 'accepted' } },
       status: 'accepted',
       conversation_language: 'es',
       guest: { first_name: 'Ana', language: 'es' },
+      financials: {
+        currency: 'CLP',
+        guest: { total_price: { amount: 380000, formatted: 'CLP 380,000' } },
+        host: { revenue: { amount: 332900, formatted: 'CLP 332,900' } },
+      },
     },
     {
       id: 'res-2',
@@ -76,11 +82,17 @@ const RESERVATIONS_PAYLOAD = {
       departure_date: '2027-03-14T00:00:00-04:00',
       check_in: '2027-03-10T15:00:00-04:00',
       check_out: '2027-03-14T11:00:00-04:00',
+      nights: 4,
       reservation_status: { current: { category: 'accepted' } },
       status: 'accepted',
       guests: { total: 3 },
       conversation_language: 'pt',
       guest: { first_name: 'Matheus', language: 'pt' },
+      financials: {
+        currency: 'CLP',
+        guest: { total_price: { amount: 728000, formatted: 'CLP 728,000' } },
+        host: { revenue: { amount: 640000, formatted: 'CLP 640,000' } },
+      },
     },
     {
       id: 'res-3',
@@ -88,8 +100,14 @@ const RESERVATIONS_PAYLOAD = {
       platform: 'airbnb',
       arrival_date: '2027-03-20T00:00:00-04:00',
       departure_date: '2027-03-22T00:00:00-04:00',
+      nights: 2,
       reservation_status: { current: { category: 'cancelled' } },
       status: 'cancelled',
+      financials: {
+        currency: 'CLP',
+        guest: { total_price: { amount: 220000, formatted: 'CLP 220,000' } },
+        host: { revenue: { amount: 200000, formatted: 'CLP 200,000' } },
+      },
     },
   ],
   links: { next: null },
@@ -98,6 +116,9 @@ const RESERVATIONS_PAYLOAD = {
 let PROPERTIES_MODE: 'normal' | 'paged_fail' | 'empty' = 'normal';
 let RES_ID_SUFFIX = '';
 let RESERVATIONS_FILTER: ((id: string) => boolean) | null = null;
+let RESERVATIONS_CANCELLED = new Set<string>();
+let RESERVATIONS_UNPRICED = new Set<string>();
+const HOSP_URLS: string[] = [];
 
 const TEAMMATE_CLEANER_ID = 'c1ea0000-0000-4000-8000-000000000001';
 const TEAMMATE_CONCIERGE_ID = 'c0c1e000-0000-4000-8000-000000000002';
@@ -175,7 +196,6 @@ const teammatesFixture = () => [
 ];
 let TEAMMATES = teammatesFixture();
 
-// eslint-disable-next-line prefer-const
 let MESSAGES: Array<{
   id: string;
   body: string;
@@ -225,7 +245,9 @@ let syncHospitable: () => Promise<{
   properties?: number;
   reservations?: number;
   contacts?: number;
+  revenueStays?: number;
 }>;
+let syncHospitableAt: (now: Date) => Promise<{ ok: boolean; revenueStays?: number }>;
 let decryptPII: (s: string) => string;
 let customerId: string;
 let apiCalls = 0;
@@ -241,6 +263,7 @@ beforeAll(async () => {
     }
     if (url.startsWith('https://public.api.hospitable.com/')) {
       apiCalls++;
+      HOSP_URLS.push(url);
       const auth = new Headers(init?.headers).get('authorization') ?? '';
       if (auth !== `Bearer ${FAKE_TOKEN}`) return new Response('Unauthorized', { status: 401 });
       const msgMatch = url.match(/\/reservations\/([^/]+)\/messages/);
@@ -268,7 +291,19 @@ beforeAll(async () => {
           ...RESERVATIONS_PAYLOAD,
           data: RESERVATIONS_PAYLOAD.data
             .filter((r) => RESERVATIONS_FILTER?.(r.id) ?? true)
-            .map((r) => ({ ...r, id: r.id + RES_ID_SUFFIX })),
+            .map((r) => ({
+              ...r,
+              id: r.id + RES_ID_SUFFIX,
+              ...(RESERVATIONS_CANCELLED.has(r.id)
+                ? {
+                    status: 'cancelled',
+                    reservation_status: { current: { category: 'cancelled' } },
+                  }
+                : {}),
+              ...(RESERVATIONS_UNPRICED.has(r.id)
+                ? { financials: { currency: 'CLP', guest: {}, host: {} } }
+                : {}),
+            })),
         });
       }
       if (url.includes('/calendar')) {
@@ -332,6 +367,7 @@ beforeAll(async () => {
   connectHospitable = a.connectHospitable;
   const syncLib = await import('../src/lib/channels/hospitable-sync');
   syncHospitable = () => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN);
+  syncHospitableAt = (now: Date) => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN, now);
   decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
@@ -355,6 +391,9 @@ afterEach(async () => {
   await admin.from('listing_assignments').delete().eq('customer_id', customerId);
   MESSAGES = [];
   RESERVATIONS_FILTER = null;
+  RESERVATIONS_CANCELLED = new Set<string>();
+  RESERVATIONS_UNPRICED = new Set<string>();
+  HOSP_URLS.length = 0;
   SENT.length = 0;
   WA_SENDS.length = 0;
   PROPERTIES_MODE = 'normal';
@@ -1469,5 +1508,210 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     const { customerHospitableToken } = await import('../src/lib/channels/hospitable');
     expect(await customerHospitableToken(customerId)).toBeNull();
     expect(apiCalls).toBeGreaterThan(0);
+  });
+});
+
+const AFTER_STAY = new Date('2027-04-15T12:00:00Z');
+
+const withWarnings = async <T>(fn: () => Promise<T>): Promise<[T, string[]]> => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    const value = await fn();
+    return [value, warn.mock.calls.map((c) => String(c[0]))];
+  } finally {
+    warn.mockRestore();
+  }
+};
+
+describe.skipIf(!LIVE)('Hospitable realized booking revenue (end to end)', () => {
+  const propertyId = async () =>
+    (await admin.from('properties').select('id').eq('owner_id', customerId).single()).data!
+      .id as string;
+
+  const revenueRows = async (id: string) =>
+    (
+      await admin
+        .from('reservation_revenue')
+        .select(
+          'booking_key, reservation_uid, confirmation_code, arrival_date, departure_date, nights, currency, host_revenue_clp, guest_total_clp',
+        )
+        .eq('property_id', id)
+        .order('departure_date')
+    ).data!;
+
+  it('records nothing while every stay is still in the future', async () => {
+    const r = await connectHospitable({ token: FAKE_TOKEN });
+    expect(r.ok).toBe(true);
+    expect(await revenueRows(await propertyId())).toHaveLength(0);
+  });
+
+  it('records one row per completed stay, with the host payout in CLP', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const synced = await syncHospitableAt(AFTER_STAY);
+    expect(synced.ok).toBe(true);
+    expect(synced.revenueStays).toBe(2);
+
+    const rows = await revenueRows(await propertyId());
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      booking_key: 'HMRSHPJXAE',
+      reservation_uid: 'hosp:res-1',
+      confirmation_code: 'HMRSHPJXAE',
+      arrival_date: '2027-03-03',
+      departure_date: '2027-03-05',
+      nights: 2,
+      currency: 'CLP',
+      host_revenue_clp: 332900,
+      guest_total_clp: 380000,
+    });
+    expect(rows[1]).toMatchObject({
+      booking_key: 'HM8TX2H8CD',
+      departure_date: '2027-03-14',
+      nights: 4,
+      host_revenue_clp: 640000,
+      guest_total_clp: 728000,
+    });
+  });
+
+  it('always asks for the checkout window with the financials included', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    HOSP_URLS.length = 0;
+    await syncHospitableAt(AFTER_STAY);
+
+    const priced = HOSP_URLS.filter((u) => u.includes('date_query=checkout'));
+    expect(priced).toHaveLength(1);
+    const url = new URL(priced[0]!);
+    expect(url.pathname).toBe('/v2/reservations');
+    expect(url.searchParams.get('include')).toBe('financials');
+    expect(url.searchParams.get('date_query')).toBe('checkout');
+    expect(url.searchParams.get('properties[]')).toBe(HOSP_PROPERTY_ID);
+    expect(url.searchParams.get('per_page')).toBe('100');
+    expect(url.searchParams.get('end_date')).toBe('2027-04-15');
+    expect(url.searchParams.get('start_date')).toBe('2026-03-11');
+  });
+
+  it('skips a stay Hospitable returns without a host payout instead of billing it as zero', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    RESERVATIONS_UNPRICED = new Set(['res-1']);
+    const [synced, warnings] = await withWarnings(() => syncHospitableAt(AFTER_STAY));
+    expect(synced.revenueStays).toBe(1);
+    expect(warnings).toContain('sync.revenue_amount_missing');
+
+    const rows = await revenueRows(await propertyId());
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.booking_key).toBe('HM8TX2H8CD');
+    expect(rows.reduce((sum, r) => sum + (r.host_revenue_clp as number), 0)).toBe(640000);
+  });
+
+  it('keeps an already mirrored stay that a later sync cannot price', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    await syncHospitableAt(AFTER_STAY);
+    const id = await propertyId();
+    expect(await revenueRows(id)).toHaveLength(2);
+
+    RESERVATIONS_UNPRICED = new Set(['res-2']);
+    const again = await syncHospitableAt(AFTER_STAY);
+    expect(again.revenueStays).toBe(1);
+
+    const rows = await revenueRows(id);
+    expect(rows).toHaveLength(2);
+    expect(rows.reduce((sum, r) => sum + (r.host_revenue_clp as number), 0)).toBe(972900);
+  });
+
+  it('freezes instead of wiping the month when Hospitable returns no stay at all', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    await syncHospitableAt(AFTER_STAY);
+    const id = await propertyId();
+    expect(await revenueRows(id)).toHaveLength(2);
+
+    RESERVATIONS_FILTER = () => false;
+    const [synced, warnings] = await withWarnings(() => syncHospitableAt(AFTER_STAY));
+    expect(synced.ok).toBe(true);
+    expect(synced.revenueStays).toBe(0);
+    expect(warnings).toContain('sync.revenue_frozen');
+
+    const rows = await revenueRows(id);
+    expect(rows).toHaveLength(2);
+    expect(rows.reduce((sum, r) => sum + (r.host_revenue_clp as number), 0)).toBe(972900);
+  });
+
+  it('leaves the cancelled reservation out of the billing base', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    await syncHospitableAt(AFTER_STAY);
+    const rows = await revenueRows(await propertyId());
+    expect(rows.map((r) => r.confirmation_code)).not.toContain('HMCANCELLED');
+    expect(rows.reduce((sum, r) => sum + (r.host_revenue_clp as number), 0)).toBe(972900);
+  });
+
+  it('drops a stay that Hospitable later reports as cancelled', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    await syncHospitableAt(AFTER_STAY);
+    const id = await propertyId();
+    expect(await revenueRows(id)).toHaveLength(2);
+
+    RESERVATIONS_CANCELLED = new Set(['res-2']);
+    await syncHospitableAt(AFTER_STAY);
+    const rows = await revenueRows(id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.confirmation_code).toBe('HMRSHPJXAE');
+  });
+
+  it('re-running the sync never duplicates or double-counts', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    await syncHospitableAt(AFTER_STAY);
+    await syncHospitableAt(AFTER_STAY);
+    await syncHospitableAt(AFTER_STAY);
+
+    const rows = await revenueRows(await propertyId());
+    expect(rows).toHaveLength(2);
+    expect(rows.reduce((sum, r) => sum + (r.host_revenue_clp as number), 0)).toBe(972900);
+  });
+
+  it('survives a reconnect that re-issues reservation ids but keeps the codes', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    await syncHospitableAt(AFTER_STAY);
+    RES_ID_SUFFIX = '-reissued';
+    try {
+      await syncHospitableAt(AFTER_STAY);
+    } finally {
+      RES_ID_SUFFIX = '';
+    }
+
+    const rows = await revenueRows(await propertyId());
+    expect(rows).toHaveLength(2);
+    expect(rows.reduce((sum, r) => sum + (r.host_revenue_clp as number), 0)).toBe(972900);
+    expect(rows[0]!.reservation_uid).toBe('hosp:res-1-reissued');
+    expect(rows[0]!.booking_key).toBe('HMRSHPJXAE');
+  });
+
+  it('rolls the mirrored stays up into the month the host is billed for', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    await syncHospitableAt(AFTER_STAY);
+    const { realizedRevenueForProperty, realizedRevenueForCustomer } =
+      await import('../src/lib/revenue');
+
+    const march = await realizedRevenueForProperty(await propertyId(), '2027-03', AFTER_STAY);
+    expect(march).toMatchObject({
+      month: '2027-03',
+      stays: 2,
+      nights: 6,
+      hostRevenueClp: 972900,
+      guestTotalClp: 1108000,
+      unpricedStays: 0,
+      propertiesCounted: 1,
+      propertiesNeverSynced: 0,
+    });
+    expect(march.syncedAt).toBeTruthy();
+
+    const portfolio = await realizedRevenueForCustomer(customerId, '2027-03', AFTER_STAY);
+    expect(portfolio.hostRevenueClp).toBe(972900);
+    expect(portfolio.properties).toHaveLength(1);
+    expect(portfolio.properties[0]!.hostRevenueClp).toBe(972900);
+
+    const april = await realizedRevenueForProperty(await propertyId(), '2027-04', AFTER_STAY);
+    expect(april.stays).toBe(0);
+    expect(april.hostRevenueClp).toBe(0);
+    expect(april.syncedAt).toBeNull();
+    expect(april.propertiesNeverSynced).toBe(1);
   });
 });

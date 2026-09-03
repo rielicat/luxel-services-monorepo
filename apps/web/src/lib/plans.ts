@@ -21,6 +21,9 @@ export async function getPlan(customerId: string): Promise<PlanRow | null> {
 }
 
 export async function requestPlan(customerId: string, plan: PlanKey): Promise<boolean> {
+  const current = await getPlan(customerId);
+  if (current?.status === 'active') return false;
+
   const supabase = createSupabaseServiceRoleClient();
   const { error } = await supabase.from('plan_subscriptions').upsert(
     {
@@ -36,9 +39,11 @@ export async function requestPlan(customerId: string, plan: PlanKey): Promise<bo
 
 export async function cancelPlan(customerId: string): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('plan_subscriptions')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('customer_id', customerId);
-  return !error;
+    .eq('customer_id', customerId)
+    .select('customer_id')
+    .maybeSingle();
+  return !error && Boolean(data);
 }
