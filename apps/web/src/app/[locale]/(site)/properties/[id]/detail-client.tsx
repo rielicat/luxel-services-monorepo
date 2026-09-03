@@ -19,7 +19,7 @@ import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 import type { Block, PropertyRow } from '../properties-client';
 import { StaysTimeline, buildStays, type StayTimes, type LiveDay } from '../stays-timeline';
-import { AutomationsPanel } from '../automations-panel';
+import { ContextPanel } from '../context-panel';
 
 export type { LiveDay } from '../stays-timeline';
 
@@ -295,13 +295,7 @@ export function PropertyDetailClient({
         ))}
       </div>
 
-      <AutomationsPanel
-        propertyId={property.id}
-        priceOptEnabled={property.price_optimization_enabled === true}
-        guestInfo={property.guest_info}
-        liveDays={upcoming}
-        pricelabsStatus={property.pricelabs_status ?? 'off'}
-      />
+      <ContextPanel propertyId={property.id} guestInfo={property.guest_info} />
 
       <Modal open={expanded != null} onClose={() => setOpenMetric(null)} title={expanded?.label}>
         {expanded && (
