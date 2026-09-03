@@ -66,7 +66,7 @@ export async function POST(req: Request) {
 
   if (!openai) {
     const reply =
-      'El asistente con IA no está disponible en este momento. Puedes ver los planes en la sección Precios del sitio, o escribirnos por WhatsApp y te ayudamos.';
+      'El asistente con IA no está disponible en este momento. Puedes ver el precio en Precios, o escribirnos por WhatsApp y te ayudamos.';
     await persistAssistant(supabase, customerId, sessionId, reply, 'ai_unavailable');
     return sseStream(reply);
   }

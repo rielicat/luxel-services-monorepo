@@ -9,6 +9,11 @@ import { ConnectionNote } from './connection-note';
 import { ConnectPanel, type ConnectState } from './connect-panel';
 import type { HostConnection } from '@/lib/host/queries';
 
+const fmtDate = (d: string) =>
+  new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
+    new Date(`${d}T00:00:00Z`),
+  );
+
 export type Block = {
   id: string;
   starts_on: string;
@@ -159,7 +164,7 @@ function ListingCard({ property }: { property: PropertyRow }) {
         <div className="text-muted-foreground flex items-center justify-between text-xs">
           <span className="flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5" />
-            {nextCheckout ? t('next_checkout', { date: nextCheckout }) : t('no_upcoming')}
+            {nextCheckout ? t('next_checkout', { date: fmtDate(nextCheckout) }) : t('no_upcoming')}
           </span>
           <Link
             href={`/properties/${property.id}`}

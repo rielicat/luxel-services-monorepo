@@ -51,7 +51,7 @@ const LINK_DESTINATIONS: Record<
   pricing: { label: 'Ver el precio', href: '/calculator', style: 'primary' },
   account: { label: 'Mi cuenta', href: '/account', style: 'outline' },
   properties: { label: 'Mis propiedades', href: '/properties', style: 'primary' },
-  sign_in: { label: 'Iniciar sesión', href: '/sign-in', style: 'primary' },
+  sign_in: { label: 'Ingresar', href: '/sign-in', style: 'primary' },
   about: { label: 'Sobre Luxel', href: '/about', style: 'outline' },
 };
 
@@ -168,7 +168,7 @@ export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
       function: {
         name: 'share_links',
         description:
-          'Muestra 1–3 accesos directos útiles al usuario (páginas del sitio) según lo que necesita. Úsala para ofrecer el siguiente paso: ver el servicio, comparar planes, ir a sus propiedades o a su cuenta. Elige solo los destinos relevantes.',
+          'Muestra 1–3 accesos directos útiles al usuario (páginas del sitio) según lo que necesita. Úsala para ofrecer el siguiente paso: ver el servicio, ver el precio, ir a sus propiedades o a su cuenta. Elige solo los destinos relevantes.',
         parameters: {
           type: 'object',
           properties: {
@@ -260,9 +260,9 @@ function getAirbnbQuote(input: Record<string, unknown>): ToolResult {
 
   const content = [
     `Con ingresos de ${revenueText} al mes en ${perListing}, al anfitrión le quedan ${keptText} al mes${forAll}.`,
-    `La comisión Luxel es ${feeText} al mes${forAll}. ${priceLine}`,
-    'Parte SIEMPRE por lo que le queda al anfitrión; la comisión va después y en segundo plano.',
-    'La tarifa de limpieza que paga el huésped no entra en esta base: va completa al equipo de aseo y no paga comisión.',
+    `Nuestro cobro es ${feeText} al mes${forAll}. ${priceLine}`,
+    'Parte SIEMPRE por lo que le queda al anfitrión; nuestro cobro va después y en segundo plano.',
+    'La tarifa de limpieza que paga el huésped no entra en esta base: va completa al equipo de aseo y no le cobramos nada sobre ella.',
     'Airbnb le paga los ingresos directo al anfitrión y Luxel factura a fin de mes con el detalle.',
     'Ya se muestra UNA tarjeta con el resultado: no vuelvas a llamar esta herramienta en la misma respuesta para un segundo escenario.',
   ].join(' ');
@@ -511,8 +511,8 @@ async function escalate(input: Record<string, unknown>, ctx: ToolContext): Promi
   const hours = workingHoursStatus();
   return {
     content: hours.open
-      ? 'Deriva a una persona: un asesor continuará en este mismo chat. Confírmalo brevemente al usuario y pídele que escriba su consulta aquí.'
-      : 'Estamos fuera del horario de atención humana. Avísale al usuario que un asesor le responderá en horario hábil y que puede dejar su mensaje aquí mismo; no prometas respuesta inmediata.',
+      ? 'Deriva a una persona: alguien del equipo Luxel continúa en este mismo chat. Confírmalo brevemente al usuario y pídele que escriba su consulta acá.'
+      : 'Estamos fuera del horario de atención humana. Avísale al usuario que alguien del equipo Luxel le responde en horario hábil y que puede dejar su mensaje acá mismo; no prometas respuesta inmediata.',
     handoff: true,
     widget: {
       kind: 'handoff',

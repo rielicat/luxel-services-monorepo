@@ -71,7 +71,7 @@ describe('get_airbnb_quote', () => {
       commissionPct: 0.12,
     });
     expect(r.content).toContain('$1.540.000');
-    expect(r.content.indexOf('le quedan')).toBeLessThan(r.content.indexOf('comisión Luxel'));
+    expect(r.content.indexOf('le quedan')).toBeLessThan(r.content.indexOf('Nuestro cobro'));
   });
 
   it('keeps the arithmetic honest across several listings', async () => {
@@ -83,11 +83,11 @@ describe('get_airbnb_quote', () => {
     expect(w.keptClp + w.monthlyClp).toBe(3_000_000);
   });
 
-  it('says the guest cleaning fee stays with the crew and pays no commission', async () => {
+  it('says the guest cleaning fee stays with the crew and carries no fee', async () => {
     const r = await quote({ listings: 1, monthly_revenue_clp: 600_000 });
     expect(r.content).toContain('tarifa de limpieza');
     expect(r.content).toContain('equipo de aseo');
-    expect(r.content).toContain('no paga comisión');
+    expect(r.content).toContain('no le cobramos nada sobre ella');
   });
 
   it('renders ONE widget for a revenue range', async () => {

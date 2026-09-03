@@ -103,7 +103,7 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
         `<p>Llegada estimada: ${arrival}.</p>`;
       const r = await sendEmail({
         to: c.email,
-        subject: `Registro de huéspedes — ${property.nickname}`,
+        subject: `Ya tenemos el registro de ${property.nickname}`,
         html,
       });
       results.push({ channel: 'email', to: c.email, role: 'concierge', ok: Boolean(r) });
@@ -111,12 +111,12 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
 
     if (owner?.email) {
       const html =
-        `<p>Se recibió un check-in para <strong>${place}</strong>.</p>` +
+        `<p>Ya tenemos el registro de los huéspedes de <strong>${place}</strong>.</p>` +
         `<p>Huésped: ${who}${checkin.party_size ? ` · ${checkin.party_size} personas` : ''}</p>` +
         `<p>Llegada: ${arrival}.</p>`;
       const r = await sendEmail({
         to: owner.email,
-        subject: `Check-in recibido — ${property.nickname}`,
+        subject: `Ya tenemos el registro de ${property.nickname}`,
         html,
       });
       results.push({ channel: 'email', to: owner.email, role: 'host', ok: Boolean(r) });

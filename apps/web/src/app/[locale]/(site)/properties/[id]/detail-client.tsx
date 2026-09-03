@@ -245,7 +245,7 @@ export function PropertyDetailClient({
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
-      <nav aria-label="breadcrumb" className="mb-5 flex items-center gap-1.5 text-sm">
+      <nav aria-label={t('breadcrumb')} className="mb-5 flex items-center gap-1.5 text-sm">
         <Link
           href="/properties"
           className="text-muted-foreground hover:text-foreground hover:border-primary/30 border-border bg-card flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors"

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Manrope, Fraunces } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { PostHogProvider } from '@/lib/posthog/provider';
@@ -22,11 +22,14 @@ const fraunces = Fraunces({
   variable: '--font-serif',
 });
 
-export const metadata: Metadata = {
-  title: { default: 'Servicios Luxel', template: '%s · Servicios Luxel' },
-  description: 'Administración completa de Airbnb.',
-  metadataBase: new URL('https://serviciosluxel.cl'),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('landing');
+  return {
+    title: { default: 'Servicios Luxel', template: '%s · Servicios Luxel' },
+    description: t('meta_description'),
+    metadataBase: new URL('https://serviciosluxel.cl'),
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

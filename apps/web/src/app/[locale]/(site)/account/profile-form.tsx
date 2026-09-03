@@ -49,7 +49,7 @@ export function ProfileForm({
             id="phone"
             name="phone"
             type="tel"
-            placeholder="+56 9 ..."
+            placeholder={t('phone_placeholder')}
             defaultValue={initial.phone ?? ''}
           />
         </div>
