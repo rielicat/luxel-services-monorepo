@@ -1,14 +1,16 @@
 # Servicios Luxel — Monorepo
 
-Servicios Luxel manages Airbnb listings in Santiago end to end. A host picks a
-plan and grants Luxel access to the listing in Hospitable. Luxel runs dynamic
-pricing, guest replies 24/7, cleaning and laundry between stays, inventory and
-small repairs. The app mirrors the listings and reservations. When a reservation
-arrives, it sends the guest a check-in link in the guest's language. The check-in
-page renders in `es`, `en`, or `pt`. **Lux**, the AI concierge (OpenAI
+Servicios Luxel manages Airbnb listings in Santiago end to end. A host asks for
+the plan and grants Luxel access to the listing in Hospitable. There is one
+plan: 12% of the booking revenue, IVA included, per listing per month. Luxel
+runs dynamic pricing, guest replies 24/7, cleaning and laundry between stays,
+inventory and small repairs. The app mirrors the listings and reservations. A
+Hospitable message rule sends the guest the check-in link; the check-in page
+renders in `es`, `en`, or `pt`. **Lux**, the AI concierge (OpenAI
 `gpt-4o-mini`), answers guest messages from the property's own data. It hands off
 to a Luxel human when it cannot answer. Conserjes and the cleaning crew get
-WhatsApp templates from Luxel. The host receives the income and a monthly report.
+WhatsApp templates from Luxel. Airbnb pays the host, and Luxel invoices the fee
+at the end of the month with a report.
 
 ## Strategy & design docs
 
@@ -17,7 +19,7 @@ The founding strategy, brand system, AI design, and analytics plan live in
 
 | Doc                                                                      | What's inside                                                                      |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| [`docs/GOAL.md`](docs/GOAL.md)                                           | North-star goal, value proposition, host journey, plans, KPIs, roadmap             |
+| [`docs/GOAL.md`](docs/GOAL.md)                                           | North-star goal, value proposition, host journey, the plan, KPIs, roadmap          |
 | [`docs/BRAND.md`](docs/BRAND.md)                                         | Brand identity, "Fresh Teal + Lime" design system, asset specs                     |
 | [`docs/AI.md`](docs/AI.md)                                               | The "Lux" concierge and the guest-reply pipeline — architecture, tools, guardrails |
 | [`docs/METRICS.md`](docs/METRICS.md)                                     | Event taxonomy, plan funnel, cohorts, instrumentation map                          |
@@ -56,7 +58,7 @@ luxel-services-monorepo/
 | Channel (PMS)   | Hospitable — plugin behind `apps/web/src/lib/channels/registry.ts`        |
 | AI concierge    | OpenAI (`gpt-4o-mini`, cost-optimized; `OPENAI_MODEL` override)           |
 | Email           | Resend                                                                    |
-| Dynamic pricing | PriceLabs (part of every plan)                                            |
+| Dynamic pricing | PriceLabs (part of the plan)                                              |
 | Messaging       | WhatsApp Business Cloud API, through the worker `luxel-whatsapp-webhook`  |
 | Monitoring      | In-house event store + `apps/admin` dashboard (Sentry + PostHog optional) |
 | Source control  | GitHub                                                                    |

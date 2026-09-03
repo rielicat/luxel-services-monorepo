@@ -20,10 +20,16 @@ test('the agent box is docked on the homepage', async ({ page }) => {
   await expect(page.getByPlaceholder('¿En qué te puedo ayudar hoy?')).toBeVisible();
 });
 
-test('the pricing page compares the three plans', async ({ page }) => {
+test('the pricing page estimates the single fee', async ({ page }) => {
   await page.goto('/calculator');
   await expect(page.getByRole('slider')).toBeVisible();
-  for (const plan of ['Fijo', 'Mixto', 'Comisión']) {
-    await expect(page.getByRole('heading', { name: plan, exact: true })).toBeVisible();
-  }
+  await expect(page.getByRole('heading', { name: 'Tu cobro Luxel' })).toBeVisible();
+  await expect(page.getByText('12% de tus ingresos').first()).toBeVisible();
+  await expect(page.getByText('por propiedad, IVA incluido').first()).toBeVisible();
+});
+
+test('the home page states the single fee', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('12% de tus ingresos').first()).toBeVisible();
+  await expect(page.getByText('por propiedad, IVA incluido').first()).toBeVisible();
 });

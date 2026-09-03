@@ -25,7 +25,8 @@ under 20 words. Product copy stays `es-CL` and follows [`docs/BRAND.md`](docs/BR
 ## Project
 
 **Servicios Luxel** manages Airbnb listings in Santiago, Chile, end to end. A host
-signs up, picks a plan and grants Luxel access to the listing in Hospitable. Luxel
+signs up, asks for the plan and grants Luxel access to the listing in Hospitable.
+There is one plan: 12% of the booking revenue, per listing, per month. Luxel
 then runs the whole operation: dynamic pricing, guest replies 24/7 with AI ("Lux")
 and Luxel humans, cleaning and laundry between stays, conflict resolution,
 inventory, small repairs and furnishing. The app mirrors listings and reservations.
@@ -85,7 +86,7 @@ supabase/        migrations + local config
 | Channel (PMS)   | Hospitable, as a plugin behind `apps/web/src/lib/channels/registry.ts`                                      |
 | Messaging       | WhatsApp Cloud API (worker), Resend email fallback                                                          |
 | AI              | OpenAI `gpt-4o-mini` (`OPENAI_MODEL` override)                                                              |
-| Dynamic pricing | PriceLabs (part of every plan)                                                                              |
+| Dynamic pricing | PriceLabs (part of the plan)                                                                                |
 | Analytics       | In-house `analytics_events` + `leads`                                                                       |
 
 ## Conventions
@@ -127,8 +128,8 @@ supabase/        migrations + local config
   Hosts have no cleaning controls and no guest inbox. `guest_threads` status
   `needs_host` means "needs a Luxel human". Do not add host-facing crew or inbox
   surfaces.
-- Plans live in `plan_subscriptions`: `plan` ∈ `fixed | hybrid | commission`,
-  `status` ∈ `requested | active | cancelled`. The host requests a plan
+- Plans live in `plan_subscriptions`: `plan` is always `commission`, the only
+  plan, `status` ∈ `requested | active | cancelled`. The host requests the plan
   (`requestPlan`); a Luxel operator activates it. There is no billing code and no
   checkout. Do not add one.
 - Webhook payloads are **identifiers only**. Every value acted on is fetched back
@@ -165,15 +166,24 @@ block in `apps/web/src/middleware.ts`.
 - Marketing nav: `Servicio` (`/services/airbnb`) · `Precios` (`/calculator`) ·
   `Nosotros` (`/about`). One `Ingresar` button. No dropdown. No header CTA.
 - Service icons share one color (`bg-primary/10 text-primary`).
-- Three plans per listing per month (`apps/web/src/lib/plan-pricing.ts`): Fijo
-  189.900 CLP; Mixto 49.900 CLP + 6% of booking revenue; Comisión 12% of booking
-  revenue. Luxel bills monthly, off-platform. No free trial. No "recomendado"
-  badge; the calculator marks the cheapest plan for the entered revenue.
+- One plan only (`packages/shared/src/plan-pricing.ts`): 12% of the booking
+  revenue, IVA included, per listing per month. Luxel bills monthly,
+  off-platform. There is no fixed fee and no other plan. Do not add a second
+  plan, a plan picker or a "recomendado" badge. No free trial. The calculator
+  turns a monthly revenue into the fee; it compares nothing.
+- The commission base is the booking only. The guest cleaning fee is 100% for
+  the cleaning crew, and Luxel charges no commission on it. The sync mirrors
+  it as `reservation_revenue.cleaning_fee_clp`, and `commissionBaseClp` in
+  `apps/web/src/lib/revenue.ts` is the host payout minus that fee.
+- **Not true yet.** Airbnb co-host payout splitting is not configured on any
+  listing. Airbnb pays the host and Luxel invoices monthly, off-platform. No
+  copy may say that Airbnb pays Luxel, deducts our fee or splits the payout.
+  An operator must set the split up first, then this line changes.
 - Hosts never see the crew or the guest messages. Those are Luxel operations.
-- Copy never says "0% comisión", "14 días gratis" or "m²". Voice per
-  [`docs/BRAND.md`](docs/BRAND.md).
+- Copy never says "0% comisión", "tarifa plana", "14 días gratis", "prueba
+  gratis" or "m²". Voice per [`docs/BRAND.md`](docs/BRAND.md).
 - Competitor reference: `airhost.cl`, `airhostchile.com`. Our angle: full
-  management, transparent plans (fixed fee or revenue share), monthly report.
+  management, one transparent fee on the booking revenue, monthly report.
 
 ## CI and deployment
 

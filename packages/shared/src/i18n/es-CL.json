@@ -19,7 +19,7 @@
       "title_lead": "Tu Airbnb,",
       "title_accent": "administrado por completo.",
       "subtitle": "Precios, huéspedes, aseo, reparaciones e inventario. Nosotros nos hacemos cargo de todo; tú recibes los ingresos y un reporte claro cada mes.",
-      "cta_primary": "Ver planes y precios",
+      "cta_primary": "Ver el precio",
       "cta_secondary": "Conversemos",
       "trust": {
         "guests": "Huéspedes atendidos 24/7",
@@ -81,7 +81,7 @@
       "steps": {
         "visit": {
           "title": "Conversamos y visitamos tu propiedad",
-          "body": "Revisamos el depto, definimos el plan y qué falta para publicar."
+          "body": "Revisamos el depto y definimos qué falta para publicar."
         },
         "publish": {
           "title": "Lo preparamos y lo publicamos",
@@ -94,9 +94,9 @@
       }
     },
     "plans": {
-      "title": "Planes",
-      "subtitle": "Tres formas de pagar el mismo servicio completo. Elige la que mejor calce con tu depto.",
-      "cta": "Comparar planes"
+      "title": "Un precio, todo incluido",
+      "subtitle": "{pct}% de lo que generan tus reservas cada mes. Sin costo fijo y sin letra chica.",
+      "cta": "Calcular mi cobro"
     },
     "footer": {
       "tagline": "Administración completa de Airbnb en Santiago.",
@@ -105,16 +105,17 @@
   },
   "calculator": {
     "meta_title": "Precios",
-    "title": "Compara los planes",
-    "subtitle": "Mueve el ingreso mensual estimado de tu depto y mira cuánto cuesta cada plan ese mes.",
+    "title": "Calcula tu cobro",
+    "subtitle": "Mueve el ingreso mensual estimado de tu depto y mira cuánto te cobraríamos ese mes.",
     "revenue_label": "Ingresos mensuales por reservas",
-    "revenue_hint": "Lo que Airbnb te paga en un mes por este depto, antes del plan.",
+    "revenue_hint": "Lo que Airbnb te paga en un mes por este depto, sin la tarifa de limpieza.",
     "listings_label": "Propiedades a administrar",
     "listings_hint": "El ingreso de arriba es por cada propiedad.",
     "total_listings": "total por {n} propiedades",
     "per_month": "al mes",
-    "cheapest": "El más conveniente",
-    "note": "Los planes Comisión y Mixto se cobran sobre los ingresos reales por reservas de cada mes. Verás el detalle en tu reporte.",
+    "fee_label": "Tu cobro Luxel",
+    "net": "Te quedan {amount} de tus ingresos.",
+    "note": "Cobramos sobre las reservas reales de cada mes, sin la tarifa de limpieza. Airbnb te paga a ti y nosotros te cobramos a fin de mes.",
     "cta": "Empezar",
     "cta_hint": "Creas tu cuenta y te contactamos para activar tu plan."
   },
@@ -128,10 +129,10 @@
       "title": "Administración de Airbnb",
       "requested": "Plan solicitado — te contactamos para activarlo",
       "active": "Plan activo",
-      "none_body": "Elige tu plan y Luxel administra tu Airbnb por completo.",
+      "none_body": "Solicita el plan y Luxel administra tu Airbnb por completo.",
       "count": "{n, plural, =0 {Aún sin propiedades conectadas} one {# propiedad conectada} other {# propiedades conectadas}}",
       "manage": "Ir a mis propiedades",
-      "start": "Elegir mi plan",
+      "start": "Solicitar el plan",
       "cancelled_body": "Plan cancelado. Puedes volver cuando quieras."
     },
     "profile": {
@@ -147,9 +148,9 @@
   },
   "auth": {
     "sign_in_title": "Bienvenido de vuelta",
-    "sign_in_subtitle": "Ingresa para ver tus propiedades, tu plan y tus reportes.",
+    "sign_in_subtitle": "Ingresa para ver tus propiedades, tus ingresos y tus reportes.",
     "sign_up_title": "Crea tu cuenta",
-    "sign_up_subtitle": "Conecta tu Airbnb y elige el plan. Nosotros hacemos el resto.",
+    "sign_up_subtitle": "Conecta tu Airbnb y nosotros nos hacemos cargo del resto.",
     "panel_headline": "Tu propiedad en buenas manos",
     "panel_subtitle": "Luxel administra tu Airbnb por completo: precios, huéspedes, aseo, reparaciones e inventario. Tú recibes los ingresos y un reporte claro cada mes.",
     "switch_to_sign_up_prompt": "¿No tienes cuenta?",
@@ -186,7 +187,7 @@
     "bar_placeholder": "¿En qué te puedo ayudar hoy?",
     "agent_tagline": "agente IA · en línea",
     "close": "Cerrar",
-    "airbnb_cta": "Comparar planes",
+    "airbnb_cta": "Ver el precio",
     "airbnb_revenue": "Con {revenue} de ingresos al mes por propiedad"
   },
   "errors": {
@@ -205,9 +206,9 @@
     },
     "a": {
       "furnished": "No. Si hace falta, lo amoblamos y preparamos nosotros. Lo conversamos en la visita.",
-      "cleaning": "El huésped, a través de la tarifa de limpieza del anuncio. Nosotros lo coordinamos.",
+      "cleaning": "El huésped, con la tarifa de limpieza del anuncio. Esa tarifa va completa al equipo de aseo: no cobramos comisión sobre ella.",
       "own_use": "Sí. Bloqueas las fechas que quieras y nosotros ajustamos el calendario.",
-      "income": "Airbnb te paga directo a ti. Nosotros te cobramos el plan a fin de mes, con el detalle.",
+      "income": "Airbnb te paga directo a ti. A fin de mes te cobramos la comisión sobre tus reservas, con el detalle.",
       "contract": "No. Puedes salir con 30 días de aviso.",
       "damage": "Lo documentamos, gestionamos el reclamo con Airbnb y coordinamos la reparación."
     }
@@ -312,17 +313,16 @@
   },
   "hostplan": {
     "title": "Tu plan Luxel",
-    "hint": "Elige un plan y te contactamos para activarlo. Sin contrato de permanencia.",
+    "hint": "Solicita el plan y te contactamos para activarlo. Sin contrato de permanencia.",
     "requested": "Plan solicitado — te contactamos para activarlo",
     "active": "Plan activo",
     "cancelled": "Plan cancelado",
-    "choose": "Elegir este plan",
+    "request": "Solicitar el plan",
     "rerequest": "Solicitar de nuevo",
-    "previous": "Tu plan anterior",
     "cancel": "Cancelar plan",
     "cancel_title": "¿Cancelar tu plan?",
     "cancel_body": "Te contactamos para coordinar la salida con 30 días de aviso. Puedes volver cuando quieras.",
-    "cancel_body_requested": "Cancelamos tu solicitud. Puedes elegir otro plan cuando quieras.",
+    "cancel_body_requested": "Cancelamos tu solicitud. Puedes pedirla de nuevo cuando quieras.",
     "cancel_confirm": "Sí, cancelar",
     "cancel_keep": "Mantener mi plan",
     "error": "No pudimos guardar tu solicitud. Inténtalo de nuevo."
@@ -428,14 +428,14 @@
     "v1_title": "Anfitrión primero",
     "v1_body": "Cada decisión parte de una pregunta: ¿le ahorra tiempo o dinero al anfitrión?",
     "v2_title": "Precios claros",
-    "v2_body": "Tres planes simples, sin costos escondidos. Sabes lo que pagas antes de empezar.",
+    "v2_body": "Un solo cobro, sin costos escondidos. Sabes lo que pagas antes de empezar.",
     "v3_title": "Tecnología con criterio",
     "v3_body": "IA para responder al instante y personas de Luxel para lo que de verdad importa.",
     "v4_title": "Hecho en Santiago",
     "v4_body": "Conocemos las comunas, la conserjería y cómo se arrienda acá.",
     "cta_title": "¿Listo para que administremos tu Airbnb?",
-    "cta_body": "Compara los planes o escríbenos. Te respondemos el mismo día.",
-    "cta_button": "Ver planes y precios",
+    "cta_body": "Calcula lo que pagarías o escríbenos. Te respondemos el mismo día.",
+    "cta_button": "Ver el precio",
     "cta_chat": "Conversemos",
     "story_title": "Por qué nació Luxel",
     "story_teaser": "La historia detrás del servicio.",
@@ -443,7 +443,7 @@
     "story_p2": "Hice lo que hace todo el mundo: contraté una administradora. Pero cuando de verdad se complicó, algo se rompió en el departamento, terminé coordinando la reparación yo mismo. Más de una vez me tocó ir a arreglarlo con mis propias manos.",
     "story_quote": "Estaba pagando por un servicio… y terminé trabajando para ellos.",
     "story_p3": "Ahí caché algo simple: lo que necesitaba era alguien que se hiciera cargo de verdad. Que el depto quedara impecable antes de cada huésped, que los precios estuvieran bien y que, si algo fallaba, se resolviera sin llamarme.",
-    "story_p4": "Las administradoras tradicionales cobran hasta 20% y aun así te dejan los problemas a ti. Así que armé el servicio que me habría gustado contratar: un equipo en Santiago que atiende todo, con tecnología para responder rápido y precios que puedes elegir.",
+    "story_p4": "Las administradoras tradicionales cobran hasta 20% y aun así te dejan los problemas a ti. Así que armé el servicio que me habría gustado contratar: un equipo en Santiago que atiende todo, con tecnología para responder rápido y un cobro que se entiende.",
     "story_p5": "Así nació Luxel: para sacarte de encima la carga de administrar tu propiedad y darte transparencia total sobre lo que pagas."
   },
   "services": {
@@ -452,13 +452,13 @@
       "title": "Administración completa de tu Airbnb en Santiago",
       "subtitle": "Precios dinámicos, huéspedes 24/7, aseo y lavandería, conflictos, inventario y reparaciones. <hl>Nosotros nos hacemos cargo de todo</hl>; tú recibes los ingresos y un reporte cada mes.",
       "hero_alt": "Living con piano y televisor en un departamento administrado por Luxel",
-      "cta_primary": "Ver planes y precios",
+      "cta_primary": "Ver el precio",
       "cta_secondary": "Conversemos",
       "faq_title": "¿Tienes dudas?",
       "faq_body": "Amoblado, uso propio, daños, contrato: respondemos lo que más nos preguntan.",
       "faq_cta": "Ver preguntas frecuentes",
       "cta_title": "Empecemos con una visita",
-      "cta_body": "Revisamos tu depto, definimos el plan y te decimos qué falta para publicar."
+      "cta_body": "Revisamos tu depto, te contamos cómo trabajamos y qué falta para publicar."
     }
   },
   "stays": {
@@ -516,17 +516,18 @@
     "move_confirm": "Sí, reasignar"
   },
   "plans": {
-    "commission_name": "Comisión",
-    "commission_desc": "Sin costo fijo: si no arriendas, no pagas. Conviene hasta {to} al mes.",
-    "commission_price": "{pct}% de tus ingresos",
-    "hybrid_name": "Mixto",
-    "hybrid_desc": "Base baja y comisión a la mitad. Conviene entre {from} y {to} al mes.",
-    "hybrid_price": "{price}/mes + {pct}% de tus ingresos",
-    "fixed_name": "Fijo",
-    "fixed_desc": "Tu costo no cambia aunque arriendes más. Conviene sobre {from} al mes.",
-    "fixed_price": "{price}/mes",
+    "commission_name": "Plan Luxel",
+    "commission_price": "{pct}% de tus reservas",
+    "commission_desc": "Si un mes tu depto no genera, ese mes no pagas nada.",
     "per_listing": "por propiedad, IVA incluido",
-    "included": "Todo incluido en los tres planes: precios dinámicos, huéspedes 24/7, aseo y lavandería, inventario, reparaciones menores, reporte mensual."
+    "included": "Todo incluido: precios dinámicos, huéspedes 24/7, aseo y lavandería, inventario, reparaciones menores y reporte mensual.",
+    "inc_pricing": "Precios dinámicos todo el año",
+    "inc_guests": "Huéspedes atendidos 24/7",
+    "inc_cleaning": "Aseo y lavandería entre estadías",
+    "inc_inventory": "Inventario y reposición",
+    "inc_repairs": "Reparaciones menores",
+    "inc_report": "Reporte mensual con el detalle",
+    "billing": "Airbnb te paga a ti como siempre. A fin de mes te cobramos el {pct}% de lo que generaron tus reservas. La tarifa de limpieza no entra: va completa al equipo de aseo."
   },
   "ui": {
     "close": "Cerrar"

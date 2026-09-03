@@ -21,7 +21,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
 let admin: ReturnType<typeof createClient>;
-let requestMyPlan: (i: unknown) => Promise<{ ok: boolean }>;
+let requestMyPlan: () => Promise<{ ok: boolean }>;
 let cancelMyPlan: () => Promise<{ ok: boolean }>;
 let customerId: string;
 
@@ -53,10 +53,10 @@ afterEach(async () => {
 });
 
 describe.skipIf(!LIVE)('management plan request (end to end)', () => {
-  it('requests a plan, cancels it, and re-requests another one on the same row', async () => {
-    expect((await requestMyPlan({ plan: 'hybrid' })).ok).toBe(true);
+  it('requests the commission plan, cancels it, and re-requests it on the same row', async () => {
+    expect((await requestMyPlan()).ok).toBe(true);
     let r = await row();
-    expect(r.plan).toBe('hybrid');
+    expect(r.plan).toBe('commission');
     expect(r.status).toBe('requested');
     expect(r.current_period_end).toBeNull();
 
@@ -64,7 +64,7 @@ describe.skipIf(!LIVE)('management plan request (end to end)', () => {
     r = await row();
     expect(r.status).toBe('cancelled');
 
-    expect((await requestMyPlan({ plan: 'commission' })).ok).toBe(true);
+    expect((await requestMyPlan()).ok).toBe(true);
     const { data: rows } = await admin
       .from('plan_subscriptions')
       .select('plan, status')
@@ -73,7 +73,7 @@ describe.skipIf(!LIVE)('management plan request (end to end)', () => {
   });
 
   it('keeps an operator-activated plan and never activates one itself', async () => {
-    expect((await requestMyPlan({ plan: 'hybrid' })).ok).toBe(true);
+    expect((await requestMyPlan()).ok).toBe(true);
     expect((await row()).status).toBe('requested');
 
     await admin
@@ -81,10 +81,10 @@ describe.skipIf(!LIVE)('management plan request (end to end)', () => {
       .update({ status: 'active' })
       .eq('customer_id', customerId);
 
-    expect((await requestMyPlan({ plan: 'commission' })).ok).toBe(false);
+    expect((await requestMyPlan()).ok).toBe(false);
     const r = await row();
     expect(r.status).toBe('active');
-    expect(r.plan).toBe('hybrid');
+    expect(r.plan).toBe('commission');
   });
 
   it('reports no plan to cancel when the customer has no row', async () => {
@@ -101,7 +101,7 @@ describe.skipIf(!LIVE)('management plan request (end to end)', () => {
     const fresh = `test-plan-${nodeCrypto.randomUUID()}`;
     process.env.TEST_CLERK_ID = fresh;
     try {
-      expect((await requestMyPlan({ plan: 'fixed' })).ok).toBe(true);
+      expect((await requestMyPlan()).ok).toBe(true);
       const { data: created } = await admin
         .from('customers')
         .select('id')
@@ -112,21 +112,10 @@ describe.skipIf(!LIVE)('management plan request (end to end)', () => {
         .select('plan, status')
         .eq('customer_id', created!.id as string)
         .single();
-      expect(sub).toEqual({ plan: 'fixed', status: 'requested' });
+      expect(sub).toEqual({ plan: 'commission', status: 'requested' });
     } finally {
       await admin.from('customers').delete().eq('clerk_user_id', fresh);
       process.env.TEST_CLERK_ID = original;
     }
-  });
-
-  it('rejects unknown plan keys', async () => {
-    for (const plan of ['ai', 'ai_cleaning', '', 42, null]) {
-      expect((await requestMyPlan({ plan })).ok).toBe(false);
-    }
-    const { count } = await admin
-      .from('plan_subscriptions')
-      .select('*', { count: 'exact', head: true })
-      .eq('customer_id', customerId);
-    expect(count).toBe(0);
   });
 });

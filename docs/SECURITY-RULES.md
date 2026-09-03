@@ -18,10 +18,10 @@ rules. Do not add code paths that break them.
   crew (`lib/cleaning/notify.ts`). Hosts have no cleaning controls and no
   guest inbox. `guest_threads` status `needs_host` means "needs a Luxel
   human". Do not add host-facing crew or inbox surfaces.
-- Plans live in `plan_subscriptions`: `plan` is `fixed`, `hybrid`, or
-  `commission`; `status` is `requested`, `active`, or `cancelled`. The host
-  requests a plan (`requestPlan`); a Luxel operator activates it. No billing
-  code, no checkout. Do not add one.
+- Plans live in `plan_subscriptions`: `plan` is always `commission`, the only
+  plan; `status` is `requested`, `active`, or `cancelled`. The host requests the
+  plan (`requestPlan`); a Luxel operator activates it. No billing code, no
+  checkout. Do not add one.
 - Webhook payloads are identifiers only. Every value acted on is fetched back
   from Hospitable with our credential
   (`app/api/channels/[provider]/route.ts`). Webhook auth is Hospitable's

@@ -49,8 +49,8 @@ export default async function CuentaPage() {
           : t('airbnb.none_body');
   const airbnbDetail = airbnbOpen
     ? [
-        planKey && planName(tp, planKey),
-        planKey && airbnbActive && `${planPriceLine(tp, planKey)} · ${tp('per_listing')}`,
+        planKey && planName(tp),
+        planKey && `${planPriceLine(tp)} · ${tp('per_listing')}`,
         t('airbnb.count', { n: propertyCount }),
       ]
         .filter(Boolean)

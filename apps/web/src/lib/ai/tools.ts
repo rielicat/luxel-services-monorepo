@@ -1,42 +1,23 @@
 import 'server-only';
 import type OpenAI from 'openai';
 import { workingHoursStatus } from '@/lib/working-hours';
-import {
-  PLAN_KEYS,
-  PLAN_FIXED_CLP,
-  PLAN_HYBRID_BASE_CLP,
-  PLAN_HYBRID_PCT,
-  PLAN_COMMISSION_PCT,
-  cheapestPlan,
-  isPlanKey,
-  planMonthlyCost,
-  type PlanKey,
-} from '@/lib/plan-pricing';
+import { PLAN_COMMISSION_PCT, planMonthlyCost } from '@/lib/plan-pricing';
 import { fetchProperties } from '@/lib/host/queries';
 import { hospitableAmountToClp, listHospitableCalendar } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
 
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 
-export const PLAN_LABELS: Record<PlanKey, string> = {
-  commission: 'Comisión',
-  hybrid: 'Mixto',
-  fixed: 'Fijo',
-};
-
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
-export const PLAN_PRICE_LINES: Record<PlanKey, string> = {
-  commission: `${pct(PLAN_COMMISSION_PCT)} de los ingresos por reservas, sin costo fijo`,
-  hybrid: `${clp(PLAN_HYBRID_BASE_CLP)} por propiedad al mes + ${pct(PLAN_HYBRID_PCT)} de los ingresos por reservas`,
-  fixed: `${clp(PLAN_FIXED_CLP)} por propiedad al mes, sin comisión`,
-};
+export const PLAN_LABEL = 'Plan Luxel';
+
+export const PLAN_PRICE_LINE = `${pct(PLAN_COMMISSION_PCT)} de los ingresos por reservas, sin costo fijo`;
 
 type Widget =
   | {
       kind: 'airbnb_quote';
       listings: number;
-      plan: PlanKey;
       planLabel: string;
       revenueClp: number | null;
       monthlyClp: number;
@@ -58,7 +39,7 @@ const LINK_DESTINATIONS: Record<
   { label: string; href: string; style: 'primary' | 'outline' }
 > = {
   airbnb_service: { label: 'Administración Airbnb', href: '/services/airbnb', style: 'primary' },
-  pricing: { label: 'Ver planes y precios', href: '/calculator', style: 'primary' },
+  pricing: { label: 'Ver el precio', href: '/calculator', style: 'primary' },
   dashboard: { label: 'Ir a mi panel', href: '/account', style: 'outline' },
   properties: { label: 'Mis propiedades', href: '/properties', style: 'primary' },
   sign_in: { label: 'Iniciar sesión', href: '/sign-in', style: 'primary' },
@@ -83,8 +64,7 @@ export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
       type: 'function',
       function: {
         name: 'get_airbnb_quote',
-        description:
-          'Calcula el costo mensual de la administración completa de Airbnb según el plan (fixed = Fijo, hybrid = Mixto, commission = Comisión). Úsala cuando el usuario quiere saber cuánto cuesta que Luxel administre sus propiedades. NUNCA inventes el monto. Si el usuario conoce sus ingresos mensuales por reservas, pásalos para comparar los tres planes.',
+        description: `Calcula el cobro mensual de la administración completa de Airbnb: ${pct(PLAN_COMMISSION_PCT)} de los ingresos por reservas, IVA incluido. Úsala cuando el usuario quiere saber cuánto cuesta que Luxel administre sus propiedades. NUNCA inventes el monto: el cobro depende de los ingresos, así que si no los sabes, primero pídeselos.`,
         parameters: {
           type: 'object',
           properties: {
@@ -92,16 +72,10 @@ export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
               type: 'integer',
               description: 'Cantidad de propiedades/listings de Airbnb a administrar (1–50).',
             },
-            plan: {
-              type: 'string',
-              enum: [...PLAN_KEYS],
-              description:
-                '"fixed" = Fijo (tarifa mensual fija); "hybrid" = Mixto (base baja + porcentaje de ingresos); "commission" = Comisión (solo porcentaje de ingresos). Si se omite, se elige el más conveniente según los ingresos.',
-            },
             monthly_revenue_clp: {
               type: 'integer',
               description:
-                'Ingresos mensuales estimados por reservas de UNA propiedad, en pesos chilenos. Opcional.',
+                'Ingresos mensuales estimados por reservas de UNA propiedad, en pesos chilenos, sin la tarifa de limpieza. Sin este dato no hay monto que mostrar.',
             },
           },
           required: ['listings'],
@@ -182,34 +156,21 @@ function getAirbnbQuote(input: Record<string, unknown>): ToolResult {
   const listings = Math.max(1, Math.min(50, Math.round(Number(input.listings ?? 1)) || 1));
   const rawRevenue = Number(input.monthly_revenue_clp);
   const revenueClp = Number.isFinite(rawRevenue) && rawRevenue > 0 ? Math.round(rawRevenue) : null;
-  const plan: PlanKey = isPlanKey(input.plan)
-    ? input.plan
-    : revenueClp != null
-      ? cheapestPlan(revenueClp)
-      : 'commission';
-  const perListing = (p: PlanKey) => planMonthlyCost(p, revenueClp ?? 0);
-  const monthlyClp = perListing(plan) * listings;
   const per = listings === 1 ? 'la propiedad' : `${listings} propiedades`;
-  const catalog = PLAN_KEYS.map((p) => `${PLAN_LABELS[p]}: ${PLAN_PRICE_LINES[p]}`).join('; ');
-  const estimate =
-    revenueClp != null
-      ? `Con ingresos de ${clp(revenueClp)} al mes por propiedad, para ${per} el plan ${PLAN_LABELS[plan]} cuesta ${clp(monthlyClp)} al mes (IVA incluido); los otros planes: ${PLAN_KEYS.filter(
-          (p) => p !== plan,
-        )
-          .map((p) => `${PLAN_LABELS[p]} ${clp(perListing(p) * listings)}`)
-          .join(', ')}.`
-      : plan === 'fixed'
-        ? `Para ${per} el plan Fijo cuesta ${clp(monthlyClp)} al mes (IVA incluido), sin comisión. Los planes Comisión y Mixto dependen de los ingresos: pide el ingreso mensual estimado para compararlos.`
-        : `El plan ${PLAN_LABELS[plan]} depende de los ingresos por reservas (${PLAN_PRICE_LINES[plan]}). Pide el ingreso mensual estimado por propiedad para calcular el monto.`;
-  const content = `Planes por propiedad al mes (IVA incluido): ${catalog}. ${estimate} Todo incluido en los tres planes. Comunícalo con claridad e invita a comparar planes o a solicitar el suyo.`;
-  if (revenueClp == null && plan !== 'fixed') return { content };
+  const priceLine = `${PLAN_LABEL}: ${PLAN_PRICE_LINE}, por propiedad al mes, IVA incluido. Todo incluido.`;
+  if (revenueClp == null) {
+    return {
+      content: `${priceLine} El cobro se calcula sobre los ingresos reales por reservas, así que todavía no hay monto. Pídele el ingreso mensual estimado por propiedad y vuelve a cotizar; no inventes ni aproximes la cifra.`,
+    };
+  }
+  const monthlyClp = planMonthlyCost(revenueClp) * listings;
+  const content = `${priceLine} Con ingresos de ${clp(revenueClp)} al mes por propiedad, para ${per} el cobro es ${clp(monthlyClp)} al mes. Airbnb le paga los ingresos directo al anfitrión y Luxel le cobra a fin de mes con el detalle. Comunícalo con claridad e invítalo a solicitar su plan.`;
   return {
     content,
     widget: {
       kind: 'airbnb_quote',
       listings,
-      plan,
-      planLabel: PLAN_LABELS[plan],
+      planLabel: PLAN_LABEL,
       revenueClp,
       monthlyClp,
     },

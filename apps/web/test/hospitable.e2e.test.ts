@@ -71,7 +71,23 @@ const RESERVATIONS_PAYLOAD = {
       financials: {
         currency: 'CLP',
         guest: { total_price: { amount: 380000, formatted: 'CLP 380,000' } },
-        host: { revenue: { amount: 332900, formatted: 'CLP 332,900' } },
+        host: {
+          revenue: { amount: 332900, formatted: 'CLP 332,900' },
+          guest_fees: [
+            {
+              amount: 45000,
+              formatted: 'CLP 45,000',
+              label: 'Cleaning fee',
+              category: 'Guest fees',
+            },
+            {
+              amount: 20000,
+              formatted: 'CLP 20,000',
+              label: 'Extra_guest_fee',
+              category: 'Guest fees',
+            },
+          ],
+        },
       },
     },
     {
@@ -91,7 +107,17 @@ const RESERVATIONS_PAYLOAD = {
       financials: {
         currency: 'CLP',
         guest: { total_price: { amount: 728000, formatted: 'CLP 728,000' } },
-        host: { revenue: { amount: 640000, formatted: 'CLP 640,000' } },
+        host: {
+          revenue: { amount: 640000, formatted: 'CLP 640,000' },
+          guest_fees: [
+            {
+              amount: 30000,
+              formatted: 'CLP 30,000',
+              label: 'Extra_guest_fee',
+              category: 'Guest fees',
+            },
+          ],
+        },
       },
     },
     {
@@ -1533,7 +1559,7 @@ describe.skipIf(!LIVE)('Hospitable realized booking revenue (end to end)', () =>
       await admin
         .from('reservation_revenue')
         .select(
-          'booking_key, reservation_uid, confirmation_code, arrival_date, departure_date, nights, currency, host_revenue_clp, guest_total_clp',
+          'booking_key, reservation_uid, confirmation_code, arrival_date, departure_date, nights, currency, host_revenue_clp, cleaning_fee_clp, guest_total_clp',
         )
         .eq('property_id', id)
         .order('departure_date')
@@ -1562,6 +1588,7 @@ describe.skipIf(!LIVE)('Hospitable realized booking revenue (end to end)', () =>
       nights: 2,
       currency: 'CLP',
       host_revenue_clp: 332900,
+      cleaning_fee_clp: 45000,
       guest_total_clp: 380000,
     });
     expect(rows[1]).toMatchObject({
@@ -1569,6 +1596,7 @@ describe.skipIf(!LIVE)('Hospitable realized booking revenue (end to end)', () =>
       departure_date: '2027-03-14',
       nights: 4,
       host_revenue_clp: 640000,
+      cleaning_fee_clp: 0,
       guest_total_clp: 728000,
     });
   });

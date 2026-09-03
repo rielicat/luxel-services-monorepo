@@ -7,8 +7,7 @@ import { Sparkles, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
-import { PLAN_KEYS, isPlanKey, type PlanKey } from '@/lib/plan-pricing';
-import { planDesc, planName, planPriceLine } from '@/lib/plan-copy';
+import { planDesc, planPriceLine } from '@/lib/plan-copy';
 import { cn } from '@/lib/utils';
 import { requestMyPlan, cancelMyPlan } from './plan-actions';
 
@@ -29,15 +28,14 @@ export function PlanBar({ plan }: { plan: Plan }) {
   const tp = useTranslations('plans');
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [busy, setBusy] = useState<PlanKey | 'cancel' | null>(null);
+  const [busy, setBusy] = useState<'request' | 'cancel' | null>(null);
   const [failed, setFailed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const current = isPlanKey(plan?.plan) ? plan.plan : null;
   const status = isStatus(plan?.status) ? plan.status : null;
-  const showPicker = !current || status !== 'active';
+  const open = status === 'requested' || status === 'active';
 
-  const run = (key: PlanKey | 'cancel', fn: () => Promise<{ ok: boolean }>) => {
+  const run = (key: 'request' | 'cancel', fn: () => Promise<{ ok: boolean }>) => {
     setBusy(key);
     setFailed(false);
     start(async () => {
@@ -52,7 +50,7 @@ export function PlanBar({ plan }: { plan: Plan }) {
     });
   };
 
-  const Status = status ? STATUS_ICON[status] : null;
+  const StatusBadge = status ? STATUS_ICON[status] : null;
 
   return (
     <Card className={cn('mb-5', status === 'active' ? 'border-success/40' : 'border-primary/30')}>
@@ -62,25 +60,24 @@ export function PlanBar({ plan }: { plan: Plan }) {
             <span
               className={cn(
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                Status ? Status.cls : 'bg-primary/10 text-primary',
+                StatusBadge ? StatusBadge.cls : 'bg-primary/10 text-primary',
               )}
             >
-              {Status ? <Status.icon className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+              {StatusBadge ? (
+                <StatusBadge.icon className="h-5 w-5" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
             </span>
             <div className="grid gap-0.5">
-              <p className="font-display font-semibold leading-tight">
-                {current ? planName(tp, current) : t('title')}
-              </p>
-              {current && (
-                <p className="text-sm font-medium tabular-nums">{planPriceLine(tp, current)}</p>
-              )}
+              <p className="font-display font-semibold leading-tight">{t('title')}</p>
+              <p className="text-sm font-medium tabular-nums">{planPriceLine(tp)}</p>
               <p className="text-muted-foreground text-xs">
-                {status ? t(status) : t('hint')}
-                {current && ` · ${tp('per_listing')}`}
+                {status ? t(status) : t('hint')} · {tp('per_listing')}
               </p>
             </div>
           </div>
-          {current && status && status !== 'cancelled' && (
+          {open && (
             <Button
               variant="outline"
               size="sm"
@@ -92,46 +89,17 @@ export function PlanBar({ plan }: { plan: Plan }) {
           )}
         </div>
 
-        {showPicker && (
+        {!open && (
           <div className="grid gap-3">
-            {!current && <p className="text-muted-foreground text-xs">{tp('per_listing')}</p>}
-            <div className="grid gap-3 sm:grid-cols-3">
-              {PLAN_KEYS.map((key) => {
-                const previous = current === key;
-                return (
-                  <div
-                    key={key}
-                    className={cn(
-                      'grid content-start gap-2 rounded-xl border p-4 transition-colors',
-                      previous ? 'border-primary/50 bg-primary/5' : 'border-border',
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">{planName(tp, key)}</span>
-                      {previous && (
-                        <span className="text-primary text-[10px] font-semibold uppercase tracking-wide">
-                          {t('previous')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="font-display text-base font-bold tabular-nums">
-                      {planPriceLine(tp, key)}
-                    </p>
-                    <p className="text-muted-foreground text-xs">{planDesc(tp, key)}</p>
-                    <Button
-                      size="sm"
-                      variant={previous ? 'default' : 'outline'}
-                      className="mt-1 w-full"
-                      disabled={pending}
-                      onClick={() => run(key, () => requestMyPlan({ plan: key }))}
-                    >
-                      {busy === key ? '…' : previous ? t('rerequest') : t('choose')}
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
+            <p className="text-muted-foreground text-sm">{planDesc(tp)}</p>
             <p className="text-muted-foreground text-xs">{tp('included')}</p>
+            <Button
+              className="w-full sm:w-fit"
+              disabled={pending}
+              onClick={() => run('request', () => requestMyPlan())}
+            >
+              {busy === 'request' ? '…' : status === 'cancelled' ? t('rerequest') : t('request')}
+            </Button>
           </div>
         )}
 

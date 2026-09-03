@@ -2,6 +2,7 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import {
   hospitableAmountToClp,
+  hospitableCleaningFeeClp,
   listHospitableProperties,
   listHospitablePricedReservations,
   listHospitableReservations,
@@ -205,6 +206,7 @@ interface ReservationRevenueRow {
   nights: number;
   currency: string | null;
   host_revenue_clp: number;
+  cleaning_fee_clp: number | null;
   guest_total_clp: number | null;
   synced_at: string;
 }
@@ -243,6 +245,7 @@ function toRevenueRow(
     nights: nightsOf(r, arrival, departure),
     currency,
     host_revenue_clp: hostRevenueClp,
+    cleaning_fee_clp: hospitableCleaningFeeClp(r.financials, currency),
     guest_total_clp: hospitableAmountToClp(r.financials?.guest?.total_price, currency),
     synced_at: syncedAt,
   };

@@ -20,8 +20,8 @@ Warm-professional · Precise.
 
 > For Santiago Airbnb hosts who want the income without the work,
 > **Servicios Luxel** manages the whole listing — pricing, guests, cleaning,
-> repairs and inventory — for a transparent monthly plan, unlike informal
-> administrators with opaque fees and no reporting.
+> repairs and inventory — for one transparent fee on the booking revenue,
+> unlike informal administrators with opaque fees and no reporting.
 
 ---
 
@@ -33,24 +33,27 @@ never slangy to the point of unprofessional. We use **tú**, not **usted**. We
 keep sentences short. We are honest about what we do and never oversell.
 
 **Tone by context:** upbeat and confident on the landing page; calm and precise
-in the plan and onboarding flow; reassuring and human in error and support
-moments.
+on the price page and in the onboarding flow; reassuring and human in error and
+support moments.
 
 ### Do / Don't (es-CL example copy)
 
 | Context       | ✅ Do                                                      | ❌ Don't                                         |
 | ------------- | ---------------------------------------------------------- | ------------------------------------------------ |
-| Hero CTA      | "Ver planes y precios"                                     | "SOLICITE UNA COTIZACIÓN AHORA"                  |
-| Price shown   | "Tres planes por propiedad. Elige el que más te conviene." | "Precios sujetos a evaluación posterior."        |
+| Hero CTA      | "Ver el precio"                                            | "SOLICITE UNA COTIZACIÓN AHORA"                  |
+| Price shown   | "12% de lo que genera tu propiedad cada mes."              | "Precios sujetos a evaluación posterior."        |
+| Billing       | "Airbnb te paga a ti. Te cobramos a fin de mes."           | "Airbnb nos paga y te descuenta la comisión."    |
 | Plan status   | "Plan solicitado — te contactamos para activarlo."         | "Su solicitud está en proceso."                  |
 | Chat greeting | "¡Hola! Soy Lux. ¿Te cuento cómo administramos tu Airbnb?" | "Bienvenido al chatbot. Seleccione una opción."  |
 | Confirmation  | "Listo, tu Airbnb ya está conectado."                      | "Su transacción ha sido procesada exitosamente." |
 | Human handoff | "Te paso con una persona por WhatsApp al toque."           | "Su solicitud será derivada a un ejecutivo."     |
 | Empty state   | "Aún no tienes propiedades conectadas."                    | "No hay datos disponibles."                      |
 
-**Style rules:** Prices with Chilean thousands separator (`189.900 CLP`, never
-`$189,900`), IVA included. Percentages as `6%` and `12%` of "tus ingresos". Never say
-"0% comisión", "14 días gratis" or "m²". The host never "answers guests" or
+**Style rules:** Amounts with the Chilean thousands separator (`$210.000`, never
+`$210,000`), IVA included. The fee is one number: `12%` of "tus ingresos". Never
+say "0% comisión", "tarifa plana", "14 días gratis", "prueba gratis" or "m²".
+Never say that Airbnb pays Luxel or deducts the fee: Airbnb pays the host, and
+Luxel charges at the end of the month. The host never "answers guests" or
 "manages the crew": Luxel does. Never hardcode strings in components — all copy
 lives in `packages/shared/src/i18n/es-CL.json`.
 
@@ -253,14 +256,14 @@ Enable `font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1` (already set on
 ## 8. Component Style Guidance
 
 - **Buttons.** Primary = solid teal `primary` / white text. **High-intent CTAs**
-  (Ver planes, Elegir plan, Solicitar este plan) = **lime `lime` background /
-  deep-green `lime-foreground` text** — lime is reserved for the next step toward
-  a plan so it reads as _the_ action. Secondary = outline teal. Ghost for
-  tertiary. Radius `0.75rem`, min height 44 px.
+  (Ver el precio, Calcular mi cobro, Solicitar el plan) = **lime `lime`
+  background / deep-green `lime-foreground` text** — lime is reserved for the
+  next step toward the plan so it reads as _the_ action. Secondary = outline
+  teal. Ghost for tertiary. Radius `0.75rem`, min height 44 px.
 - **Cards.** White (`card`) on tinted `background`, `border` hairline, `sm`
-  shadow, `1rem` radius, 20–24 px padding. Plan cards and property cards use an
-  `accent` (soft teal) header band. No "recomendado" badge; the calculator marks
-  the cheapest plan with a text line.
+  shadow, `1rem` radius, 20–24 px padding. The price card and property cards use
+  an `accent` (soft teal) header band. No "recomendado" badge: there is one
+  plan, so no card competes with another.
 - **Inputs.** `input` border, `0.75rem` radius, focus = 2 px `ring` with a soft
   offset. The listings stepper and the revenue input keep the same radius.
 - **Status labels.** Map to semantic tokens: plan `requested` → warning,
@@ -285,13 +288,13 @@ Enable `font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1` (already set on
   place lime text on white or teal on lime; always pair lime with
   `lime-foreground` (deep green `#175231`), which passes AA.
 - **Focus:** always-visible focus ring using `ring`; never `outline: none` without
-  a replacement. Keyboard order follows visual order in the plan → sign-in →
+  a replacement. Keyboard order follows visual order in the price → sign-in →
   connect flow.
-- **Tap targets:** minimum 44×44 px for all interactive elements (buttons, plan
-  cards, stepper controls, chat FAB).
+- **Tap targets:** minimum 44×44 px for all interactive elements (buttons, the
+  price card, stepper controls, chat FAB).
 - **Motion:** honor `prefers-reduced-motion` — disable the sparkle shine and panel
   scale animations.
-- **Semantics:** label every input (`aria-label`/`<label>`), announce plan
-  estimates and errors politely to screen readers, give every photo a
+- **Semantics:** label every input (`aria-label`/`<label>`), announce the fee
+  estimate and errors politely to screen readers, give every photo a
   descriptive `alt`, and ensure the color-coded status labels also carry a text
   label (never color alone).

@@ -193,7 +193,10 @@ interface HospitableFinancialLine {
 export interface HospitableFinancials {
   currency?: string | null;
   guest?: { total_price?: HospitableFinancialLine | null } | null;
-  host?: { revenue?: HospitableFinancialLine | null } | null;
+  host?: {
+    revenue?: HospitableFinancialLine | null;
+    guest_fees?: HospitableFinancialLine[] | null;
+  } | null;
 }
 
 export interface HospitablePricedReservation extends HospitableReservation {
@@ -216,6 +219,24 @@ export function hospitableAmountToClp(
   const shown = formattedClp(line?.formatted);
   if (shown && Math.round(Math.abs(amount) / shown) === 100) return Math.round(amount / 100);
   return Math.round(amount);
+}
+
+const CLEANING_LABEL = /(clean|aseo|limpie)/i;
+
+export function hospitableCleaningFeeClp(
+  financials: HospitableFinancials | null | undefined,
+  currency: string | null | undefined,
+): number | null {
+  const fees = financials?.host?.guest_fees;
+  if (!Array.isArray(fees)) return null;
+  let total = 0;
+  for (const fee of fees) {
+    if (!CLEANING_LABEL.test(fee?.label ?? '')) continue;
+    const clp = hospitableAmountToClp(fee, currency);
+    if (clp === null) return null;
+    total += clp;
+  }
+  return total;
 }
 
 export async function listHospitablePricedReservations(

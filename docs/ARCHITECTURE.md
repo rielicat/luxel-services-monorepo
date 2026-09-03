@@ -5,7 +5,8 @@ Compacted from `AGENTS.md` sections Project, Layout, Stack.
 ## Project
 
 Servicios Luxel manages Airbnb listings in Santiago, Chile, end to end. A host
-signs up, picks a plan, and grants Luxel access to the listing in Hospitable.
+signs up, asks for the plan, and grants Luxel access to the listing in
+Hospitable. There is one plan: 12% of the booking revenue, per listing, monthly.
 Luxel runs the operation: dynamic pricing, guest replies (AI "Lux" plus Luxel
 humans), cleaning, laundry, conflict resolution, inventory, small repairs,
 furnishing. The app mirrors listings and reservations from Hospitable. It
@@ -39,5 +40,5 @@ supabase/        migrations + local config
 | Channel (PMS)   | Hospitable, as a plugin behind `apps/web/src/lib/channels/registry.ts`        |
 | Messaging       | WhatsApp Cloud API (worker), Resend email fallback                            |
 | AI              | OpenAI `gpt-4o-mini` (`OPENAI_MODEL` override)                                |
-| Dynamic pricing | PriceLabs (part of every plan)                                                |
+| Dynamic pricing | PriceLabs (part of the plan)                                                  |
 | Analytics       | In-house `analytics_events` + `leads`                                         |

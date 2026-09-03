@@ -7,8 +7,11 @@ export interface RealizedRevenue {
   stays: number;
   nights: number;
   hostRevenueClp: number;
+  cleaningFeeClp: number;
+  commissionBaseClp: number;
   guestTotalClp: number;
   unpricedStays: number;
+  unknownCleaningStays: number;
   syncedAt: string | null;
   propertiesCounted: number;
   propertiesNeverSynced: number;
@@ -39,6 +42,7 @@ interface RevenueRow {
   property_id: string;
   nights: number | null;
   host_revenue_clp: number | null;
+  cleaning_fee_clp: number | null;
   guest_total_clp: number | null;
   synced_at: string | null;
 }
@@ -49,8 +53,11 @@ function fold(month: string, propertyIds: string[], rows: RevenueRow[]): Realize
     stays: 0,
     nights: 0,
     hostRevenueClp: 0,
+    cleaningFeeClp: 0,
+    commissionBaseClp: 0,
     guestTotalClp: 0,
     unpricedStays: 0,
+    unknownCleaningStays: 0,
     syncedAt: null,
     propertiesCounted: propertyIds.length,
     propertiesNeverSynced: propertyIds.length,
@@ -61,8 +68,10 @@ function fold(month: string, propertyIds: string[], rows: RevenueRow[]): Realize
     out.stays += 1;
     out.nights += row.nights ?? 0;
     out.hostRevenueClp += row.host_revenue_clp ?? 0;
+    out.cleaningFeeClp += row.cleaning_fee_clp ?? 0;
     out.guestTotalClp += row.guest_total_clp ?? 0;
     if (row.host_revenue_clp == null) out.unpricedStays += 1;
+    if (row.cleaning_fee_clp == null) out.unknownCleaningStays += 1;
     seen.add(row.property_id);
     const at = row.synced_at ? Date.parse(row.synced_at) : Number.NaN;
     if (Number.isFinite(at) && at > newest) {
@@ -71,6 +80,7 @@ function fold(month: string, propertyIds: string[], rows: RevenueRow[]): Realize
     }
   }
   out.propertiesNeverSynced = propertyIds.filter((id) => !seen.has(id)).length;
+  out.commissionBaseClp = Math.max(0, out.hostRevenueClp - out.cleaningFeeClp);
   return out;
 }
 
@@ -88,7 +98,7 @@ async function realizedRows(
   const supabase = createSupabaseServiceRoleClient();
   const { data } = await supabase
     .from('reservation_revenue')
-    .select('property_id, nights, host_revenue_clp, guest_total_clp, synced_at')
+    .select('property_id, nights, host_revenue_clp, cleaning_fee_clp, guest_total_clp, synced_at')
     .in('property_id', propertyIds)
     .gte('departure_date', bounds.from)
     .lt('departure_date', until);

@@ -85,6 +85,7 @@ describe.skipIf(!LIVE)('realized revenue rollup (end to end)', () => {
     departure: string,
     nights: number,
     hostRevenueClp: number | null,
+    cleaningFeeClp: number | null = 0,
   ) =>
     admin.from('reservation_revenue').insert({
       property_id: propertyId,
@@ -96,6 +97,7 @@ describe.skipIf(!LIVE)('realized revenue rollup (end to end)', () => {
       nights,
       currency: hostRevenueClp === null ? 'USD' : 'CLP',
       host_revenue_clp: hostRevenueClp,
+      cleaning_fee_clp: cleaningFeeClp,
       guest_total_clp: hostRevenueClp === null ? null : hostRevenueClp + 40000,
     });
 
@@ -143,6 +145,28 @@ describe.skipIf(!LIVE)('realized revenue rollup (end to end)', () => {
     expect(portfolio.syncedAt).toBe(march.syncedAt);
     expect(portfolio.properties).toHaveLength(1);
     expect(portfolio.properties[0]).toMatchObject({ propertyId: id, hostRevenueClp: 850000 });
+  });
+
+  it('leaves the cleaning fee out of the commission base', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Aseo' });
+    const id = prop.id!;
+    await seedStay(id, 'CLEAN-A', '2027-06-02', '2027-06-05', 3, 300000, 45000);
+    await seedStay(id, 'CLEAN-B', '2027-06-10', '2027-06-12', 2, 200000, 0);
+    await seedStay(id, 'CLEAN-UNKNOWN', '2027-06-20', '2027-06-22', 2, 100000, null);
+
+    const { realizedRevenueForProperty } = await import('../src/lib/revenue');
+    const { planMonthlyCost } = await import('@luxel/shared/plan-pricing');
+    const june = await realizedRevenueForProperty(id, '2027-06', new Date('2027-07-02T03:00:00Z'));
+
+    expect(june).toMatchObject({
+      stays: 3,
+      hostRevenueClp: 600000,
+      cleaningFeeClp: 45000,
+      commissionBaseClp: 555000,
+      unknownCleaningStays: 1,
+    });
+    expect(planMonthlyCost(june.commissionBaseClp)).toBe(66600);
+    expect(planMonthlyCost(june.hostRevenueClp)).toBe(72000);
   });
 
   it('counts a stay it cannot price in CLP without inventing a number', async () => {

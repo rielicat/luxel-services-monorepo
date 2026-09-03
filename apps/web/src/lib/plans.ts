@@ -20,7 +20,7 @@ export async function getPlan(customerId: string): Promise<PlanRow | null> {
   return (data as PlanRow | null) ?? null;
 }
 
-export async function requestPlan(customerId: string, plan: PlanKey): Promise<boolean> {
+export async function requestPlan(customerId: string): Promise<boolean> {
   const current = await getPlan(customerId);
   if (current?.status === 'active') return false;
 
@@ -28,7 +28,7 @@ export async function requestPlan(customerId: string, plan: PlanKey): Promise<bo
   const { error } = await supabase.from('plan_subscriptions').upsert(
     {
       customer_id: customerId,
-      plan,
+      plan: 'commission' satisfies PlanKey,
       status: 'requested',
       updated_at: new Date().toISOString(),
     },

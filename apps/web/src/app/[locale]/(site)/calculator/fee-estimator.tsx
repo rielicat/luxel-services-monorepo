@@ -6,9 +6,9 @@ import { Check, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { PLAN_KEYS, cheapestPlan, planMonthlyCost } from '@/lib/plan-pricing';
+import { planMonthlyCost } from '@/lib/plan-pricing';
 import { planDesc, planName, planPriceLine } from '@/lib/plan-copy';
-import { formatCLP, cn } from '@/lib/utils';
+import { formatCLP } from '@/lib/utils';
 
 const MIN = 0;
 const MAX = 4_000_000;
@@ -22,13 +22,14 @@ function clampListings(value: number): number {
   return Math.min(MAX_LISTINGS, Math.max(MIN_LISTINGS, Math.round(value)));
 }
 
-export function PlanComparison() {
+export function FeeEstimator() {
   const t = useTranslations('calculator');
   const tp = useTranslations('plans');
   const [revenue, setRevenue] = useState(DEFAULT);
   const [listingsInput, setListingsInput] = useState(String(MIN_LISTINGS));
   const listings = clampListings(Number(listingsInput));
-  const cheapest = cheapestPlan(revenue);
+  const fee = planMonthlyCost(revenue) * listings;
+  const net = (revenue - planMonthlyCost(revenue)) * listings;
 
   return (
     <div>
@@ -93,58 +94,40 @@ export function PlanComparison() {
             <p className="text-muted-foreground text-xs">{t('listings_hint')}</p>
           </div>
 
-          <ul className="grid gap-3">
-            {PLAN_KEYS.map((plan) => {
-              const best = plan === cheapest;
-              return (
-                <li
-                  key={plan}
-                  aria-current={best ? 'true' : undefined}
-                  className={cn(
-                    'flex flex-col gap-3 rounded-xl border p-5 transition-colors sm:flex-row sm:items-center sm:justify-between',
-                    best ? 'border-primary ring-primary/20 bg-primary/5 ring-1' : 'border-border',
-                  )}
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-display text-base font-semibold">{planName(tp, plan)}</h2>
-                      {best && (
-                        <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
-                          {t('cheapest')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground mt-0.5 text-sm">
-                      {planPriceLine(tp, plan)}
-                    </p>
-                    <p className="text-muted-foreground mt-1 text-xs">{planDesc(tp, plan)}</p>
-                  </div>
-                  <div className="shrink-0 sm:text-right">
-                    <p className="font-display text-2xl font-bold tabular-nums">
-                      {formatCLP(planMonthlyCost(plan, revenue) * listings)}{' '}
-                      <span className="text-muted-foreground text-xs font-medium">
-                        {t('per_month')}
-                      </span>
-                    </p>
-                    {listings > 1 && (
-                      <p className="text-muted-foreground text-xs tabular-nums">
-                        {t('total_listings', { n: listings })}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <div
+            aria-live="polite"
+            className="border-primary/40 bg-primary/5 flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+          >
+            <div className="min-w-0">
+              <h2 className="font-display text-base font-semibold">{t('fee_label')}</h2>
+              <p className="text-muted-foreground mt-0.5 text-sm">
+                {planName(tp)} · {planPriceLine(tp)}
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">{tp('per_listing')}</p>
+            </div>
+            <div className="shrink-0 sm:text-right">
+              <p className="font-display text-3xl font-bold tabular-nums sm:text-4xl">
+                {formatCLP(fee)}{' '}
+                <span className="text-muted-foreground text-xs font-medium">{t('per_month')}</span>
+              </p>
+              {listings > 1 && (
+                <p className="text-muted-foreground text-xs tabular-nums">
+                  {t('total_listings', { n: listings })}
+                </p>
+              )}
+              <p className="text-muted-foreground mt-1 text-xs tabular-nums">
+                {t('net', { amount: formatCLP(net) })}
+              </p>
+            </div>
+          </div>
 
           <div className="text-muted-foreground grid gap-2 text-sm">
+            <p className="text-pretty">{planDesc(tp)}</p>
             <p className="flex items-start gap-2">
               <Check className="text-success mt-0.5 h-4 w-4 shrink-0" />
               <span>{tp('included')}</span>
             </p>
-            <p className="text-xs">
-              {tp('per_listing')} · {t('note')}
-            </p>
+            <p className="text-xs">{t('note')}</p>
           </div>
 
           <div>

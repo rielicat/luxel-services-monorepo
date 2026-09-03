@@ -1,51 +1,36 @@
 import { describe, it, expect } from 'vitest';
 import {
-  FIXED_BEATS_HYBRID_CLP,
-  HYBRID_BEATS_COMMISSION_CLP,
-  PLAN_FIXED_CLP,
+  PLAN_COMMISSION_PCT,
   PLAN_KEYS,
-  cheapestPlan,
   isPlanKey,
   planMonthlyCost,
 } from '@luxel/shared/plan-pricing';
 import { runTool } from '../src/lib/ai/tools';
 
 describe('plan pricing', () => {
-  it('prices each plan from the monthly booking revenue', () => {
-    expect(planMonthlyCost('commission', 1_750_000)).toBe(210_000);
-    expect(planMonthlyCost('hybrid', 1_750_000)).toBe(154_900);
-    expect(planMonthlyCost('fixed', 1_750_000)).toBe(189_900);
-    expect(planMonthlyCost('fixed', 0)).toBe(PLAN_FIXED_CLP);
-    expect(planMonthlyCost('commission', 0)).toBe(0);
+  it('charges 12% of the monthly booking revenue', () => {
+    expect(PLAN_COMMISSION_PCT).toBe(0.12);
+    expect(planMonthlyCost(1_750_000)).toBe(210_000);
+    expect(planMonthlyCost(600_000)).toBe(72_000);
+    expect(planMonthlyCost(0)).toBe(0);
   });
 
   it('never bills a negative revenue', () => {
-    for (const plan of PLAN_KEYS) {
-      expect(planMonthlyCost(plan, -500_000)).toBe(planMonthlyCost(plan, 0));
-    }
+    expect(planMonthlyCost(-500_000)).toBe(0);
+    expect(planMonthlyCost(-1)).toBe(0);
   });
 
-  it('gives every plan a band where it is the cheapest', () => {
-    expect(HYBRID_BEATS_COMMISSION_CLP).toBeLessThan(FIXED_BEATS_HYBRID_CLP);
-    expect(cheapestPlan(HYBRID_BEATS_COMMISSION_CLP - 100_000)).toBe('commission');
-    expect(cheapestPlan(HYBRID_BEATS_COMMISSION_CLP + 100_000)).toBe('hybrid');
-    expect(cheapestPlan(FIXED_BEATS_HYBRID_CLP - 100_000)).toBe('hybrid');
-    expect(cheapestPlan(FIXED_BEATS_HYBRID_CLP + 100_000)).toBe('fixed');
+  it('rounds the fee to whole pesos', () => {
+    expect(planMonthlyCost(1_234_567)).toBe(148_148);
+    expect(planMonthlyCost(999_999)).toBe(120_000);
+    expect(Number.isInteger(planMonthlyCost(333_333))).toBe(true);
   });
 
-  it('levels the plans at each break-even', () => {
-    expect(planMonthlyCost('commission', HYBRID_BEATS_COMMISSION_CLP)).toBe(
-      planMonthlyCost('hybrid', HYBRID_BEATS_COMMISSION_CLP),
-    );
-    expect(planMonthlyCost('hybrid', FIXED_BEATS_HYBRID_CLP)).toBe(
-      planMonthlyCost('fixed', FIXED_BEATS_HYBRID_CLP),
-    );
-  });
-
-  it('accepts only the three plan keys', () => {
-    expect(PLAN_KEYS).toEqual(['commission', 'hybrid', 'fixed']);
-    expect(isPlanKey('hybrid')).toBe(true);
-    expect(isPlanKey('ai')).toBe(false);
+  it('accepts only the commission plan key', () => {
+    expect(PLAN_KEYS).toEqual(['commission']);
+    expect(isPlanKey('commission')).toBe(true);
+    expect(isPlanKey('fixed')).toBe(false);
+    expect(isPlanKey('hybrid')).toBe(false);
     expect(isPlanKey(undefined)).toBe(false);
   });
 });
@@ -53,30 +38,45 @@ describe('plan pricing', () => {
 describe('get_airbnb_quote', () => {
   const quote = (input: Record<string, unknown>) => runTool('get_airbnb_quote', input, {});
 
-  it('never prices a revenue plan on an unknown revenue', async () => {
-    for (const plan of ['commission', 'hybrid'] as const) {
-      const r = await quote({ listings: 1, plan });
+  it('never quotes an amount on an unknown revenue', async () => {
+    const r = await quote({ listings: 1 });
+    expect(r.widget).toBeUndefined();
+    expect(r.content).toContain('ingreso mensual');
+  });
+
+  it('asks again when the revenue is not a usable number', async () => {
+    for (const monthly_revenue_clp of [0, -1, 'mucho', null]) {
+      const r = await quote({ listings: 1, monthly_revenue_clp });
       expect(r.widget).toBeUndefined();
-      expect(r.content).toContain('ingreso mensual');
     }
   });
 
-  it('quotes the flat plan without a revenue, and every plan with one', async () => {
-    const flat = await quote({ listings: 2, plan: 'fixed' });
-    expect(flat.widget).toMatchObject({ plan: 'fixed', monthlyClp: 379_800 });
+  it('quotes 12% of the revenue for every listing', async () => {
+    const one = await quote({ listings: 1, monthly_revenue_clp: 1_750_000 });
+    expect(one.widget).toMatchObject({ listings: 1, monthlyClp: 210_000 });
+    expect(one.content).toContain('$210.000');
 
-    const share = await quote({ listings: 1, plan: 'commission', monthly_revenue_clp: 1_750_000 });
-    expect(share.widget).toMatchObject({ plan: 'commission', monthlyClp: 210_000 });
+    const two = await quote({ listings: 2, monthly_revenue_clp: 1_750_000 });
+    expect(two.widget).toMatchObject({ listings: 2, monthlyClp: 420_000 });
   });
 
-  it('picks the cheapest plan when the visitor names none', async () => {
-    const low = await quote({ listings: 1, monthly_revenue_clp: 600_000 });
-    expect(low.widget).toMatchObject({ plan: 'commission' });
+  it('names the single plan and clamps the listing count', async () => {
+    const r = await quote({ listings: 99, monthly_revenue_clp: 600_000 });
+    expect(r.widget).toMatchObject({
+      kind: 'airbnb_quote',
+      planLabel: 'Plan Luxel',
+      listings: 50,
+      revenueClp: 600_000,
+      monthlyClp: 3_600_000,
+    });
+    expect(r.content).toContain('12%');
+  });
 
-    const mid = await quote({ listings: 1, monthly_revenue_clp: 1_750_000 });
-    expect(mid.widget).toMatchObject({ plan: 'hybrid' });
-
-    const high = await quote({ listings: 1, monthly_revenue_clp: 3_000_000 });
-    expect(high.widget).toMatchObject({ plan: 'fixed' });
+  it('ignores a plan argument, since only one plan exists', async () => {
+    const withPlan = await quote({ listings: 1, plan: 'fixed', monthly_revenue_clp: 600_000 });
+    const without = await quote({ listings: 1, monthly_revenue_clp: 600_000 });
+    expect(withPlan.widget).toEqual(without.widget);
+    expect(withPlan.content).toBe(without.content);
+    expect(withPlan.content).not.toContain('Fijo');
   });
 });

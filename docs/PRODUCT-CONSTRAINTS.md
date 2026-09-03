@@ -8,15 +8,24 @@ Compacted from `AGENTS.md` sections "Product constraints (user-set)" and
 - Marketing nav: `Servicio` (`/services/airbnb`) · `Precios` (`/calculator`) ·
   `Nosotros` (`/about`). One `Ingresar` button. No dropdown. No header CTA.
 - Service icons share one color (`bg-primary/10 text-primary`).
-- Three plans per listing per month (`apps/web/src/lib/plan-pricing.ts`): Fijo
-  189.900 CLP; Mixto 49.900 CLP + 6% of booking revenue; Comisión 12% of booking revenue. Luxel bills monthly, off-platform. No free trial. No
-  "recomendado" badge; the calculator marks the cheapest plan for the entered
-  revenue.
+- One plan only (`packages/shared/src/plan-pricing.ts`): 12% of the booking
+  revenue, IVA included, per listing per month. Luxel bills monthly,
+  off-platform. There is no fixed fee and no other plan. Do not add a second
+  plan, a plan picker, or a "recomendado" badge. No free trial. The calculator
+  turns a monthly revenue into the fee; it compares nothing.
+- The commission base is the booking only. The guest cleaning fee is 100% for
+  the cleaning crew, and Luxel charges no commission on it. The sync mirrors
+  it as `reservation_revenue.cleaning_fee_clp`, and `commissionBaseClp` in
+  `apps/web/src/lib/revenue.ts` is the host payout minus that fee.
+- **Not true yet.** Airbnb co-host payout splitting is not configured on any
+  listing. Airbnb pays the host and Luxel invoices monthly, off-platform. No
+  copy may say that Airbnb pays Luxel, deducts our fee, or splits the payout.
+  An operator must set the split up first, then this line changes.
 - Hosts never see the crew or the guest messages. Those are Luxel operations.
-- Copy never says "0% comisión", "14 días gratis", or "m²". Voice per
-  [`BRAND.md`](BRAND.md).
+- Copy never says "0% comisión", "tarifa plana", "14 días gratis", "prueba
+  gratis", or "m²". Voice per [`BRAND.md`](BRAND.md).
 - Competitor reference: `airhost.cl`, `airhostchile.com`. Our angle: full
-  management, transparent plans (fixed fee or revenue share), monthly report.
+  management, one transparent fee on the booking revenue, monthly report.
 
 ## Temporary: stealth gate
 
