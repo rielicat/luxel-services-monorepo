@@ -29,8 +29,10 @@ rules. Do not add code paths that break them.
 - No guest messages from our code. Every guest message is a Hospitable rule
   authored in its dashboard: the booking message with the check-in link on "New
   reservation", the reminder, the check-in details at T-3, the check-out
-  message and the review request. There is no cron either; code handles events
-  only.
+  message and the review request. Our code only mirrors reservations into
+  `checkins` rows, and the `reservation.created` webhook writes the row at once
+  so the link never lands before it. There is no cron either; code handles
+  events only.
 - Door codes and wifi passwords live in Hospitable custom codes and in
   `property_access`; the AI redacts them (`lib/ai/redact.ts`). Never log them.
   The guest receives the door code only through Hospitable's T-3 message
