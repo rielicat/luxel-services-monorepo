@@ -146,11 +146,13 @@ is not secret and lives in `wrangler.toml`:
 | `LUXEL_APP_URL`          | var          | origin of the web app; the Workflow calls it back                |
 | `[triggers] crons`       | cron         | nightly retention pass and review sweep at 04:23 UTC             |
 
-`CLEANING_MEDIA_KEY` seals the upload and read tickets, and the media routes
-accept it as well as `INTERNAL_SEND_TOKEN`. It is optional: the worker falls
-back to `INTERNAL_SEND_TOKEN` while it is unset, so nothing breaks before an
-operator provisions it. Set it on the worker first, then on Vercel; the worker
-keeps accepting the old bearer either way.
+`CLEANING_MEDIA_KEY` seals the upload and read tickets and is the only bearer
+the media routes accept once it is set. It is optional: while it is unset both
+sides fall back to `INTERNAL_SEND_TOKEN`, so nothing breaks before an operator
+provisions it. Set it on the worker and on both Vercel projects together — the
+two sides must agree, so whichever you set first, uploads and playback answer
+401 until the other follows. Set both before the first `wrangler deploy` and
+there is no window at all.
 
 Rotating `CLEANING_MEDIA_KEY` is the break-glass for video access. It
 invalidates every ticket still in flight — a ticket lives 15 minutes at most —

@@ -73,7 +73,8 @@ These are external accounts. The code cannot provision them:
     Vercel.
 11. **Cloudflare R2** — the bucket `luxel-cleaning-media` holds the cleaning
     walkthrough videos. Set `CLEANING_MEDIA_KEY` as a worker secret and as a
-    Vercel variable on both projects, worker first. It seals the upload and read
+    Vercel variable on both projects, together — once it is set on one side the
+    other must match or the media routes answer 401. It seals the upload and read
     tickets. It is optional — the worker falls back to `INTERNAL_SEND_TOKEN`
     while it is unset — but set it: rotating it is the only way to revoke video
     access without touching WhatsApp. `infra/cloudflare` creates the bucket and
