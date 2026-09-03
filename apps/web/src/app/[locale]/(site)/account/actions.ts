@@ -31,6 +31,5 @@ export async function updateProfileAction(formData: FormData) {
   if (error) return { ok: false, error: 'generic' as const };
 
   revalidatePath('/account', 'page');
-  revalidatePath('/account/profile', 'page');
   return { ok: true };
 }

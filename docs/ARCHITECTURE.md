@@ -4,7 +4,8 @@ Compacted from `AGENTS.md` sections Project, Layout, Stack.
 
 ## Project
 
-Servicios Luxel manages Airbnb listings in Santiago, Chile, end to end. A host
+Servicios Luxel manages Airbnb listings in Chile, end to end. The mission is the
+host's time: the listing pays the host, and Luxel coordinates the people. A host
 signs up, asks for the plan, and grants Luxel access to the listing in
 Hospitable. There is one plan: 12% of the booking revenue, per listing, monthly.
 Luxel runs the operation: dynamic pricing, guest replies (AI "Lux" plus Luxel

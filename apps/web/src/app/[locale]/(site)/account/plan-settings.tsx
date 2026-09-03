@@ -3,37 +3,52 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Sparkles, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
-import { planDesc, planPriceLine } from '@/lib/plan-copy';
 import { cn } from '@/lib/utils';
 import { requestMyPlan, cancelMyPlan } from './plan-actions';
 
 export type Plan = { plan: string; status: string } | null;
 
-const STATUS_ICON = {
-  requested: { icon: Clock, cls: 'bg-warning/15 text-warning' },
-  active: { icon: CheckCircle2, cls: 'bg-success/15 text-success' },
-  cancelled: { icon: XCircle, cls: 'bg-muted text-muted-foreground' },
+const STATE = {
+  none: {
+    label: 'state_none',
+    body: 'body_none',
+    tone: 'bg-muted text-muted-foreground',
+  },
+  requested: {
+    label: 'state_requested',
+    body: 'body_requested',
+    tone: 'bg-warning/15 text-warning',
+  },
+  active: {
+    label: 'state_active',
+    body: 'body_active',
+    tone: 'bg-success/15 text-success',
+  },
+  cancelled: {
+    label: 'state_cancelled',
+    body: 'body_cancelled',
+    tone: 'bg-muted text-muted-foreground',
+  },
 } as const;
 
-type Status = keyof typeof STATUS_ICON;
+type Status = keyof typeof STATE;
 
-const isStatus = (s: string | undefined): s is Status => s != null && s in STATUS_ICON;
+const isStatus = (s: string | undefined): s is Status => s != null && s in STATE;
 
-export function PlanBar({ plan }: { plan: Plan }) {
-  const t = useTranslations('hostplan');
-  const tp = useTranslations('plans');
+export function PlanSettings({ plan }: { plan: Plan }) {
+  const t = useTranslations('account.plan');
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState<'request' | 'cancel' | null>(null);
   const [failed, setFailed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const status = isStatus(plan?.status) ? plan.status : null;
+  const status: Status = isStatus(plan?.status) ? plan.status : 'none';
   const open = status === 'requested' || status === 'active';
+  const state = STATE[status];
 
   const run = (key: 'request' | 'cancel', fn: () => Promise<{ ok: boolean }>) => {
     setBusy(key);
@@ -50,34 +65,17 @@ export function PlanBar({ plan }: { plan: Plan }) {
     });
   };
 
-  const StatusBadge = status ? STATUS_ICON[status] : null;
-
   return (
-    <Card className={cn('mb-5', status === 'active' ? 'border-success/40' : 'border-primary/30')}>
-      <CardContent className="grid gap-5 p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-2.5">
-            <span
-              className={cn(
-                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                StatusBadge ? StatusBadge.cls : 'bg-primary/10 text-primary',
-              )}
-            >
-              {StatusBadge ? (
-                <StatusBadge.icon className="h-5 w-5" />
-              ) : (
-                <Sparkles className="h-5 w-5" />
-              )}
-            </span>
-            <div className="grid gap-0.5">
-              <p className="font-display font-semibold leading-tight">{t('title')}</p>
-              <p className="text-sm font-medium tabular-nums">{planPriceLine(tp)}</p>
-              <p className="text-muted-foreground text-xs">
-                {status ? t(status) : t('hint')} · {tp('per_listing')}
-              </p>
-            </div>
-          </div>
-          {open && (
+    <Card>
+      <CardContent className="grid gap-4 p-6">
+        <span className={cn('w-fit rounded-full px-2.5 py-1 text-xs font-semibold', state.tone)}>
+          {t(state.label)}
+        </span>
+
+        <p className="text-muted-foreground text-sm">{t(state.body)}</p>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {open ? (
             <Button
               variant="outline"
               size="sm"
@@ -86,24 +84,17 @@ export function PlanBar({ plan }: { plan: Plan }) {
             >
               {t('cancel')}
             </Button>
-          )}
-        </div>
-
-        {!open && (
-          <div className="grid gap-3">
-            <p className="text-muted-foreground text-sm">{planDesc(tp)}</p>
-            <p className="text-muted-foreground text-xs">{tp('included')}</p>
+          ) : (
             <Button
-              className="w-full sm:w-fit"
+              size="sm"
               disabled={pending}
               onClick={() => run('request', () => requestMyPlan())}
             >
               {busy === 'request' ? '…' : status === 'cancelled' ? t('rerequest') : t('request')}
             </Button>
-          </div>
-        )}
-
-        {failed && <p className="text-warning text-xs">{t('error')}</p>}
+          )}
+          {failed && <span className="text-warning text-xs">{t('error')}</span>}
+        </div>
       </CardContent>
 
       <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title={t('cancel_title')}>

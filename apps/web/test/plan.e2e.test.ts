@@ -30,7 +30,7 @@ const row = async () =>
 
 beforeAll(async () => {
   if (!LIVE) return;
-  const p = await import('../src/app/[locale]/(site)/properties/plan-actions');
+  const p = await import('../src/app/[locale]/(site)/account/plan-actions');
   requestMyPlan = p.requestMyPlan;
   cancelMyPlan = p.cancelMyPlan;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });

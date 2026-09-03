@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { after } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { getPlan, type PlanRow } from '@/lib/plans';
 import { fetchProperties, fetchConnection, type HostConnection } from '@/lib/host/queries';
 import { saveHospitableConnection } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
@@ -28,7 +27,6 @@ export default async function PropertiesPage() {
     .maybeSingle();
 
   let properties: PropertyRow[] = [];
-  let plan: PlanRow | null = null;
   let connection: HostConnection | null = null;
   let syncFailed = false;
   let centralManaged = false;
@@ -62,16 +60,12 @@ export default async function PropertiesPage() {
     } else {
       connection = null;
     }
-    [properties, plan] = await Promise.all([
-      fetchProperties(customer.id) as Promise<PropertyRow[]>,
-      getPlan(customer.id),
-    ]);
+    properties = (await fetchProperties(customer.id)) as PropertyRow[];
   }
 
   return (
     <PropertiesClient
       initial={properties}
-      plan={plan}
       connection={connection}
       syncFailed={syncFailed}
       centralManaged={centralManaged}

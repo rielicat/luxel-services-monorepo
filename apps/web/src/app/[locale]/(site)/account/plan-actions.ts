@@ -18,7 +18,7 @@ export async function requestMyPlan(): Promise<{ ok: boolean }> {
       { customerId: cid },
     );
   }
-  revalidatePath('/properties');
+  revalidatePath('/account');
   return { ok };
 }
 
@@ -35,6 +35,6 @@ export async function cancelMyPlan(): Promise<{ ok: boolean }> {
       { customerId: cid },
     );
   }
-  revalidatePath('/properties');
+  revalidatePath('/account');
   return { ok };
 }

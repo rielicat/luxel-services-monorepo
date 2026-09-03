@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { LayoutDashboard, LogOut, UserRound, Home, Building2, Wrench } from 'lucide-react';
+import { LogOut, UserRound, Home, Building2, Wrench } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -84,10 +84,7 @@ export function UserMenu() {
             <MenuLink href="/properties" icon={Home} onNavigate={() => setOpen(false)}>
               {t('properties')}
             </MenuLink>
-            <MenuLink href="/account" icon={LayoutDashboard} onNavigate={() => setOpen(false)}>
-              {t('plan')}
-            </MenuLink>
-            <MenuLink href="/account/profile" icon={UserRound} onNavigate={() => setOpen(false)}>
+            <MenuLink href="/account" icon={UserRound} onNavigate={() => setOpen(false)}>
               {t('account')}
             </MenuLink>
             {isAdmin && (

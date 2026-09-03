@@ -24,18 +24,19 @@ under 20 words. Product copy stays `es-CL` and follows [`docs/BRAND.md`](docs/BR
 
 ## Project
 
-**Servicios Luxel** manages Airbnb listings in Santiago, Chile, end to end. A host
-signs up, asks for the plan and grants Luxel access to the listing in Hospitable.
-There is one plan: 12% of the booking revenue, per listing, per month. Luxel
-then runs the whole operation: dynamic pricing, guest replies 24/7 with AI ("Lux")
-and Luxel humans, cleaning and laundry between stays, conflict resolution,
-inventory, small repairs and furnishing. The app mirrors listings and reservations.
-It renders the check-in page in the guest's language (es/en/pt); Hospitable's
-own "New reservation" rule sends the guest the link. It tells conserjes and the cleaning crew what they need over
-WhatsApp. Hosts see their properties, calendar, revenue and plan. Hosts never see
-the crew or the guest messages; those are Luxel operations. pnpm + Turborepo
-monorepo: Next.js 15 apps, a Cloudflare Worker, shared packages, Supabase, Pulumi
-IaC.
+**Servicios Luxel** manages Airbnb listings in Chile, end to end. The mission is
+the host's time: the listing pays the host, and Luxel coordinates the people. A
+host signs up, asks for the plan and grants Luxel access to the listing in
+Hospitable. There is one plan: 12% of the booking revenue, per listing, per
+month. Luxel then runs the whole operation: dynamic pricing, guest replies 24/7
+with AI ("Lux") and Luxel humans, cleaning and laundry between stays, conflict
+resolution, inventory, small repairs and furnishing. The app mirrors listings
+and reservations. It renders the check-in page in the guest's language
+(es/en/pt); Hospitable's own "New reservation" rule sends the guest the link. It
+tells conserjes and the cleaning crew what they need over WhatsApp. Hosts see
+their properties, calendar, revenue and plan. Hosts never see the crew or the
+guest messages; those are Luxel operations. pnpm + Turborepo monorepo: Next.js
+15 apps, a Cloudflare Worker, shared packages, Supabase, Pulumi IaC.
 
 ## Toolchain
 
@@ -182,6 +183,15 @@ block in `apps/web/src/middleware.ts`.
 - Hosts never see the crew or the guest messages. Those are Luxel operations.
 - Copy never says "0% comisión", "tarifa plana", "14 días gratis", "prueba
   gratis" or "m²". Voice per [`docs/BRAND.md`](docs/BRAND.md).
+- **Copy never names a city.** No city appears in anything a person reads: page
+  copy, i18n catalogs, alt text, metadata, emails or WhatsApp templates. "Chile"
+  is allowed. A comuna is allowed only as real data about a real unit; for an
+  example or a placeholder prefer Providencia, Las Condes or Ñuñoa. This rule
+  covers copy only. Keep the timezone string `America/Santiago`, the identifiers
+  that carry it (`santiagoToday`, `santiagoMonth`, `todaySantiago`) and the
+  address fixtures and seeds exactly as they are.
+- Luxel writes as a **partner, not a vendor**. Copy stands on the host's side of
+  the table: "nosotros nos encargamos", never "el cliente debe".
 - Competitor reference: `airhost.cl`, `airhostchile.com`. Our angle: full
   management, one transparent fee on the booking revenue, monthly report.
 

@@ -1,6 +1,5 @@
 {
   "nav": {
-    "plan": "Panel",
     "account": "Mi cuenta",
     "properties": "Mis propiedades",
     "login": "Ingresar",
@@ -15,10 +14,10 @@
   },
   "landing": {
     "hero": {
-      "eyebrow": "Administración de Airbnb en Santiago",
-      "title_lead": "Tu Airbnb,",
-      "title_accent": "administrado por completo.",
-      "subtitle": "Precios, huéspedes, aseo, reparaciones e inventario. Nosotros nos hacemos cargo de todo; tú recibes los ingresos y un reporte claro cada mes.",
+      "eyebrow": "Administración completa de Airbnb",
+      "title_lead": "Tu Airbnb debería ser tu ingreso pasivo,",
+      "title_accent": "no otro trabajo.",
+      "subtitle": "Precios, huéspedes, aseo, reparaciones e inventario: la operación completa la llevamos nosotros. Tú recibes los ingresos y un reporte claro cada mes.",
       "cta_primary": "Ver el precio",
       "cta_secondary": "Conversemos",
       "trust": {
@@ -30,7 +29,7 @@
       "image_alt": "Terraza con parrilla y vista al atardecer en un departamento administrado por Luxel"
     },
     "scope": {
-      "title": "Nos hacemos cargo de todo",
+      "title": "El trabajo lo llevamos nosotros",
       "subtitle": "Lo que antes te quitaba las tardes, ahora lo hace Luxel.",
       "items": {
         "pricing": {
@@ -99,8 +98,8 @@
       "cta": "Calcular mi cobro"
     },
     "footer": {
-      "tagline": "Administración completa de Airbnb en Santiago.",
-      "legal": "© {year} Servicios Luxel · Santiago, Chile"
+      "tagline": "Administración completa de Airbnb. Tu tiempo, de vuelta.",
+      "legal": "© {year} Servicios Luxel · Chile"
     }
   },
   "calculator": {
@@ -120,23 +119,10 @@
     "cta_hint": "Creas tu cuenta y te contactamos para activar tu plan."
   },
   "account": {
-    "greeting": "Hola, {name}",
-    "greeting_generic": "Hola",
-    "subtitle": "Tu plan y tus datos en un solo lugar.",
-    "back_to_account": "Volver al panel",
-    "services_title": "Tu servicio",
-    "airbnb": {
-      "title": "Administración de Airbnb",
-      "requested": "Plan solicitado — te contactamos para activarlo",
-      "active": "Plan activo",
-      "none_body": "Solicita el plan y Luxel administra tu Airbnb por completo.",
-      "count": "{n, plural, =0 {Aún sin propiedades conectadas} one {# propiedad conectada} other {# propiedades conectadas}}",
-      "manage": "Ir a mis propiedades",
-      "start": "Solicitar el plan",
-      "cancelled_body": "Plan cancelado. Puedes volver cuando quieras."
-    },
+    "title": "Mi cuenta",
+    "subtitle": "Tus datos y tu servicio Luxel, en un solo lugar.",
     "profile": {
-      "title": "Mi cuenta",
+      "title": "Tus datos",
       "subtitle": "Actualiza tu nombre y teléfono de contacto.",
       "name": "Nombre",
       "name_placeholder": "Tu nombre",
@@ -144,6 +130,26 @@
       "save": "Guardar cambios",
       "saved": "Cambios guardados.",
       "error": "No pudimos guardar. Intenta de nuevo."
+    },
+    "plan": {
+      "title": "Servicio Luxel",
+      "state_none": "Sin activar",
+      "state_requested": "Solicitado",
+      "state_active": "Activo",
+      "state_cancelled": "Cancelado",
+      "body_none": "Solicítalo y te contactamos para activarlo. Sin contrato de permanencia.",
+      "body_requested": "Recibimos tu solicitud. Te contactamos para activarlo.",
+      "body_active": "Administramos tu Airbnb completo. Te cobramos a fin de mes.",
+      "body_cancelled": "Servicio cancelado. Puedes volver cuando quieras.",
+      "request": "Solicitar el servicio",
+      "rerequest": "Solicitar de nuevo",
+      "cancel": "Cancelar el servicio",
+      "cancel_title": "¿Cancelar el servicio?",
+      "cancel_body": "Te contactamos para coordinar la salida con 30 días de aviso. Puedes volver cuando quieras.",
+      "cancel_body_requested": "Cancelamos tu solicitud. Puedes pedirla de nuevo cuando quieras.",
+      "cancel_confirm": "Sí, cancelar",
+      "cancel_keep": "Mantener el servicio",
+      "error": "No pudimos guardar tu solicitud. Inténtalo de nuevo."
     }
   },
   "auth": {
@@ -275,21 +281,8 @@
   "properties": {
     "title": "Mis propiedades",
     "subtitle": "Tus propiedades, administradas por Luxel.",
-    "none_warning": "Sin cerradura inteligente ni conserjería 24/7 no podemos automatizar el acceso. Considera una cerradura con código o designar una conserjería.",
     "keyless_code": "Código de tu cerradura",
-    "keyless_help": "Escríbelo una vez. Luxel se lo entrega a cada huésped antes de su llegada — tú no envías nada.",
-    "keyless_missing": "Sin código, tu huésped no recibe nada para entrar.",
-    "keyless_where": "¿Dónde está la puerta?",
-    "keyless_where_ph": "Piso 4, depto B — el teclado está a la derecha",
     "optional": "(opcional)",
-    "concierge_name": "Nombre de conserjería",
-    "concierge_hours": "Horario",
-    "require_id": "Exigir documento de identidad",
-    "require_id_help": "Solo actívalo si tienes una base legal o normativa (p. ej. reglamento del edificio) y la informas en la descripción del anuncio de Airbnb antes de la reserva.",
-    "id_basis": "Base legal o normativa",
-    "id_basis_ph": "Ej.: el reglamento de copropiedad exige registro de huéspedes",
-    "id_disclosed": "Confirmo que informo este requisito en la descripción del anuncio antes de la reserva.",
-    "saving": "Guardando…",
     "saved": "Guardado ✓",
     "empty_connected_title": "Tu cuenta de Airbnb aún no tiene anuncios",
     "empty_connected_body": "Publica un anuncio en Airbnb y aparecerá aquí automáticamente en la próxima sincronización.",
@@ -298,42 +291,11 @@
     "cap_bathrooms": "{n} baños",
     "cap_guests": "{n} huéspedes",
     "unlisted": "No publicada",
-    "chip_keyless": "Sin llave",
-    "chip_concierge": "Conserjería",
-    "chip_no_access": "Configura el acceso",
     "next_checkout": "Check-out: {date}",
     "no_upcoming": "Sin reservas próximas",
     "no_address": "Sin dirección",
     "manage": "Administrar",
-    "method_help": "¿Cómo entran tus huéspedes? Esto alimenta el check-in automático y las respuestas de la IA.",
-    "method_keyless_short": "Cerradura con código",
-    "method_keyless_body": "Defines el código una vez y se entrega solo.",
-    "method_concierge_short": "Conserjería",
-    "method_concierge_body": "La llave se retira con el conserje.",
-    "method_none_short": "Aún no tengo",
-    "method_none_body": "Lo configuro más tarde.",
-    "checkin_auto_note": "El enlace de check-in se envía solo a cada huésped al confirmarse su reserva — no tienes que hacer nada.",
-    "save_error": "No se pudo guardar — revisa tu conexión.",
-    "unit": "N.º de departamento",
-    "unit_ph": "401",
-    "unit_help": "Airbnb publica la calle, no el departamento. Luxel lo usa para coordinar el acceso y el aseo.",
-    "ops_note": "Luxel coordina conserjería y aseo con el equipo del edificio."
-  },
-  "hostplan": {
-    "title": "Tu plan Luxel",
-    "hint": "Solicita el plan y te contactamos para activarlo. Sin contrato de permanencia.",
-    "requested": "Plan solicitado — te contactamos para activarlo",
-    "active": "Plan activo",
-    "cancelled": "Plan cancelado",
-    "request": "Solicitar el plan",
-    "rerequest": "Solicitar de nuevo",
-    "cancel": "Cancelar plan",
-    "cancel_title": "¿Cancelar tu plan?",
-    "cancel_body": "Te contactamos para coordinar la salida con 30 días de aviso. Puedes volver cuando quieras.",
-    "cancel_body_requested": "Cancelamos tu solicitud. Puedes pedirla de nuevo cuando quieras.",
-    "cancel_confirm": "Sí, cancelar",
-    "cancel_keep": "Mantener mi plan",
-    "error": "No pudimos guardar tu solicitud. Inténtalo de nuevo."
+    "unit": "N.º de departamento"
   },
   "channel": {
     "connected_title": "Airbnb conectado",
@@ -342,26 +304,24 @@
   },
   "detail": {
     "back": "Mis propiedades",
-    "tab_access": "Acceso",
-    "att_access": "Configura el acceso",
-    "att_clear": "Todo al día — nada requiere tu atención.",
     "sec_stays": "Estadías y calendario",
-    "m_revenue": "Ingresos 30 días",
+    "m_revenue": "Ingresos del mes",
     "m_revenue_sub": "Estimado según tus tarifas",
     "m_occupancy": "Ocupación",
-    "m_occupancy_sub": "Próximos 30 días",
+    "m_occupancy_sub": "Mes en curso",
     "m_adr": "Tarifa promedio",
     "m_adr_sub": "Por noche publicada",
     "d_no_calendar": "Sin datos del calendario de Airbnb todavía — se completan en la próxima sincronización.",
-    "d_revenue_nights": "{n, plural, one {# noche reservada} other {# noches reservadas}} en los próximos 30 días, sumadas a tu tarifa publicada por noche.",
+    "d_revenue_nights": "{n, plural, one {# noche reservada} other {# noches reservadas}} en {month}, sumadas a tu tarifa publicada por noche.",
     "d_revenue_disclaimer": "Estimado según tus tarifas publicadas por noche. No incluye la comisión ni las tarifas de servicio de Airbnb.",
-    "d_occupancy_split": "{reserved, plural, one {# noche reservada} other {# noches reservadas}} y {open, plural, one {# noche disponible} other {# noches disponibles}} en los próximos 30 días.",
+    "d_occupancy_split": "{reserved, plural, one {# noche reservada} other {# noches reservadas}} y {open, plural, one {# noche disponible} other {# noches disponibles}} en {month}.",
     "d_occupancy_note": "Calculado sobre tu calendario real de Airbnb, sincronizado automáticamente.",
-    "d_adr_range": "Tus tarifas publicadas van de {min} a {max} por noche en los próximos 30 días.",
+    "d_adr_range": "Tus tarifas publicadas van de {min} a {max} por noche en {month}.",
     "d_adr_note": "Promedio simple de las noches con precio publicado en Airbnb.",
     "d_revenue_by_stay": "Ingreso por estadía",
-    "d_occupancy_prev": "Ocupación de los 30 días previos: {p}%.",
-    "delta_prev30": "{d} pts"
+    "d_occupancy_prev": "Ocupación del mes pasado: {p}%.",
+    "d_month_partial": "El mes va corriendo: falta lo que queda de {month} para tener el total.",
+    "delta_prev_month": "{d} pts"
   },
   "onboarding": {
     "title": "Conecta tu propiedad en 3 pasos",
@@ -426,20 +386,20 @@
   "about": {
     "meta_title": "Nosotros",
     "title": "Administrar tu Airbnb no debería ser un segundo trabajo",
-    "lead": "Luxel nació en Santiago para que tu departamento trabaje para ti: nosotros atendemos huéspedes, precios, aseo y reparaciones, y tú recibes los ingresos con un reporte claro.",
+    "lead": "Luxel nació para que tu departamento trabaje para ti, no al revés: nosotros llevamos huéspedes, precios, aseo y reparaciones, y tú recibes los ingresos con un reporte claro.",
     "hero_alt": "Living con sofá, piano e instrumentos en un departamento administrado por Luxel",
     "mission_title": "Misión",
     "mission_body": "Devolverles el tiempo a los anfitriones. Que tener un Airbnb sea recibir ingresos, no coordinar personas.",
     "vision_title": "Visión",
-    "vision_body": "Ser la administradora de Airbnb más confiable de Santiago: la que de verdad se hace cargo de todo.",
+    "vision_body": "Ser la administradora de Airbnb más confiable: la que de verdad se hace cargo de todo.",
     "values_title": "Lo que nos mueve",
     "v1_title": "Anfitrión primero",
-    "v1_body": "Cada decisión parte de una pregunta: ¿le ahorra tiempo o dinero al anfitrión?",
+    "v1_body": "Cada decisión parte de una pregunta: ¿te ahorra tiempo o plata?",
     "v2_title": "Precios claros",
     "v2_body": "Un solo cobro, sin costos escondidos. Sabes lo que pagas antes de empezar.",
     "v3_title": "Tecnología con criterio",
     "v3_body": "IA para responder al instante y personas de Luxel para lo que de verdad importa.",
-    "v4_title": "Hecho en Santiago",
+    "v4_title": "Jugamos de local",
     "v4_body": "Conocemos las comunas, la conserjería y cómo se arrienda acá.",
     "cta_title": "¿Listo para que administremos tu Airbnb?",
     "cta_body": "Calcula lo que pagarías o escríbenos. Te respondemos el mismo día.",
@@ -451,14 +411,14 @@
     "story_p2": "Hice lo que hace todo el mundo: contraté una administradora. Pero cuando de verdad se complicó, algo se rompió en el departamento, terminé coordinando la reparación yo mismo. Más de una vez me tocó ir a arreglarlo con mis propias manos.",
     "story_quote": "Estaba pagando por un servicio… y terminé trabajando para ellos.",
     "story_p3": "Ahí caché algo simple: lo que necesitaba era alguien que se hiciera cargo de verdad. Que el depto quedara impecable antes de cada huésped, que los precios estuvieran bien y que, si algo fallaba, se resolviera sin llamarme.",
-    "story_p4": "Las administradoras tradicionales cobran hasta 20% y aun así te dejan los problemas a ti. Así que armé el servicio que me habría gustado contratar: un equipo en Santiago que atiende todo, con tecnología para responder rápido y un cobro que se entiende.",
+    "story_p4": "Las administradoras tradicionales cobran hasta 20% y aun así te dejan los problemas a ti. Así que armé el servicio que me habría gustado contratar: un equipo que atiende todo, con tecnología para responder rápido y un cobro que se entiende.",
     "story_p5": "Así nació Luxel: para sacarte de encima la carga de administrar tu propiedad y darte transparencia total sobre lo que pagas."
   },
   "services": {
     "airbnb": {
       "meta_title": "Administración completa de Airbnb",
-      "title": "Administración completa de tu Airbnb en Santiago",
-      "subtitle": "Precios dinámicos, huéspedes 24/7, aseo y lavandería, conflictos, inventario y reparaciones. <hl>Nosotros nos hacemos cargo de todo</hl>; tú recibes los ingresos y un reporte cada mes.",
+      "title": "Todo lo que tu Airbnb necesita, sin que lo hagas tú",
+      "subtitle": "Precios dinámicos, huéspedes 24/7, aseo y lavandería, conflictos, inventario y reparaciones. <hl>Lo llevamos nosotros, de punta a punta</hl>; tú recibes los ingresos y un reporte cada mes.",
       "hero_alt": "Living con piano y televisor en un departamento administrado por Luxel",
       "cta_primary": "Ver el precio",
       "cta_secondary": "Conversemos",
@@ -477,8 +437,7 @@
     "stay_title": "Estadía",
     "legend_reserved": "Reservado",
     "legend_price": "Tarifa publicada",
-    "legend_recommended": "Sugerida por Luxel",
-    "cleaning_note": "Aseo y lavandería entre estadías incluidos — Luxel deja el depto listo para el siguiente huésped."
+    "legend_recommended": "Sugerida por Luxel"
   },
   "crew": {
     "title": "Confirmación de aseo",

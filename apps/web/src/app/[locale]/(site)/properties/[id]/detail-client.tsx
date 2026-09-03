@@ -1,16 +1,12 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   ArrowLeft,
   CalendarDays,
-  KeyRound,
   Home,
-  Sparkles,
-  TriangleAlert,
-  CheckCircle2,
   TrendingUp,
   Wallet,
   Info,
@@ -21,8 +17,7 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
-import type { PropertyRow } from '../properties-client';
-import { AccessPanel } from '../access-panel';
+import type { Block, PropertyRow } from '../properties-client';
 import { StaysTimeline, buildStays, type LiveDay } from '../stays-timeline';
 import { AutomationsPanel } from '../automations-panel';
 
@@ -32,17 +27,25 @@ const DAY = 86_400_000;
 const clp = (n: number) => `$${n.toLocaleString('es-CL')}`;
 const addDays = (d: string, n: number) =>
   new Date(new Date(`${d}T00:00:00Z`).getTime() + n * DAY).toISOString().slice(0, 10);
+const daysBetween = (from: string, to: string) =>
+  Math.round(
+    (new Date(`${to}T00:00:00Z`).getTime() - new Date(`${from}T00:00:00Z`).getTime()) / DAY,
+  );
 const fmtDay = (d: string) =>
   new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
     new Date(`${d}T00:00:00Z`),
   );
+const fmtMonth = (d: string) =>
+  new Intl.DateTimeFormat('es-CL', { month: 'long', timeZone: 'UTC' }).format(
+    new Date(`${d}T00:00:00Z`),
+  );
 
-function stats(property: PropertyRow, liveDays: LiveDay[] | null, from: string) {
-  const horizon = liveDays?.length ? liveDays.slice(0, 30) : null;
+export type MonthWindow = { from: string; to: string; prevFrom: string };
 
+export function monthStats(blocks: Block[], monthDays: LiveDay[] | null, month: MonthWindow) {
   const bookedNights = (a: string, b: string) => {
     const booked = new Set<string>();
-    for (const blk of property.calendar_blocks) {
+    for (const blk of blocks) {
       if (blk.ends_on < a || blk.starts_on > b) continue;
       let d = blk.starts_on > a ? blk.starts_on : a;
       const end = blk.ends_on < b ? blk.ends_on : b;
@@ -51,22 +54,28 @@ function stats(property: PropertyRow, liveDays: LiveDay[] | null, from: string) 
         d = addDays(d, 1);
       }
     }
-    return booked.size;
+    return booked;
   };
 
-  const occupancy = horizon
-    ? Math.round((horizon.filter((d) => d.reserved).length / Math.max(1, horizon.length)) * 100)
-    : Math.round((bookedNights(from, addDays(from, 30)) / 30) * 100);
-  const pastOccupancy = Math.round((bookedNights(addDays(from, -30), from) / 30) * 100);
+  const monthNights = Math.max(1, daysBetween(month.from, month.to));
+  const prevNights = Math.max(1, daysBetween(month.prevFrom, month.from));
 
-  const reservedPriced = (horizon ?? []).filter((d) => d.reserved && d.priceClp != null);
-  const revenue30 = horizon ? reservedPriced.reduce((sum, d) => sum + d.priceClp!, 0) : null;
-  const priced = (horizon ?? []).filter((d) => d.priceClp != null);
+  const booked = bookedNights(month.from, month.to);
+  for (const d of monthDays ?? []) if (d.reserved) booked.add(d.date);
+
+  const occupancy = Math.round((booked.size / monthNights) * 100);
+  const pastOccupancy = Math.round(
+    (bookedNights(month.prevFrom, month.from).size / prevNights) * 100,
+  );
+
+  const reservedPriced = (monthDays ?? []).filter((d) => d.reserved && d.priceClp != null);
+  const revenue = monthDays ? reservedPriced.reduce((sum, d) => sum + d.priceClp!, 0) : null;
+  const priced = (monthDays ?? []).filter((d) => d.priceClp != null);
   const adr = priced.length
     ? Math.round(priced.reduce((sum, d) => sum + d.priceClp!, 0) / priced.length)
     : null;
 
-  return { occupancy, pastOccupancy, revenue30, adr };
+  return { occupancy, pastOccupancy, revenue, adr };
 }
 
 function SlimHero({ property }: { property: PropertyRow }) {
@@ -112,43 +121,35 @@ function SlimHero({ property }: { property: PropertyRow }) {
   );
 }
 
-type SectionId = 'estadias' | 'acceso';
-
 export function PropertyDetailClient({
   property,
   liveDays,
   today,
+  month,
   recommended,
 }: {
   property: PropertyRow;
   liveDays: LiveDay[] | null;
   today: string;
+  month: MonthWindow;
   recommended?: Record<string, number> | null;
 }) {
   const t = useTranslations('detail');
-  const ts = useTranslations('stays');
-  const s = stats(property, liveDays, today);
-  const accessUnconfigured =
-    !property.property_access?.method ||
-    property.property_access.method === 'physical_none' ||
-    (property.property_access.method === 'keyless' &&
-      !property.property_access.keyless_code?.trim());
+  const monthDays = liveDays?.filter((d) => d.date >= month.from && d.date < month.to) ?? null;
+  const upcoming = liveDays?.filter((d) => d.date >= today) ?? null;
+  const monthName = fmtMonth(month.from);
+  const s = monthStats(property.calendar_blocks, monthDays, month);
 
-  const refs = useRef<Partial<Record<SectionId, HTMLDivElement | null>>>({});
-  const scrollTo = (id: SectionId) =>
-    refs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  const stays = buildStays(liveDays, property.calendar_blocks, today);
+  const stays = buildStays(upcoming, property.calendar_blocks, today);
   const pricedStays = stays.filter((st) => st.revenueClp != null).slice(0, 6);
 
   type MetricId = 'revenue' | 'occupancy' | 'adr';
   const [openMetric, setOpenMetric] = useState<MetricId | null>(null);
-  const horizon = liveDays?.slice(0, 30) ?? null;
-  const reservedNights = horizon ? horizon.filter((d) => d.reserved).length : null;
-  const openNights = horizon
-    ? horizon.filter((d) => d.available && d.priceClp != null).length
+  const reservedNights = monthDays ? monthDays.filter((d) => d.reserved).length : null;
+  const openNights = monthDays
+    ? monthDays.filter((d) => d.available && d.priceClp != null).length
     : null;
-  const pricedNights = horizon ? horizon.filter((d) => d.priceClp != null) : [];
+  const pricedNights = monthDays ? monthDays.filter((d) => d.priceClp != null) : [];
   const priceMin = pricedNights.length ? Math.min(...pricedNights.map((d) => d.priceClp!)) : null;
   const priceMax = pricedNights.length ? Math.max(...pricedNights.map((d) => d.priceClp!)) : null;
 
@@ -170,10 +171,13 @@ export function PropertyDetailClient({
       icon: Wallet,
       tone: 'bg-primary/10 text-primary',
       label: t('m_revenue'),
-      value: s.revenue30 != null ? clp(s.revenue30) : '—',
+      value: s.revenue != null ? clp(s.revenue) : '—',
       sub: t('m_revenue_sub'),
       detail: [
-        reservedNights != null ? t('d_revenue_nights', { n: reservedNights }) : t('d_no_calendar'),
+        reservedNights != null
+          ? t('d_revenue_nights', { n: reservedNights, month: monthName })
+          : t('d_no_calendar'),
+        t('d_month_partial', { month: monthName }),
         t('d_revenue_disclaimer'),
       ],
     },
@@ -184,12 +188,19 @@ export function PropertyDetailClient({
       label: t('m_occupancy'),
       value: `${s.occupancy}%`,
       sub: t('m_occupancy_sub'),
-      delta: { value: occDelta, label: t('delta_prev30', { d: signed(occDelta) }) },
+      delta: { value: occDelta, label: t('delta_prev_month', { d: signed(occDelta) }) },
       detail: [
         ...(reservedNights != null
-          ? [t('d_occupancy_split', { reserved: reservedNights, open: openNights ?? 0 })]
+          ? [
+              t('d_occupancy_split', {
+                reserved: reservedNights,
+                open: openNights ?? 0,
+                month: monthName,
+              }),
+            ]
           : [t('d_no_calendar')]),
         t('d_occupancy_prev', { p: s.pastOccupancy }),
+        t('d_month_partial', { month: monthName }),
         t('d_occupancy_note'),
       ],
     },
@@ -202,15 +213,14 @@ export function PropertyDetailClient({
       sub: t('m_adr_sub'),
       detail:
         priceMin != null && priceMax != null
-          ? [t('d_adr_range', { min: clp(priceMin), max: clp(priceMax) }), t('d_adr_note')]
+          ? [
+              t('d_adr_range', { min: clp(priceMin), max: clp(priceMax), month: monthName }),
+              t('d_adr_note'),
+            ]
           : [t('d_no_calendar')],
     },
   ];
   const expanded = metrics.find((m) => m.id === openMetric) ?? null;
-
-  const attention: { id: SectionId; label: string }[] = accessUnconfigured
-    ? [{ id: 'acceso', label: t('att_access') }]
-    : [];
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
@@ -264,30 +274,11 @@ export function PropertyDetailClient({
         ))}
       </div>
 
-      {attention.length > 0 ? (
-        <div className="border-warning/30 bg-warning/10 mb-10 flex flex-wrap items-center gap-2 rounded-xl border p-3">
-          {attention.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => scrollTo(a.id)}
-              className="bg-warning/15 text-warning hover:bg-warning/25 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-            >
-              <TriangleAlert className="h-3.5 w-3.5" /> {a.label}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="text-success mb-10 flex items-center gap-1.5 text-sm font-medium">
-          <CheckCircle2 className="h-4 w-4" /> {t('att_clear')}
-        </p>
-      )}
-
       <AutomationsPanel
         propertyId={property.id}
         priceOptEnabled={property.price_optimization_enabled === true}
         guestInfo={property.guest_info}
-        liveDays={liveDays}
+        liveDays={upcoming}
         pricelabsStatus={property.pricelabs_status ?? 'off'}
       />
 
@@ -334,34 +325,13 @@ export function PropertyDetailClient({
       </Modal>
 
       <div className="grid gap-8">
-        <Section
-          sectionRef={(el) => {
-            refs.current.estadias = el;
-          }}
-          icon={CalendarDays}
-          title={t('sec_stays')}
-        >
+        <Section icon={CalendarDays} title={t('sec_stays')}>
           <StaysTimeline
             stays={stays}
             today={today}
-            liveDays={liveDays}
+            liveDays={upcoming}
             recommended={recommended}
           />
-          <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
-            <Sparkles className="text-primary mt-0.5 h-3.5 w-3.5 shrink-0" />
-            {ts('cleaning_note')}
-          </p>
-        </Section>
-
-        <Section
-          sectionRef={(el) => {
-            refs.current.acceso = el;
-          }}
-          icon={KeyRound}
-          title={t('tab_access')}
-          warn={accessUnconfigured}
-        >
-          <AccessPanel propertyId={property.id} access={property.property_access} />
         </Section>
       </div>
     </div>
@@ -369,20 +339,18 @@ export function PropertyDetailClient({
 }
 
 function Section({
-  sectionRef,
   icon: Icon,
   title,
   warn,
   children,
 }: {
-  sectionRef: (el: HTMLDivElement | null) => void;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   warn?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <Card ref={sectionRef} className="scroll-mt-24">
+    <Card className="scroll-mt-24">
       <CardContent className="grid gap-5 p-5 sm:p-6">
         <div className="flex items-center gap-2.5 pb-1">
           <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">

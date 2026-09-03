@@ -11,10 +11,14 @@
 The AI does two jobs. Both use the same client
 (`apps/web/src/lib/ai/client.ts`).
 
-| Surface                     | Where                                                             | What it does                                                                                                                                              |
-| --------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Lux**, the site concierge | Chat widget → `POST /api/chat`                                    | Sells and supports Airbnb management. Quotes the fee with `get_airbnb_quote`. Shows a signed-in host real account data. Hands off to a human on WhatsApp. |
-| Guest auto-replies          | Hospitable `message.created` webhook → `lib/channels/pipeline.ts` | Answers a guest in the Airbnb thread from the property's own data. Flags the thread for a Luxel human when it cannot answer.                              |
+Lux carries the Luxel positioning. Luxel gives the host the time back. An
+Airbnb must be income that the host receives, not people that the host
+coordinates. Lux writes as a partner of the host, never as a distant supplier.
+
+| Surface                     | Where                                                             | What it does                                                                                                                                                                                            |
+| --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Lux**, the site concierge | Chat widget → `POST /api/chat`                                    | Speaks for the partner that carries the work. Sells and supports Airbnb management. Quotes the fee with `get_airbnb_quote`. Shows a signed-in host real account data. Hands off to a human on WhatsApp. |
+| Guest auto-replies          | Hospitable `message.created` webhook → `lib/channels/pipeline.ts` | Answers a guest in the Airbnb thread from the property's own data. Flags the thread for a Luxel human when it cannot answer.                                                                            |
 
 ### Lux by journey stage
 
@@ -210,7 +214,8 @@ the same pipeline without Hospitable.
 
 Both prompts are code, not config:
 
-- `lib/ai/system-prompt.ts` — `buildSystemPrompt()`. Sections: the service; the
+- `lib/ai/system-prompt.ts` — `buildSystemPrompt()`. Sections: the identity (a
+  partner that gives the host the time back); the service; the
   one fee (`PLAN_LABEL` and `PLAN_PRICE_LINE` from `lib/ai/tools.ts`, which read
   `PLAN_COMMISSION_PCT`); critical rules (no invented Luxel price, no invented
   market number, never ask twice, never send the visitor to research, reuse what
@@ -226,8 +231,8 @@ Both prompts are code, not config:
   `[HANDOFF]`. Never access codes or wifi passwords; they arrive 3 days before
   arrival.
 
-Principles: role and boundaries first; tool-first for facts; Chilean, warm,
-concise (`tú`); always a next step; graceful handoff.
+Principles: role and boundaries first; the partner voice; tool-first for facts;
+Chilean, warm, concise (`tú`); always a next step; graceful handoff.
 
 ---
 

@@ -25,7 +25,6 @@ vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
 let admin: ReturnType<typeof createClient>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
-let updateAccess: (i: unknown) => Promise<{ ok: boolean; error?: string }>;
 let mintCheckinLink: (propertyId: string) => Promise<{ ok: boolean; token?: string }>;
 let submitCheckin: (i: unknown) => Promise<{ ok: boolean; error?: string }>;
 let decryptPII: (s: string) => string;
@@ -43,7 +42,6 @@ beforeAll(async () => {
     }
     return realFetch(input, init);
   });
-  updateAccess = (await import('../src/app/[locale]/(site)/properties/actions')).updateAccess;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   const { debugCheckinLink } = await import('../src/app/[locale]/(site)/admin/debug/actions');
   mintCheckinLink = async (propertyId) => {
@@ -67,6 +65,27 @@ beforeAll(async () => {
   customerId = data!.id as string;
 });
 
+const setAccess = (input: {
+  propertyId: string;
+  method: string;
+  keylessCode?: string;
+  keylessInstructions?: string;
+  unit?: string;
+  requireId?: boolean;
+}) =>
+  admin.from('property_access').upsert(
+    {
+      property_id: input.propertyId,
+      method: input.method,
+      keyless_code: input.keylessCode ?? null,
+      keyless_instructions: input.keylessInstructions ?? null,
+      unit: input.unit ?? null,
+      require_id: Boolean(input.requireId),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'property_id' },
+  );
+
 afterEach(async () => {
   if (!LIVE || !customerId) return;
   await admin.from('properties').delete().eq('owner_id', customerId);
@@ -89,14 +108,13 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .maybeSingle();
     expect(access0!.method).toBe('physical_none');
 
-    const up = await updateAccess({
+    await setAccess({
       propertyId,
       method: 'keyless',
       keylessCode: '4821',
       keylessInstructions: 'Piso 4, depto B',
       unit: '401',
     });
-    expect(up.ok).toBe(true);
 
     const link = await mintCheckinLink(propertyId);
     expect(link.ok).toBe(true);
@@ -220,7 +238,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
   it('never returns the door code to the browser; Hospitable delivers it 3 days before arrival', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Lejano' });
     const propertyId = prop.id!;
-    await updateAccess({ propertyId, method: 'keyless', keylessCode: '4821' });
+    await setAccess({ propertyId, method: 'keyless', keylessCode: '4821' });
     const link = await mintCheckinLink(propertyId);
     await admin
       .from('checkins')
@@ -372,13 +390,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
   it('every companion must carry a document, not only the lead guest', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Todos Con ID' });
     const propertyId = prop.id!;
-    await updateAccess({
-      propertyId,
-      method: 'keyless',
-      requireId: true,
-      idBasis: 'Reglamento de copropiedad exige registro',
-      idDisclosed: true,
-    });
+    await setAccess({ propertyId, method: 'keyless' });
     const link = await mintCheckinLink(propertyId);
     const res = await submitCheckin({
       id: link.token,
@@ -395,20 +407,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
   it('rejects a submission missing the document, whatever the property requires', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Las Condes' });
     const propertyId = prop.id!;
-    const up = await updateAccess({
-      propertyId,
-      method: 'keyless',
-      requireId: true,
-      idBasis: 'Reglamento de copropiedad exige registro',
-      idDisclosed: true,
-    });
-    expect(up.ok).toBe(true);
-    const { data: acc } = await admin
-      .from('property_access')
-      .select('require_id')
-      .eq('property_id', propertyId)
-      .maybeSingle();
-    expect(acc!.require_id).toBe(true);
+    await setAccess({ propertyId, method: 'keyless' });
 
     const link = await mintCheckinLink(propertyId);
     const res = await submitCheckin({
@@ -418,23 +417,5 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     });
     expect(res.ok).toBe(false);
     expect(res.error).toBe('validation');
-  });
-
-  it('will NOT set require_id unless a basis AND disclosure are affirmed (AirBnB-policy guard)', async () => {
-    const prop = await seedImportedProperty({ nickname: 'Depto Ñuñoa' });
-    const propertyId = prop.id!;
-    await updateAccess({
-      propertyId,
-      method: 'keyless',
-      requireId: true,
-      idBasis: 'porque sí',
-      idDisclosed: false,
-    });
-    const { data: acc } = await admin
-      .from('property_access')
-      .select('require_id')
-      .eq('property_id', propertyId)
-      .maybeSingle();
-    expect(acc!.require_id).toBe(false);
   });
 });

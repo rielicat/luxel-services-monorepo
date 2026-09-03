@@ -13,6 +13,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'img.clerk.com' },
       { protocol: 'https', hostname: '*.supabase.co' },
       { protocol: 'https', hostname: '*.muscache.com' },
+      { protocol: 'https', hostname: 'assets.hospitable.com' },
     ],
   },
 };

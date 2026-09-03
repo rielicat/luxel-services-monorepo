@@ -4,8 +4,6 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   Home,
-  KeyRound,
-  ConciergeBell,
   TriangleAlert,
   CalendarDays,
   ArrowRight,
@@ -15,10 +13,8 @@ import {
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlanBar, type Plan } from './plan-bar';
 import { ConnectionNote } from './connection-note';
 import type { HostConnection } from '@/lib/host/queries';
-import type { AccessRow } from './access-panel';
 
 export type Block = {
   id: string;
@@ -54,19 +50,16 @@ export type PropertyRow = {
     smoking_allowed?: boolean | null;
     events_allowed?: boolean | null;
   } | null;
-  property_access: AccessRow;
   calendar_blocks: Block[];
 };
 
 export function PropertiesClient({
   initial,
-  plan,
   connection,
   syncFailed,
   centralManaged = false,
 }: {
   initial: PropertyRow[];
-  plan: Plan;
   connection: HostConnection | null;
   syncFailed?: boolean;
   centralManaged?: boolean;
@@ -91,7 +84,6 @@ export function PropertiesClient({
             {t('sync_failed')}
           </div>
         )}
-        <PlanBar plan={plan} />
         {connection && <ConnectionNote connection={connection} />}
 
         {initial.length === 0 ? (
@@ -174,14 +166,6 @@ function Onboarding({ connected }: { connected: boolean }) {
   );
 }
 
-function accessChip(method: string | undefined, t: (key: string) => string) {
-  if (method === 'keyless')
-    return { icon: KeyRound, cls: 'bg-success/10 text-success', label: t('chip_keyless') };
-  if (method === 'physical_concierge')
-    return { icon: ConciergeBell, cls: 'bg-primary/10 text-primary', label: t('chip_concierge') };
-  return { icon: TriangleAlert, cls: 'bg-warning/15 text-warning', label: t('chip_no_access') };
-}
-
 function ListingCard({ property }: { property: PropertyRow }) {
   const t = useTranslations('properties');
   const today = new Date().toISOString().slice(0, 10);
@@ -189,9 +173,6 @@ function ListingCard({ property }: { property: PropertyRow }) {
     .filter((b) => b.source === 'import' && b.ends_on >= today)
     .map((b) => b.ends_on)
     .sort()[0];
-  const chip = accessChip(property.property_access?.method, t);
-  const ChipIcon = chip.icon;
-
   const capacity = [
     property.bedrooms != null && t('cap_bedrooms', { n: property.bedrooms }),
     property.bathrooms != null && t('cap_bathrooms', { n: property.bathrooms }),
@@ -238,14 +219,6 @@ function ListingCard({ property }: { property: PropertyRow }) {
             {[property.address, property.comuna].filter(Boolean).join(', ') || t('no_address')}
           </p>
           {capacity && <p className="text-muted-foreground mt-0.5 text-xs">{capacity}</p>}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span
-            className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${chip.cls}`}
-          >
-            <ChipIcon className="h-3 w-3" /> {chip.label}
-          </span>
         </div>
 
         <div className="text-muted-foreground flex items-center justify-between text-xs">

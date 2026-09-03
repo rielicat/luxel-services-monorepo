@@ -18,7 +18,7 @@ export function NavAuth() {
       <ClerkLoaded>
         <SignedIn>
           <Button asChild variant="default" size="sm">
-            <Link href="/account">{t('plan')}</Link>
+            <Link href="/properties">{t('properties')}</Link>
           </Button>
           <UserMenu />
         </SignedIn>

@@ -1,10 +1,10 @@
 # Servicios Luxel — Monorepo
 
-Servicios Luxel manages Airbnb listings in Santiago end to end. A host asks for
-the plan and grants Luxel access to the listing in Hospitable. There is one
-plan: 12% of the booking revenue, IVA included, per listing per month. Luxel
-runs dynamic pricing, guest replies 24/7, cleaning and laundry between stays,
-inventory and small repairs. The app mirrors the listings and reservations. A
+Servicios Luxel manages Airbnb listings in Chile end to end. The listing pays
+the host; Luxel coordinates the people. A host asks for the plan and grants
+Luxel access to the listing in Hospitable. There is one plan: 12% of the booking
+revenue, IVA included, per listing per month. Luxel runs dynamic pricing, guest
+replies 24/7, cleaning and laundry between stays, inventory and small repairs. The app mirrors the listings and reservations. A
 Hospitable message rule sends the guest the check-in link; the check-in page
 renders in `es`, `en`, or `pt`. **Lux**, the AI concierge (OpenAI
 `gpt-4o-mini`), answers guest messages from the property's own data. It hands off
@@ -19,7 +19,7 @@ The founding strategy, brand system, AI design, and analytics plan live in
 
 | Doc                                                                      | What's inside                                                                      |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| [`docs/GOAL.md`](docs/GOAL.md)                                           | North-star goal, value proposition, host journey, the plan, KPIs, roadmap          |
+| [`docs/GOAL.md`](docs/GOAL.md)                                           | Mission, vision, north star, value proposition, host journey, the plan, KPIs       |
 | [`docs/BRAND.md`](docs/BRAND.md)                                         | Brand identity, "Fresh Teal + Lime" design system, asset specs                     |
 | [`docs/AI.md`](docs/AI.md)                                               | The "Lux" concierge and the guest-reply pipeline — architecture, tools, guardrails |
 | [`docs/METRICS.md`](docs/METRICS.md)                                     | Event taxonomy, plan funnel, cohorts, instrumentation map                          |

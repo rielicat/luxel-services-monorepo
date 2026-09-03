@@ -24,6 +24,15 @@ Compacted from `AGENTS.md` sections "Product constraints (user-set)" and
 - Hosts never see the crew or the guest messages. Those are Luxel operations.
 - Copy never says "0% comisión", "tarifa plana", "14 días gratis", "prueba
   gratis", or "m²". Voice per [`BRAND.md`](BRAND.md).
+- **Copy never names a city.** No city appears in anything a person reads: page
+  copy, i18n catalogs, alt text, metadata, emails, or WhatsApp templates.
+  "Chile" is allowed. A comuna is allowed only as real data about a real unit;
+  for an example or a placeholder prefer Providencia, Las Condes, or Ñuñoa. This
+  rule covers copy only. Keep the timezone string `America/Santiago`, the
+  identifiers that carry it (`santiagoToday`, `santiagoMonth`, `todaySantiago`),
+  and the address fixtures and seeds exactly as they are.
+- Luxel writes as a **partner, not a vendor**. Copy stands on the host's side of
+  the table: "nosotros nos encargamos", never "el cliente debe".
 - Competitor reference: `airhost.cl`, `airhostchile.com`. Our angle: full
   management, one transparent fee on the booking revenue, monthly report.
 

@@ -48,7 +48,7 @@ const LINK_DESTINATIONS: Record<
 > = {
   airbnb_service: { label: 'Administración Airbnb', href: '/services/airbnb', style: 'primary' },
   pricing: { label: 'Ver el precio', href: '/calculator', style: 'primary' },
-  dashboard: { label: 'Ir a mi panel', href: '/account', style: 'outline' },
+  account: { label: 'Mi cuenta', href: '/account', style: 'outline' },
   properties: { label: 'Mis propiedades', href: '/properties', style: 'primary' },
   sign_in: { label: 'Iniciar sesión', href: '/sign-in', style: 'primary' },
   about: { label: 'Sobre Luxel', href: '/about', style: 'outline' },
@@ -113,7 +113,7 @@ export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
           properties: {
             comuna: {
               type: 'string',
-              description: 'Comuna de la propiedad, por ejemplo "Santiago Centro" o "Providencia".',
+              description: 'Comuna de la propiedad, por ejemplo "Providencia" o "Las Condes".',
             },
             bedrooms: {
               type: 'integer',
@@ -167,7 +167,7 @@ export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
       function: {
         name: 'share_links',
         description:
-          'Muestra 1–3 accesos directos útiles al usuario (páginas del sitio) según lo que necesita. Úsala para ofrecer el siguiente paso: ver el servicio, comparar planes, ir a sus propiedades o al panel. Elige solo los destinos relevantes.',
+          'Muestra 1–3 accesos directos útiles al usuario (páginas del sitio) según lo que necesita. Úsala para ofrecer el siguiente paso: ver el servicio, comparar planes, ir a sus propiedades o a su cuenta. Elige solo los destinos relevantes.',
         parameters: {
           type: 'object',
           properties: {

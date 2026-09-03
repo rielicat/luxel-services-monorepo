@@ -1,8 +1,9 @@
 # PriceLabs partner enquiry — draft email
 
-> Historical draft; pricing changed 2026-09-02. Luxel now includes PriceLabs
-> dynamic pricing in every management plan (fixed fee or revenue share). The
-> "paid add-on" and "flat monthly fee" lines below are out of date.
+> Draft updated 2026-09-03 for the current commercial model. Luxel has one
+> plan: 12% of the booking revenue, per listing, per month, IVA included.
+> PriceLabs dynamic pricing is part of that plan. Luxel does not sell it as an
+> add-on and does not charge a fixed monthly fee.
 
 Send to **support@pricelabs.co**. Fill the three `[bracketed]` blanks before sending.
 
@@ -26,18 +27,19 @@ Why this email is needed (from research, July 2026):
 Hi PriceLabs team,
 
 I'm Catriel Guillén, founder of Luxel (serviciosluxel.cl), a short-term-rental management
-platform for hosts in Santiago, Chile. Our hosts run their listings through Hospitable, and we
-automate guest messaging, cleaning coordination and pricing on top of it for a flat monthly fee
-per property.
+platform for hosts in Chile. Our hosts run their listings through Hospitable, and we manage the
+whole listing on top of it: pricing, guest messaging, cleaning coordination, inventory and
+repairs. We charge one fee, 12% of the booking revenue per listing per month. We earn only when
+the host earns, so better nightly rates are directly our own interest.
 
-We'd like to offer PriceLabs dynamic pricing to our hosts as a paid add-on, and I'd rather set
-it up properly with you than improvise. Three things I'd like to sort out:
+We include PriceLabs dynamic pricing in that management fee, and I'd rather set it up properly
+with you than improvise. Three things I'd like to sort out:
 
 **1. Written consent to resell.** Your terms limit use to "your own internal business purposes"
 and prohibit resale without express written consent. Our intended model is that Luxel bills the
-host a single monthly amount and covers their PriceLabs subscription, and that we surface
-PriceLabs data (recommended nightly rates, min-stay suggestions and neighbourhood comps) inside
-our own dashboard. Could you confirm in writing whether that is permitted, and under what terms?
+host one management fee, covers their PriceLabs subscription out of it, and surfaces PriceLabs
+data (recommended nightly rates, min-stay suggestions and neighbourhood comps) inside our own
+dashboard. Could you confirm in writing whether that is permitted, and under what terms?
 
 **2. RM Partner API access.** Your docs describe an RM Partner API at
 `https://api.pricelabs.co/rm/v1` using `X-API-Key` plus a `PL-User-Id` header to target managed
@@ -61,7 +63,7 @@ own. Can we connect that one Hospitable account to our PriceLabs account and man
 listing in it, and is there anything we should know about how you meter or attribute listings
 that arrive through one shared PMS connection?
 
-Happy to jump on a call. We're based in Santiago (UTC−4) and flexible on timing.
+Happy to jump on a call. We're based in Chile (UTC−4) and flexible on timing.
 
 Best regards,
 Catriel Guillén

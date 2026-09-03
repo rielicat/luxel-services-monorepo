@@ -1,15 +1,22 @@
 # Servicios Luxel — North-Star Goal & Product Strategy
 
-> Strategy document for the Airbnb full-management service. Locale: **es-CL**
-> (Región Metropolitana, Santiago). Prose is English; example copy is Spanish.
+> Strategy document for the Airbnb full-management service. Locale: **es-CL**,
+> Chile. Prose is English; example copy is Spanish. No copy names a city.
 
 ---
 
-## 1. North Star
+## 1. Mission, vision and North Star
 
-> **Become the default operator for Airbnb listings in Santiago — measured by
-> the listings under an active Luxel plan and the booking revenue those listings
-> produce each month.**
+**Mission.** We give the host their time back. An Airbnb must pay the host, not
+employ them. The host receives income. Luxel coordinates the people. The result
+is a real passive income, not a second job.
+
+**Vision.** We become the Airbnb management company that hosts trust most,
+because we truly handle everything.
+
+> **North Star: become the operator that hosts hand the whole listing to —
+> measured by the listings under an active Luxel plan and the booking revenue
+> those listings produce each month.**
 
 Two numbers matter. **Active managed listings** counts the listings whose owner
 has a `plan_subscriptions` row in status `active`. **Monthly managed revenue**
@@ -24,7 +31,8 @@ revenue, so the second number is also the revenue base.
 ### Value proposition
 
 **"Tu Airbnb, administrado por completo."** A host hands the listing to Luxel
-and receives the income and a monthly report. Luxel does the work:
+and receives the income and a monthly report. The host stops coordinating
+people. Luxel does the work:
 
 - **Precios dinámicos** — nightly rates follow demand, season and competition
   (PriceLabs, included in the plan).
@@ -46,7 +54,7 @@ directly. Luxel invoices the plan at the end of the month.
 
 | Segment              | Who                                                                              | Job-to-be-done                                                         |
 | -------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| **One listing**      | An owner with one apartment in Providencia, Las Condes, Ñuñoa or Santiago Centro | "Earn from my unit without answering guests or coordinating cleaners." |
+| **One listing**      | An owner with one apartment in a comuna such as Providencia, Las Condes or Ñuñoa | "Earn from my unit without answering guests or coordinating cleaners." |
 | **2–5 listings**     | An investor or a family with several units                                       | "Run all units with one operator and one monthly report."              |
 | **Small portfolios** | An administrator who wants to keep the clients and outsource the operation       | "Keep the income, drop the operations."                                |
 
@@ -94,10 +102,12 @@ Providencia bills about that at half occupancy): the fee is 210.000 CLP. At
 revenue into that fee and shows what the host keeps. It compares nothing,
 because there is nothing to compare.
 
-The guest pays the cleaning through the listing's cleaning fee. Billing is
-off-platform today: Airbnb pays the host, and Luxel invoices at the end of the
-month. Airbnb co-host payout splitting is not configured, so no copy may say
-that Airbnb pays Luxel. The revenue figure comes from the Hospitable calendar.
+The guest pays the cleaning through the listing's cleaning fee. That fee is
+100% for the cleaning crew, and Luxel charges no commission on it. The
+commission base is the booking only. Billing is off-platform today: Airbnb pays
+the host, and Luxel invoices at the end of the month. Airbnb co-host payout
+splitting is not configured, so no copy may say that Airbnb pays Luxel. The
+revenue figure comes from the Hospitable calendar.
 
 ---
 
@@ -120,7 +130,7 @@ See [`METRICS.md`](./METRICS.md) for the event taxonomy.
 
 ## 6. Roadmap
 
-### Now — full management, one city
+### Now — full management
 
 The landing, the price page and the host mirror ship. Luxel operates with
 Hospitable, PriceLabs, the WhatsApp worker and `apps/admin`.
@@ -139,4 +149,4 @@ Hospitable, PriceLabs, the WhatsApp worker and `apps/admin`.
 
 - Host referrals.
 - Occupancy proof and Airbnb review quality as marketing signals.
-- A second city once the operation is repeatable.
+- A second market once the operation is repeatable.

@@ -24,7 +24,8 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: { default: 'Servicios Luxel', template: '%s · Servicios Luxel' },
-  description: 'Administración completa de Airbnb en Santiago.',
+  description:
+    'Administración completa de Airbnb. Tú recibes los ingresos; nosotros llevamos la operación.',
   metadataBase: new URL('https://serviciosluxel.cl'),
 };
 
@@ -56,8 +57,8 @@ export default async function LocaleLayout({
         <ClerkProvider
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
-          signInFallbackRedirectUrl="/account"
-          signUpFallbackRedirectUrl="/account"
+          signInFallbackRedirectUrl="/properties"
+          signUpFallbackRedirectUrl="/properties"
         >
           <NextIntlClientProvider messages={messages}>
             <PostHogProvider>

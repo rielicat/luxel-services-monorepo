@@ -7,10 +7,18 @@ import { hospitableAccess } from '@/lib/channels/scope';
 import { resolvePricelabsRef } from '@/lib/pricelabs/link';
 import { getPricelabsPrices } from '@/lib/pricelabs/client';
 import { santiagoToday, shiftDate } from '@/lib/checkin/window';
+import { monthBounds, santiagoMonth } from '@/lib/revenue';
 import type { PropertyRow } from '../properties-client';
-import { PropertyDetailClient, type LiveDay } from './detail-client';
+import { PropertyDetailClient, type LiveDay, type MonthWindow } from './detail-client';
 
 export const dynamic = 'force-dynamic';
+
+function currentMonthWindow(month: string, today: string): MonthWindow {
+  const bounds = monthBounds(month);
+  const from = bounds?.from ?? today;
+  const previous = monthBounds(shiftDate(from, -1).slice(0, 7));
+  return { from, to: bounds?.to ?? shiftDate(today, 1), prevFrom: previous?.from ?? from };
+}
 
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +36,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   const property = (await fetchProperty(customer.id, id)) as PropertyRow | null;
   if (!property) notFound();
 
-  const today = santiagoToday();
+  const now = new Date();
+  const today = santiagoToday(now);
+  const month = currentMonthWindow(santiagoMonth(now), today);
   let liveDays: LiveDay[] | null = null;
   if (property.external_listing_id) {
     const access = await hospitableAccess(customer.id);
@@ -37,7 +47,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       const days = await listHospitableCalendar(
         token,
         property.external_listing_id,
-        today,
+        month.from,
         shiftDate(today, 90),
       );
       if (days?.length) {
@@ -69,6 +79,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       property={property}
       liveDays={liveDays}
       today={today}
+      month={month}
       recommended={recommended}
     />
   );

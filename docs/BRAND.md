@@ -13,12 +13,33 @@
 effortless: the calm of a unit that runs itself, delivered by a team and by
 software that respect the owner's time.
 
+**Mission (operator's words):**
+
+> "Devolverles el tiempo a los anfitriones. Que tener un Airbnb sea recibir
+> ingresos, no coordinar personas."
+
+We give the host their time back. An Airbnb must pay the host, not employ them.
+The host receives income. Luxel coordinates the people.
+
+**Vision (operator's words):**
+
+> "Ser la administradora de Airbnb más confiable: la que de verdad se hace cargo
+> de todo."
+
+We want to be the Airbnb management company that hosts trust most. We earn that
+trust because we truly handle everything, not one part of it.
+
+**The core contrast:** a real passive income, not a second job. Receiving income,
+not coordinating people. Every surface must _feel_ this contrast. Do not quote
+the mission on every page. Show it: what the host stops doing, and what still
+arrives in their account.
+
 **Personality (adjectives):** Calm · Trustworthy · Effortless · Modern ·
 Warm-professional · Precise.
 
 **Positioning statement:**
 
-> For Santiago Airbnb hosts who want the income without the work,
+> For Airbnb hosts in Chile who want the income without the work,
 > **Servicios Luxel** manages the whole listing — pricing, guests, cleaning,
 > repairs and inventory — for one transparent fee on the booking revenue,
 > unlike informal administrators with opaque fees and no reporting.
@@ -36,6 +57,23 @@ keep sentences short. We are honest about what we do and never oversell.
 on the price page and in the onboarding flow; reassuring and human in error and
 support moments.
 
+**Stance: partner, not vendor.** We write from the host's side of the table. The
+host and Luxel want the same thing: the property earns more and the host does
+less. So we say "nosotros nos encargamos", never "el cliente debe". We report a
+problem together with the action we already took. We never sound like a supplier
+who files a ticket and waits.
+
+### Do / Don't — partner stance (es-CL example copy)
+
+| Context          | ✅ Do                                                | ❌ Don't                                            |
+| ---------------- | ---------------------------------------------------- | --------------------------------------------------- |
+| Who does what    | "Nosotros contestamos a los huéspedes."              | "El cliente debe coordinar con el proveedor."       |
+| Shared goal      | "Tu departamento arrienda mejor y tú no haces nada." | "Ofrecemos un servicio integral de administración." |
+| Bad news         | "Se cayó una reserva. Ya bajamos el precio."         | "Le informamos que se registró una cancelación."    |
+| The time promise | "Tu Airbnb debería ser tu ingreso pasivo."           | "Optimiza tus procesos con nuestra plataforma."     |
+| Monthly report   | "Te mandamos el resumen del mes."                    | "Adjuntamos el reporte para su revisión."           |
+| Asking a favor   | "¿Nos das acceso en Hospitable y seguimos nosotros?" | "El propietario deberá otorgar los accesos."        |
+
 ### Do / Don't (es-CL example copy)
 
 | Context       | ✅ Do                                                      | ❌ Don't                                         |
@@ -50,12 +88,21 @@ support moments.
 | Empty state   | "Aún no tienes propiedades conectadas."                    | "No hay datos disponibles."                      |
 
 **Style rules:** Amounts with the Chilean thousands separator (`$210.000`, never
-`$210,000`), IVA included. The fee is one number: `12%` of "tus ingresos". Never
+`$210,000`), IVA included. The fee is one number: `12%` of "tus ingresos". The
+guest cleaning fee is 100% for the crew and carries no commission. Never
 say "0% comisión", "tarifa plana", "14 días gratis", "prueba gratis" or "m²".
 Never say that Airbnb pays Luxel or deducts the fee: Airbnb pays the host, and
 Luxel charges at the end of the month. The host never "answers guests" or
 "manages the crew": Luxel does. Never hardcode strings in components — all copy
 lives in `packages/shared/src/i18n/es-CL.json`.
+
+**Never name a city.** No city appears in any copy a person reads: no hero, no
+positioning line, no FAQ, no meta description, no alt text, no email. "Chile" is
+allowed. A comuna is allowed only as real data about a real unit, such as the
+gallery caption for the managed apartment in Providencia. This rule is about
+copy only. Never touch the timezone string `America/Santiago`, the identifiers
+that carry it (`santiagoToday`, `santiagoMonth`, `todaySantiago`), or the
+address fixtures and seeds.
 
 ---
 
@@ -139,7 +186,7 @@ custom illustrations.
 
 - **Prompt/spec:** "Warm, authentic photos of the Luxel crew (cleaning, laundry,
   small repairs) and of a host reading a report on a phone, in bright real
-  Santiago apartments. Natural light, trustworthy and respectful — real people,
+  Chilean apartments. Natural light, trustworthy and respectful — real people,
   not stock-cheesy. Used for the 'Luxel se encarga' trust section." Use
   consented, real crew photography before launch; stock is placeholder.
 
