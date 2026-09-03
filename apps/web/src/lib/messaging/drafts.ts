@@ -35,8 +35,8 @@ export interface InboxThread {
   externalThreadId: string | null;
   guestName: string | null;
   status: string;
-  aiEnabled: boolean;
-  aiReview: boolean;
+  aiReplies: boolean;
+  aiReviews: boolean;
   updatedAt: string;
   messages: InboxMessage[];
   draft: ReplyDraft | null;
@@ -262,22 +262,6 @@ export async function discardReplyDraft(
   return { ok: true };
 }
 
-export async function setPropertyAiReview(
-  propertyId: string,
-  review: boolean,
-): Promise<{ ok: boolean }> {
-  const supabase = createSupabaseServiceRoleClient();
-  const { error } = await supabase
-    .from('properties')
-    .update({ ai_review: review })
-    .eq('id', propertyId);
-  if (error) {
-    console.error('drafts.review_toggle_failed', { propertyId, message: error.message });
-    return { ok: false };
-  }
-  return { ok: true };
-}
-
 export async function listInboxThreads(limit = 30): Promise<InboxThread[]> {
   const supabase = createSupabaseServiceRoleClient();
   const { data: threads } = await supabase
@@ -292,7 +276,10 @@ export async function listInboxThreads(limit = 30): Promise<InboxThread[]> {
   const propertyIds = [...new Set(rows.map((t) => t.property_id as string))];
 
   const [{ data: properties }, { data: messages }, { data: drafts }] = await Promise.all([
-    supabase.from('properties').select('id, nickname, ai_enabled, ai_review').in('id', propertyIds),
+    supabase
+      .from('properties')
+      .select('id, nickname, ai_replies, ai_reviews')
+      .in('id', propertyIds),
     supabase
       .from('guest_messages')
       .select('id, thread_id, direction, source, body, created_at')
@@ -331,8 +318,8 @@ export async function listInboxThreads(limit = 30): Promise<InboxThread[]> {
       externalThreadId: (t.external_thread_id as string | null) ?? null,
       guestName: (t.guest_name as string | null) ?? null,
       status: (t.status as string) ?? 'open',
-      aiEnabled: property?.ai_enabled !== false,
-      aiReview: property?.ai_review !== false,
+      aiReplies: property?.ai_replies !== false,
+      aiReviews: property?.ai_reviews !== false,
       updatedAt: t.updated_at as string,
       messages: (messagesByThread.get(t.id as string) ?? []).slice(-20),
       draft: draftByThread.get(t.id as string) ?? null,

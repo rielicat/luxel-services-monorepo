@@ -72,7 +72,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Mensajes' });
     const propertyId = prop.id!;
     await updatePropertyContext({ propertyId, answers: { wifi: 'Hay wifi en todo el depto.' } });
-    await admin.from('properties').update({ ai_review: false }).eq('id', propertyId);
+    await admin.from('properties').update({ ai_reviews: false }).eq('id', propertyId);
 
     const r = await handleInboundMessage({
       propertyId,
@@ -190,7 +190,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
       propertyId: prop.id,
       answers: { wifi: 'Hay wifi en todo el depto.' },
     });
-    await admin.from('properties').update({ ai_enabled: false }).eq('id', prop.id!);
+    await admin.from('properties').update({ ai_replies: false }).eq('id', prop.id!);
 
     const r = await handleInboundMessage({
       propertyId: prop.id!,

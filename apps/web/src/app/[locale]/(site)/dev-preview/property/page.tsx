@@ -51,7 +51,7 @@ const property: PropertyRow = {
   guest_context: null,
   external_listing_id: 'a6eb2c65',
   platform: 'airbnb',
-  ai_enabled: true,
+  ai_replies: true,
   price_optimization_enabled: true,
   pricelabs_status: 'connected',
   bedrooms: 3,

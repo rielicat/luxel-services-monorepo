@@ -64,10 +64,10 @@ export async function handleInboundMessage(input: {
 
   const { data: property } = await supabase
     .from('properties')
-    .select('ai_enabled, ai_review, owner_id')
+    .select('ai_replies, ai_reviews, owner_id')
     .eq('id', input.propertyId)
     .maybeSingle();
-  if (property && property.ai_enabled === false) {
+  if (property && property.ai_replies === false) {
     await supabase
       .from('guest_threads')
       .update({ status: 'needs_host', updated_at: new Date().toISOString() })
@@ -87,7 +87,7 @@ export async function handleInboundMessage(input: {
     return { ok: true, action: 'handoff', draft: draft.draft, threadId: thread.id };
   }
 
-  if (property?.ai_review !== false) {
+  if (property?.ai_reviews !== false) {
     const pending = await recordReplyDraft(supabase, {
       threadId: thread.id as string,
       inboundMessageId: inbound?.id ?? null,

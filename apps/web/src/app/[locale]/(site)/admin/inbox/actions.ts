@@ -8,7 +8,6 @@ import {
   discardReplyDraft,
   listInboxThreads,
   sendReplyDraft,
-  setPropertyAiReview,
   simulateThreadReply,
   type InboxThread,
   type ReplyDraft,
@@ -33,7 +32,6 @@ const SendSchema = z.object({
   draftId: z.string().uuid(),
   body: z.string().trim().min(1).max(4000),
 });
-const ReviewSchema = z.object({ propertyId: z.string().uuid(), review: z.boolean() });
 
 export async function loadInbox(): Promise<{ ok: boolean; threads?: InboxThread[] }> {
   if (!(await requireAdmin())) return { ok: false };
@@ -76,18 +74,4 @@ export async function rejectDraft(input: {
   const result = await discardReplyDraft(input.draftId, actor, input.handoff);
   if (result.ok) revalidatePath('/admin/inbox');
   return result;
-}
-
-export async function toggleAiReview(input: {
-  propertyId: string;
-  review: boolean;
-}): Promise<InboxActionResult> {
-  if (!(await requireAdmin())) return { ok: false, reason: 'denied' };
-
-  const parsed = ReviewSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, reason: 'invalid' };
-
-  const result = await setPropertyAiReview(parsed.data.propertyId, parsed.data.review);
-  if (result.ok) revalidatePath('/admin/inbox');
-  return result.ok ? { ok: true } : { ok: false, reason: 'write_failed' };
 }
