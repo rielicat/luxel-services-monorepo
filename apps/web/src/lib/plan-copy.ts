@@ -1,5 +1,5 @@
 import type { useTranslations } from 'next-intl';
-import { PLAN_COMMISSION_PCT } from './plan-pricing';
+import { PLAN_COMMISSION_PCT } from '@luxel/core/plan-pricing';
 
 type PlansT = ReturnType<typeof useTranslations<'plans'>>;
 

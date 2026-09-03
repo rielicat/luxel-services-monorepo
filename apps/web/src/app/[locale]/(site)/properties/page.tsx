@@ -1,15 +1,15 @@
 import { redirect } from 'next/navigation';
 import { after } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { fetchProperties, fetchConnection, type HostConnection } from '@/lib/host/queries';
-import { saveHospitableConnection } from '@/lib/channels/hospitable';
-import { hospitableAccess } from '@/lib/channels/scope';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { fetchProperties, fetchConnection, type HostConnection } from '@luxel/core/host/queries';
+import { saveHospitableConnection } from '@luxel/core/channels/hospitable';
+import { hospitableAccess } from '@luxel/core/channels/scope';
 import {
   reconcileHospitableProperties,
   syncHospitableAccount,
-} from '@/lib/channels/hospitable-sync';
-import { getHostConnection } from '@/lib/channels/connection';
+} from '@luxel/core/channels/hospitable-sync';
+import { getHostConnection } from '@luxel/core/channels/connection';
 import { PropertiesClient, type PropertyRow } from './properties-client';
 import type { ConnectState } from './connect-panel';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toE164Digits, formatPhone } from '../src/lib/phone';
+import { toE164Digits, formatPhone } from '@luxel/core/phone';
 
 describe('toE164Digits', () => {
   it('normalises every way a Chilean host types a mobile', () => {

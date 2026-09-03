@@ -6,7 +6,7 @@ import {
   departureSlots,
   guestSlots,
   nightsBetween,
-} from '../src/lib/checkin/slots';
+} from '@luxel/core/checkin/slots';
 
 describe('arrivalSlots', () => {
   it('steps 90 minutes from check-in and closes with a late slot', () => {

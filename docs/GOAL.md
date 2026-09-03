@@ -64,15 +64,15 @@ directly. Luxel invoices the plan at the end of the month.
 
 Each stage lists the surface in `apps/web`, the job-to-be-done and the metric.
 
-| Stage                     | Surface                                                                                           | Job-to-be-done                               | Metric                                         |
-| ------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------- |
-| **1. Landing**            | `/` (hero, seven services, gallery, how it works, the price, FAQ) and `/services/airbnb`          | "Understand what Luxel does for my listing." | `$pageview` on `/` → `/calculator` rate        |
-| **2. Price**              | `/calculator` (monthly revenue slider, listings stepper, the fee and what the host keeps)         | "See what the service costs me."             | `/calculator` → sign-up rate                   |
-| **3. Sign-up**            | `/sign-up` (Clerk)                                                                                | "Create my account."                         | new customers                                  |
-| **4. Plan request**       | `/properties` plan bar → `requestMyPlan` (status `requested`)                                     | "Ask for the plan."                          | `plan_subscriptions` in `requested`            |
-| **5. Hospitable connect** | The host grants Luxel access in Hospitable. An operator assigns the listing at `/admin/listings`. | "Connect my listing."                        | listings with an owner                         |
-| **6. Luxel operates**     | Sync, check-in links, AI replies, cleanings, crew and conserje WhatsApp                           | "Nothing to do."                             | occupancy, AI answer rate, cleanings confirmed |
-| **7. Monthly report**     | Luxel invoices the plan and sends the report. Both are manual today.                              | "See what I earned and what I paid."         | active plans, churn                            |
+| Stage                     | Surface                                                                                                           | Job-to-be-done                               | Metric                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| **1. Landing**            | `/` (hero, seven services, gallery, how it works, the price, FAQ) and `/services/airbnb`                          | "Understand what Luxel does for my listing." | `$pageview` on `/` → `/calculator` rate        |
+| **2. Price**              | `/calculator` (monthly revenue slider, listings stepper, the fee and what the host keeps)                         | "See what the service costs me."             | `/calculator` → sign-up rate                   |
+| **3. Sign-up**            | `/sign-up` (Clerk)                                                                                                | "Create my account."                         | new customers                                  |
+| **4. Plan request**       | `/properties` plan bar → `requestMyPlan` (status `requested`)                                                     | "Ask for the plan."                          | `plan_subscriptions` in `requested`            |
+| **5. Hospitable connect** | The host grants Luxel access in Hospitable. An operator assigns the listing at `/listings` in the operator panel. | "Connect my listing."                        | listings with an owner                         |
+| **6. Luxel operates**     | Sync, check-in links, AI replies, cleanings, crew and conserje WhatsApp                                           | "Nothing to do."                             | occupancy, AI answer rate, cleanings confirmed |
+| **7. Monthly report**     | Luxel invoices the plan and sends the report. Both are manual today.                                              | "See what I earned and what I paid."         | active plans, churn                            |
 
 A Luxel operator sets the plan to `active` after the first conversation. There
 is no self-serve activation and no trial.

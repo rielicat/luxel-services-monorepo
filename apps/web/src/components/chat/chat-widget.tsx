@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/routing';
 import { LuxelMark } from '@/components/brand/logo';
 import { track } from '@/lib/analytics/client';
-import { EVENTS } from '@/lib/analytics/events';
+import { EVENTS } from '@luxel/core/analytics/events';
 import { cn } from '@/lib/utils';
 import { CHAT_OPEN_EVENT } from './open-event';
 

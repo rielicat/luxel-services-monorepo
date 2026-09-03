@@ -3,7 +3,7 @@ import { Check, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { SectionHeading } from '@/components/sections/section-heading';
-import { PLAN_COMMISSION_PCT } from '@/lib/plan-pricing';
+import { PLAN_COMMISSION_PCT } from '@luxel/core/plan-pricing';
 import { planDesc, planName, planPriceLine } from '@/lib/plan-copy';
 
 const INCLUDED = [

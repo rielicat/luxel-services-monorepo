@@ -22,7 +22,7 @@ process.env.TEST_CLERK_ID = `test-bridge-${nodeCrypto.randomUUID()}`;
 vi.mock('@clerk/nextjs/server', () => ({
   auth: async () => ({ userId: null, getToken: async () => null }),
 }));
-vi.mock('@/lib/analytics/server', () => ({ capture: async () => {} }));
+vi.mock('@luxel/core/analytics/server', () => ({ capture: async () => {} }));
 
 const workerEnv = {
   WHATSAPP_VERIFY_TOKEN: 'verify-token',

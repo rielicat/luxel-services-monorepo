@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { guestLang, resolveGuestLang } from '../src/lib/checkin/lang';
+import { guestLang, resolveGuestLang } from '@luxel/core/checkin/lang';
 import { checkinMessages, GUEST_LOCALES } from '@luxel/shared/i18n';
 
 describe('guestLang', () => {

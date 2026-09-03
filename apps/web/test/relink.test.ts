@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pruneWouldWipeEverything } from '../src/lib/channels/relink';
+import { pruneWouldWipeEverything } from '@luxel/core/channels/relink';
 
 describe('pruneWouldWipeEverything', () => {
   it('flags a provider switch — no overlap between stored and remote', () => {

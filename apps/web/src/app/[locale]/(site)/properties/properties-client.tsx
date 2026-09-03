@@ -7,7 +7,7 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConnectionNote } from './connection-note';
 import { ConnectPanel, type ConnectState } from './connect-panel';
-import type { HostConnection } from '@/lib/host/queries';
+import type { HostConnection } from '@luxel/core/host/queries';
 
 const fmtDate = (d: string) =>
   new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(

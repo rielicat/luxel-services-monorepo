@@ -3,11 +3,11 @@ import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { checkinMessages } from '@luxel/shared/i18n';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
 import { CheckinForm, type RegisteredGuest } from './checkin-form';
-import { resolveGuestLang } from '@/lib/checkin/lang';
-import { findCheckin } from '@/lib/checkin/resolve';
-import { MAX_PARTY, guestSlots } from '@/lib/checkin/slots';
+import { resolveGuestLang } from '@luxel/core/checkin/lang';
+import { findCheckin } from '@luxel/core/checkin/resolve';
+import { MAX_PARTY, guestSlots } from '@luxel/core/checkin/slots';
 
 export const dynamic = 'force-dynamic';
 

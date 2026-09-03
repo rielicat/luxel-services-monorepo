@@ -15,7 +15,7 @@ rules. Do not add code paths that break them.
 - Crew is **Luxel-owned**, not mirrored. `crew_member` (internal or external)
   and `crew_assignment` (member, property, role) are operator-managed in
   `apps/admin` at `/crew`. The sync never touches them. `recipients()` in
-  `apps/web/src/lib/crew/index.ts` decides who is notified: assigned crew
+  `packages/core/src/crew/index.ts` decides who is notified: assigned crew
   first, the Hospitable teammate mirror only when the assignment reaches
   nobody. Both notifiers call it; neither queries `property_contacts`.
 - Cleanings are a Luxel-run operation. The sync pass creates one per imported
@@ -26,7 +26,7 @@ rules. Do not add code paths that break them.
   human". Do not add host-facing crew or inbox surfaces.
 - Lux replies to guests behind a review gate. `properties.ai_reviews` defaults to
   `true`. The pipeline stores the AI reply in `guest_reply_drafts` with status
-  `pending` and sends nothing. A Luxel operator reviews it at `/admin/inbox`,
+  `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in `apps/admin`,
   edits it if needed, and approves it. Only then does the message reach the
   guest. An approved text that differs from the draft is stored as `host`, not
   `ai`. `simulateThreadReply` drafts a reply for a thread already on record

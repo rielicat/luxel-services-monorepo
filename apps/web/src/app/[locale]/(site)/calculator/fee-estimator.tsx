@@ -6,7 +6,7 @@ import { Check, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { planMonthlyCost } from '@/lib/plan-pricing';
+import { planMonthlyCost } from '@luxel/core/plan-pricing';
 import { planDesc, planName, planPriceLine } from '@/lib/plan-copy';
 import { formatCLP } from '@/lib/utils';
 

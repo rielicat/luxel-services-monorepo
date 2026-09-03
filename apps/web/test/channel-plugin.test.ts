@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { channelPlugin } from '../src/lib/channels/registry';
+import { channelPlugin } from '@luxel/core/channels/registry';
 
 describe('channel plugin registry', () => {
   it('resolves Hospitable and returns null for anything unregistered', () => {

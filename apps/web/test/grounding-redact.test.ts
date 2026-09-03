@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { redactSecrets } from '../src/lib/ai/redact';
+import { redactSecrets } from '@luxel/core/ai/redact';
 
 describe('redactSecrets', () => {
   it('removes every occurrence of every secret, whatever the case', () => {

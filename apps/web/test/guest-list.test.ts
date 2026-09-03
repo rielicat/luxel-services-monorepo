@@ -4,8 +4,8 @@ import nodeCrypto from 'node:crypto';
 process.env.LUXEL_PII_KEY = nodeCrypto.randomBytes(32).toString('hex');
 
 describe('guest list line', async () => {
-  const { formatDocument, guestListLine } = await import('../src/lib/checkin/guest-list');
-  const { encryptPII } = await import('../src/lib/crypto/pii');
+  const { formatDocument, guestListLine } = await import('@luxel/core/checkin/guest-list');
+  const { encryptPII } = await import('@luxel/core/crypto/pii');
 
   it('punctuates a RUT and leaves other documents alone', () => {
     expect(formatDocument('rut', '123456789')).toBe('12.345.678-9');

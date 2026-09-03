@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { longDateEs, stayRangeEs } from '../src/lib/checkin/copy';
+import { longDateEs, stayRangeEs } from '@luxel/core/checkin/copy';
 
 describe('check-in date copy', () => {
   it('writes long Chilean dates for the crew and conserje messages', () => {

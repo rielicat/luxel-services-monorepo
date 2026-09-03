@@ -1,15 +1,15 @@
 import { after } from 'next/server';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { handleInboundMessage } from '@/lib/channels/pipeline';
-import { encodeRef } from '@/lib/channels/types';
-import { customerForListing } from '@/lib/channels/scope';
-import { verifyConnection } from '@/lib/channels/connection';
-import { ingestThread, mirrorCheckinForReservation } from '@/lib/channels/hospitable-sync';
-import { getHospitableReservation } from '@/lib/channels/hospitable';
-import { channelPlugin } from '@/lib/channels/registry';
-import type { ChannelPlugin } from '@/lib/channels/types';
-import { authorizeWebhook } from '@/lib/channels/webhook-auth';
-import { devMockEnabled } from '@/lib/dev-mock';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { handleInboundMessage } from '@luxel/core/channels/pipeline';
+import { encodeRef } from '@luxel/core/channels/types';
+import { customerForListing } from '@luxel/core/channels/scope';
+import { verifyConnection } from '@luxel/core/channels/connection';
+import { ingestThread, mirrorCheckinForReservation } from '@luxel/core/channels/hospitable-sync';
+import { getHospitableReservation } from '@luxel/core/channels/hospitable';
+import { channelPlugin } from '@luxel/core/channels/registry';
+import type { ChannelPlugin } from '@luxel/core/channels/types';
+import { authorizeWebhook } from '@luxel/core/channels/webhook-auth';
+import { devMockEnabled } from '@luxel/core/dev-mock';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

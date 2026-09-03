@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import type * as CrewModule from '../src/lib/crew';
+import type * as CrewModule from '@luxel/core/crew';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
@@ -38,7 +38,7 @@ const newMember = async (input: {
 beforeAll(async () => {
   if (!LIVE) return;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
-  crew = await import('../src/lib/crew');
+  crew = await import('@luxel/core/crew');
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin

@@ -1,13 +1,13 @@
 import { redirect, notFound } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
-import { fetchProperty } from '@/lib/host/queries';
-import { hospitableAmountToClp, listHospitableCalendar } from '@/lib/channels/hospitable';
-import { hospitableAccess } from '@/lib/channels/scope';
-import { resolvePricelabsRef } from '@/lib/pricelabs/link';
-import { getPricelabsPrices } from '@/lib/pricelabs/client';
-import { santiagoToday, shiftDate } from '@/lib/checkin/window';
-import { monthBounds, realizedRevenueForProperty, santiagoMonth } from '@/lib/revenue';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { fetchProperty } from '@luxel/core/host/queries';
+import { hospitableAmountToClp, listHospitableCalendar } from '@luxel/core/channels/hospitable';
+import { hospitableAccess } from '@luxel/core/channels/scope';
+import { resolvePricelabsRef } from '@luxel/core/pricelabs/link';
+import { getPricelabsPrices } from '@luxel/core/pricelabs/client';
+import { santiagoToday, shiftDate } from '@luxel/core/checkin/window';
+import { monthBounds, realizedRevenueForProperty, santiagoMonth } from '@luxel/core/revenue';
 import type { PropertyRow } from '../properties-client';
 import { PropertyDetailClient, type LiveDay, type MonthWindow } from './detail-client';
 

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { CheckCircle2 } from 'lucide-react';
-import type { HostConnection } from '@/lib/host/queries';
+import type { HostConnection } from '@luxel/core/host/queries';
 
 export function ConnectionNote({
   connection,

@@ -12,6 +12,9 @@ import {
   Users2,
   Activity,
   Bot,
+  MessagesSquare,
+  Building2,
+  Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LuxelMark } from './ui';
@@ -23,8 +26,11 @@ const NAV = [
   { href: '/plans', label: 'Planes', Icon: CreditCard },
   { href: '/crew', label: 'Equipo', Icon: HardHat },
   { href: '/ai', label: 'Lux', Icon: Bot },
+  { href: '/inbox', label: 'Huéspedes', Icon: MessagesSquare },
+  { href: '/listings', label: 'Propiedades', Icon: Building2 },
   { href: '/sessions', label: 'Sesiones', Icon: Users2 },
   { href: '/telemetry', label: 'Telemetría', Icon: Activity },
+  { href: '/debug', label: 'Diagnóstico', Icon: Wrench },
 ] as const;
 
 export function Shell({ email, children }: { email: string; children: React.ReactNode }) {

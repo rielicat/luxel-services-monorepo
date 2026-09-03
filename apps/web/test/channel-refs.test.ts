@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encodeRef, decodeRef, refPattern } from '../src/lib/channels/types';
+import { encodeRef, decodeRef, refPattern } from '@luxel/core/channels/types';
 
 describe('channel refs', () => {
   it('encodes Hospitable exactly as live rows already store it', () => {

@@ -9,7 +9,7 @@
 ## 1. Two AI surfaces
 
 The AI does two jobs. Both use the same client
-(`apps/web/src/lib/ai/client.ts`).
+(`packages/core/src/ai/client.ts`).
 
 Lux carries the Luxel positioning. Luxel gives the host the time back. An
 Airbnb must be income that the host receives, not people that the host
@@ -93,7 +93,7 @@ creates a `leads` row (`source: 'chat_handoff'`). See
 
 ### Tools
 
-`buildTools()` in `apps/web/src/lib/ai/tools.ts` declares them. Each tool has a
+`buildTools()` in `packages/core/src/ai/tools.ts` declares them. Each tool has a
 strict input schema. Each returns text for the model and, optionally, a widget
 for the chat UI (`airbnb_quote`, `links`, `handoff`). Tools reuse the production
 code, so the concierge and the website never disagree.

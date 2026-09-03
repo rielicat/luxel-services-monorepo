@@ -6,7 +6,7 @@ Provisions the two Vercel projects as code via `@pulumiverse/vercel`:
   import (identity + domains + git link). Its env vars and build commands are
   left managed in Vercel, so adoption never touches them.
 - **admin** — the operator panel (`apps/admin`), **created** here: project +
-  domain (`panel.serviciosluxel.cl`) + git link + its non-secret config.
+  domain (`admin.serviciosluxel.cl`) + git link + its non-secret config.
 
 Two things are intentionally **not** in this IaC — the same split the web
 project already uses:
@@ -17,7 +17,7 @@ project already uses:
   Vercel dashboard (like web's), so there are no secrets to manage here.
 
 State reuses the Cloudflare **R2** backend. The `panel` DNS record lives in
-`infra/cloudflare` (set `panelTarget` there).
+`infra/cloudflare` (set `adminTarget` there).
 
 ## How it runs — CI-driven
 
@@ -42,7 +42,7 @@ so its build succeeds, then push to deploy:
 `LUXEL_ADMIN_ORG_SLUG` are managed here in code.)
 
 Then point the panel domain at Vercel in the Cloudflare stack:
-`pulumi config set panelTarget cname.vercel-dns.com` (commit → CI applies).
+`pulumi config set adminTarget cname.vercel-dns.com` (commit → CI applies).
 
 ## What is / isn't managed
 

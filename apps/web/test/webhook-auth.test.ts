@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ipInCidr, sourceIp } from '../src/lib/channels/webhook-auth';
+import { ipInCidr, sourceIp } from '@luxel/core/channels/webhook-auth';
 
 describe('ipInCidr', () => {
   it('matches Hospitable’s published range at both edges', () => {

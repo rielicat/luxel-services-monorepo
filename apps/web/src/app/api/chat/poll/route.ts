@@ -1,4 +1,4 @@
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -413,10 +413,10 @@ beforeAll(async () => {
   sendWithoutReview = async () => {
     await admin.from('properties').update({ ai_reviews: false }).eq('owner_id', customerId);
   };
-  const syncLib = await import('../src/lib/channels/hospitable-sync');
+  const syncLib = await import('@luxel/core/channels/hospitable-sync');
   syncHospitable = () => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN);
   syncHospitableAt = (now: Date) => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN, now);
-  decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
+  decryptPII = (await import('@luxel/core/crypto/pii')).decryptPII;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin
@@ -621,7 +621,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     await admin
       .from('properties')
       .insert({ owner_id: customerId, nickname: 'Otra fila legada post-connect' });
-    const { reconcileHospitableProperties } = await import('../src/lib/channels/hospitable-sync');
+    const { reconcileHospitableProperties } = await import('@luxel/core/channels/hospitable-sync');
     const rec = await reconcileHospitableProperties(customerId, FAKE_TOKEN);
     expect(rec.ok).toBe(true);
     expect(rec.properties).toBe(1);
@@ -634,7 +634,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
   });
 
   it('reads the listing calendar with real per-night prices and availability', async () => {
-    const { listHospitableCalendar } = await import('../src/lib/channels/hospitable');
+    const { listHospitableCalendar } = await import('@luxel/core/channels/hospitable');
     const days = await listHospitableCalendar(
       FAKE_TOKEN,
       HOSP_PROPERTY_ID,
@@ -667,7 +667,8 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .insert({ owner_id: other!.id, nickname: 'Propiedad de otra cuenta' });
 
     try {
-      const { reconcileHospitableProperties } = await import('../src/lib/channels/hospitable-sync');
+      const { reconcileHospitableProperties } =
+        await import('@luxel/core/channels/hospitable-sync');
 
       PROPERTIES_MODE = 'paged_fail';
       const partial = await reconcileHospitableProperties(customerId, FAKE_TOKEN);
@@ -1046,7 +1047,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       departure_date: '2027-03-05',
     });
 
-    const syncLib = await import('../src/lib/channels/hospitable-sync');
+    const syncLib = await import('@luxel/core/channels/hospitable-sync');
     const r = await syncLib.syncHospitableAccount(customerId, FAKE_TOKEN, new Date(), 'central');
     expect(r.ok).toBe(true);
     expect(r.relinked).toBe(0);
@@ -1524,7 +1525,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
 
   it('purges guest documents 90 days after departure and leaves recent stays intact', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
-    const { santiagoToday, shiftDate } = await import('../src/lib/checkin/window');
+    const { santiagoToday, shiftDate } = await import('@luxel/core/checkin/window');
     const { data: prop } = await admin
       .from('properties')
       .select('id')
@@ -1594,7 +1595,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .select('*', { count: 'exact', head: true })
       .eq('customer_id', customerId);
     expect(count).toBe(0);
-    const { customerHospitableToken } = await import('../src/lib/channels/hospitable');
+    const { customerHospitableToken } = await import('@luxel/core/channels/hospitable');
     expect(await customerHospitableToken(customerId)).toBeNull();
     expect(apiCalls).toBeGreaterThan(0);
   });
@@ -1779,7 +1780,7 @@ describe.skipIf(!LIVE)('Hospitable realized booking revenue (end to end)', () =>
     await connectHospitable({ token: FAKE_TOKEN });
     await syncHospitableAt(AFTER_STAY);
     const { realizedRevenueForProperty, realizedRevenueForCustomer } =
-      await import('../src/lib/revenue');
+      await import('@luxel/core/revenue');
 
     const march = await realizedRevenueForProperty(await propertyId(), '2027-03', AFTER_STAY);
     expect(march).toMatchObject({
@@ -1809,7 +1810,7 @@ describe.skipIf(!LIVE)('Hospitable realized booking revenue (end to end)', () =>
 
 describe.skipIf(!LIVE)('Hospitable connected channels', () => {
   it('reads the connected Airbnb account, and returns null when the call fails', async () => {
-    const { listHospitableChannels } = await import('../src/lib/channels/hospitable');
+    const { listHospitableChannels } = await import('@luxel/core/channels/hospitable');
 
     const channels = await listHospitableChannels(FAKE_TOKEN);
     expect(channels).toHaveLength(1);

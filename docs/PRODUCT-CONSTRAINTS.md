@@ -17,7 +17,7 @@ Compacted from `AGENTS.md` sections "Product constraints (user-set)" and
 - The commission base is the booking only. The guest cleaning fee is 100% for
   the cleaning crew, and Luxel charges no commission on it. The sync mirrors
   it as `reservation_revenue.cleaning_fee_clp`, and `commissionBaseClp` in
-  `apps/web/src/lib/revenue.ts` is the host payout minus that fee. Luxel pays
+  `packages/core/src/revenue.ts` is the host payout minus that fee. Luxel pays
   the crew against a document — a contract or a boleta de honorarios — so the
   fee is a documented pass-through and not undeclared Luxel revenue.
 - **Not true yet.** Airbnb co-host payout splitting is not configured on any

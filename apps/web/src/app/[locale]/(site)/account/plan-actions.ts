@@ -1,10 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { currentCustomerId } from '@/lib/host/owner';
-import { getPlan, requestPlan, cancelPlan } from '@/lib/plans';
-import { capture } from '@/lib/analytics/server';
-import { ACTORS, EVENTS } from '@/lib/analytics/events';
+import { currentCustomerId } from '@luxel/core/host/owner';
+import { getPlan, requestPlan, cancelPlan } from '@luxel/core/plans';
+import { capture } from '@luxel/core/analytics/server';
+import { ACTORS, EVENTS } from '@luxel/core/analytics/events';
 
 export async function requestMyPlan(): Promise<{ ok: boolean }> {
   const cid = await currentCustomerId();

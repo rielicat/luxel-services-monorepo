@@ -41,8 +41,8 @@ let customerId: string;
 
 beforeAll(async () => {
   if (!LIVE) return;
-  handleInboundMessage = (await import('../src/lib/channels/pipeline')).handleInboundMessage;
-  const drafts = await import('../src/lib/messaging/drafts');
+  handleInboundMessage = (await import('@luxel/core/channels/pipeline')).handleInboundMessage;
+  const drafts = await import('@luxel/core/messaging/drafts');
   sendReplyDraft = drafts.sendReplyDraft;
   simulateThreadReply = drafts.simulateThreadReply;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;

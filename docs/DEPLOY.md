@@ -6,7 +6,7 @@ Vercel project has one root directory.
 | App                             | Root directory | Domain                                       |
 | ------------------------------- | -------------- | -------------------------------------------- |
 | Customer site (`@luxel/web`)    | `apps/web`     | `serviciosluxel.cl`, `www.serviciosluxel.cl` |
-| Operator panel (`@luxel/admin`) | `apps/admin`   | `panel.serviciosluxel.cl` (internal)         |
+| Operator panel (`@luxel/admin`) | `apps/admin`   | `admin.serviciosluxel.cl` (internal)         |
 
 The Cloudflare Worker (`workers/whatsapp`, named `luxel-whatsapp-webhook`)
 deploys separately with `wrangler deploy`.
@@ -34,10 +34,9 @@ These are external accounts. The code cannot provision them:
 2. **Clerk** — create a production instance. Add **both** app domains to the
    allowed origins. Copy `pk_live_*` / `sk_live_*`. Point a Clerk webhook at
    `https://serviciosluxel.cl/api/webhooks/clerk` and copy
-   `CLERK_WEBHOOK_SECRET`. Set `publicMetadata.role = "admin"` on each operator
-   who needs `/admin` in the customer site. Create the operator organization for
-   the panel (see `apps/admin` env below). Keep Organizations optional in the
-   instance.
+   `CLERK_WEBHOOK_SECRET`. Create the operator organization for the panel and add
+   each operator to it (see `apps/admin` env below). Keep Organizations optional
+   in the instance.
 3. **Hospitable** — connect the central Luxel account and set `PROVIDER_API_KEY`.
    Register the webhook once, in Apps > Webhooks:
    `https://serviciosluxel.cl/api/channels/hospitable`. Add **no secret**; the

@@ -2,9 +2,9 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { currentCustomerId } from '@/lib/host/owner';
-import { verifyHospitableToken, saveHospitableConnection } from '@/lib/channels/hospitable';
-import { syncHospitableAccount } from '@/lib/channels/hospitable-sync';
+import { currentCustomerId } from '@luxel/core/host/owner';
+import { verifyHospitableToken, saveHospitableConnection } from '@luxel/core/channels/hospitable';
+import { syncHospitableAccount } from '@luxel/core/channels/hospitable-sync';
 
 export async function connectHospitable(
   input: unknown,
