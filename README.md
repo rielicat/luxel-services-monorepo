@@ -56,7 +56,7 @@ luxel-services-monorepo/
 | Auth            | Clerk                                                                     |
 | Database        | Supabase (Postgres + RLS); the server uses the secret key                 |
 | Channel (PMS)   | Hospitable — plugin behind `apps/web/src/lib/channels/registry.ts`        |
-| AI concierge    | OpenAI (`gpt-4o-mini`, cost-optimized; `OPENAI_MODEL` override)           |
+| AI concierge    | OpenAI (`gpt-5.6-terra`, pinned in `lib/ai/client.ts`)                    |
 | Email           | Resend                                                                    |
 | Dynamic pricing | PriceLabs (part of the plan)                                              |
 | Messaging       | WhatsApp Business Cloud API, through the worker `luxel-whatsapp-webhook`  |

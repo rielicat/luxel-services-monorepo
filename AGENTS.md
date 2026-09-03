@@ -86,7 +86,7 @@ supabase/        migrations + local config
 | Database        | Supabase Postgres + RLS                                                                                     |
 | Channel (PMS)   | Hospitable, as a plugin behind `apps/web/src/lib/channels/registry.ts`                                      |
 | Messaging       | WhatsApp Cloud API (worker), Resend email fallback                                                          |
-| AI              | OpenAI `gpt-4o-mini` (`OPENAI_MODEL` override)                                                              |
+| AI              | OpenAI `gpt-5.6-terra`, pinned in `lib/ai/client.ts` (no env override)                                      |
 | Dynamic pricing | PriceLabs (part of the plan)                                                                                |
 | Analytics       | In-house `analytics_events` + `leads`                                                                       |
 

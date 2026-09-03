@@ -1,7 +1,7 @@
 # Servicios Luxel — AI Concierge & Guest-Reply Pipeline
 
 > "Lux", the AI concierge, and the guest auto-replies. OpenAI Node SDK
-> (`openai`) · model `gpt-4o-mini` (`OPENAI_MODEL` override) · SSE streaming ·
+> (`openai`) · model `gpt-5.6-terra`, pinned in code · SSE streaming ·
 > tool-use. Prose is English; user-facing copy is es-CL.
 
 ---
@@ -65,7 +65,8 @@ commission.
 ### Stack
 
 - **SDK:** OpenAI Node SDK (`openai`), Chat Completions with function tools.
-- **Model:** `AI_MODEL` = `OPENAI_MODEL` or `gpt-4o-mini` (`lib/ai/client.ts`).
+- **Model:** `AI_MODEL` = `gpt-5.6-terra`, a constant in `lib/ai/client.ts`. No
+  env override: every environment answers with the same model.
 - **Streaming:** the route streams **SSE** events (`text`, `tool`, `widget`,
   `done`, `error`) from `apps/web/src/app/api/chat/route.ts`. The widget
   (`components/chat/chat-widget.tsx`) consumes the stream.
@@ -252,7 +253,6 @@ Chilean, warm, concise (`tú`); always a next step; graceful handoff.
 | Variable                      | Effect                                                                                                                                                                                               |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `OPENAI_API_KEY`              | Required for any AI answer. Absent: `getOpenAI()` returns null, Lux streams the fixed fallback, and guest threads go to `needs_host` (a Luxel human answers) with reason `no_ai`. No error surfaces. |
-| `OPENAI_MODEL`                | Optional. Defaults to `gpt-4o-mini`.                                                                                                                                                                 |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | The handoff link Lux shows.                                                                                                                                                                          |
 | `PRICELABS_API_KEY`           | Not set today. Without it `get_pricing_reference` has no market source and returns no numbers. Lux then offers the pricing proposal. It never fills the gap with an estimate.                        |
 | `LUXEL_DEV_MOCK`              | Dev only. Simulates guest drafts without a key. Never set in production.                                                                                                                             |
