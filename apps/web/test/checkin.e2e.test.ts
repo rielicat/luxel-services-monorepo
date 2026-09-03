@@ -117,15 +117,13 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     const res = await submitCheckin({
       id: token,
       guests: [
-        { fullName: 'María Pérez', docType: 'rut', docNumber: '12.345.678-9', nationality: 'CL' },
-        { fullName: 'Pedro Pérez', docType: 'rut', docNumber: '9.876.543-2', nationality: 'AR' },
+        { fullName: 'María Pérez', docType: 'rut', docNumber: '12.345.678-9' },
+        { fullName: 'Pedro Pérez', docType: 'rut', docNumber: '9.876.543-2' },
       ],
-      email: 'maria@guest.cl',
       arrivalTime: '18:00',
       departureTime: '11:00',
       parking: true,
       vehiclePlate: 'abcd12',
-      consent: true,
     });
     expect(res.ok).toBe(true);
     expect(JSON.stringify(res)).not.toContain('4821');
@@ -145,12 +143,11 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     const { data: checkin } = await admin
       .from('checkins')
       .select(
-        'id, status, guest_name, guest_email, party_size, arrival_time, departure_time, parking, vehicle_plate, notify_result',
+        'id, status, guest_name, party_size, arrival_time, departure_time, parking, vehicle_plate, notify_result',
       )
       .eq('token', token)
       .maybeSingle();
     expect(checkin!.guest_name).toBe('María Pérez');
-    expect(checkin!.guest_email).toBe('maria@guest.cl');
     expect(checkin!.party_size).toBe(2);
     expect(checkin!.arrival_time).toBe('18:00');
     expect(checkin!.departure_time).toBe('11:00');
@@ -168,14 +165,13 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
 
     const { data: guests } = await admin
       .from('checkin_guests')
-      .select('is_lead, full_name, nationality, doc_type, doc_last4, doc_number_enc')
+      .select('is_lead, full_name, doc_type, doc_last4, doc_number_enc')
       .eq('checkin_id', checkin!.id)
       .order('is_lead', { ascending: false });
     expect(guests).toHaveLength(2);
     expect(guests![0]).toMatchObject({
       is_lead: true,
       full_name: 'María Pérez',
-      nationality: 'CL',
       doc_type: 'rut',
       doc_last4: '78-9',
     });
@@ -184,7 +180,6 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(guests![1]).toMatchObject({
       is_lead: false,
       full_name: 'Pedro Pérez',
-      nationality: 'AR',
       doc_type: 'rut',
       doc_last4: '43-2',
     });
@@ -192,23 +187,30 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(decryptPII(guests![1].doc_number_enc as string)).toBe('9.876.543-2');
   });
 
-  it('rejects a party without an arrival slot, an empty party, or an unknown nationality', async () => {
+  it('rejects a party without an arrival slot, an empty party, or a guest without a document', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Estricto' });
     const link = await mintCheckinLink(prop.id!);
-    const base = { id: link.token, email: 'x@guest.cl', consent: true };
-    const noSlot = await submitCheckin({ ...base, guests: [{ fullName: 'Sin Hora' }] });
+    const base = { id: link.token };
+    const doc = { docType: 'rut', docNumber: '11.111.111-1' };
+    const noSlot = await submitCheckin({ ...base, guests: [{ fullName: 'Sin Hora', ...doc }] });
     expect(noSlot).toMatchObject({ ok: false, error: 'validation' });
     const empty = await submitCheckin({ ...base, guests: [], arrivalTime: '15:00' });
     expect(empty).toMatchObject({ ok: false, error: 'validation' });
-    const badNat = await submitCheckin({
+    const noDoc = await submitCheckin({
       ...base,
-      guests: [{ fullName: 'De Marte', nationality: 'XX' }],
+      guests: [{ fullName: 'Sin Documento' }],
       arrivalTime: '15:00',
     });
-    expect(badNat).toMatchObject({ ok: false, error: 'validation' });
+    expect(noDoc).toMatchObject({ ok: false, error: 'validation' });
+    const shortDoc = await submitCheckin({
+      ...base,
+      guests: [{ fullName: 'Doc Corto', docType: 'rut', docNumber: '12' }],
+      arrivalTime: '15:00',
+    });
+    expect(shortDoc).toMatchObject({ ok: false, error: 'validation' });
     const badSlot = await submitCheckin({
       ...base,
-      guests: [{ fullName: 'Hora Rara' }],
+      guests: [{ fullName: 'Hora Rara', ...doc }],
       arrivalTime: '6pm',
     });
     expect(badSlot).toMatchObject({ ok: false, error: 'validation' });
@@ -226,10 +228,8 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .eq('token', link.token!);
     const res = await submitCheckin({
       id: link.token,
-      guests: [{ fullName: 'Llega En Diez Días' }],
-      email: 'diez@guest.cl',
+      guests: [{ fullName: 'Llega En Diez Días', docType: 'passport', docNumber: 'X1234567' }],
       arrivalTime: '22:30+',
-      consent: true,
     });
     expect(res.ok).toBe(true);
     expect(res).toEqual({ ok: true });
@@ -258,10 +258,11 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .eq('token', link.token!);
     const input = {
       id: link.token,
-      guests: [{ fullName: 'Ana Uno' }, { fullName: 'Beto Dos' }],
-      email: 'ana@guest.cl',
+      guests: [
+        { fullName: 'Ana Uno', docType: 'rut', docNumber: '11.111.111-1' },
+        { fullName: 'Beto Dos', docType: 'rut', docNumber: '22.222.222-2' },
+      ],
       arrivalTime: '18:00',
-      consent: true,
     };
     const results = await Promise.all([submitCheckin(input), submitCheckin(input)]);
     expect(results.filter((r) => r.ok)).toHaveLength(1);
@@ -303,10 +304,8 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
 
     const res = await submitCheckin({
       id: 'hmtestcode',
-      guests: [{ fullName: 'Entra Por Código' }],
-      email: 'codigo@guest.cl',
+      guests: [{ fullName: 'Entra Por Código', docType: 'rut', docNumber: '11.111.111-1' }],
       arrivalTime: '18:00',
-      consent: true,
     });
     expect(res.ok).toBe(true);
     const { data: row } = await admin
@@ -339,10 +338,8 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .eq('token', link.token!);
     const res = await submitCheckin({
       id: link.token,
-      guests: [{ fullName: 'Ya No Viene' }],
-      email: 'no@guest.cl',
+      guests: [{ fullName: 'Ya No Viene', docType: 'rut', docNumber: '11.111.111-1' }],
       arrivalTime: '15:00',
-      consent: true,
     });
     expect(res).toMatchObject({ ok: false, error: 'expired' });
     expect(workerSends).toHaveLength(0);
@@ -357,9 +354,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       const res = await submitCheckin({
         id: link.token,
         guests: [{ fullName: 'Sin Clave', docType: 'rut', docNumber: '11.111.111-1' }],
-        email: 'sin@guest.cl',
         arrivalTime: '15:00',
-        consent: true,
       });
       expect(res).toMatchObject({ ok: false, error: 'store_guests' });
     } finally {
@@ -374,7 +369,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(workerSends).toHaveLength(0);
   });
 
-  it('when the host requires ID, every companion must carry a document too', async () => {
+  it('every companion must carry a document, not only the lead guest', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Todos Con ID' });
     const propertyId = prop.id!;
     await updateAccess({
@@ -391,15 +386,13 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
         { fullName: 'Líder Con Doc', docType: 'rut', docNumber: '11.111.111-1' },
         { fullName: 'Acompañante Sin Doc' },
       ],
-      email: 'lider@guest.cl',
       arrivalTime: '15:00',
-      consent: true,
     });
     expect(res.ok).toBe(false);
-    expect(res.error).toBe('id_required');
+    expect(res.error).toBe('validation');
   });
 
-  it('rejects a submission missing ID when the property requires it', async () => {
+  it('rejects a submission missing the document, whatever the property requires', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Las Condes' });
     const propertyId = prop.id!;
     const up = await updateAccess({
@@ -421,12 +414,10 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     const res = await submitCheckin({
       id: link.token,
       guests: [{ fullName: 'Sin Documento' }],
-      email: 'x@guest.cl',
       arrivalTime: '15:00',
-      consent: true,
     });
     expect(res.ok).toBe(false);
-    expect(res.error).toBe('id_required');
+    expect(res.error).toBe('validation');
   });
 
   it('will NOT set require_id unless a basis AND disclosure are affirmed (AirBnB-policy guard)', async () => {

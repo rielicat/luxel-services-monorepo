@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   MAX_PARTY,
-  NATIONALITIES,
   SLOT_RE,
   arrivalSlots,
   departureSlots,
@@ -64,14 +63,5 @@ describe('nightsBetween', () => {
     expect(nightsBetween('2026-09-06', '2026-09-06')).toBe(0);
     expect(nightsBetween('2026-09-15', '2026-09-06')).toBe(0);
     expect(nightsBetween('nope', '2026-09-06')).toBe(0);
-  });
-});
-
-describe('constants', () => {
-  it('keeps the nationality list closed with a catch-all', () => {
-    expect(NATIONALITIES).toHaveLength(12);
-    expect(NATIONALITIES.at(-1)).toBe('other');
-    expect(SLOT_RE.test('22:30+')).toBe(true);
-    expect(SLOT_RE.test('9:00')).toBe(false);
   });
 });

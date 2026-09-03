@@ -32,21 +32,16 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
 
   const done = checkin.status !== 'pending';
 
-  const [{ data: property }, { data: access }, guestsRes] = await Promise.all([
+  const [{ data: property }, guestsRes] = await Promise.all([
     supabase
       .from('properties')
       .select('nickname, address, comuna, checkin_time, checkout_time, house_rules, max_guests')
       .eq('id', checkin.property_id as string)
       .maybeSingle(),
-    supabase
-      .from('property_access')
-      .select('require_id')
-      .eq('property_id', checkin.property_id as string)
-      .maybeSingle(),
     done
       ? supabase
           .from('checkin_guests')
-          .select('is_lead, full_name, nationality, doc_type, doc_last4')
+          .select('is_lead, full_name, doc_type, doc_last4')
           .eq('checkin_id', checkin.id as string)
           .order('is_lead', { ascending: false })
           .order('created_at', { ascending: true })
@@ -58,14 +53,11 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
     (await headers()).get('accept-language'),
   );
 
-  const requireId = Boolean(access?.require_id);
-
   const rules = (property?.house_rules ?? null) as HouseRules;
   const maxGuests = Math.min(Math.max(property?.max_guests ?? MAX_PARTY, 1), MAX_PARTY);
   const registered: RegisteredGuest[] = (guestsRes?.data ?? []).map((g) => ({
     isLead: Boolean(g.is_lead),
     fullName: g.full_name as string,
-    nationality: (g.nationality as string | null) ?? null,
     docType: (g.doc_type as string | null) ?? null,
     docLast4: (g.doc_last4 as string | null) ?? null,
   }));
@@ -76,10 +68,9 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
       messages={checkinMessages(lang)}
       timeZone="America/Santiago"
     >
-      <main lang={lang} className="mx-auto w-full max-w-md px-4 pb-32 pt-6 sm:pt-10">
+      <main lang={lang} className="mx-auto w-full max-w-md px-4 pb-44 pt-6 sm:pt-10">
         <CheckinForm
           id={id}
-          requireId={requireId}
           alreadyDone={done}
           stay={{
             propertyName: property?.nickname ?? '',
@@ -90,7 +81,6 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
             checkoutTime: (property?.checkout_time as string | null) ?? null,
           }}
           expectedGuests={guestSlots(checkin.expected_guests as number | null, maxGuests)}
-          maxGuests={maxGuests}
           rules={{
             noSmoking: rules?.smoking_allowed === false,
             noPets: rules?.pets_allowed === false,

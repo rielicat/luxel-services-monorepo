@@ -1,21 +1,5 @@
 export const MAX_PARTY = 16;
 
-export const NATIONALITIES = [
-  'CL',
-  'AR',
-  'PE',
-  'CO',
-  'VE',
-  'BR',
-  'BO',
-  'EC',
-  'MX',
-  'US',
-  'ES',
-  'other',
-] as const;
-export type Nationality = (typeof NATIONALITIES)[number];
-
 export const SLOT_RE = /^\d{2}:\d{2}\+?$/;
 
 const STEP_MINUTES = 90;
