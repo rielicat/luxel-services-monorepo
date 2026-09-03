@@ -24,12 +24,13 @@ test('the pricing page estimates the single fee', async ({ page }) => {
   await page.goto('/calculator');
   await expect(page.getByRole('slider')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Tu cobro Luxel' })).toBeVisible();
-  await expect(page.getByText('12% de tus ingresos').first()).toBeVisible();
+  await expect(page.getByText('12% de tus reservas').first()).toBeVisible();
   await expect(page.getByText('por propiedad, IVA incluido').first()).toBeVisible();
+  await expect(page.getByText('sin la tarifa de limpieza').first()).toBeVisible();
 });
 
 test('the home page states the single fee', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('12% de tus ingresos').first()).toBeVisible();
+  await expect(page.getByText('12% de tus reservas').first()).toBeVisible();
   await expect(page.getByText('por propiedad, IVA incluido').first()).toBeVisible();
 });
