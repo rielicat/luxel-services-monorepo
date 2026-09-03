@@ -23,6 +23,12 @@ vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: un
 
 const LISTING_AUTO = 'd4444444-0000-0000-0000-00000000000d';
 const LISTING_UNKNOWN = 'e5555555-0000-0000-0000-00000000000e';
+const LISTING_CLAIM = 'f6666666-0000-0000-0000-00000000000f';
+const LISTING_DUPE = '17777777-0000-0000-0000-000000000017';
+const LISTING_SECOND = '28888888-0000-0000-0000-000000000028';
+
+const EXTRA_PROPERTIES: Array<Record<string, unknown>> = [];
+const CHANNELS: Array<Record<string, unknown>> = [];
 
 const withListings = (id: string, email: string | null) => ({
   ...remoteProperty,
@@ -36,6 +42,20 @@ const withListings = (id: string, email: string | null) => ({
       platform_email: email,
     },
     { platform: 'manual', platform_id: 'm1', platform_user_id: 'manual_1', platform_email: null },
+  ],
+});
+
+const listingWith = (id: string, email: string | null, userId: string | null) => ({
+  ...remoteProperty,
+  id,
+  listings: [
+    {
+      platform: 'airbnb',
+      platform_id: `pl_${id}`,
+      platform_user_id: userId,
+      platform_name: 'Host',
+      platform_email: email,
+    },
   ],
 });
 
@@ -64,6 +84,22 @@ let admin: ReturnType<typeof createClient>;
 let actions: any;
 let owner = '';
 let other = '';
+const madeCustomers: string[] = [];
+
+async function makeCustomer(email: string): Promise<string> {
+  const { data } = await admin
+    .from('customers')
+    .insert({
+      clerk_user_id: `test-assign-${nodeCrypto.randomUUID()}`,
+      email,
+      full_name: 'Extra Host',
+    })
+    .select('id')
+    .single();
+  const id = data!.id as string;
+  madeCustomers.push(id);
+  return id;
+}
 
 beforeAll(async () => {
   if (!LIVE) return;
@@ -71,12 +107,16 @@ beforeAll(async () => {
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url.startsWith('https://public.api.hospitable.com/')) {
+      if (url.includes('/channels')) {
+        return Response.json({ data: CHANNELS, links: { next: null } });
+      }
       if (url.includes('/properties')) {
         return Response.json({
           data: [
             remoteProperty,
             withListings(LISTING_AUTO, 'owner@test.cl'),
             withListings(LISTING_UNKNOWN, 'nobody@nowhere.cl'),
+            ...EXTRA_PROPERTIES,
           ],
           links: { next: null },
         });
@@ -116,8 +156,15 @@ afterAll(async () => {
   await admin
     .from('listing_assignments')
     .delete()
-    .in('external_listing_id', [LISTING, LISTING_AUTO, LISTING_UNKNOWN]);
-  for (const id of [owner, other].filter(Boolean)) {
+    .in('external_listing_id', [
+      LISTING,
+      LISTING_AUTO,
+      LISTING_UNKNOWN,
+      LISTING_CLAIM,
+      LISTING_DUPE,
+      LISTING_SECOND,
+    ]);
+  for (const id of [owner, other, ...madeCustomers].filter(Boolean)) {
     await admin.from('properties').delete().eq('owner_id', id);
     await admin.from('customers').delete().eq('id', id);
   }
@@ -274,5 +321,134 @@ describe.skipIf(!LIVE)('operator listing assignment', () => {
       .select('id')
       .eq('external_listing_id', LISTING);
     expect(props ?? []).toHaveLength(0);
+  });
+});
+
+describe.skipIf(!LIVE)('host connection attribution', () => {
+  let claimant = '';
+
+  it('refuses a claimed email until an operator has issued that host an invitation', async () => {
+    const { claimAirbnbEmail } = await import('../src/lib/channels/connection');
+    const { autoAssignListings } = await import('../src/lib/channels/auto-assign');
+
+    const impostor = await makeCustomer('impostor@test.cl');
+    expect((await claimAirbnbEmail(impostor, 'claim-airbnb@test.cl')).ok).toBe(true);
+
+    EXTRA_PROPERTIES.push(listingWith(LISTING_CLAIM, 'claim-airbnb@test.cl', 'u_claim'));
+    expect((await autoAssignListings()).ok).toBe(true);
+
+    const { data: stolen } = await admin
+      .from('listing_assignments')
+      .select('customer_id')
+      .eq('external_listing_id', LISTING_CLAIM);
+    expect(stolen ?? []).toHaveLength(0);
+
+    const { verifyConnection } = await import('../src/lib/channels/connection');
+    expect((await verifyConnection(impostor)).outcome).toBe('not_found');
+
+    await admin.from('customers').delete().eq('id', impostor);
+  });
+
+  it('attributes a listing through the Airbnb email the host claims', async () => {
+    const { claimAirbnbEmail, getHostConnection, recordInvite } =
+      await import('../src/lib/channels/connection');
+    const { autoAssignListings } = await import('../src/lib/channels/auto-assign');
+
+    claimant = await makeCustomer('claim-signup@test.cl');
+    const claim = await claimAirbnbEmail(claimant, '  Claim-Airbnb@Test.CL  ');
+    expect(claim.ok).toBe(true);
+    expect(claim.conflict).toBe(false);
+    expect(await recordInvite(claimant, 'https://my.hospitable.com/invite/abc')).toBe(true);
+
+    expect((await autoAssignListings()).ok).toBe(true);
+
+    const { data } = await admin
+      .from('listing_assignments')
+      .select('customer_id, assigned_by')
+      .eq('external_listing_id', LISTING_CLAIM)
+      .maybeSingle();
+    expect(data!.customer_id).toBe(claimant);
+    expect(data!.assigned_by).toBe('auto:claimed_email');
+
+    const conn = await getHostConnection(claimant);
+    expect(conn!.state).toBe('connected');
+    expect(conn!.channelUserId).toBe('u_claim');
+    expect(conn!.claimedAirbnbEmail).toBe('claim-airbnb@test.cl');
+  });
+
+  it('never assigns a listing two customers claim, and calls an operator', async () => {
+    const { claimAirbnbEmail, getHostConnection } = await import('../src/lib/channels/connection');
+    const { autoAssignListings } = await import('../src/lib/channels/auto-assign');
+
+    const { recordInvite } = await import('../src/lib/channels/connection');
+    const first = await makeCustomer('dupe-a@test.cl');
+    const second = await makeCustomer('dupe-b@test.cl');
+    expect((await claimAirbnbEmail(first, 'dupe-airbnb@test.cl')).conflict).toBe(false);
+    expect(await recordInvite(first, 'https://my.hospitable.com/invite/dupe-a')).toBe(true);
+    const rival = await claimAirbnbEmail(second, 'DUPE-AIRBNB@test.cl');
+    expect(rival.conflict).toBe(true);
+    expect(rival.state).toBe('needs_operator');
+    expect(await recordInvite(second, 'https://my.hospitable.com/invite/dupe-b')).toBe(true);
+
+    EXTRA_PROPERTIES.push(listingWith(LISTING_DUPE, 'dupe-airbnb@test.cl', 'u_dupe'));
+    expect((await autoAssignListings()).ok).toBe(true);
+
+    const { data } = await admin
+      .from('listing_assignments')
+      .select('customer_id')
+      .eq('external_listing_id', LISTING_DUPE);
+    expect(data ?? []).toHaveLength(0);
+    expect((await getHostConnection(second))!.state).toBe('needs_operator');
+
+    const { verifyConnection } = await import('../src/lib/channels/connection');
+    const contested = await verifyConnection(first);
+    expect(contested.outcome).toBe('not_found');
+    expect(contested.state).toBe('needs_operator');
+  });
+
+  it('attributes a second listing by the Airbnb user_id, with no email match', async () => {
+    const { autoAssignListings } = await import('../src/lib/channels/auto-assign');
+
+    EXTRA_PROPERTIES.push(listingWith(LISTING_SECOND, 'not-a-customer@nowhere.cl', 'u_claim'));
+    expect((await autoAssignListings()).ok).toBe(true);
+
+    const { data } = await admin
+      .from('listing_assignments')
+      .select('customer_id, assigned_by')
+      .eq('external_listing_id', LISTING_SECOND)
+      .maybeSingle();
+    expect(data!.customer_id).toBe(claimant);
+    expect(data!.assigned_by).toBe('auto:channel_user_id');
+  });
+
+  it('verify() tells a connection with no listings apart from nothing found', async () => {
+    const { verifyConnection } = await import('../src/lib/channels/connection');
+    const { recordInvite } = await import('../src/lib/channels/connection');
+    const lonely = await makeCustomer('lonely@test.cl');
+    expect(await recordInvite(lonely, 'https://my.hospitable.com/invite/lonely')).toBe(true);
+
+    const nothing = await verifyConnection(lonely);
+    expect(nothing.ok).toBe(true);
+    expect(nothing.outcome).toBe('not_found');
+    expect(nothing.state).toBe('invite_sent');
+    expect(nothing.listings).toBe(0);
+
+    CHANNELS.push({
+      id: 'chan-lonely',
+      user_id: 'u_lonely',
+      name: 'Lonely Host',
+      login: 'lonely@test.cl',
+      platform: 'airbnb',
+    });
+    const empty = await verifyConnection(lonely);
+    expect(empty.ok).toBe(true);
+    expect(empty.outcome).toBe('no_listings');
+    expect(empty.state).toBe('no_listings');
+    expect(empty.channelUserId).toBe('u_lonely');
+
+    const full = await verifyConnection(claimant);
+    expect(full.outcome).toBe('connected');
+    expect(full.state).toBe('connected');
+    expect(full.listings).toBe(2);
   });
 });

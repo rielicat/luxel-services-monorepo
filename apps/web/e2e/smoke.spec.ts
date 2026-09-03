@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const PUBLIC_ROUTES = ['/', '/about', '/services/airbnb', '/calculator'];
+const PUBLIC_ROUTES = ['/', '/about', '/calculator'];
 
 for (const route of PUBLIC_ROUTES) {
   test(`renders ${route}`, async ({ page }) => {
@@ -23,7 +23,7 @@ test('the agent box is docked on the homepage', async ({ page }) => {
 test('the pricing page estimates the single fee', async ({ page }) => {
   await page.goto('/calculator');
   await expect(page.getByRole('slider')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Tu cobro Luxel' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Lo que te queda cada mes' })).toBeVisible();
   await expect(page.getByText('12% de tus reservas').first()).toBeVisible();
   await expect(page.getByText('por propiedad, IVA incluido').first()).toBeVisible();
   await expect(page.getByText('sin la tarifa de limpieza').first()).toBeVisible();

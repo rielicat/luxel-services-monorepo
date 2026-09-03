@@ -164,8 +164,9 @@ block in `apps/web/src/middleware.ts`.
 
 - Airbnb full management is the only service. No service picker, no cleaning-only
   offer, no "primary" badge.
-- Marketing nav: `Servicio` (`/services/airbnb`) · `Precios` (`/calculator`) ·
-  `Nosotros` (`/about`). One `Ingresar` button. No dropdown. No header CTA.
+- Marketing nav: `Servicio` (`/#servicio`) · `Precios` (`/calculator`) ·
+  `Nosotros` (`/about`). `Servicio` anchors to the home page; there is no separate
+  service page. One `Ingresar` button. No dropdown. No header CTA.
 - Service icons share one color (`bg-primary/10 text-primary`).
 - One plan only (`packages/shared/src/plan-pricing.ts`): 12% of the booking
   revenue, IVA included, per listing per month. Luxel bills monthly,

@@ -99,25 +99,25 @@ export function FeeEstimator() {
             className="border-primary/40 bg-primary/5 flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
           >
             <div className="min-w-0">
-              <h2 className="font-display text-base font-semibold">{t('fee_label')}</h2>
+              <h2 className="font-display text-base font-semibold">{t('net_label')}</h2>
               <p className="text-muted-foreground mt-0.5 text-sm">
                 {planName(tp)} · {planPriceLine(tp)}
               </p>
               <p className="text-muted-foreground mt-1 text-xs">{tp('per_listing')}</p>
             </div>
             <div className="shrink-0 sm:text-right">
-              <p className="font-display text-3xl font-bold tabular-nums sm:text-4xl">
-                {formatCLP(fee)}{' '}
+              <p className="font-display text-primary text-3xl font-bold tabular-nums sm:text-4xl">
+                {formatCLP(net)}{' '}
                 <span className="text-muted-foreground text-xs font-medium">{t('per_month')}</span>
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs tabular-nums">
+                {t('fee_line', { amount: formatCLP(fee) })}
               </p>
               {listings > 1 && (
                 <p className="text-muted-foreground text-xs tabular-nums">
                   {t('total_listings', { n: listings })}
                 </p>
               )}
-              <p className="text-muted-foreground mt-1 text-xs tabular-nums">
-                {t('net', { amount: formatCLP(net) })}
-              </p>
             </div>
           </div>
 

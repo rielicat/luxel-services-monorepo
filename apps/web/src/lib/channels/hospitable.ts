@@ -135,6 +135,53 @@ export async function listHospitableProperties(
   return out;
 }
 
+export interface HospitableChannel {
+  id?: string | null;
+  user_id: string | null;
+  name: string | null;
+  login: string | null;
+  email?: string | null;
+  platform: string | null;
+}
+
+export async function listHospitableChannels(token: string): Promise<HospitableChannel[] | null> {
+  const out: HospitableChannel[] = [];
+  let url: string | null = '/channels?per_page=100';
+  for (let page = 0; url && page < 10; page++) {
+    const r: Awaited<ReturnType<typeof hospGet<HospitableChannel>>> = await hospGet(token, url);
+    if (!r.ok) return null;
+    out.push(...(r.data ?? []));
+    url = r.nextUrl ?? null;
+  }
+  if (url) return null;
+  return out;
+}
+
+export function normalizeChannelEmail(value: string | null | undefined): string | null {
+  const trimmed = (value ?? '').trim().toLowerCase();
+  return trimmed || null;
+}
+
+export function normalizeChannelUserId(value: string | null | undefined): string | null {
+  const trimmed = (value ?? '').trim();
+  return trimmed || null;
+}
+
+export interface AirbnbIdentity {
+  email: string | null;
+  userId: string | null;
+}
+
+export function airbnbIdentities(rp: HospitableProperty): AirbnbIdentity[] {
+  return (rp.listings ?? [])
+    .filter((l) => l.platform === 'airbnb')
+    .map((l) => ({
+      email: normalizeChannelEmail(l.platform_email),
+      userId: normalizeChannelUserId(l.platform_user_id),
+    }))
+    .filter((i) => Boolean(i.email || i.userId));
+}
+
 export interface HospitableTeammate {
   id: string;
   name: string | null;

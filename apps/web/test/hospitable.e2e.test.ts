@@ -251,6 +251,20 @@ const threadHistory = (): typeof MESSAGES => [
     sender: { first_name: 'Matheus' },
   },
 ];
+const CHANNELS_PAYLOAD = {
+  data: [
+    {
+      id: 'chan-1',
+      user_id: '4318827',
+      name: 'Hosp Host',
+      login: 'hosp@test.cl',
+      platform: 'airbnb',
+    },
+  ],
+  links: { next: null },
+};
+let CHANNELS_MODE: 'normal' | 'error' = 'normal';
+
 const SENT: Array<{ reservationId: string; body: string }> = [];
 const WA_SENDS: Array<{
   to?: string;
@@ -354,6 +368,10 @@ beforeAll(async () => {
           },
         });
       }
+      if (url.includes('/channels')) {
+        if (CHANNELS_MODE === 'error') return new Response('Server error', { status: 500 });
+        return Response.json(CHANNELS_PAYLOAD);
+      }
       if (url.includes('/teammates')) {
         const second = /[?&]page=2/.test(url);
         const data = second ? TEAMMATES.slice(2) : TEAMMATES.slice(0, 2);
@@ -423,6 +441,7 @@ afterEach(async () => {
   SENT.length = 0;
   WA_SENDS.length = 0;
   PROPERTIES_MODE = 'normal';
+  CHANNELS_MODE = 'normal';
   TEAMMATES = teammatesFixture();
 });
 
@@ -1741,5 +1760,21 @@ describe.skipIf(!LIVE)('Hospitable realized booking revenue (end to end)', () =>
     expect(april.hostRevenueClp).toBe(0);
     expect(april.syncedAt).toBeNull();
     expect(april.propertiesNeverSynced).toBe(1);
+  });
+});
+
+describe.skipIf(!LIVE)('Hospitable connected channels', () => {
+  it('reads the connected Airbnb account, and returns null when the call fails', async () => {
+    const { listHospitableChannels } = await import('../src/lib/channels/hospitable');
+
+    const channels = await listHospitableChannels(FAKE_TOKEN);
+    expect(channels).toHaveLength(1);
+    expect(channels![0]!.user_id).toBe('4318827');
+    expect(channels![0]!.login).toBe('hosp@test.cl');
+    expect(channels![0]!.platform).toBe('airbnb');
+
+    CHANNELS_MODE = 'error';
+    expect(await listHospitableChannels(FAKE_TOKEN)).toBeNull();
+    CHANNELS_MODE = 'normal';
   });
 });

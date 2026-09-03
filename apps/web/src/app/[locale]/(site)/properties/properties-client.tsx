@@ -2,18 +2,11 @@
 
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import {
-  Home,
-  TriangleAlert,
-  CalendarDays,
-  ArrowRight,
-  Plug,
-  RefreshCw,
-  Settings2,
-} from 'lucide-react';
+import { Home, TriangleAlert, CalendarDays, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConnectionNote } from './connection-note';
+import { ConnectPanel, type ConnectState } from './connect-panel';
 import type { HostConnection } from '@/lib/host/queries';
 
 export type Block = {
@@ -56,11 +49,15 @@ export type PropertyRow = {
 export function PropertiesClient({
   initial,
   connection,
+  connectState,
+  signupEmail = null,
   syncFailed,
   centralManaged = false,
 }: {
   initial: PropertyRow[];
   connection: HostConnection | null;
+  connectState: ConnectState;
+  signupEmail?: string | null;
   syncFailed?: boolean;
   centralManaged?: boolean;
 }) {
@@ -84,14 +81,12 @@ export function PropertiesClient({
             {t('sync_failed')}
           </div>
         )}
-        {connection && <ConnectionNote connection={connection} />}
+        {initial.length > 0 && (
+          <ConnectionNote connection={connection} centralManaged={centralManaged} />
+        )}
 
         {initial.length === 0 ? (
-          connection || centralManaged ? (
-            <EmptyConnected />
-          ) : (
-            <Onboarding connected={false} />
-          )
+          <ConnectPanel state={connectState} signupEmail={signupEmail} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {initial.map((p) => (
@@ -101,68 +96,6 @@ export function PropertiesClient({
         )}
       </div>
     </div>
-  );
-}
-
-function EmptyConnected() {
-  const t = useTranslations('properties');
-  return (
-    <Card className="border-dashed">
-      <CardContent className="grid justify-items-center gap-2 p-10 text-center">
-        <span className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-full">
-          <Home className="h-5 w-5" />
-        </span>
-        <p className="font-display font-semibold">{t('empty_connected_title')}</p>
-        <p className="text-muted-foreground max-w-sm text-sm">{t('empty_connected_body')}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Onboarding({ connected }: { connected: boolean }) {
-  const t = useTranslations('onboarding');
-  const steps = [
-    { icon: Plug, title: t('s1_title'), body: t('s1_body'), done: connected },
-    { icon: RefreshCw, title: t('s2_title'), body: t('s2_body'), done: false },
-    { icon: Settings2, title: t('s3_title'), body: t('s3_body'), done: false },
-  ];
-  return (
-    <Card className="border-dashed">
-      <CardContent className="grid gap-5 p-8">
-        <div className="text-center">
-          <p className="font-display text-lg font-semibold">{t('title')}</p>
-          <p className="text-muted-foreground mx-auto max-w-md text-sm">{t('subtitle')}</p>
-        </div>
-        <ol className="grid gap-4 sm:grid-cols-3">
-          {steps.map(({ icon: Icon, title, body, done }, i) => (
-            <li key={title} className="grid gap-1.5 text-center">
-              <span
-                className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${
-                  done ? 'bg-success/15 text-success' : 'bg-primary/10 text-primary'
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-              <p className="text-sm font-semibold">
-                {i + 1}. {title}
-              </p>
-              <p className="text-muted-foreground text-xs">{body}</p>
-            </li>
-          ))}
-        </ol>
-        <p className="text-muted-foreground text-center text-xs">
-          {t('help_pre')}{' '}
-          <a
-            className="text-primary underline underline-offset-2"
-            href={`https://wa.me/${(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, '')}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t('help_link')}
-          </a>
-        </p>
-      </CardContent>
-    </Card>
   );
 }
 

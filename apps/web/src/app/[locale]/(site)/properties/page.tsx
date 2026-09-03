@@ -9,7 +9,9 @@ import {
   reconcileHospitableProperties,
   syncHospitableAccount,
 } from '@/lib/channels/hospitable-sync';
+import { getHostConnection } from '@/lib/channels/connection';
 import { PropertiesClient, type PropertyRow } from './properties-client';
+import type { ConnectState } from './connect-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +24,7 @@ export default async function PropertiesPage() {
   const supabase = createSupabaseServiceRoleClient();
   const { data: customer } = await supabase
     .from('customers')
-    .select('id')
+    .select('id, email')
     .eq('clerk_user_id', userId)
     .maybeSingle();
 
@@ -30,6 +32,7 @@ export default async function PropertiesPage() {
   let connection: HostConnection | null = null;
   let syncFailed = false;
   let centralManaged = false;
+  let connectState: ConnectState = { stage: 'not_started', airbnbEmail: null, inviteUrl: null };
   if (customer) {
     connection = await fetchConnection(customer.id);
     const access = await hospitableAccess(customer.id);
@@ -61,12 +64,26 @@ export default async function PropertiesPage() {
       connection = null;
     }
     properties = (await fetchProperties(customer.id)) as PropertyRow[];
+
+    const host = await getHostConnection(customer.id);
+    if (host) {
+      connectState = {
+        stage: host.state,
+        airbnbEmail: host.claimedAirbnbEmail,
+        inviteUrl: host.inviteUrl,
+      };
+    }
+    if (properties.length && connectState.stage !== 'needs_operator') {
+      connectState = { ...connectState, stage: 'connected' };
+    }
   }
 
   return (
     <PropertiesClient
       initial={properties}
       connection={connection}
+      connectState={connectState}
+      signupEmail={(customer?.email as string | null) ?? null}
       syncFailed={syncFailed}
       centralManaged={centralManaged}
     />

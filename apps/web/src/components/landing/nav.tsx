@@ -14,7 +14,7 @@ export function Nav() {
         </Link>
 
         <nav className="text-muted-foreground hidden items-center gap-7 text-sm font-medium md:flex">
-          <Link href="/services/airbnb" className="hover:text-foreground transition-colors">
+          <Link href="/#servicio" className="hover:text-foreground transition-colors">
             {t('services')}
           </Link>
           <Link href="/calculator" className="hover:text-foreground transition-colors">

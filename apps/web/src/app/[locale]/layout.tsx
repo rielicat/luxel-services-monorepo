@@ -24,8 +24,7 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: { default: 'Servicios Luxel', template: '%s · Servicios Luxel' },
-  description:
-    'Administración completa de Airbnb. Tú recibes los ingresos; nosotros llevamos la operación.',
+  description: 'Administración completa de Airbnb.',
   metadataBase: new URL('https://serviciosluxel.cl'),
 };
 

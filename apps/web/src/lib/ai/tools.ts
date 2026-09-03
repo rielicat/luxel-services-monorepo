@@ -47,7 +47,7 @@ const LINK_DESTINATIONS: Record<
   string,
   { label: string; href: string; style: 'primary' | 'outline' }
 > = {
-  airbnb_service: { label: 'Administración Airbnb', href: '/services/airbnb', style: 'primary' },
+  airbnb_service: { label: 'Administración Airbnb', href: '/#servicio', style: 'primary' },
   pricing: { label: 'Ver el precio', href: '/calculator', style: 'primary' },
   account: { label: 'Mi cuenta', href: '/account', style: 'outline' },
   properties: { label: 'Mis propiedades', href: '/properties', style: 'primary' },

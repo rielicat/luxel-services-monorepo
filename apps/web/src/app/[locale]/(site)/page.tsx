@@ -4,6 +4,7 @@ import { Gallery } from '@/components/landing/gallery';
 import { HowItWorks } from '@/components/landing/how-it-works';
 import { Plans } from '@/components/landing/plans';
 import { FAQSection } from '@/components/landing/faq';
+import { ClosingCta } from '@/components/landing/closing-cta';
 import { Reveal } from '@/components/ui/reveal';
 
 export default function HomePage() {
@@ -24,6 +25,9 @@ export default function HomePage() {
       </Reveal>
       <Reveal>
         <FAQSection />
+      </Reveal>
+      <Reveal>
+        <ClosingCta />
       </Reveal>
     </main>
   );

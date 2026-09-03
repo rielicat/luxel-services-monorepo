@@ -14,10 +14,10 @@
   },
   "landing": {
     "hero": {
-      "eyebrow": "Administración completa de Airbnb",
-      "title_lead": "Tu Airbnb debería ser tu ingreso pasivo,",
-      "title_accent": "no otro trabajo.",
-      "subtitle": "Precios, huéspedes, aseo, reparaciones e inventario: la operación completa la llevamos nosotros. Tú recibes los ingresos y un reporte claro cada mes.",
+      "eyebrow": "Administración de Airbnb",
+      "title_lead": "Tu Airbnb,",
+      "title_accent": "administrado por completo.",
+      "subtitle": "Precios, huéspedes, aseo, reparaciones e inventario. Nosotros nos hacemos cargo de todo; tú recibes los ingresos y un reporte claro cada mes.",
       "cta_primary": "Ver el precio",
       "cta_secondary": "Conversemos",
       "trust": {
@@ -29,7 +29,7 @@
       "image_alt": "Terraza con parrilla y vista al atardecer en un departamento administrado por Luxel"
     },
     "scope": {
-      "title": "El trabajo lo llevamos nosotros",
+      "title": "Nos hacemos cargo de todo",
       "subtitle": "Lo que antes te quitaba las tardes, ahora lo hace Luxel.",
       "items": {
         "pricing": {
@@ -98,8 +98,14 @@
       "cta": "Calcular mi cobro"
     },
     "footer": {
-      "tagline": "Administración completa de Airbnb. Tu tiempo, de vuelta.",
+      "tagline": "Administración completa de Airbnb.",
       "legal": "© {year} Servicios Luxel · Chile"
+    },
+    "closing": {
+      "title": "Empecemos con una visita",
+      "body": "Revisamos tu depto, te contamos cómo trabajamos y qué falta para publicar.",
+      "primary": "Ver el precio",
+      "secondary": "Conversemos"
     }
   },
   "calculator": {
@@ -112,11 +118,11 @@
     "listings_hint": "El ingreso de arriba es por cada propiedad.",
     "total_listings": "total por {n} propiedades",
     "per_month": "al mes",
-    "fee_label": "Tu cobro Luxel",
-    "net": "Te quedan {amount} de tus ingresos.",
     "note": "Cobramos sobre las reservas reales de cada mes, sin la tarifa de limpieza. Airbnb te paga a ti y nosotros te cobramos a fin de mes.",
     "cta": "Empezar",
-    "cta_hint": "Creas tu cuenta y te contactamos para activar tu plan."
+    "cta_hint": "Creas tu cuenta y te contactamos para activar tu plan.",
+    "net_label": "Lo que te queda cada mes",
+    "fee_line": "Después de nuestro cobro de {amount}"
   },
   "account": {
     "title": "Mi cuenta",
@@ -284,8 +290,6 @@
     "keyless_code": "Código de tu cerradura",
     "optional": "(opcional)",
     "saved": "Guardado ✓",
-    "empty_connected_title": "Tu cuenta de Airbnb aún no tiene anuncios",
-    "empty_connected_body": "Publica un anuncio en Airbnb y aparecerá aquí automáticamente en la próxima sincronización.",
     "sync_failed": "No pudimos sincronizar con Airbnb en este momento. Estás viendo la última información disponible.",
     "cap_bedrooms": "{n} dorm",
     "cap_bathrooms": "{n} baños",
@@ -300,7 +304,58 @@
   "channel": {
     "connected_title": "Airbnb conectado",
     "last_sync": "Última sincronización: {date}",
-    "syncing_now": "Sincronizando…"
+    "syncing_now": "Sincronizando…",
+    "managed_note": "Luxel mantiene la conexión al día."
+  },
+  "connect": {
+    "title": "Conecta tu Airbnb",
+    "intro_1": "Nos das acceso a tu cuenta de Airbnb y desde ahí nos hacemos cargo: precios, huéspedes, aseo entre estadías y el reporte de cada mes.",
+    "intro_2": "No instalas nada y tu anuncio sigue siendo tuyo. Airbnb te paga a ti, directo, como siempre.",
+    "email_warn_title": "Ojo con este dato",
+    "email_warn_body": "Necesitamos el correo con el que entras a Airbnb, no el de acá. Muchos anfitriones usan uno distinto, y esa es la razón número uno por la que una conexión no llega.",
+    "email_signup": "En Luxel te registraste con {email}. Si tu Airbnb usa otro, escribe el de Airbnb.",
+    "email_label": "Correo de tu cuenta de Airbnb",
+    "email_placeholder": "tucorreo@ejemplo.com",
+    "email_submit": "Conectar mi Airbnb",
+    "email_sending": "Guardando…",
+    "email_note": "Con ese correo reconocemos tus anuncios apenas aparecen. No te pedimos tu clave de Airbnb nunca.",
+    "pending_title": "Estamos preparando tu invitación",
+    "pending_body": "Ya tenemos tu correo de Airbnb: {email}. Preparamos el enlace a mano y te avisamos apenas esté listo.",
+    "pending_change": "Si escribiste otro correo, cámbialo acá y preparamos la invitación de nuevo.",
+    "pending_edit": "Cambiar el correo",
+    "invite_title": "Tu invitación está lista",
+    "invite_body": "Abre el enlace y verás la pantalla de Airbnb: inicias sesión con {email}, eliges tus anuncios y aceptas. Después vuelves acá.",
+    "invite_body_generic": "Abre el enlace y verás la pantalla de Airbnb: inicias sesión, eliges tus anuncios y aceptas. Después vuelves acá.",
+    "invite_cta": "Abrir la invitación",
+    "invite_where": "El enlace abre Hospitable, la herramienta con la que administramos tu anuncio, y de ahí saltas a Airbnb. Nunca te vamos a pedir tu clave por correo ni por WhatsApp.",
+    "invite_fallback": "¿Estás en el teléfono y tu sesión de Airbnb está en otro navegador? Copia el enlace y ábrelo allá.",
+    "invite_link_label": "Enlace de invitación",
+    "invite_copy": "Copiar enlace",
+    "invite_copied": "Enlace copiado ✓",
+    "invite_done_pre": "¿Ya aceptaste en Airbnb?",
+    "invite_done": "Ya lo hice",
+    "waiting_title": "Estamos trayendo tus anuncios",
+    "waiting_body": "Ya tenemos el acceso. La importación demora unos minutos y tus anuncios, reservas y calendario aparecen solos.",
+    "waiting_check": "Ya lo hice",
+    "waiting_checking": "Revisando…",
+    "waiting_not_yet": "Todavía no aparecen. Airbnb a veces demora un poco en soltar los anuncios: prueba de nuevo en unos minutos.",
+    "waiting_slow": "Si mañana sigues viendo esta pantalla, escríbenos y lo resolvemos nosotros.",
+    "no_listings_title": "Tu cuenta está conectada, pero sin anuncios",
+    "no_listings_body": "No vemos anuncios publicados en esa cuenta. Si acabas de publicar uno, dale unos minutos y revisa de nuevo.",
+    "no_listings_check": "Revisar de nuevo",
+    "operator_title": "Una persona de Luxel está en esto",
+    "operator_body": "Algo no calzó al conectar tu cuenta y ya lo estamos revisando nosotros. No tienes que hacer nada más.",
+    "operator_wa": "Hablar con una persona por WhatsApp",
+    "operator_wa_text": "Hola, vengo de Mis propiedades y necesito ayuda para conectar mi Airbnb.",
+    "trust_title": "Qué vemos y qué no",
+    "trust_can": "Vemos tus anuncios, tu calendario, tus reservas y los mensajes de tus huéspedes. Es lo que necesitamos para operar por ti.",
+    "trust_cannot": "No vemos tu cuenta bancaria y no movemos tu plata. Tus pagos siguen llegando a ti.",
+    "trust_revoke": "Puedes cortar el acceso cuando quieras desde Hospitable y dejamos de ver tu cuenta.",
+    "error_validation": "Ese correo no se ve bien. Revísalo y prueba de nuevo.",
+    "error_auth": "Tu sesión venció. Vuelve a entrar y seguimos.",
+    "error_generic": "No pudimos guardar tu correo. Prueba de nuevo en un momento.",
+    "error_check": "No pudimos revisar en este momento. Prueba de nuevo en un rato.",
+    "wa_text": "Hola, quiero conectar mi Airbnb con Luxel."
   },
   "detail": {
     "back": "Mis propiedades",
@@ -324,16 +379,16 @@
     "delta_prev_month": "{d} pts vs. mes pasado cerrado"
   },
   "onboarding": {
-    "title": "Conecta tu propiedad en 3 pasos",
-    "subtitle": "Tus propiedades no se crean a mano: se importan automáticamente desde tu cuenta de Airbnb.",
-    "s1_title": "Te invitamos",
-    "s1_body": "Te enviamos la invitación y la aceptas desde Airbnb. Nada que instalar ni configurar.",
-    "s2_title": "Importación automática",
-    "s2_body": "Tus propiedades, reservas y calendario se sincronizan solos.",
-    "s3_title": "Configura y listo",
-    "s3_body": "Define el acceso (código o conserjería) y la info para huéspedes. Luxel hace el resto.",
-    "help_pre": "¿Quieres empezar ahora?",
-    "help_link": "Escríbenos y lo dejamos andando"
+    "title": "Así lo dejamos andando",
+    "subtitle": "Tus propiedades no se crean a mano: se importan solas desde tu cuenta de Airbnb.",
+    "s1_title": "Nos dices tu correo",
+    "s1_body": "El correo de tu cuenta de Airbnb. Con eso preparamos tu invitación.",
+    "s2_title": "Aceptas en Airbnb",
+    "s2_body": "Abres el enlace, inicias sesión en Airbnb y nos das el acceso. Nada que instalar.",
+    "s3_title": "Nosotros seguimos",
+    "s3_body": "Importamos tus anuncios, reservas y calendario, y partimos con la operación.",
+    "help_pre": "¿Prefieres que lo hagamos contigo?",
+    "help_link": "Escríbenos por WhatsApp"
   },
   "ai": {
     "title": "Respuestas a huéspedes",
@@ -413,21 +468,6 @@
     "story_p3": "Ahí caché algo simple: lo que necesitaba era alguien que se hiciera cargo de verdad. Que el depto quedara impecable antes de cada huésped, que los precios estuvieran bien y que, si algo fallaba, se resolviera sin llamarme.",
     "story_p4": "Las administradoras tradicionales cobran hasta 20% y aun así te dejan los problemas a ti. Así que armé el servicio que me habría gustado contratar: un equipo que atiende todo, con tecnología para responder rápido y un cobro que se entiende.",
     "story_p5": "Así nació Luxel: para sacarte de encima la carga de administrar tu propiedad y darte transparencia total sobre lo que pagas."
-  },
-  "services": {
-    "airbnb": {
-      "meta_title": "Administración completa de Airbnb",
-      "title": "Todo lo que tu Airbnb necesita, sin que lo hagas tú",
-      "subtitle": "Precios dinámicos, huéspedes 24/7, aseo y lavandería, conflictos, inventario y reparaciones. <hl>Lo llevamos nosotros, de punta a punta</hl>; tú recibes los ingresos y un reporte cada mes.",
-      "hero_alt": "Living con piano y televisor en un departamento administrado por Luxel",
-      "cta_primary": "Ver el precio",
-      "cta_secondary": "Conversemos",
-      "faq_title": "¿Tienes dudas?",
-      "faq_body": "Amoblado, uso propio, daños, contrato: respondemos lo que más nos preguntan.",
-      "faq_cta": "Ver preguntas frecuentes",
-      "cta_title": "Empecemos con una visita",
-      "cta_body": "Revisamos tu depto, te contamos cómo trabajamos y qué falta para publicar."
-    }
   },
   "stays": {
     "none": "Sin reservas próximas — las nuevas aparecen aquí solas.",

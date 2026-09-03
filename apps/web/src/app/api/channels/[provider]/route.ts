@@ -3,6 +3,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { handleInboundMessage } from '@/lib/channels/pipeline';
 import { encodeRef } from '@/lib/channels/types';
 import { customerForListing } from '@/lib/channels/scope';
+import { verifyConnection } from '@/lib/channels/connection';
 import { ingestThread, mirrorCheckinForReservation } from '@/lib/channels/hospitable-sync';
 import { getHospitableReservation } from '@/lib/channels/hospitable';
 import { channelPlugin } from '@/lib/channels/registry';
@@ -134,6 +135,15 @@ async function resyncForEvent(
     customerId = await customerForListing(listingId);
   }
   if (!customerId) return { ok: true, reason: 'unassigned' };
+
+  if (action === 'property.created') {
+    const owner = customerId;
+    await afterResponse(async () => {
+      try {
+        await verifyConnection(owner);
+      } catch {}
+    });
+  }
 
   const access = await plugin.access(customerId);
   if (!access) return { ok: true, reason: 'no_access' };

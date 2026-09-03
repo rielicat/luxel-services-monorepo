@@ -46,7 +46,7 @@ export function MobileMenu() {
           role="menu"
           className="bg-popover border-border shadow-card animate-fade-in-up absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border p-1.5 [animation-duration:150ms]"
         >
-          <Item href="/services/airbnb" icon={Bot} onNavigate={close}>
+          <Item href="/#servicio" icon={Bot} onNavigate={close}>
             {t('services')}
           </Item>
           <Item href="/calculator" icon={Tag} onNavigate={close}>
