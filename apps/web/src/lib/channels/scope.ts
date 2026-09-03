@@ -2,6 +2,7 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { decryptPII } from '@/lib/crypto/pii';
 import { operatorCredentials, providerApiKey } from './credentials';
+import { deletablePropertyIds } from './manual-stays';
 import type { ChannelAccess, ChannelScope } from './types';
 
 export type { ChannelAccess, ChannelScope };
@@ -105,11 +106,17 @@ export async function assignListing(
     if (error || !data?.length) return false;
   }
 
-  await supabase
+  const { data: strays } = await supabase
     .from('properties')
-    .delete()
+    .select('id')
     .eq('external_listing_id', externalListingId)
     .neq('owner_id', customerId);
+  const removable = await deletablePropertyIds(
+    supabase,
+    (strays ?? []).map((p) => p.id as string),
+    { externalListingId, reason: 'assign' },
+  );
+  if (removable.length) await supabase.from('properties').delete().in('id', removable);
   return true;
 }
 
@@ -125,10 +132,16 @@ export async function unassignListing(
     .eq('customer_id', expectedCustomerId)
     .select('external_listing_id');
   if (error || !data?.length) return false;
-  await supabase
+  const { data: owned } = await supabase
     .from('properties')
-    .delete()
+    .select('id')
     .eq('external_listing_id', externalListingId)
     .eq('owner_id', expectedCustomerId);
+  const removable = await deletablePropertyIds(
+    supabase,
+    (owned ?? []).map((p) => p.id as string),
+    { externalListingId, reason: 'unassign' },
+  );
+  if (removable.length) await supabase.from('properties').delete().in('id', removable);
   return true;
 }

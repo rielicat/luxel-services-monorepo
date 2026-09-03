@@ -24,6 +24,22 @@ rules. Do not add code paths that break them.
   crew (`lib/cleaning/notify.ts`). Hosts have no cleaning controls and no
   guest inbox. `guest_threads` status `needs_host` means "needs a Luxel
   human". Do not add host-facing crew or inbox surfaces.
+- A stay outside Airbnb is operator-created, at `/stays` in `apps/admin`. The
+  action blocks the nights in Hospitable first with a calendar `PUT`. It records
+  nothing locally until that call succeeds. It then writes a `calendar_blocks`
+  row (`source` `import`, `origin` `manual`) and a `checkins` row (`origin`
+  `manual`). Both carry the reference `manual:<uuid>` and leave
+  `confirmation_code` null. The sync skips them: its revoke pass, its check-in
+  delete, its calendar prune and `rekeyCheckinsByConfirmationCode` all filter
+  `origin = 'channel'`. The trigger `tg_manual_block_no_overlap` refuses a manual
+  block that overlaps another block on that property. It never blocks an imported
+  row. Cancelling releases the nights in Hospitable first, then revokes the
+  check-in and deletes the block. Our code sends the guest nothing. The operator
+  hands over the `/checkin/<token>` link. The host cannot create or cancel one,
+  but the stay does show on their calendar as an occupied stay with no revenue.
+  Deleting a property that holds a `manual` row is refused: the foreign keys
+  cascade, so `deletablePropertyIds` in `lib/channels/manual-stays.ts` guards the
+  prune and both listing reassignment paths.
 - Lux replies to guests behind a review gate. `properties.ai_reviews` defaults to
   `true`. The pipeline stores the AI reply in `guest_reply_drafts` with status
   `pending` and sends nothing. A Luxel operator reviews it at `/admin/inbox`,

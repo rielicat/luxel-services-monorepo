@@ -135,6 +135,26 @@ supabase/        migrations + local config
   Hosts have no cleaning controls and no guest inbox. `guest_threads` status
   `needs_host` means "needs a Luxel human". Do not add host-facing crew or inbox
   surfaces.
+- A stay outside Airbnb is **operator-created**, at `/stays` in `apps/admin`. The
+  action blocks the nights in Hospitable first (`setHospitableCalendar`, a `PUT`
+  on the listing calendar). It records nothing locally until that call succeeds.
+  It then writes two rows: a `calendar_blocks` row (`source` `import`, `origin`
+  `manual`) and a `checkins` row (`origin` `manual`). Both carry the reference
+  `manual:<uuid>` in `external_uid` and `reservation_uid`, and both leave
+  `confirmation_code` null. `origin` `manual` keeps the sync away: the revoke
+  pass, the check-in delete, the calendar prune and
+  `rekeyCheckinsByConfirmationCode` all filter `origin = 'channel'`. The trigger
+  `tg_manual_block_no_overlap` refuses a manual block that overlaps another block
+  on that property; it never blocks an imported row. Cancelling releases the
+  nights in Hospitable first, then revokes the check-in and deletes the block.
+  Our code sends the guest nothing. The operator hands over the
+  `/checkin/<token>` link. The host has no way to create or cancel one, but the
+  stay does appear on their calendar as an occupied stay, with no revenue: a
+  `manual` block is skipped by the price rollup in `stays-timeline.tsx`.
+  Deleting a property that holds a `manual` row is refused —
+  `deletablePropertyIds` in `lib/channels/manual-stays.ts` guards the prune and
+  both listing reassignment paths, because the foreign keys cascade and no
+  `origin` filter can reach a cascade.
 - Lux replies to guests **behind a review gate**. `properties.ai_reviews` defaults to
   `true`: the pipeline stores the AI reply in `guest_reply_drafts` with status
   `pending` and sends nothing. A Luxel operator reviews it at `/admin/inbox`,
@@ -227,7 +247,8 @@ test → build. `db-migrate.yml` applies migrations to prod Supabase.
 Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
 Open follow-ups that need operator credentials: Clerk production instance (prod
-runs the dev instance), Meta WhatsApp go-live (portfolio, number, templates).
+runs the dev instance), Meta WhatsApp go-live (portfolio, number, templates),
+`PROVIDER_API_KEY` on the `luxel-admin` Vercel project (`/stays` needs it).
 Open follow-ups in code: plan activation and a crew/cleanings view in `apps/admin`.
 
 ## Gotchas

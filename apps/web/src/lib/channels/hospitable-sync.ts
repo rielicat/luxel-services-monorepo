@@ -29,9 +29,11 @@ import {
   relinkByConfirmationCode,
 } from './relink';
 import { encodeRef, refPattern, type ChannelReservation } from './types';
+import { deletablePropertyIds, MANUAL_ORIGIN } from './manual-stays';
 
 const ref = (id: string) => encodeRef({ provider: 'hospitable', id });
 const HOSP = refPattern('hospitable');
+const CHANNEL_ORIGIN = 'channel';
 const REVOKE_GRACE_DAYS = 7;
 const CALENDAR_LOOKBACK_DAYS = 75;
 const REVENUE_LOOKBACK_DAYS = 400;
@@ -86,6 +88,7 @@ async function mirrorCheckinsForReservations(
       .from('checkins')
       .select('id', { count: 'exact', head: true })
       .eq('property_id', propertyId)
+      .eq('origin', CHANNEL_ORIGIN)
       .like('reservation_uid', HOSP)
       .is('revoked_at', null);
     if (count) {
@@ -100,6 +103,7 @@ async function mirrorCheckinsForReservations(
       .from('checkins')
       .update({ revoked_at: new Date().toISOString() })
       .eq('property_id', propertyId)
+      .eq('origin', CHANNEL_ORIGIN)
       .like('reservation_uid', HOSP)
       .is('revoked_at', null);
   }
@@ -109,6 +113,7 @@ async function mirrorCheckinsForReservations(
       .from('checkins')
       .update({ revoked_at: null })
       .eq('property_id', propertyId)
+      .eq('origin', CHANNEL_ORIGIN)
       .in('reservation_uid', uids)
       .not('revoked_at', 'is', null);
   }
@@ -116,6 +121,7 @@ async function mirrorCheckinsForReservations(
     .from('checkins')
     .delete()
     .eq('property_id', propertyId)
+    .eq('origin', CHANNEL_ORIGIN)
     .like('reservation_uid', HOSP)
     .is('submitted_at', null)
     .lt('revoked_at', shiftDate(today, -REVOKE_GRACE_DAYS));
@@ -513,6 +519,35 @@ export async function mirrorTeammates(
   }
 }
 
+async function warnOnManualDoubleBooking(
+  supabase: Supabase,
+  propertyId: string,
+  accepted: HospitableReservation[],
+): Promise<void> {
+  if (!accepted.length) return;
+  const { data } = await supabase
+    .from('calendar_blocks')
+    .select('starts_on, ends_on, external_uid')
+    .eq('property_id', propertyId)
+    .eq('origin', MANUAL_ORIGIN);
+  if (!data?.length) return;
+  for (const manual of data) {
+    const from = manual.starts_on as string;
+    const to = manual.ends_on as string;
+    for (const r of accepted) {
+      const rFrom = r.arrival_date.slice(0, 10);
+      const rTo = r.departure_date.slice(0, 10);
+      if (rFrom < to && from < rTo) {
+        console.warn('sync.manual_stay_double_booked', {
+          propertyId,
+          stayUid: manual.external_uid,
+          code: r.code,
+        });
+      }
+    }
+  }
+}
+
 async function pruneToHospitable(
   supabase: Supabase,
   customerId: string,
@@ -535,16 +570,21 @@ async function pruneToHospitable(
     return;
   }
 
-  await supabase
+  const { data: doomed } = await supabase
     .from('properties')
-    .delete()
+    .select('id')
     .eq('owner_id', customerId)
-    .is('external_listing_id', null);
-  await supabase
-    .from('properties')
-    .delete()
-    .eq('owner_id', customerId)
-    .not('external_listing_id', 'in', `(${remoteIds.map((id) => `"${id}"`).join(',')})`);
+    .or(
+      `external_listing_id.is.null,external_listing_id.not.in.(${remoteIds
+        .map((id) => `"${id}"`)
+        .join(',')})`,
+    );
+  const removable = await deletablePropertyIds(
+    supabase,
+    (doomed ?? []).map((p) => p.id as string),
+    { customerId, reason: 'prune' },
+  );
+  if (removable.length) await supabase.from('properties').delete().in('id', removable);
 }
 
 async function relinkStrayProperties(
@@ -812,6 +852,7 @@ export async function syncHospitableAccount(
         .from('calendar_blocks')
         .delete()
         .eq('property_id', propertyId)
+        .eq('origin', CHANNEL_ORIGIN)
         .like('external_uid', HOSP);
       if (accepted.length) {
         await supabase.from('calendar_blocks').insert(
@@ -828,6 +869,7 @@ export async function syncHospitableAccount(
       }
       reservationCount += accepted.length;
 
+      await warnOnManualDoubleBooking(supabase, propertyId, accepted);
       await mirrorCheckinsForReservations(supabase, propertyId, accepted, today);
     }
 

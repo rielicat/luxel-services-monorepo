@@ -63,6 +63,7 @@ export async function rekeyCheckinsByConfirmationCode(
     .from('checkins')
     .select('id, reservation_uid, confirmation_code, revoked_at')
     .eq('property_id', propertyId)
+    .eq('origin', 'channel')
     .in('confirmation_code', [...uidByCode.keys()]);
   if (error) return null;
   if (!rows?.length) return 0;

@@ -70,12 +70,13 @@ Local development only, never set in production: `LUXEL_DEV_MOCK`,
 
 Set in the Vercel dashboard:
 
-| Variable                                                      | Purpose                                                 |
-| ------------------------------------------------------------- | ------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`                                    | database endpoint                                       |
-| `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) | server-side reads of analytics, leads and sessions      |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                           | sign-in (same Clerk instance as web)                    |
-| `CLERK_SECRET_KEY`                                            | session verification and organization-membership lookup |
+| Variable                                                      | Purpose                                                  |
+| ------------------------------------------------------------- | -------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                                    | database endpoint                                        |
+| `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) | server-side reads of analytics, leads and sessions       |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                           | sign-in (same Clerk instance as web)                     |
+| `CLERK_SECRET_KEY`                                            | session verification and organization-membership lookup  |
+| `PROVIDER_API_KEY` (or legacy `HOSPITABLE_API_TOKEN`)         | blocks and releases nights for a direct stay at `/stays` |
 
 Managed as code in `infra/vercel/admin.ts` (non-secret; applied by
 `.github/workflows/infra-vercel.yml`):
@@ -86,6 +87,9 @@ Managed as code in `infra/vercel/admin.ts` (non-secret; applied by
 | `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/`                                                                       |
 | `LUXEL_ADMIN_ORG_SLUG`                            | slug of the operator organization (`servicios-luxel-1783354109102489708`) |
 | `LUXEL_ADMIN_ORG_ID`                              | optional alternative to the slug (`org_…`); not set today                 |
+
+Without `PROVIDER_API_KEY`, `/stays` loads but refuses to create or cancel a
+direct stay: it never writes locally what it could not block in Hospitable.
 
 With neither `LUXEL_ADMIN_ORG_ID` nor `LUXEL_ADMIN_ORG_SLUG` set, nobody is an
 operator (`apps/admin/src/lib/admin.ts`). Vercel snapshots env at build time, so
