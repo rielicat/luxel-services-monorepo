@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, ArrowRight, Check, Pencil, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Pencil, Plus, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -11,9 +11,8 @@ import { updatePropertyContext } from './copilot-actions';
 
 const STEPS = [
   { title: 'step1_title', fields: ['wifi', 'devices'] },
-  { title: 'step2_title', fields: ['arrival', 'parking', 'lift'] },
-  { title: 'step3_title', fields: ['warnings', 'supplies'] },
-  { title: 'step4_title', fields: ['recommend', 'transport', 'notes'] },
+  { title: 'step2_title', fields: ['arrival', 'parking'] },
+  { title: 'step3_title', fields: ['warnings', 'recommend', 'notes'] },
 ] as const;
 
 type Field = (typeof STEPS)[number]['fields'][number];
@@ -23,35 +22,6 @@ const FIELD_MAX = 400;
 
 const emptyAnswers = (source?: Record<string, string> | null): Record<Field, string> =>
   Object.fromEntries(FIELDS.map((f) => [f, source?.[f] ?? ''])) as Record<Field, string>;
-
-function AutoTextarea({
-  value,
-  onValueChange,
-  ...rest
-}: Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange' | 'value'> & {
-  value: string;
-  onValueChange: (next: string) => void;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
-
-  return (
-    <textarea
-      ref={ref}
-      rows={3}
-      value={value}
-      onChange={(e) => onValueChange(e.target.value)}
-      className="border-input bg-card placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-ring/25 shadow-xs hover:border-primary/30 min-h-20 w-full resize-none overflow-hidden rounded-lg border px-3 py-2 text-sm leading-relaxed transition-colors focus-visible:outline-none focus-visible:ring-[3px]"
-      {...rest}
-    />
-  );
-}
 
 export function ContextPanel({
   propertyId,
@@ -65,10 +35,10 @@ export function ContextPanel({
   const [answers, setAnswers] = useState(() => emptyAnswers(guestContext));
   const [step, setStep] = useState(0);
   const [status, setStatus] = useState<'idle' | 'saved' | 'failed'>('idle');
-  const [editing, setEditing] = useState(() => !FIELDS.some((f) => guestContext?.[f]?.trim()));
+  const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const summaryRef = useRef<HTMLParagraphElement>(null);
+  const openerRef = useRef<HTMLButtonElement>(null);
   const mounted = useRef(false);
 
   useEffect(() => {
@@ -76,8 +46,8 @@ export function ContextPanel({
       mounted.current = true;
       return;
     }
-    (editing ? headingRef.current : summaryRef.current)?.focus();
-  }, [step, editing]);
+    (open ? headingRef.current : openerRef.current)?.focus();
+  }, [step, open]);
 
   const answered = FIELDS.filter((f) => answers[f].trim());
   const current = STEPS[step]!;
@@ -92,25 +62,61 @@ export function ContextPanel({
       }
       const r = await updatePropertyContext({ propertyId, answers: payload });
       setStatus(r.ok ? 'saved' : 'failed');
-      if (r.ok && collapse) setEditing(false);
+      if (r.ok && collapse) setOpen(false);
     });
 
   return (
     <Card>
-      <CardContent className="grid gap-6 p-5 sm:p-6">
+      <CardContent className="grid gap-4 p-5 sm:p-6">
         <div className="flex items-start gap-3">
           <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
             <Sparkles className="h-[18px] w-[18px]" />
           </span>
-          <div className="grid gap-1.5">
+          <div className="grid flex-1 gap-1">
             <h2 className="font-display text-base font-semibold">{t('title')}</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">{t('body')}</p>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {answered.length
+                ? t('summary_count', { i: answered.length, n: FIELDS.length })
+                : t('body')}
+            </p>
           </div>
+          <Button
+            ref={openerRef}
+            type="button"
+            size="sm"
+            variant="outline"
+            aria-expanded={open}
+            aria-controls={`${uid}-form`}
+            onClick={() => {
+              setStatus('idle');
+              setOpen((v) => !v);
+            }}
+          >
+            {open ? (
+              <>
+                <X className="h-4 w-4" /> {t('close')}
+              </>
+            ) : answered.length ? (
+              <>
+                <Pencil className="h-4 w-4" /> {t('edit')}
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" /> {t('add')}
+              </>
+            )}
+          </Button>
         </div>
 
-        {editing ? (
-          <div className="grid gap-6">
-            <div className="grid gap-2.5">
+        {!open && status === 'saved' && (
+          <p className="text-muted-foreground text-xs" aria-live="polite">
+            {t('saved')}
+          </p>
+        )}
+
+        {open && (
+          <div id={`${uid}-form`} className="border-border grid gap-4 border-t pt-4">
+            <div className="grid gap-2">
               <div className="flex items-baseline justify-between gap-3">
                 <h3
                   ref={headingRef}
@@ -132,27 +138,30 @@ export function ContextPanel({
               </div>
             </div>
 
-            <div role="group" aria-labelledby={`${uid}-step`} className="grid gap-6">
+            <div role="group" aria-labelledby={`${uid}-step`} className="grid gap-3">
               {current.fields.map((field) => (
-                <div key={field} className="grid gap-2">
-                  <Label htmlFor={`${uid}-${field}`} className="leading-snug">
+                <div key={field} className="grid gap-1.5">
+                  <Label htmlFor={`${uid}-${field}`} className="text-xs leading-snug">
                     {t(`label_${field}`)}
                   </Label>
-                  <AutoTextarea
+                  <textarea
                     id={`${uid}-${field}`}
+                    rows={2}
                     maxLength={FIELD_MAX}
                     value={answers[field]}
-                    onValueChange={(value) => {
+                    onChange={(e) => {
+                      const value = e.target.value;
                       setAnswers((prev) => ({ ...prev, [field]: value }));
                       setStatus('idle');
                     }}
                     placeholder={t(`ph_${field}`)}
+                    className="border-input bg-card placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-ring/25 hover:border-primary/30 w-full resize-y rounded-lg border px-3 py-2 text-sm leading-relaxed transition-colors focus-visible:outline-none focus-visible:ring-[3px]"
                   />
                 </div>
               ))}
             </div>
 
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 {step > 0 && (
                   <Button
@@ -202,51 +211,6 @@ export function ContextPanel({
                   : status === 'saved'
                     ? t('saved')
                     : t('optional')}
-              </p>
-              <p className="text-muted-foreground text-xs">{t('no_secrets')}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-5">
-            <p
-              ref={summaryRef}
-              tabIndex={-1}
-              className="text-sm font-semibold focus-visible:outline-none"
-            >
-              {answered.length ? t('summary_title') : t('summary_empty')}
-            </p>
-            {answered.length > 0 && (
-              <>
-                <dl className="grid gap-4">
-                  {answered.map((field) => (
-                    <div key={field} className="grid gap-1">
-                      <dt className="text-muted-foreground text-xs font-medium">
-                        {t(`label_${field}`)}
-                      </dt>
-                      <dd className="text-sm leading-relaxed">{answers[field]}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="text-muted-foreground text-xs">
-                  {t('summary_count', { i: answered.length, n: FIELDS.length })}
-                </p>
-              </>
-            )}
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setStep(0);
-                  setStatus('idle');
-                  setEditing(true);
-                }}
-              >
-                <Pencil className="h-4 w-4" /> {t('edit')}
-              </Button>
-              <p className="text-muted-foreground text-xs" aria-live="polite">
-                {status === 'saved' ? t('saved') : ''}
               </p>
             </div>
           </div>

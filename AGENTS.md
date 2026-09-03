@@ -160,10 +160,13 @@ supabase/        migrations + local config
   rows: the `reservation.created` webhook writes the row at once, before the
   debounced resync, because the Hospitable rule sends the link the moment the
   booking is accepted. There is no cron either; code handles events only.
-- Door codes and wifi passwords live in Hospitable custom codes and in
-  `property_access`; the AI redacts them (`lib/ai/redact.ts`). Never log them.
-  The guest receives the door code only through Hospitable's T-3 message rule.
-  Never show it on the check-in page or send it from our code.
+- Door codes are secret; wifi passwords are not. `accessSecrets` in
+  `lib/ai/grounding.ts` feeds only `property_access.keyless_code` to
+  `redactSecrets`, so Lux may give a guest the wifi password and never the door
+  code. Never log either. The guest receives the door code only through
+  Hospitable's T-3 message rule. Never show it on the check-in page or send it
+  from our code. The host may write the wifi network and password into the
+  property context form; that text reaches Lux.
 - Guest documents are encrypted with `LUXEL_PII_KEY`, nulled 90 days after
   departure by the sync pass, and reach conserjes only through the approved
   WhatsApp template.
@@ -193,7 +196,9 @@ block in `apps/web/src/middleware.ts`.
 - The commission base is the booking only. The guest cleaning fee is 100% for
   the cleaning crew, and Luxel charges no commission on it. The sync mirrors
   it as `reservation_revenue.cleaning_fee_clp`, and `commissionBaseClp` in
-  `apps/web/src/lib/revenue.ts` is the host payout minus that fee.
+  `apps/web/src/lib/revenue.ts` is the host payout minus that fee. Luxel pays
+  the crew against a document — a contract or a boleta de honorarios — so the
+  fee is a documented pass-through and not undeclared Luxel revenue.
 - **Not true yet.** Airbnb co-host payout splitting is not configured on any
   listing. Airbnb pays the host and Luxel invoices monthly, off-platform. No
   copy may say that Airbnb pays Luxel, deducts our fee or splits the payout.

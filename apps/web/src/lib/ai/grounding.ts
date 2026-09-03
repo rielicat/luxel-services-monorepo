@@ -45,20 +45,9 @@ async function accessSecrets(supabase: Supabase, propertyId: string | null): Pro
     .from('property_access')
     .select('keyless_code')
     .not('keyless_code', 'is', null);
-  const details = supabase
-    .from('properties')
-    .select('listing_details')
-    .not('listing_details', 'is', null);
-  const [{ data: access }, { data: props }] = await Promise.all([
-    propertyId ? codes.eq('property_id', propertyId) : codes,
-    propertyId ? details.eq('id', propertyId) : details,
-  ]);
+  const { data: access } = await (propertyId ? codes.eq('property_id', propertyId) : codes);
   const out: string[] = [];
   for (const a of access ?? []) if (a.keyless_code) out.push(String(a.keyless_code));
-  for (const p of props ?? []) {
-    const pw = (p.listing_details as { wifi_password?: string | null } | null)?.wifi_password;
-    if (pw) out.push(pw);
-  }
   return out;
 }
 

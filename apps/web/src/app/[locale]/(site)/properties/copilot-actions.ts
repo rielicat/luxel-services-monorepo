@@ -11,11 +11,8 @@ const CONTEXT_FIELDS = [
   'devices',
   'arrival',
   'parking',
-  'lift',
   'warnings',
-  'supplies',
   'recommend',
-  'transport',
   'notes',
 ] as const;
 
@@ -30,11 +27,8 @@ const contextInput = z.object({
     devices: answer,
     arrival: answer,
     parking: answer,
-    lift: answer,
     warnings: answer,
-    supplies: answer,
     recommend: answer,
-    transport: answer,
     notes: answer,
   }),
 });

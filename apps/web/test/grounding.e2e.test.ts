@@ -75,6 +75,26 @@ describe.skipIf(!LIVE)('AI grounding (end to end)', () => {
     expect(g.text).toContain('desde las 15:00');
   });
 
+  it('keeps the door code out of the grounding and lets the wifi password through', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Con Claves' });
+    const { error } = await admin
+      .from('property_access')
+      .update({ method: 'keyless', keyless_code: '366754' })
+      .eq('property_id', prop.id!);
+    expect(error).toBeNull();
+    await seedThread(
+      prop.id!,
+      '¿Cuál es la clave del wifi y cómo entro?',
+      'La red es Depto401 y la clave sol12345. El código de la puerta es 366754.',
+      'host',
+    );
+
+    const g = await buildGrounding(prop.id!);
+    expect(g.text).not.toContain('366754');
+    expect(g.text).toContain('[dato de acceso]');
+    expect(g.text).toContain('sol12345');
+  });
+
   it('falls back to anonymized cross-property experience when the property has none', async () => {
     const experienced = await seedImportedProperty({ nickname: 'Depto Veterano' });
     await seedThread(

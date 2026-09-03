@@ -50,10 +50,13 @@ rules. Do not add code paths that break them.
   `checkins` rows, and the `reservation.created` webhook writes the row at once
   so the link never lands before it. There is no cron either; code handles
   events only.
-- Door codes and wifi passwords live in Hospitable custom codes and in
-  `property_access`; the AI redacts them (`lib/ai/redact.ts`). Never log them.
-  The guest receives the door code only through Hospitable's T-3 message
-  rule. Never show it on the check-in page or send it from our code.
+- Door codes are secret; wifi passwords are not. `accessSecrets` in
+  `lib/ai/grounding.ts` feeds only `property_access.keyless_code` to
+  `redactSecrets`, so Lux may give a guest the wifi password and never the door
+  code. Never log either. The guest receives the door code only through
+  Hospitable's T-3 message rule. Never show it on the check-in page or send it
+  from our code. The host may write the wifi network and password into the
+  property context form; that text reaches Lux.
 - Guest documents are encrypted with `LUXEL_PII_KEY`, nulled 90 days after
   departure by the sync pass, and reach conserjes only through the approved
   WhatsApp template.
