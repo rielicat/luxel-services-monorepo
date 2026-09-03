@@ -33,6 +33,7 @@ import { encodeRef, refPattern, type ChannelReservation } from './types';
 const ref = (id: string) => encodeRef({ provider: 'hospitable', id });
 const HOSP = refPattern('hospitable');
 const REVOKE_GRACE_DAYS = 7;
+const CALENDAR_LOOKBACK_DAYS = 75;
 const REVENUE_LOOKBACK_DAYS = 400;
 
 async function scopeToCustomer<T extends { id: string }>(
@@ -798,7 +799,7 @@ export async function syncHospitableAccount(
   const contactCount = await mirrorTeammates(supabase, token, customerId, mirrored);
 
   for (const { id: propertyId, rp } of mirrored) {
-    const startDate = iso(new Date(now.getTime() - 60 * DAY));
+    const startDate = iso(new Date(now.getTime() - CALENDAR_LOOKBACK_DAYS * DAY));
     const endDate = iso(new Date(now.getTime() + 400 * DAY));
     const reservations = await listHospitableReservations(token, rp.id, startDate, endDate);
     if (reservations) {

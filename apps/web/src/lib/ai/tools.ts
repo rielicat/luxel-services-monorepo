@@ -7,6 +7,7 @@ import { hospitableAmountToClp, listHospitableCalendar } from '@/lib/channels/ho
 import { hospitableAccess } from '@/lib/channels/scope';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { createLead } from '@/lib/leads';
+import { monthBounds, santiagoMonth } from '@/lib/revenue';
 import { comparableMarketReference, MIN_COMPARABLE_LISTINGS } from './pricing-reference';
 
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
@@ -444,27 +445,30 @@ async function getHostStatus(ctx: ToolContext): Promise<ToolResult> {
   const today = new Date();
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const from = iso(today);
+  const month = santiagoMonth(today);
+  const bounds = monthBounds(month);
 
   const lines: string[] = [];
   for (const p of properties.slice(0, 5)) {
     let occupancy = 'ocupación no disponible';
-    let revenue = 'ingresos 30 días no disponibles';
-    if (token && p.external_listing_id) {
+    let revenue = 'ingresos del mes no disponibles';
+    if (token && p.external_listing_id && bounds) {
       const days = await listHospitableCalendar(
         token,
         p.external_listing_id as string,
-        from,
+        bounds.from,
         iso(new Date(today.getTime() + 30 * DAY)),
       );
-      if (days?.length) {
-        const reserved = days.filter((d) => d.status?.reason === 'RESERVED');
-        occupancy = `ocupación 30 días ${Math.round((reserved.length / days.length) * 100)}%`;
+      const monthDays = (days ?? []).filter((d) => d.date >= bounds.from && d.date < bounds.to);
+      if (monthDays.length) {
+        const reserved = monthDays.filter((d) => d.status?.reason === 'RESERVED');
+        occupancy = `ocupación del mes en curso ${Math.round((reserved.length / monthDays.length) * 100)}%`;
         const priced = reserved
           .map((d) => hospitableAmountToClp(d.price, d.price?.currency))
           .filter((a): a is number => a != null);
         if (priced.length) {
           const total = priced.reduce((sum, a) => sum + a, 0);
-          revenue = `ingresos estimados 30 días ${clp(total)}`;
+          revenue = `ingresos del mes en curso ${clp(total)} (mes incompleto)`;
         }
       }
     }

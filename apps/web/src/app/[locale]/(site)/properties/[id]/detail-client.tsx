@@ -138,6 +138,7 @@ export function PropertyDetailClient({
   const monthDays = liveDays?.filter((d) => d.date >= month.from && d.date < month.to) ?? null;
   const upcoming = liveDays?.filter((d) => d.date >= today) ?? null;
   const monthName = fmtMonth(month.from);
+  const monthRunning = today < addDays(month.to, -1);
   const s = monthStats(property.calendar_blocks, monthDays, month);
 
   const stays = buildStays(upcoming, property.calendar_blocks, today);
@@ -177,7 +178,7 @@ export function PropertyDetailClient({
         reservedNights != null
           ? t('d_revenue_nights', { n: reservedNights, month: monthName })
           : t('d_no_calendar'),
-        t('d_month_partial', { month: monthName }),
+        ...(monthRunning ? [t('d_month_partial', { month: monthName })] : []),
         t('d_revenue_disclaimer'),
       ],
     },
@@ -200,7 +201,7 @@ export function PropertyDetailClient({
             ]
           : [t('d_no_calendar')]),
         t('d_occupancy_prev', { p: s.pastOccupancy }),
-        t('d_month_partial', { month: monthName }),
+        ...(monthRunning ? [t('d_month_partial', { month: monthName })] : []),
         t('d_occupancy_note'),
       ],
     },

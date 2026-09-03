@@ -63,7 +63,7 @@ describe.skipIf(!LIVE)('global agent host status (end to end)', () => {
     expect(r.content).toContain('Depto Estado Real');
     expect(r.content).toContain('ocupación no disponible');
     expect(r.content).toContain('1 estadía próxima');
-    expect(r.content).toContain('ingresos 30 días no disponibles');
+    expect(r.content).toContain('ingresos del mes no disponibles');
     expect(r.content).not.toContain('próximo aseo');
     expect(r.content).not.toContain('conversaciones');
   });

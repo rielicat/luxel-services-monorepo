@@ -215,6 +215,11 @@ Open follow-ups in code: plan activation and a crew/cleanings view in `apps/admi
   stays on localhost. Test user: `you+clerk_test@example.com`, OTP `424242`.
 - Keep Clerk **Organizations optional** on the instance. Admin gating is
   app-level.
+- Hospitable's calendar endpoint clamps `start_date` to the first day of the
+  running month. A request for an earlier date silently returns the same
+  window, so the previous month can only come from the mirrored
+  `calendar_blocks`, never from the live calendar. `end_date` is honoured
+  past 120 days.
 - Supabase free tier auto-pauses. A paused project looks deleted and blocks prod
   migrations while CI stays green.
 - Vercel Hobby rejects sub-daily crons in `vercel.json` and silently blocks every
