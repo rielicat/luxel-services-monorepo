@@ -4,7 +4,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 const PROPERTY_SELECT =
   'id, nickname, address, comuna, guest_info, external_listing_id, platform, ai_enabled, price_optimization_enabled, pricelabs_status, ' +
   'bedrooms, bathrooms, picture_url, max_guests, beds, property_type, room_type, checkin_time, checkout_time, listed, amenities, house_rules, ' +
-  'calendar_blocks(id, starts_on, ends_on, source, summary)';
+  'calendar_blocks(id, starts_on, ends_on, source, summary, confirmation_code)';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalize(p: any) {

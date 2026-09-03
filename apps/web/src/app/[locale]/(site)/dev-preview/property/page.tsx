@@ -88,6 +88,7 @@ export default async function PreviewPropertyPage() {
       property={property}
       liveDays={liveDays}
       realized={{ cleaningFeeClp: 135000, commissionBaseClp: 1420000, stays: 3 }}
+      stayTimes={{}}
       today={TODAY}
       month={MONTH}
       recommended={recommended}

@@ -21,7 +21,17 @@ export type Stay = {
   nights: number;
   revenueClp: number | null;
   inProgress: boolean;
+  fromTime: string | null;
+  toTime: string | null;
 };
+
+export type StayTimes = {
+  checkinTime: string | null;
+  checkoutTime: string | null;
+  byCode: Record<string, { arrival: string | null; departure: string | null }>;
+};
+
+const hhmm = (t: string | null | undefined): string | null => (t ? t.slice(0, 5) : null);
 
 const DAY = 86_400_000;
 const addDays = (d: string, n: number) =>
@@ -43,7 +53,12 @@ const nightsBetween = (from: string, to: string) =>
     ),
   );
 
-export function buildStays(liveDays: LiveDay[] | null, blocks: Block[], today: string): Stay[] {
+export function buildStays(
+  liveDays: LiveDay[] | null,
+  blocks: Block[],
+  today: string,
+  times?: StayTimes,
+): Stay[] {
   const price = new Map<string, number>();
   for (const d of liveDays ?? []) if (d.priceClp != null) price.set(d.date, d.priceClp);
 
@@ -61,12 +76,15 @@ export function buildStays(liveDays: LiveDay[] | null, blocks: Block[], today: s
       if (p == null) priced = false;
       else revenue += p;
     }
+    const declared = b.confirmation_code ? times?.byCode[b.confirmation_code] : undefined;
     return {
       from: b.starts_on,
       to: b.ends_on,
       nights: nightsBetween(b.starts_on, b.ends_on),
       revenueClp: priced ? revenue : null,
       inProgress: b.starts_on <= today && today < b.ends_on,
+      fromTime: hhmm(declared?.arrival) ?? hhmm(times?.checkinTime),
+      toTime: hhmm(declared?.departure) ?? hhmm(times?.checkoutTime),
     };
   });
 
@@ -79,6 +97,8 @@ export function buildStays(liveDays: LiveDay[] | null, blocks: Block[], today: s
       nights: run.nights,
       revenueClp: run.priced ? run.revenue : null,
       inProgress: run.from <= today && today < to,
+      fromTime: hhmm(times?.checkinTime),
+      toTime: hhmm(times?.checkoutTime),
     });
     run = null;
   };
@@ -240,8 +260,14 @@ export function StaysTimeline({
         {selected && (
           <div className="grid gap-3">
             <p className="text-base font-semibold">
-              <span className="capitalize">{fmt(selected.from)}</span> →{' '}
-              <span className="capitalize">{fmt(selected.to)}</span>
+              <span className="capitalize">{fmt(selected.from)}</span>
+              {selected.fromTime && (
+                <span className="text-muted-foreground font-medium"> {selected.fromTime}</span>
+              )}{' '}
+              → <span className="capitalize">{fmt(selected.to)}</span>
+              {selected.toTime && (
+                <span className="text-muted-foreground font-medium"> {selected.toTime}</span>
+              )}
               {selected.inProgress && (
                 <span className="bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
                   {t('in_progress')}
@@ -249,6 +275,9 @@ export function StaysTimeline({
               )}
             </p>
             <p className="text-muted-foreground text-sm">
+              {selected.fromTime && selected.toTime
+                ? `${t('window', { from: selected.fromTime, to: selected.toTime })} · `
+                : ''}
               {t('nights', { n: selected.nights })}
               {selected.revenueClp != null &&
                 ` · ${t('revenue', { amount: clp(selected.revenueClp) })}`}

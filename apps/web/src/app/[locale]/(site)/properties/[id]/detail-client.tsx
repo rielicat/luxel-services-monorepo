@@ -18,7 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 import type { Block, PropertyRow } from '../properties-client';
-import { StaysTimeline, buildStays, type LiveDay } from '../stays-timeline';
+import { StaysTimeline, buildStays, type StayTimes, type LiveDay } from '../stays-timeline';
 import { AutomationsPanel } from '../automations-panel';
 
 export type { LiveDay } from '../stays-timeline';
@@ -131,6 +131,7 @@ export function PropertyDetailClient({
   property,
   liveDays,
   realized,
+  stayTimes,
   today,
   month,
   recommended,
@@ -138,6 +139,7 @@ export function PropertyDetailClient({
   property: PropertyRow;
   liveDays: LiveDay[] | null;
   realized: RealizedMonth;
+  stayTimes: StayTimes['byCode'];
   today: string;
   month: MonthWindow;
   recommended?: Record<string, number> | null;
@@ -149,7 +151,11 @@ export function PropertyDetailClient({
   const monthRunning = today < addDays(month.to, -1);
   const s = monthStats(property.calendar_blocks, monthDays, month);
 
-  const stays = buildStays(upcoming, property.calendar_blocks, today);
+  const stays = buildStays(upcoming, property.calendar_blocks, today, {
+    checkinTime: property.checkin_time ?? null,
+    checkoutTime: property.checkout_time ?? null,
+    byCode: stayTimes,
+  });
   const pricedStays = stays.filter((st) => st.revenueClp != null).slice(0, 6);
 
   type MetricId = 'revenue' | 'occupancy' | 'adr';

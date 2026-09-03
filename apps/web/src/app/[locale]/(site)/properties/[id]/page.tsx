@@ -40,6 +40,20 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   const today = santiagoToday(now);
   const month = currentMonthWindow(santiagoMonth(now), today);
   const realized = await realizedRevenueForProperty(property.id, santiagoMonth(now), now);
+
+  const { data: declared } = await supabase
+    .from('checkins')
+    .select('confirmation_code, arrival_time, departure_time')
+    .eq('property_id', property.id)
+    .not('confirmation_code', 'is', null)
+    .gte('departure_date', today);
+  const stayTimes: Record<string, { arrival: string | null; departure: string | null }> = {};
+  for (const row of declared ?? []) {
+    stayTimes[row.confirmation_code as string] = {
+      arrival: (row.arrival_time as string | null) ?? null,
+      departure: (row.departure_time as string | null) ?? null,
+    };
+  }
   let liveDays: LiveDay[] | null = null;
   if (property.external_listing_id) {
     const access = await hospitableAccess(customer.id);
@@ -80,6 +94,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       property={property}
       liveDays={liveDays}
       realized={realized}
+      stayTimes={stayTimes}
       today={today}
       month={month}
       recommended={recommended}

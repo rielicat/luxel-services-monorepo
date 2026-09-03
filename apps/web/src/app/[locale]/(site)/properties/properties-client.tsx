@@ -15,6 +15,7 @@ export type Block = {
   ends_on: string;
   source: 'import' | 'manual';
   summary: string | null;
+  confirmation_code?: string | null;
 };
 export type PropertyRow = {
   id: string;

@@ -479,7 +479,8 @@
     "stay_title": "Estadía",
     "legend_reserved": "Reservado",
     "legend_price": "Tarifa publicada",
-    "legend_recommended": "Sugerida por Luxel"
+    "legend_recommended": "Sugerida por Luxel",
+    "window": "Llegada {from} · salida {to}"
   },
   "crew": {
     "title": "Confirmación de aseo",
