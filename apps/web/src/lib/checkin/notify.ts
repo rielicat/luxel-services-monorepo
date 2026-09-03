@@ -4,7 +4,7 @@ import { emailConfigured, sendEmail } from '@/lib/email/send';
 import { sendWhatsAppTemplate, whatsappBridgeConfigured } from '@/lib/whatsapp/send';
 import { longDateEs, stayRangeEs } from '@/lib/checkin/copy';
 import { guestListLine, type GuestRow } from '@/lib/checkin/guest-list';
-import { toE164Digits } from '@/lib/phone';
+import { recipients } from '@/lib/crew';
 
 type NotifyResult = Array<{ channel: string; to: string; role: string; ok: boolean }>;
 
@@ -28,30 +28,25 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
   }
   if (!checkin) return;
 
-  const [{ data: property }, { data: access }, { data: conserjes }, { data: guests }] =
-    await Promise.all([
-      supabase
-        .from('properties')
-        .select('id, nickname, address, comuna, owner_id')
-        .eq('id', checkin.property_id)
-        .maybeSingle(),
-      supabase
-        .from('property_access')
-        .select('unit')
-        .eq('property_id', checkin.property_id)
-        .maybeSingle(),
-      supabase
-        .from('property_contacts')
-        .select('name, email, whatsapp')
-        .eq('property_id', checkin.property_id)
-        .eq('role', 'concierge'),
-      supabase
-        .from('checkin_guests')
-        .select('full_name, doc_type, doc_number_enc, doc_last4')
-        .eq('checkin_id', checkinId)
-        .order('is_lead', { ascending: false })
-        .order('created_at', { ascending: true }),
-    ]);
+  const [{ data: property }, { data: access }, conserjes, { data: guests }] = await Promise.all([
+    supabase
+      .from('properties')
+      .select('id, nickname, address, comuna, owner_id')
+      .eq('id', checkin.property_id)
+      .maybeSingle(),
+    supabase
+      .from('property_access')
+      .select('unit')
+      .eq('property_id', checkin.property_id)
+      .maybeSingle(),
+    recipients(checkin.property_id as string, 'concierge', supabase),
+    supabase
+      .from('checkin_guests')
+      .select('full_name, doc_type, doc_number_enc, doc_last4')
+      .eq('checkin_id', checkinId)
+      .order('is_lead', { ascending: false })
+      .order('created_at', { ascending: true }),
+  ]);
   if (!property) return;
   const { data: owner } = await supabase
     .from('customers')
@@ -86,8 +81,8 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
   if (whatsappBridgeConfigured()) {
     const place = where === '—' ? unit : `${unit} · ${where}`;
     const params = [stay, place, parking, `${headcount} · ${guestList}`];
-    for (const c of conserjes ?? []) {
-      const to = toE164Digits(c.whatsapp as string | null);
+    for (const c of conserjes) {
+      const to = c.phone;
       if (!to || reached.has(to)) continue;
       const ok = Boolean(await sendWhatsAppTemplate(to, 'concierge_arrival', params));
       if (ok) reached.add(to);
@@ -96,8 +91,8 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
   }
 
   if (emailConfigured()) {
-    for (const c of conserjes ?? []) {
-      const to = toE164Digits(c.whatsapp as string | null);
+    for (const c of conserjes) {
+      const to = c.phone;
       if ((to && reached.has(to)) || !c.email) continue;
       const html =
         `<p>Registro de huéspedes — <strong>${esc(unit)}</strong> (${esc(where)})</p>` +
@@ -107,11 +102,11 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
         `<ul>${guestRows.map((g) => `<li>${esc(guestListLine([g]))}</li>`).join('')}</ul>` +
         `<p>Llegada estimada: ${arrival}.</p>`;
       const r = await sendEmail({
-        to: c.email as string,
+        to: c.email,
         subject: `Registro de huéspedes — ${property.nickname}`,
         html,
       });
-      results.push({ channel: 'email', to: c.email as string, role: 'concierge', ok: Boolean(r) });
+      results.push({ channel: 'email', to: c.email, role: 'concierge', ok: Boolean(r) });
     }
 
     if (owner?.email) {

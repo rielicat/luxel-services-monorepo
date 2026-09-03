@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import type * as CrewModule from '../src/lib/crew';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
@@ -29,7 +30,9 @@ let mintCheckinLink: (propertyId: string) => Promise<{ ok: boolean; token?: stri
 let submitCheckin: (i: unknown) => Promise<{ ok: boolean; error?: string }>;
 let decryptPII: (s: string) => string;
 let stayRangeEs: (a: string, b: string) => string;
+let crew: typeof CrewModule;
 let customerId: string;
+const crewIds: string[] = [];
 
 beforeAll(async () => {
   if (!LIVE) return;
@@ -51,6 +54,7 @@ beforeAll(async () => {
   submitCheckin = (await import('../src/app/[locale]/checkin/[id]/actions')).submitCheckin;
   decryptPII = (await import('../src/lib/crypto/pii')).decryptPII;
   stayRangeEs = (await import('../src/lib/checkin/copy')).stayRangeEs;
+  crew = await import('../src/lib/crew');
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin
@@ -90,6 +94,11 @@ afterEach(async () => {
   if (!LIVE || !customerId) return;
   await admin.from('properties').delete().eq('owner_id', customerId);
   workerSends.length = 0;
+});
+
+afterAll(async () => {
+  if (!LIVE || !crewIds.length) return;
+  await admin.from('crew_member').delete().in('id', crewIds);
 });
 
 describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
@@ -203,6 +212,55 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     });
     expect(guests![1].doc_number_enc).not.toContain('9.876.543-2');
     expect(decryptPII(guests![1].doc_number_enc as string)).toBe('9.876.543-2');
+  });
+
+  it('registers the party with the operator-assigned conserje, not the mirrored teammate', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Conserjería' });
+    const propertyId = prop.id!;
+    await admin.from('property_contacts').insert({
+      property_id: propertyId,
+      role: 'concierge',
+      external_id: 'tm-espejo',
+      name: 'Conserjería Espejo',
+      whatsapp: '+56 9 1111 1111',
+    });
+    const member = await crew.createCrewMember({
+      kind: 'external',
+      name: 'Conserjería Torre A',
+      whatsapp: '+56 9 3333 4444',
+    });
+    expect(member).toBeTruthy();
+    crewIds.push(member!.id);
+    expect(await crew.assignCrew({ memberId: member!.id, propertyId, role: 'concierge' })).toBe(
+      true,
+    );
+
+    const link = await mintCheckinLink(propertyId);
+    await admin
+      .from('checkins')
+      .update({ arrival_date: plusDays(2), departure_date: plusDays(4) })
+      .eq('token', link.token!);
+    const res = await submitCheckin({
+      id: link.token,
+      guests: [{ fullName: 'Ana Asignada', docType: 'rut', docNumber: '11.111.111-1' }],
+      arrivalTime: '18:00',
+    });
+    expect(res.ok).toBe(true);
+
+    expect(workerSends).toHaveLength(1);
+    expect(workerSends[0]).toMatchObject({
+      to: '56933334444',
+      template: { kind: 'concierge_arrival' },
+    });
+    const { data: checkin } = await admin
+      .from('checkins')
+      .select('notify_result')
+      .eq('token', link.token!)
+      .maybeSingle();
+    const result = checkin!.notify_result as Array<{ role: string; channel: string; to: string }>;
+    expect(result.filter((r) => r.role === 'concierge')).toEqual([
+      { channel: 'whatsapp', to: '+56933334444', role: 'concierge', ok: true },
+    ]);
   });
 
   it('rejects a party without an arrival slot, an empty party, or a guest without a document', async () => {

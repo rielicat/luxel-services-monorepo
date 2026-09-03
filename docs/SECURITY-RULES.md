@@ -12,6 +12,12 @@ rules. Do not add code paths that break them.
   Manager, or Maintenance map to no row. No host-facing contacts UI. Luxel
   operators manage teammates in Hospitable → Operations → Teammates. Do not
   add a manual contact form.
+- Crew is **Luxel-owned**, not mirrored. `crew_member` (internal or external)
+  and `crew_assignment` (member, property, role) are operator-managed in
+  `apps/admin` at `/crew`. The sync never touches them. `recipients()` in
+  `apps/web/src/lib/crew/index.ts` decides who is notified: assigned crew
+  first, the Hospitable teammate mirror only when the assignment reaches
+  nobody. Both notifiers call it; neither queries `property_contacts`.
 - Cleanings are a Luxel-run operation. The sync pass creates one per imported
   checkout (`suggestCleaningsFromCheckouts`), schedules it
   (`autoConfirmSuggested`), and sends the `cleaning_confirm` template to the

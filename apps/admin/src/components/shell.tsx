@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
-import { LayoutDashboard, Link2, Radio, CreditCard, Users2, Activity } from 'lucide-react';
+import { LayoutDashboard, Link2, Radio, CreditCard, HardHat, Users2, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LuxelMark } from './ui';
 
@@ -12,6 +12,7 @@ const NAV = [
   { href: '/connections', label: 'Conexiones', Icon: Link2 },
   { href: '/leads', label: 'Leads', Icon: Radio },
   { href: '/plans', label: 'Planes', Icon: CreditCard },
+  { href: '/crew', label: 'Equipo', Icon: HardHat },
   { href: '/sessions', label: 'Sesiones', Icon: Users2 },
   { href: '/telemetry', label: 'Telemetría', Icon: Activity },
 ] as const;

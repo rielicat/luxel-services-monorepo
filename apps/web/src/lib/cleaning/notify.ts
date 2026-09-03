@@ -4,7 +4,7 @@ import { sendEmail } from '@/lib/email/send';
 import { sendWhatsAppTemplate, sendWhatsAppViaWorker } from '@/lib/whatsapp/send';
 import { longDateEs } from '@/lib/checkin/copy';
 import { shiftDate } from '@/lib/checkin/window';
-import { toE164Digits } from '@/lib/phone';
+import { recipients } from '@/lib/crew';
 import { appUrl } from '@/lib/urls';
 
 type Supabase = ReturnType<typeof createSupabaseServiceRoleClient>;
@@ -34,25 +34,20 @@ export async function notifyCleaningScheduled(
   cleaningId: string,
 ): Promise<void> {
   try {
-    const [{ data: prop }, { data: cleaning }, { data: contacts }, { data: access }] =
-      await Promise.all([
-        supabase
-          .from('properties')
-          .select('nickname, address, comuna, checkin_time, checkout_time')
-          .eq('id', propertyId)
-          .maybeSingle(),
-        supabase
-          .from('cleanings')
-          .select('cleaning_date, confirm_token')
-          .eq('id', cleaningId)
-          .maybeSingle(),
-        supabase
-          .from('property_contacts')
-          .select('name, email, whatsapp')
-          .eq('property_id', propertyId)
-          .eq('role', 'cleaning'),
-        supabase.from('property_access').select('unit').eq('property_id', propertyId).maybeSingle(),
-      ]);
+    const [{ data: prop }, { data: cleaning }, crew, { data: access }] = await Promise.all([
+      supabase
+        .from('properties')
+        .select('nickname, address, comuna, checkin_time, checkout_time')
+        .eq('id', propertyId)
+        .maybeSingle(),
+      supabase
+        .from('cleanings')
+        .select('cleaning_date, confirm_token')
+        .eq('id', cleaningId)
+        .maybeSingle(),
+      recipients(propertyId, 'cleaning', supabase),
+      supabase.from('property_access').select('unit').eq('property_id', propertyId).maybeSingle(),
+    ]);
     if (!prop || !cleaning) return;
     const where = [prop.address, prop.comuna].filter(Boolean).join(', ');
     const token = cleaning.confirm_token as string;
@@ -64,17 +59,13 @@ export async function notifyCleaningScheduled(
       `${prop.nickname}${access?.unit ? ` · Depto. ${access.unit}` : ''}`,
     ];
     const buttons = [`clean:${token}:yes`, `clean:${token}:no`];
-    const texted = new Set<string>();
-    for (const c of contacts ?? []) {
-      const phone = toE164Digits(c.whatsapp as string | null);
-      if (phone && texted.has(phone)) continue;
-      if (phone) texted.add(phone);
-      const wamid = phone
-        ? await sendWhatsAppTemplate(phone, 'cleaning_confirm', params, buttons)
+    for (const c of crew) {
+      const wamid = c.phone
+        ? await sendWhatsAppTemplate(c.phone, 'cleaning_confirm', params, buttons)
         : null;
       if (wamid || !c.email) continue;
       await sendEmail({
-        to: c.email as string,
+        to: c.email,
         subject: `Aseo · ${prop.nickname} · ${cleaning.cleaning_date} — confirma tu asistencia`,
         html: [
           `<p>Hola${c.name ? ` ${esc(c.name)}` : ''},</p>`,

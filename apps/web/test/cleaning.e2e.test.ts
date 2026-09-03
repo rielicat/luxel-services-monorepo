@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import type * as CrewModule from '../src/lib/crew';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
@@ -60,7 +61,9 @@ let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let suggestCleaningsFromCheckouts: (id: string) => Promise<{ suggested: number; skipped: number }>;
 let autoConfirmSuggested: (id: string, today: string) => Promise<number>;
 let santiagoToday: () => string;
+let crew: typeof CrewModule;
 let customerId: string;
+const crewIds: string[] = [];
 
 beforeAll(async () => {
   if (!LIVE) return;
@@ -78,6 +81,7 @@ beforeAll(async () => {
     .suggestCleaningsFromCheckouts;
   autoConfirmSuggested = (await import('../src/lib/cleaning/notify')).autoConfirmSuggested;
   santiagoToday = (await import('../src/lib/checkin/window')).santiagoToday;
+  crew = await import('../src/lib/crew');
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
   const { data } = await admin
@@ -97,6 +101,11 @@ afterEach(async () => {
   await admin.from('properties').delete().eq('owner_id', customerId);
   WA_SENDS.length = 0;
   EMAILS.length = 0;
+});
+
+afterAll(async () => {
+  if (!LIVE || !crewIds.length) return;
+  await admin.from('crew_member').delete().in('id', crewIds);
 });
 
 describe.skipIf(!LIVE)('Luxel-run cleaning coordination (end to end)', () => {
@@ -193,6 +202,48 @@ describe.skipIf(!LIVE)('Luxel-run cleaning coordination (end to end)', () => {
     expect(after).toEqual([{ status: 'scheduled' }]);
     expect(WA_SENDS).toHaveLength(0);
     expect(EMAILS).toHaveLength(0);
+  });
+
+  it('texts the operator-assigned crew and leaves the mirrored teammate alone', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Cuadrilla' });
+    const propertyId = prop.id!;
+    await admin.from('properties').update({ checkout_time: '11:00' }).eq('id', propertyId);
+    await admin.from('property_contacts').insert({
+      property_id: propertyId,
+      role: 'cleaning',
+      external_id: 'tm-espejo',
+      name: 'Espejo',
+      whatsapp: '+56 9 1111 1111',
+      email: 'espejo@aseo.cl',
+    });
+    const member = await crew.createCrewMember({
+      kind: 'internal',
+      name: 'Cuadrilla Luxel',
+      whatsapp: '+56 9 2222 3333',
+    });
+    expect(member).toBeTruthy();
+    crewIds.push(member!.id);
+    expect(await crew.assignCrew({ memberId: member!.id, propertyId, role: 'cleaning' })).toBe(
+      true,
+    );
+    await admin.from('calendar_blocks').insert({
+      property_id: propertyId,
+      starts_on: '2027-02-07',
+      ends_on: CHECKOUT,
+      source: 'import',
+      external_uid: 'feed:crew',
+      summary: 'Reserved',
+    });
+
+    expect((await suggestCleaningsFromCheckouts(propertyId)).suggested).toBe(1);
+    expect(await autoConfirmSuggested(propertyId, santiagoToday())).toBe(1);
+
+    const templates = WA_SENDS.filter((s) => s.template);
+    expect(templates).toHaveLength(1);
+    expect(templates[0]!.to).toBe('56922223333');
+    expect(templates[0]!.template!.kind).toBe('cleaning_confirm');
+    expect(EMAILS).toHaveLength(0);
+    expect(WA_SENDS.filter((s) => s.text)).toHaveLength(1);
   });
 
   it('leaves a far check-out suggested until it is close, and cancels it when the stay is gone', async () => {
