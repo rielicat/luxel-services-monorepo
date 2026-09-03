@@ -256,6 +256,13 @@ beforeAll(async () => {
           links: { next: null },
         });
       }
+      const oneMatch = url.match(/\/reservations\/([^/?]+)(?:\?|$)/);
+      if (oneMatch) {
+        const id = oneMatch[1]!;
+        const found = RESERVATIONS_PAYLOAD.data.find((r) => r.id + RES_ID_SUFFIX === id);
+        if (!found) return new Response('Not found', { status: 404 });
+        return Response.json({ data: { ...found, id } });
+      }
       if (url.includes('/reservations')) {
         return Response.json({
           ...RESERVATIONS_PAYLOAD,
@@ -986,6 +993,43 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(((await again.json()) as { resync: string }).resync).toBe('debounced');
   });
 
+  it('creates the check-in row from the webhook even when the resync is debounced', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
+    await admin
+      .from('channel_connections')
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq('customer_id', customerId);
+
+    const { POST } = await import('../src/app/api/channels/[provider]/route');
+    const res = await POST(
+      new Request('http://localhost/api/channels/hospitable', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reservation.created',
+          data: { property_id: HOSP_PROPERTY_ID, id: 'res-2' },
+        }),
+      }),
+      { params: Promise.resolve({ provider: 'hospitable' }) },
+    );
+    const json = (await res.json()) as { resync: string; mirrored: boolean };
+    expect(json.resync).toBe('debounced');
+    expect(json.mirrored).toBe(true);
+
+    const { data: row } = await admin
+      .from('checkins')
+      .select('confirmation_code, guest_language, expected_guests')
+      .eq('reservation_uid', 'hosp:res-2')
+      .single();
+    expect(row).toMatchObject({
+      confirmation_code: 'HM8TX2H8CD',
+      guest_language: 'pt',
+      expected_guests: 3,
+    });
+    expect(SENT.filter((s) => s.body.includes('/checkin/'))).toHaveLength(0);
+  });
+
   it('a reconnect that re-issues reservation ids never resends the booking link', async () => {
     MESSAGES = threadHistory();
     await connectHospitable({ token: FAKE_TOKEN });
@@ -1229,7 +1273,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
 
     await admin
       .from('checkins')
-      .update({ revoked_at: new Date(Date.now() - 8 * 86_400_000).toISOString() })
+      .update({ revoked_at: new Date(Date.now() - 10 * 86_400_000).toISOString() })
       .eq('id', before!.id);
     RESERVATIONS_FILTER = (id) => id !== 'res-1';
     try {

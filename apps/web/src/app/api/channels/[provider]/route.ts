@@ -3,7 +3,8 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { handleInboundMessage } from '@/lib/channels/pipeline';
 import { encodeRef } from '@/lib/channels/types';
 import { customerForListing } from '@/lib/channels/scope';
-import { ingestThread } from '@/lib/channels/hospitable-sync';
+import { ingestThread, mirrorCheckinForReservation } from '@/lib/channels/hospitable-sync';
+import { getHospitableReservation } from '@/lib/channels/hospitable';
 import { channelPlugin } from '@/lib/channels/registry';
 import type { ChannelPlugin } from '@/lib/channels/types';
 import { authorizeWebhook } from '@/lib/channels/webhook-auth';
@@ -22,6 +23,8 @@ const RESYNC_ACTIONS = new Set([
   'property.merged',
 ]);
 
+const RESERVATION_ACTIONS = new Set(['reservation.created', 'reservation.changed']);
+
 const RESYNC_DEBOUNCE_MS = 30_000;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,7 +37,11 @@ function extractHospitable(
   const d = payload?.data ?? payload ?? {};
   const msg = d.message ?? d;
   return {
-    reservationId: d.reservation_id ?? d.reservation?.id ?? msg.reservation_id ?? null,
+    reservationId:
+      d.reservation_id ??
+      d.reservation?.id ??
+      msg.reservation_id ??
+      (action.startsWith('reservation.') ? (d.id ?? null) : null),
     propertyExternalId:
       d.property_id ?? d.property?.id ?? (action.startsWith('property.') ? (d.id ?? null) : null),
   };
@@ -95,11 +102,29 @@ async function afterResponse(task: () => Promise<void>): Promise<void> {
   }
 }
 
+async function mirrorReservationNow(
+  token: string,
+  reservationId: string,
+  listingId: string,
+): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data: prop } = await supabase
+    .from('properties')
+    .select('id')
+    .eq('external_listing_id', listingId)
+    .maybeSingle();
+  if (!prop) return false;
+  const reservation = await getHospitableReservation(token, reservationId);
+  if (!reservation) return false;
+  return mirrorCheckinForReservation(prop.id as string, reservation);
+}
+
 async function resyncForEvent(
   plugin: ChannelPlugin,
+  action: string,
   reservationId: string | null,
   propertyExternalId: string | null,
-): Promise<{ ok: boolean; reason?: string }> {
+): Promise<{ ok: boolean; reason?: string; mirrored?: boolean }> {
   const listingId = await resolveListingId(reservationId, propertyExternalId);
   if (!listingId) return { ok: true, reason: 'unidentified' };
 
@@ -110,6 +135,14 @@ async function resyncForEvent(
   }
   if (!customerId) return { ok: true, reason: 'unassigned' };
 
+  const access = await plugin.access(customerId);
+  if (!access) return { ok: true, reason: 'no_access' };
+
+  const mirrored =
+    reservationId && RESERVATION_ACTIONS.has(action)
+      ? await mirrorReservationNow(access.token, reservationId, listingId)
+      : false;
+
   const supabase = createSupabaseServiceRoleClient();
   const { data: conn } = await supabase
     .from('channel_connections')
@@ -118,17 +151,15 @@ async function resyncForEvent(
     .eq('provider', 'hospitable')
     .maybeSingle();
   const last = conn?.last_synced_at ? Date.parse(conn.last_synced_at as string) : 0;
-  if (last && Date.now() - last < RESYNC_DEBOUNCE_MS) return { ok: true, reason: 'debounced' };
-
-  const access = await plugin.access(customerId);
-  if (!access) return { ok: true, reason: 'no_access' };
+  if (last && Date.now() - last < RESYNC_DEBOUNCE_MS)
+    return { ok: true, reason: 'debounced', mirrored };
 
   await afterResponse(async () => {
     try {
       await plugin.sync(customerId, access, new Date());
     } catch {}
   });
-  return { ok: true, reason: 'syncing' };
+  return { ok: true, reason: 'syncing', mirrored };
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ provider: string }> }) {
@@ -170,8 +201,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
     const ev = extractHospitable(payload, action);
 
     if (RESYNC_ACTIONS.has(action)) {
-      const r = await resyncForEvent(plugin, ev.reservationId, ev.propertyExternalId);
-      return Response.json({ ok: r.ok, action, resync: r.reason });
+      const r = await resyncForEvent(plugin, action, ev.reservationId, ev.propertyExternalId);
+      return Response.json({ ok: r.ok, action, resync: r.reason, mirrored: r.mirrored ?? false });
     }
 
     if (action !== 'message.created' || !ev.reservationId) {

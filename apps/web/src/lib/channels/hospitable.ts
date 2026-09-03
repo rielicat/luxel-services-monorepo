@@ -183,6 +183,24 @@ export async function listHospitableReservations(
   return out;
 }
 
+export async function getHospitableReservation(
+  token: string,
+  reservationId: string,
+): Promise<HospitableReservation | null> {
+  try {
+    const res = await fetch(
+      `${BASE}/reservations/${encodeURIComponent(reservationId)}?include=guest`,
+      { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as { data?: HospitableReservation | null };
+    const one = json.data ?? null;
+    return one && typeof one.id === 'string' ? one : null;
+  } catch {
+    return null;
+  }
+}
+
 interface HospitableCalendarDay {
   date: string;
   day?: string | null;

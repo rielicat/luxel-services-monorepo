@@ -116,47 +116,78 @@ async function mirrorCheckinsForReservations(
 
   for (const r of accepted) {
     try {
-      if (r.arrival_date.slice(0, 10) < today) continue;
-      const uid = ref(r.id);
-      const lang = languageOf(r);
-      const arrival = r.arrival_date.slice(0, 10);
-      const departure = r.departure_date.slice(0, 10);
-      const { error } = await supabase.from('checkins').insert({
-        property_id: propertyId,
-        token: checkinToken(),
-        status: 'pending',
-        reservation_uid: uid,
-        confirmation_code: r.code || null,
+      await upsertCheckinRow(supabase, propertyId, r, today);
+    } catch {}
+  }
+}
+
+async function upsertCheckinRow(
+  supabase: Supabase,
+  propertyId: string,
+  r: HospitableReservation,
+  today: string,
+): Promise<boolean> {
+  const arrival = r.arrival_date.slice(0, 10);
+  if (arrival < today) return false;
+  const uid = ref(r.id);
+  const lang = languageOf(r);
+  const departure = r.departure_date.slice(0, 10);
+  const { error } = await supabase.from('checkins').insert({
+    property_id: propertyId,
+    token: checkinToken(),
+    status: 'pending',
+    reservation_uid: uid,
+    confirmation_code: r.code || null,
+    arrival_date: arrival,
+    departure_date: departure,
+    guest_language: lang,
+    expected_guests: r.guests?.total ?? null,
+  });
+  if (!error) return true;
+
+  const { data: existing } = await supabase
+    .from('checkins')
+    .select('arrival_date, departure_date, confirmation_code, guest_language, revoked_at')
+    .eq('reservation_uid', uid)
+    .maybeSingle();
+  if (!existing) return false;
+  if (
+    existing.arrival_date !== arrival ||
+    existing.departure_date !== departure ||
+    existing.revoked_at !== null ||
+    (r.code && !existing.confirmation_code) ||
+    (lang && !existing.guest_language)
+  ) {
+    await supabase
+      .from('checkins')
+      .update({
         arrival_date: arrival,
         departure_date: departure,
-        guest_language: lang,
-        expected_guests: r.guests?.total ?? null,
-      });
-      if (!error) continue;
+        revoked_at: null,
+        ...(r.code ? { confirmation_code: r.code } : {}),
+        ...(lang && !existing.guest_language ? { guest_language: lang } : {}),
+      })
+      .eq('reservation_uid', uid);
+  }
+  return true;
+}
 
-      const { data: existing } = await supabase
-        .from('checkins')
-        .select('arrival_date, departure_date, confirmation_code, guest_language')
-        .eq('reservation_uid', uid)
-        .maybeSingle();
-      if (!existing) continue;
-      if (
-        existing.arrival_date !== arrival ||
-        existing.departure_date !== departure ||
-        (r.code && !existing.confirmation_code) ||
-        (lang && !existing.guest_language)
-      ) {
-        await supabase
-          .from('checkins')
-          .update({
-            arrival_date: arrival,
-            departure_date: departure,
-            ...(r.code ? { confirmation_code: r.code } : {}),
-            ...(lang && !existing.guest_language ? { guest_language: lang } : {}),
-          })
-          .eq('reservation_uid', uid);
-      }
-    } catch {}
+export function isAcceptedReservation(r: HospitableReservation): boolean {
+  const cat = r.reservation_status?.current?.category ?? r.status ?? '';
+  return ['accepted', 'active', 'confirmed'].includes(String(cat).toLowerCase());
+}
+
+export async function mirrorCheckinForReservation(
+  propertyId: string,
+  r: HospitableReservation,
+  now: Date = new Date(),
+): Promise<boolean> {
+  if (!isAcceptedReservation(r)) return false;
+  const supabase = createSupabaseServiceRoleClient();
+  try {
+    return await upsertCheckinRow(supabase, propertyId, r, santiagoToday(now));
+  } catch {
+    return false;
   }
 }
 
@@ -619,10 +650,7 @@ export async function syncHospitableAccount(
     const endDate = iso(new Date(now.getTime() + 400 * DAY));
     const reservations = await listHospitableReservations(token, rp.id, startDate, endDate);
     if (reservations) {
-      const accepted = reservations.filter((r) => {
-        const cat = r.reservation_status?.current?.category ?? r.status ?? '';
-        return ['accepted', 'active', 'confirmed'].includes(String(cat).toLowerCase());
-      });
+      const accepted = reservations.filter(isAcceptedReservation);
       await supabase
         .from('calendar_blocks')
         .delete()
