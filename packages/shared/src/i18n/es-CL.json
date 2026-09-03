@@ -376,7 +376,9 @@
     "d_revenue_by_stay": "Ingreso por estadía",
     "d_occupancy_prev": "Ocupación del mes pasado: {p}%.",
     "d_month_partial": "El mes va corriendo: falta lo que queda de {month} para tener el total.",
-    "delta_prev_month": "{d} pts vs. mes pasado cerrado"
+    "delta_prev_month": "{d} pts vs. mes pasado cerrado",
+    "d_revenue_split": "Estadías cerradas del mes: {income} de reservas y {cleaning} de tarifa de limpieza, que va completa al equipo de aseo.",
+    "d_revenue_no_stays": "Todavía no hay estadías cerradas este mes. La tarifa de limpieza que pague el huésped va completa al equipo de aseo."
   },
   "onboarding": {
     "title": "Así lo dejamos andando",

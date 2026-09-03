@@ -121,15 +121,23 @@ function SlimHero({ property }: { property: PropertyRow }) {
   );
 }
 
+export interface RealizedMonth {
+  cleaningFeeClp: number;
+  commissionBaseClp: number;
+  stays: number;
+}
+
 export function PropertyDetailClient({
   property,
   liveDays,
+  realized,
   today,
   month,
   recommended,
 }: {
   property: PropertyRow;
   liveDays: LiveDay[] | null;
+  realized: RealizedMonth;
   today: string;
   month: MonthWindow;
   recommended?: Record<string, number> | null;
@@ -179,6 +187,12 @@ export function PropertyDetailClient({
           ? t('d_revenue_nights', { n: reservedNights, month: monthName })
           : t('d_no_calendar'),
         ...(monthRunning ? [t('d_month_partial', { month: monthName })] : []),
+        realized.stays > 0
+          ? t('d_revenue_split', {
+              income: clp(realized.commissionBaseClp),
+              cleaning: clp(realized.cleaningFeeClp),
+            })
+          : t('d_revenue_no_stays'),
         t('d_revenue_disclaimer'),
       ],
     },

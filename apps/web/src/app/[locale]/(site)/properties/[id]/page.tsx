@@ -7,7 +7,7 @@ import { hospitableAccess } from '@/lib/channels/scope';
 import { resolvePricelabsRef } from '@/lib/pricelabs/link';
 import { getPricelabsPrices } from '@/lib/pricelabs/client';
 import { santiagoToday, shiftDate } from '@/lib/checkin/window';
-import { monthBounds, santiagoMonth } from '@/lib/revenue';
+import { monthBounds, realizedRevenueForProperty, santiagoMonth } from '@/lib/revenue';
 import type { PropertyRow } from '../properties-client';
 import { PropertyDetailClient, type LiveDay, type MonthWindow } from './detail-client';
 
@@ -39,6 +39,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   const now = new Date();
   const today = santiagoToday(now);
   const month = currentMonthWindow(santiagoMonth(now), today);
+  const realized = await realizedRevenueForProperty(property.id, santiagoMonth(now), now);
   let liveDays: LiveDay[] | null = null;
   if (property.external_listing_id) {
     const access = await hospitableAccess(customer.id);
@@ -78,6 +79,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     <PropertyDetailClient
       property={property}
       liveDays={liveDays}
+      realized={realized}
       today={today}
       month={month}
       recommended={recommended}
