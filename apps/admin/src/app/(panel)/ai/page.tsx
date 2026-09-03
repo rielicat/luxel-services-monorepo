@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Bot } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase';
 import { Card, Pill } from '@/components/ui';
@@ -115,11 +116,6 @@ async function getAiSettings(): Promise<AiView> {
   return { rows, owners, pending, needsHost, failed: false, threadsFailed: false };
 }
 
-function inboxUrl(): string | null {
-  const base = (process.env.NEXT_PUBLIC_WEB_URL ?? '').trim().replace(/\/$/, '');
-  return base ? `${base}/admin/inbox` : null;
-}
-
 export default async function AiPage({
   searchParams,
 }: {
@@ -137,7 +133,6 @@ export default async function AiPage({
   const answering = rows.filter((r) => r.ai_replies).length;
   const reviewing = rows.filter((r) => r.ai_replies && r.ai_reviews).length;
   const pendingTotal = Object.values(pending).reduce((sum, n) => sum + n, 0);
-  const inbox = inboxUrl();
   const changed = ok === undefined ? null : Number(ok);
 
   return (
@@ -151,20 +146,11 @@ export default async function AiPage({
           {!threadsFailed && <> · {pendingTotal} borradores pendientes</>}
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          Con revisión activa Lux redacta y no envía nada: un operador aprueba el texto
-          {inbox ? (
-            <>
-              {' '}
-              en la{' '}
-              <a href={inbox} className="text-primary hover:underline">
-                bandeja de huéspedes
-              </a>
-              .
-            </>
-          ) : (
-            <> en la bandeja de huéspedes de la app web.</>
-          )}{' '}
-          Sin revisión, Lux responde solo. Con Lux apagado, la conversación queda para una persona
+          Con revisión activa Lux redacta y no envía nada: un operador aprueba el texto en la{' '}
+          <Link href="/inbox" className="text-primary hover:underline">
+            bandeja de huéspedes
+          </Link>
+          . Sin revisión, Lux responde solo. Con Lux apagado, la conversación queda para una persona
           de Luxel.
         </p>
       </div>

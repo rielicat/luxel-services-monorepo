@@ -9,3 +9,8 @@ export function appUrl(): string {
   if (preview) return `https://${preview}`;
   return 'http://localhost:3000';
 }
+
+export function webUrl(): string {
+  const configured = (process.env.NEXT_PUBLIC_WEB_URL ?? '').trim().replace(/\/$/, '');
+  return configured || appUrl();
+}

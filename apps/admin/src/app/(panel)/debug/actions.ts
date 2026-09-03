@@ -7,7 +7,7 @@ import { checkinToken } from '@luxel/core/checkin/tokens';
 import { listHospitableProperties } from '@luxel/core/channels/hospitable';
 import { listPricelabsListings, pricelabsConfigured } from '@luxel/core/pricelabs/client';
 import { autoAssignListings } from '@luxel/core/channels/auto-assign';
-import { appUrl } from '@luxel/core/urls';
+import { webUrl } from '@luxel/core/urls';
 import { providerApiKey } from '@luxel/core/channels/credentials';
 
 export type ProbeResult = { name: string; ok: boolean; detail: string };
@@ -80,7 +80,7 @@ export async function debugCheckinLink(
     .from('checkins')
     .insert({ property_id: p.data.propertyId, token, status: 'pending' });
   if (error) return { ok: false, error: 'store' };
-  return { ok: true, url: `${appUrl()}/checkin/${token}` };
+  return { ok: true, url: `${webUrl()}/checkin/${token}` };
 }
 
 export async function debugCleaningLink(
@@ -99,7 +99,7 @@ export async function debugCleaningLink(
     .limit(1)
     .maybeSingle();
   if (!data?.confirm_token) return { ok: false, error: 'no_cleaning' };
-  return { ok: true, url: `${appUrl()}/cleaning/confirm/${data.confirm_token}` };
+  return { ok: true, url: `${webUrl()}/cleaning/confirm/${data.confirm_token}` };
 }
 
 export async function debugAutoAssign(): Promise<{
