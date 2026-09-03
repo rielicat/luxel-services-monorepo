@@ -1419,6 +1419,125 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     expect(SENT.length).toBe(sends);
   });
 
+  it("keeps an operator's direct stay whole through a sync that never heard of it", async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const propertyId = prop!.id as string;
+    await admin.from('checkins').delete().eq('property_id', propertyId);
+
+    const stayId = nodeCrypto.randomUUID();
+    const uid = `manual:${stayId}`;
+    const token = nodeCrypto.randomBytes(24).toString('base64url');
+    const { error: blockError } = await admin.from('calendar_blocks').insert({
+      property_id: propertyId,
+      starts_on: '2027-03-20',
+      ends_on: '2027-03-23',
+      source: 'import',
+      origin: 'manual',
+      summary: 'Estadía directa',
+      external_uid: uid,
+    });
+    expect(blockError).toBeNull();
+    const { error: checkinError } = await admin.from('checkins').insert({
+      property_id: propertyId,
+      token,
+      status: 'pending',
+      origin: 'manual',
+      reservation_uid: uid,
+      confirmation_code: 'HMRSHPJXAE',
+      guest_name: 'Directo Rivas',
+      arrival_date: '2027-03-20',
+      departure_date: '2027-03-23',
+      arrival_time: '15:00',
+      departure_time: '11:00',
+      expected_guests: 2,
+    });
+    expect(checkinError).toBeNull();
+
+    expect((await syncHospitable()).ok).toBe(true);
+    expect((await syncHospitable()).ok).toBe(true);
+
+    const { data: stayed } = await admin
+      .from('checkins')
+      .select('token, reservation_uid, revoked_at, origin, arrival_date, expected_guests')
+      .eq('property_id', propertyId)
+      .eq('origin', 'manual')
+      .single();
+    expect(stayed).toMatchObject({
+      token,
+      reservation_uid: uid,
+      revoked_at: null,
+      arrival_date: '2027-03-20',
+      expected_guests: 2,
+    });
+
+    const { data: block } = await admin
+      .from('calendar_blocks')
+      .select('starts_on, ends_on, origin')
+      .eq('property_id', propertyId)
+      .eq('external_uid', uid)
+      .single();
+    expect(block).toMatchObject({ starts_on: '2027-03-20', ends_on: '2027-03-23' });
+
+    const { findCheckin } = await import('@luxel/core/checkin/resolve');
+    const resolved = await findCheckin(admin, token, 'id, property_id, revoked_at, status');
+    expect(resolved).toMatchObject({ property_id: propertyId, revoked_at: null });
+  });
+
+  it('refuses a direct stay whose nights are already taken, and never blocks an import', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('owner_id', customerId)
+      .single();
+    const propertyId = prop!.id as string;
+
+    const manual = (starts: string, ends: string) =>
+      admin.from('calendar_blocks').insert({
+        property_id: propertyId,
+        starts_on: starts,
+        ends_on: ends,
+        source: 'import',
+        origin: 'manual',
+        summary: 'Estadía directa',
+        external_uid: `manual:${nodeCrypto.randomUUID()}`,
+      });
+
+    const clash = await manual('2027-03-04', '2027-03-06');
+    expect(clash.error?.code).toBe('23P01');
+
+    const turnover = await manual('2027-03-05', '2027-03-08');
+    expect(turnover.error).toBeNull();
+
+    const onItself = await manual('2027-03-07', '2027-03-09');
+    expect(onItself.error?.code).toBe('23P01');
+
+    const zeroNights = await manual('2027-03-25', '2027-03-25');
+    expect(zeroNights.error?.code).toBe('23514');
+
+    const { error: importError } = await admin.from('calendar_blocks').insert({
+      property_id: propertyId,
+      starts_on: '2027-03-06',
+      ends_on: '2027-03-07',
+      source: 'import',
+      summary: 'Airbnb OVERLAPPING',
+      external_uid: `feed:${nodeCrypto.randomUUID()}`,
+    });
+    expect(importError).toBeNull();
+
+    const { count } = await admin
+      .from('calendar_blocks')
+      .select('*', { count: 'exact', head: true })
+      .eq('property_id', propertyId)
+      .eq('origin', 'manual');
+    expect(count).toBe(1);
+  });
+
   it('asks the mirrored cleaning crew to confirm each scheduled cleaning, once', async () => {
     await connectHospitable({ token: FAKE_TOKEN });
     const { data: prop } = await admin

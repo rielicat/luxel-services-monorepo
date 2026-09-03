@@ -69,7 +69,7 @@ export function buildStays(
   const covered = new Set<string>();
   const stays: Stay[] = imported.map((b) => {
     let revenue = 0;
-    let priced = liveDays != null;
+    let priced = liveDays != null && b.origin !== 'manual';
     for (let d = b.starts_on; d < b.ends_on; d = addDays(d, 1)) {
       covered.add(d);
       const p = price.get(d);

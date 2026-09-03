@@ -15,6 +15,7 @@ import {
   MessagesSquare,
   Building2,
   Wrench,
+  CalendarPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LuxelMark } from './ui';
@@ -25,6 +26,7 @@ const NAV = [
   { href: '/leads', label: 'Leads', Icon: Radio },
   { href: '/plans', label: 'Planes', Icon: CreditCard },
   { href: '/crew', label: 'Equipo', Icon: HardHat },
+  { href: '/stays', label: 'Estadías', Icon: CalendarPlus },
   { href: '/ai', label: 'Lux', Icon: Bot },
   { href: '/inbox', label: 'Huéspedes', Icon: MessagesSquare },
   { href: '/listings', label: 'Propiedades', Icon: Building2 },

@@ -10,7 +10,8 @@
     "./i18n": "./src/i18n/index.ts",
     "./whatsapp": "./src/whatsapp.ts",
     "./constants": "./src/constants.ts",
-    "./plan-pricing": "./src/plan-pricing.ts"
+    "./plan-pricing": "./src/plan-pricing.ts",
+    "./hospitable-calendar": "./src/hospitable-calendar.ts"
   },
   "scripts": {
     "lint": "eslint .",

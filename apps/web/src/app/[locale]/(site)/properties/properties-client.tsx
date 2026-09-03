@@ -19,6 +19,7 @@ export type Block = {
   starts_on: string;
   ends_on: string;
   source: 'import' | 'manual';
+  origin?: 'channel' | 'manual' | null;
   summary: string | null;
   confirmation_code?: string | null;
 };
