@@ -85,4 +85,23 @@ describe('clerk auth status on every matched request', () => {
     expect(res.headers.get('x-middleware-request-x-clerk-auth-status')).toBe('signed-out');
     expect(servedPath(res, '/api/events')).toBe('/api/events');
   });
+
+  it('leaves the crew walkthrough routes on the token, with no sign-in bounce', async () => {
+    const token = '11111111-2222-4333-8444-555555555555';
+    const page = await run(`/cleaning/confirm/${token}`);
+    expect(page.status).not.toBe(307);
+    expect(servedPath(page, `/cleaning/confirm/${token}`)).toBe(`/es/cleaning/confirm/${token}`);
+
+    const api = await run('/api/cleaning/inventory');
+    expect(api.status).not.toBe(307);
+    expect(api.status).not.toBe(401);
+    expect(servedPath(api, '/api/cleaning/inventory')).toBe('/api/cleaning/inventory');
+  });
+
+  it('leaves the review callback on its own token, with no sign-in bounce', async () => {
+    const res = await run('/api/cleaning/review');
+    expect(res.status).not.toBe(307);
+    expect(res.status).not.toBe(401);
+    expect(servedPath(res, '/api/cleaning/review')).toBe('/api/cleaning/review');
+  });
 });

@@ -24,6 +24,81 @@ rules. Do not add code paths that break them.
   crew (`lib/cleaning/notify.ts`). Hosts have no cleaning controls and no
   guest inbox. `guest_threads` status `needs_host` means "needs a Luxel
   human". Do not add host-facing crew or inbox surfaces.
+- A cleaning **walkthrough video** is Luxel-owned and short-lived. The crew
+  records it in the browser; the browser sends it straight to the Cloudflare
+  Worker, which puts it in the R2 bucket `luxel-cleaning-media`. It never passes
+  through a Next.js route, and no host-facing or public surface may show it.
+  `cleaning_walkthrough` holds the object key, the bytes, the duration, who
+  recorded it, when, the cleaning, and `retention_until`. RLS is on with no
+  policy, so the table is service-role only. The worker chooses the object key
+  (`walkthrough/<cleaning id>/<32 hex>.<mp4|webm>`); the caller never names it,
+  and there is no list route, so a leaked key reaches one object. The upload and
+  read tickets are sealed with AES-GCM, keyed by `CLEANING_MEDIA_KEY` (falling
+  back to `INTERNAL_SEND_TOKEN` while it is unset), so a ticket is opaque and the
+  object key cannot be read back from a URL, a Workers Log or `wrangler tail`.
+  Each names one key and one operation and expires in 15 and 10 minutes. The
+  upload leg sends the ticket in the `x-luxel-ticket` header; only the read leg
+  keeps it in the URL, because a `<video>` element cannot set a header. The media
+  routes accept the media secret alone once it is set. Never log an object key, a ticket or a media URL: the video
+  shows the inside of a home. Retention is the worker's nightly cron
+  (`purgeExpiredWalkthroughs`), backed by an R2 lifecycle rule in
+  `infra/cloudflare`. It is never a Vercel cron.
+- The **crew flow** lives on one page, `/cleaning/confirm/[token]`. The confirm
+  token stays the only credential and the only key: every server action takes the
+  token and derives the cleaning itself, so one crew member never reaches another
+  property's stay. After the crew confirms attendance the page shows three steps:
+  the checklist (`cleaning_checklist`), the walkthrough video, and the inventory.
+  Every step is server state, so a reload lands the crew back where they were. A
+  recording that has not been uploaded yet is held in IndexedDB and rehydrated,
+  and the page warns before it goes. The link closes three days after the
+  cleaning date: past that the page renders nothing but a closed notice, and
+  every action and the model route refuse. The page is `noindex`.
+- The crew's browser does all the video work. It constrains `getUserMedia` to
+  960x540 at 12 fps, caps `MediaRecorder` at 800 kbps and stops at
+  `WALKTHROUGH_MAX_SECONDS`, so two minutes lands near 11 MB. Safari defaults to
+  10 Mbps, so the bitrate is not optional. The MIME type is negotiated MP4 first
+  and `video/x-matroska` is never accepted. Nothing is transcoded, here or on a
+  server. The crew sees the size before the upload, and a failed upload retries
+  from the same recording.
+- The walkthrough **inventory** is a two-table review gate, like the guest reply
+  drafts. Gemini writes `cleaning_inventory_draft` (`pending`, `ready`,
+  `unavailable`, `failed`) and sends nothing anywhere. Only the crew's
+  confirmation writes `cleaning_inventory`, and that row is the record. `source`
+  is `ai` only when a `ready` draft exists and the confirmed items match it
+  exactly; any correction, and any hand-written list, is `crew`. Confirming is
+  what moves `cleanings.status` to `done` — the only writer of that value. The
+  baseline the model compares against is the **previous confirmed inventory** for
+  that property, never the previous video: it survives the video being purged,
+  and the first cleaning of a property simply has no baseline.
+- The model is reached from `POST /api/cleaning/inventory`, keyed by the same
+  token, claimed with a compare-and-swap on `claimed_at` so two tabs cannot run
+  it twice. `store: false` on every call, and the uploaded file is deleted after
+  the run. Never log the model's raw description: it describes a home interior.
+  Without `GOOGLE_API_KEY` the draft is written `unavailable` and the crew fills
+  the inventory by hand — no crash, no dead end. The key must come from a
+  billing-enabled Google project; see [`DEPLOY.md`](./DEPLOY.md).
+- After the crew confirms, a durable review compares the walkthrough against the
+  property's previous confirmed inventory. It is asynchronous and never blocks
+  the crew. `cleaning_review` is one row per cleaning (`queued`, `running`,
+  `done`, `skipped`, `failed`); the Cloudflare Workflow `cleaning-review` drives
+  it and owns the backoff. One instance per start, with an id unique to that call
+  (`rev-<run id>-<epoch ms>-<random>`), so a retry or the nightly sweep can always
+  start a fresh one; a refused start answers 503 and the sweep then runs the
+  attempt directly. The instance calls
+  `POST /api/cleaning/review` with `INTERNAL_SEND_TOKEN`. Findings merge the exact
+  diff of the two confirmed inventories (`compare`) with Gemini re-reading the
+  video (`video`), deduped on kind + room + name. A settled run writes nothing, so
+  a replay adds nothing. The first cleaning of a property is `skipped` with reason
+  `no_baseline` and zero findings; it never invents one. An exhausted run is
+  `failed`, keeps the compare findings and is retryable at `/cleanings`. The
+  nightly cron re-drives queued runs. Findings reach a Luxel operator over
+  `sendWhatsAppViaWorker`, at most once, and never reach the host. Never log a
+  finding's text.
+- Operators watch all of this at `/cleanings` in `apps/admin`: state per
+  property and per cleaning, the video behind a button that mints a read ticket
+  on demand, the confirmed inventory, the review state and its findings. It is
+  operator-only. The host never sees the crew, the video, the inventory or the
+  findings.
 - A stay outside Airbnb is operator-created, at `/stays` in `apps/admin`. The
   action blocks the nights in Hospitable first with a calendar `PUT`. It records
   nothing locally until that call succeeds. It then writes a `calendar_blocks`

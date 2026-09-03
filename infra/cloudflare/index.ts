@@ -1,6 +1,7 @@
 import { zoneName } from './config';
 import { apexRecord, wwwRecord, dmarcRecord, adminRecord } from './dns';
 import { settings, rules, catchAll } from './email';
+import { cleaningMedia, cleaningMediaLifecycle } from './r2';
 
 export const zone = zoneName;
 export const apex = apexRecord.id;
@@ -10,3 +11,5 @@ export const admin = adminRecord?.id;
 export const emailSettingsId = settings?.id;
 export const emailRuleCount = rules.length;
 export const catchAllId = catchAll?.id;
+export const cleaningMediaBucketName = cleaningMedia.name;
+export const cleaningMediaLifecycleId = cleaningMediaLifecycle.id;

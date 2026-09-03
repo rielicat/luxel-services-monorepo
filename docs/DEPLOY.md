@@ -9,14 +9,16 @@ Vercel project has one root directory.
 | Operator panel (`@luxel/admin`) | `apps/admin`   | `admin.serviciosluxel.cl` (internal)         |
 
 The Cloudflare Worker (`workers/whatsapp`, named `luxel-whatsapp-webhook`)
-deploys separately with `wrangler deploy`.
+deploys separately with `wrangler deploy`. It also owns the cleaning walkthrough
+media routes, the R2 binding, the `cleaning-review` Workflow and the nightly
+cron that purges old videos and re-drives queued reviews.
 
 Infrastructure is code. Two Pulumi (TS) programs share a state backend in
 Cloudflare R2:
 
 | Program                                             | Manages                                                                                   | Applied by                           |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------ |
-| [`infra/cloudflare`](../infra/cloudflare/README.md) | The zone: DNS + Email Routing                                                             | `.github/workflows/infra.yml`        |
+| [`infra/cloudflare`](../infra/cloudflare/README.md) | The zone: DNS + Email Routing, and the `luxel-cleaning-media` R2 bucket                   | `.github/workflows/infra.yml`        |
 | [`infra/vercel`](../infra/vercel/README.md)         | The two Vercel projects. Adopts `web`. Creates `admin` with its domain and non-secret env | `.github/workflows/infra-vercel.yml` |
 
 Neither program deploys app code. Vercel's Git integration deploys `web` and
@@ -45,9 +47,17 @@ These are external accounts. The code cannot provision them:
    [`ENV.md`](./ENV.md) § Scheduled guest messages.
 4. **OpenAI** — an API key for Lux and the guest auto-replies (`OPENAI_API_KEY`).
    The model is pinned in code (`lib/ai/client.ts`). There is no env override.
-5. **Resend** — verify the sending domain. Set `RESEND_API_KEY` and
+5. **Google AI (Gemini)** — an API key for the cleaning walkthrough inventory
+   pre-fill and the later review (`GOOGLE_API_KEY`). **Issue it from a project
+   with billing enabled.** The unpaid tier's terms permit training on and human
+   review of submitted content; a walkthrough video shows the inside of a host's
+   home. The code cannot detect an unpaid key, so this is an operator control.
+   Without the key the crew still records and writes the inventory by hand, and
+   the review still reports differences from the two confirmed inventories. The
+   model is pinned in `lib/ai/gemini.ts`.
+6. **Resend** — verify the sending domain. Set `RESEND_API_KEY` and
    `RESEND_FROM`.
-6. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
+7. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
    secrets with `wrangler secret put`. Use a System User token, never the 24-hour
    token from the app dashboard. Subscribe the webhook with the Graph API:
    `POST /{app-id}/subscriptions` (`object=whatsapp_business_account`,
@@ -56,11 +66,30 @@ These are external accounts. The code cannot provision them:
    with the System User token. Get the templates `luxel_conserje_registro` and
    `luxel_aseo_confirmacion` approved. Set `WHATSAPP_WORKER_SEND_URL` and
    `INTERNAL_SEND_TOKEN` on the web project.
-7. **PriceLabs** — `PRICELABS_API_KEY` for dynamic pricing. Dynamic pricing is
+8. **PriceLabs** — `PRICELABS_API_KEY` for dynamic pricing. Dynamic pricing is
    part of every plan; without the key the pricing panel reports `unavailable`.
-8. **PostHog / Sentry** — optional. In-house analytics works without PostHog.
-9. **DNS** — records live in `infra/cloudflare`. They point the domains at
-   Vercel.
+9. **PostHog / Sentry** — optional. In-house analytics works without PostHog.
+10. **DNS** — records live in `infra/cloudflare`. They point the domains at
+    Vercel.
+11. **Cloudflare R2** — the bucket `luxel-cleaning-media` holds the cleaning
+    walkthrough videos. Set `CLEANING_MEDIA_KEY` as a worker secret and as a
+    Vercel variable on both projects, worker first. It seals the upload and read
+    tickets. It is optional — the worker falls back to `INTERNAL_SEND_TOKEN`
+    while it is unset — but set it: rotating it is the only way to revoke video
+    access without touching WhatsApp. `infra/cloudflare` creates the bucket and
+    its 30-day lifecycle rule. **The Pulumi `CLOUDFLARE_API_TOKEN` must gain `Account: Workers R2
+Storage: Edit`**, or `infra.yml` fails with a 403. Apply that stack
+    **before** the next `wrangler deploy`: the worker binds the bucket, and
+    `wrangler deploy` does not create it.
+12. **Cloudflare Workflows** — the `cleaning-review` Workflow compares a
+    confirmed walkthrough against the previous confirmed inventory. Workflows run
+    on the Workers **Free** plan; there is no plan to buy. `wrangler deploy`
+    provisions the Workflow from the `[[workflows]]` block, so the only operator
+    step is the deploy itself. Two settings must match the live environment
+    before that deploy: `LUXEL_APP_URL` in `wrangler.toml` must be the web app's
+    origin, and `INTERNAL_SEND_TOKEN` must hold the same value on the worker and
+    on the web project — the worker calls the web app back with it. Without the
+    Workflow the reviews still run, one attempt per night, from the cron sweep.
 
 Plan billing has no external account. Luxel invoices the plans off-platform.
 

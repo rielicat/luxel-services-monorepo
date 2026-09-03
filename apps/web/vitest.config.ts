@@ -13,6 +13,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
       'server-only': path.resolve(__dirname, 'test/stubs/server-only.ts'),
+      'cloudflare:workers': path.resolve(__dirname, 'test/stubs/cloudflare-workers.ts'),
     },
   },
 });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { confirmCleaningAttendance } from './actions';
 
 export function ConfirmButton({ token }: { token: string }) {
   const t = useTranslations('crew');
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [state, setState] = useState<'idle' | 'done' | 'error'>('idle');
 
@@ -28,6 +30,7 @@ export function ConfirmButton({ token }: { token: string }) {
           start(async () => {
             const r = await confirmCleaningAttendance(token);
             setState(r.ok ? 'done' : 'error');
+            if (r.ok) router.refresh();
           })
         }
       >

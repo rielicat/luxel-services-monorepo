@@ -9,6 +9,9 @@
     ".": "./src/index.ts",
     "./i18n": "./src/i18n/index.ts",
     "./whatsapp": "./src/whatsapp.ts",
+    "./cleaning-media": "./src/cleaning-media.ts",
+    "./cleaning-inventory": "./src/cleaning-inventory.ts",
+    "./cleaning-review": "./src/cleaning-review.ts",
     "./constants": "./src/constants.ts",
     "./plan-pricing": "./src/plan-pricing.ts",
     "./hospitable-calendar": "./src/hospitable-calendar.ts"

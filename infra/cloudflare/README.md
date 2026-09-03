@@ -1,11 +1,13 @@
 # Cloudflare IaC (Pulumi · TypeScript)
 
 Manages the **`serviciosluxel.cl` Cloudflare zone** as code: DNS records (Vercel
-apex/`www`, DMARC) and **Email Routing** (settings, destinations, rules, catch-all).
+apex/`www`, DMARC), **Email Routing** (settings, destinations, rules, catch-all)
+and the **`luxel-cleaning-media` R2 bucket** with its retention lifecycle rule.
 
 State lives in **Cloudflare R2** (S3-compatible Pulumi backend). The WhatsApp
 **Worker** is intentionally out of scope here — it stays on `wrangler`
-(`workers/whatsapp`), which is already code.
+(`workers/whatsapp`), which is already code. The worker only _binds_ the media
+bucket; this program owns it.
 
 > ⚠️ These records serve **live production traffic** (the site's DNS and email).
 > The workflow below **adopts** the existing resources via import so the first
@@ -20,7 +22,9 @@ State lives in **Cloudflare R2** (S3-compatible Pulumi backend). The WhatsApp
 - Two Cloudflare API tokens (create at **My Profile → API Tokens**):
   - **Terraform/Pulumi token** — permissions:
     `Zone:DNS:Edit`, `Zone:Zone:Read`, `Zone:Email Routing Rules:Edit`,
-    `Account:Email Routing Addresses:Edit`, scoped to this zone/account.
+    `Account:Email Routing Addresses:Edit`, `Account:Workers R2 Storage:Edit`,
+    scoped to this zone/account. The R2 scope is what creates the media bucket;
+    without it `pulumi up` fails with a 403.
   - **R2 token** — an R2 "S3 API" token (Access Key ID + Secret) for the state bucket.
 
 Install deps once from the repo root:
@@ -145,6 +149,32 @@ Required repo secrets: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
 | Apex `A` → Vercel, `www` `CNAME` → Vercel              | The WhatsApp Worker (`wrangler`, `workers/whatsapp`) |
 | `_dmarc` TXT                                           | MX / SPF / DKIM — auto-managed by Email Routing      |
 | Email Routing settings, destinations, rules, catch-all | Vercel project / domain config                       |
+| `luxel-cleaning-media` R2 bucket + lifecycle rule      | The worker's R2 binding (`wrangler.toml`)            |
+|                                                        | The `cleaning-review` Workflow (`wrangler.toml`)     |
+
+## Cleaning media bucket
+
+`r2.ts` creates `luxel-cleaning-media` and one lifecycle rule,
+`expire-walkthroughs`: it deletes every object under `walkthrough/` after 30
+days, and aborts a stalled multipart upload after one day. Cloudflare runs the
+rule; there is no code and no cron behind it. The worker's own nightly cron
+deletes an object as soon as its `cleaning_walkthrough.retention_until` passes,
+so the lifecycle rule is the backstop, not the primary path.
+
+Three stack settings tune it, all optional:
+`cleaningMediaBucket` (default `luxel-cleaning-media`), `cleaningMediaLocation`
+(default `wnam`) and `cleaningMediaRetentionDays` (default `30`). Cloudflare
+honours `location` only when it first creates a bucket with that name.
+
+**Apply this stack before the next `wrangler deploy`.** `wrangler deploy` binds
+the bucket; it does not create it.
+
+## The cleaning-review Workflow stays on wrangler
+
+`wrangler deploy` provisions the Workflow from the `[[workflows]]` block in
+`workers/whatsapp/wrangler.toml`. `cloudflare.Workflow` in Pulumi attaches to a
+named worker script, so declaring it here as well would make Pulumi and wrangler
+fight over the same object on every deploy. Do not add it.
 
 MX, SPF and the `cf2024-1` DKIM record are created and owned by Cloudflare Email
 Routing; declaring them as `DnsRecord`s would fight that automation, so they're

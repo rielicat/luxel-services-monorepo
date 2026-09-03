@@ -68,11 +68,11 @@ Web tests need local Supabase and `apps/web/.env.local` sourced. Scope with
 ```
 apps/web         @luxel/web              customer app → Vercel (serviciosluxel.cl)
 apps/admin       @luxel/admin            operator panel → Vercel
-workers/whatsapp @luxel/whatsapp-worker  Cloudflare Worker: WhatsApp webhook + /send
+workers/whatsapp @luxel/whatsapp-worker  Cloudflare Worker: WhatsApp webhook, /send, cleaning media
 packages/core    @luxel/core             server domain: channels, AI, messaging, Supabase, crew
 packages/shared  @luxel/shared           i18n catalogs, WhatsApp template kinds, constants
 packages/config  @luxel/config           ESLint / TS / Tailwind presets
-infra/cloudflare @luxel/infra-cloudflare Pulumi: DNS + Email Routing (R2 state)
+infra/cloudflare @luxel/infra-cloudflare Pulumi: DNS + Email Routing + R2 media bucket
 infra/vercel     @luxel/infra-vercel     Pulumi: Vercel projects, CI-driven
 supabase/        migrations + local config
 ```
@@ -82,7 +82,7 @@ supabase/        migrations + local config
 | Concern         | Tool                                                                                                     |
 | --------------- | -------------------------------------------------------------------------------------------------------- |
 | Hosting         | Vercel (one project per app root)                                                                        |
-| Edge            | Cloudflare Workers, DNS, Email Routing                                                                   |
+| Edge            | Cloudflare Workers, DNS, Email Routing, R2 (`luxel-cleaning-media`)                                      |
 | Auth            | Clerk. `apps/web` = host sign-in only; `apps/admin` = Clerk org membership (`LUXEL_ADMIN_ORG_ID`/`SLUG`) |
 | Database        | Supabase Postgres + RLS                                                                                  |
 | Channel (PMS)   | Hospitable, as a plugin behind `packages/core/src/channels/registry.ts`                                  |
@@ -136,6 +136,86 @@ supabase/        migrations + local config
   Hosts have no cleaning controls and no guest inbox. `guest_threads` status
   `needs_host` means "needs a Luxel human". Do not add host-facing crew or inbox
   surfaces.
+- A cleaning **walkthrough video** is Luxel-owned and short-lived. The crew
+  records it in the browser; the browser sends it straight to the Cloudflare
+  Worker, which puts it in the R2 bucket `luxel-cleaning-media`. It never passes
+  through a Next.js route, and no host-facing or public surface may show it.
+  `cleaning_walkthrough` holds the object key, the bytes, the duration, who
+  recorded it, when, the cleaning, and `retention_until`. RLS is on with no
+  policy, so the table is service-role only. The worker chooses the object key
+  (`walkthrough/<cleaning id>/<32 hex>.<mp4|webm>`); the caller never names it,
+  and there is no list route, so a leaked key reaches one object. The upload and
+  read tickets are sealed with AES-GCM, keyed by `CLEANING_MEDIA_KEY` (falling
+  back to `INTERNAL_SEND_TOKEN` while it is unset), so a ticket is opaque and the
+  object key cannot be read back from a URL, a Workers Log or `wrangler tail`.
+  Each names one key and one operation and expires in 15 and 10 minutes. The
+  upload leg sends the ticket in the `x-luxel-ticket` header; only the read leg
+  keeps it in the URL, because a `<video>` element cannot set a header. The media
+  routes accept the media secret alone once it is set. Never log an object key, a ticket or a media URL: the video
+  shows the inside of a home. Retention is the worker's nightly cron
+  (`purgeExpiredWalkthroughs`), backed by an R2 lifecycle rule in
+  `infra/cloudflare`. It is never a Vercel cron.
+- The **crew flow** lives on one page, `/cleaning/confirm/[token]`. The confirm
+  token stays the only credential and the only key: every server action takes the
+  token and derives the cleaning itself, so one crew member never reaches another
+  property's stay. After the crew confirms attendance the page shows three steps:
+  the checklist (`cleaning_checklist`), the walkthrough video, and the inventory.
+  Every step is server state, so a reload lands the crew back where they were. A
+  recording that has not been uploaded yet is held in IndexedDB and rehydrated,
+  and the page warns before it goes. The link closes three days after the
+  cleaning date: past that the page renders nothing but a closed notice, and
+  every action and the model route refuse. The page is `noindex`.
+- The crew's browser does all the video work. It constrains `getUserMedia` to
+  960x540 at 12 fps, caps `MediaRecorder` at 800 kbps and stops at
+  `WALKTHROUGH_MAX_SECONDS`, so two minutes lands near 11 MB. Safari defaults to
+  10 Mbps, so the bitrate is not optional. The MIME type is negotiated MP4 first
+  and `video/x-matroska` is never accepted. Nothing is transcoded, here or on a
+  server. The crew sees the size before the upload, and a failed upload retries
+  from the same recording.
+- The walkthrough **inventory** is a two-table review gate, like the guest reply
+  drafts. Gemini writes `cleaning_inventory_draft` (`pending`, `ready`,
+  `unavailable`, `failed`) and sends nothing anywhere. Only the crew's
+  confirmation writes `cleaning_inventory`, and that row is the record. `source`
+  is `ai` only when a `ready` draft exists and the confirmed items match it
+  exactly; any correction, and any hand-written list, is `crew`. Confirming is
+  what moves `cleanings.status` to `done` — the only writer of that value. The
+  baseline the model compares against is the **previous confirmed inventory** for
+  that property, never the previous video: it survives the video being purged,
+  and the first cleaning of a property simply has no baseline.
+- The model is reached from `POST /api/cleaning/inventory`, keyed by the same
+  token, claimed with a compare-and-swap on `claimed_at` so two tabs cannot run
+  it twice. `store: false` on every call, and the uploaded file is deleted after
+  the run. Never log the model's raw description: it describes a home interior.
+  Without `GOOGLE_API_KEY` the draft is written `unavailable` and the crew fills
+  the inventory by hand — no crash, no dead end. The key must come from a
+  billing-enabled Google project; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- After the crew confirms, a **durable review** compares the walkthrough against
+  the property's previous confirmed inventory. It is deliberately asynchronous:
+  it never blocks the crew and it never delays the confirmation. `cleaning_review`
+  is one row per cleaning (`queued`, `running`, `done`, `skipped`, `failed`), and
+  the Cloudflare Workflow `cleaning-review` in `workers/whatsapp` drives it. The
+  Workflow owns the retries: `POST /cleaning-review/start` creates one instance
+  per run and attempt (`rev-<run id>-<attempt>`), and the instance calls
+  `POST /api/cleaning/review` on the web app with `INTERNAL_SEND_TOKEN`. A
+  `retry` answer throws inside the step, so Cloudflare backs off exponentially.
+  Findings come from two sources and are merged, never appended: the exact diff
+  of the two confirmed inventories (`source` `compare`), and Gemini re-reading the
+  video against that baseline (`source` `video`). `mergeFindings` dedupes on
+  kind + room + name, and a run already `done`, `skipped` or `failed` returns its
+  stored findings and writes nothing, so a replay adds nothing. The first cleaning
+  of a property has no baseline: the run is `skipped` with reason `no_baseline`
+  and zero findings. It never invents one. After `REVIEW_MAX_ATTEMPTS` the run is
+  `failed`, keeps the compare findings and is visible at `/cleanings`, where an
+  operator can retry it. The nightly worker cron re-drives every run still queued,
+  so a lost start call costs a night, never the review. Findings reach a Luxel
+  operator over the existing `sendWhatsAppViaWorker` path, at most once
+  (`notified_at` is a compare-and-swap), and never reach the host. Never log a
+  finding's text: it describes a home interior.
+- Operators watch all of this at `/cleanings` in `apps/admin`: state per
+  property and per cleaning, the video behind a button that mints a read ticket
+  on demand, the confirmed inventory, the review state and its findings. It is
+  operator-only. The host never sees the crew, the video, the inventory or the
+  findings.
 - A stay outside Airbnb is **operator-created**, at `/stays` in `apps/admin`. The
   action blocks the nights in Hospitable first (`setHospitableCalendar`, a `PUT`
   on the listing calendar). It records nothing locally until that call succeeds.
@@ -250,11 +330,22 @@ Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/E
 Open follow-ups that need operator credentials: Clerk production instance (prod
 runs the dev instance), Meta WhatsApp go-live (portfolio, number, templates),
 `PROVIDER_API_KEY` on the `luxel-admin` Vercel project (`/stays` needs it).
-Open follow-ups in code: plan activation and a crew/cleanings view in `apps/admin`.
+Open follow-ups in code: plan activation. Operator steps still open for the
+cleaning review: `GOOGLE_API_KEY` from a billing-enabled project, a
+`wrangler deploy` to provision the `cleaning-review` Workflow, and
+`LUXEL_APP_URL` in `wrangler.toml` pointed at the live web origin.
 
 ## Gotchas
 
 - Supabase local image pulls can 403 from `public.ecr.aws`; mirror from Docker Hub.
+- PostgREST refuses an `or=` filter on an **UPDATE**: it answers a bare
+  `42703` "column does not exist" even when the column is there. The same
+  filter is fine on a `select`. `claimDraft` in `lib/cleaning/inventory.ts`
+  reads the row first, then updates with a compare-and-swap on the old
+  `claimed_at`. Do not reach for `.or()` on an update.
+- A migration applied with `psql` does not reload PostgREST's schema cache. Run
+  `NOTIFY pgrst, 'reload schema';`, or `pnpm supabase:reset`, or every new column
+  reads as missing over the REST API while `\d` shows it.
 - Clerk **keyless** mode breaks next-intl routing. Use real dev keys and set
   `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`, `..._SIGN_UP_URL=/sign-up` so auth
   stays on localhost. Test user: `you+clerk_test@example.com`, OTP `424242`.
@@ -269,6 +360,12 @@ Open follow-ups in code: plan activation and a crew/cleanings view in `apps/admi
   migrations while CI stays green.
 - Vercel Hobby rejects sub-daily crons in `vercel.json` and silently blocks every
   deploy. Do not add a `vercel.json` cron.
+- Cloudflare Workflows need `compatibility_date >= 2024-10-22`.
+  `workers/whatsapp/wrangler.toml` pins exactly that. Do not lower it.
+- `cloudflare:workers` does not resolve under vitest, and the worker entrypoint
+  re-exports the Workflow class. `apps/web/vitest.config.ts` aliases the module
+  to `test/stubs/cloudflare-workers.ts`. Without that alias
+  `whatsapp-bridge.e2e.test.ts` fails to load the worker at all.
 - Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
   `E2E_SKIP_AUTH`.
 - Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then

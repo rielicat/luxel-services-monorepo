@@ -22,25 +22,25 @@ see the crew or the guest messages.
 ```
 apps/web         @luxel/web              customer app → Vercel (serviciosluxel.cl)
 apps/admin       @luxel/admin            operator panel → Vercel
-workers/whatsapp @luxel/whatsapp-worker  Cloudflare Worker: WhatsApp webhook + /send
+workers/whatsapp @luxel/whatsapp-worker  Cloudflare Worker: WhatsApp webhook, /send, cleaning media
 packages/core    @luxel/core             server domain: channels, AI, messaging, Supabase, crew
 packages/shared  @luxel/shared           i18n catalogs, WhatsApp template kinds, constants
 packages/config  @luxel/config           ESLint / TS / Tailwind presets
-infra/cloudflare @luxel/infra-cloudflare Pulumi: DNS + Email Routing (R2 state)
+infra/cloudflare @luxel/infra-cloudflare Pulumi: DNS + Email Routing + R2 media bucket
 infra/vercel     @luxel/infra-vercel     Pulumi: Vercel projects, CI-driven
 supabase/        migrations + local config
 ```
 
 ## Stack
 
-| Concern         | Tool                                                                          |
-| --------------- | ----------------------------------------------------------------------------- |
-| Hosting         | Vercel (one project per app root)                                             |
-| Edge            | Cloudflare Workers, DNS, Email Routing                                        |
-| Auth            | Clerk. Web `/admin` = Clerk `admin` role; `apps/admin` = Clerk org membership |
-| Database        | Supabase Postgres + RLS                                                       |
-| Channel (PMS)   | Hospitable, as a plugin behind `packages/core/src/channels/registry.ts`       |
-| Messaging       | WhatsApp Cloud API (worker), Resend email fallback                            |
-| AI              | OpenAI `gpt-5.6-terra`, pinned in `lib/ai/client.ts`                          |
-| Dynamic pricing | PriceLabs (part of the plan)                                                  |
-| Analytics       | In-house `analytics_events` + `leads`                                         |
+| Concern         | Tool                                                                                               |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| Hosting         | Vercel (one project per app root)                                                                  |
+| Edge            | Cloudflare Workers, DNS, Email Routing, R2 (`luxel-cleaning-media`), Workflows (`cleaning-review`) |
+| Auth            | Clerk. Web `/admin` = Clerk `admin` role; `apps/admin` = Clerk org membership                      |
+| Database        | Supabase Postgres + RLS                                                                            |
+| Channel (PMS)   | Hospitable, as a plugin behind `packages/core/src/channels/registry.ts`                            |
+| Messaging       | WhatsApp Cloud API (worker), Resend email fallback                                                 |
+| AI              | OpenAI `gpt-5.6-terra`, pinned in `lib/ai/client.ts`                                               |
+| Dynamic pricing | PriceLabs (part of the plan)                                                                       |
+| Analytics       | In-house `analytics_events` + `leads`                                                              |

@@ -4,16 +4,30 @@ import {
   WHATSAPP_TEXT_MAX,
   type WhatsAppTemplateKind,
 } from '@luxel/shared/whatsapp';
+import {
+  CLEANING_MEDIA_OBJECT_PATH,
+  CLEANING_MEDIA_READ_URL_PATH,
+  CLEANING_MEDIA_UPLOAD_URL_PATH,
+} from '@luxel/shared/cleaning-media';
+import { CLEANING_REVIEW_START_PATH } from '@luxel/shared/cleaning-review';
+import { timingSafeEqual } from './crypto';
+import {
+  handleObjectGet,
+  handleObjectPreflight,
+  handleObjectPut,
+  handleReadUrl,
+  handleUploadUrl,
+  purgeExpiredWalkthroughs,
+  type MediaEnv,
+} from './media';
+import { driveQueuedReviews, handleReviewStart, type ReviewEnv } from './review';
 
-interface Env {
+interface Env extends MediaEnv, ReviewEnv {
   WHATSAPP_VERIFY_TOKEN: string;
   WHATSAPP_APP_SECRET: string;
   WHATSAPP_ACCESS_TOKEN: string;
   WHATSAPP_PHONE_NUMBER_ID: string;
-  SUPABASE_URL: string;
-  SUPABASE_SECRET_KEY: string;
   LUXEL_OPERATOR_WHATSAPP?: string;
-  INTERNAL_SEND_TOKEN?: string;
   SEND_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
 }
 
@@ -236,13 +250,6 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
   }
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
 const TEMPLATES: Record<WhatsAppTemplateKind, string> = {
   concierge_arrival: 'luxel_conserje_registro',
   cleaning_confirm: 'luxel_aseo_confirmacion',
@@ -378,6 +385,21 @@ export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === '/send' && req.method === 'POST') return handleSend(req, env);
+    if (url.pathname === CLEANING_MEDIA_UPLOAD_URL_PATH && req.method === 'POST') {
+      return handleUploadUrl(req, env);
+    }
+    if (url.pathname === CLEANING_MEDIA_READ_URL_PATH && req.method === 'POST') {
+      return handleReadUrl(req, env);
+    }
+    if (url.pathname === CLEANING_REVIEW_START_PATH && req.method === 'POST') {
+      return handleReviewStart(req, env);
+    }
+    if (url.pathname === CLEANING_MEDIA_OBJECT_PATH) {
+      if (req.method === 'OPTIONS') return handleObjectPreflight(env, req);
+      if (req.method === 'PUT') return handleObjectPut(req, env);
+      if (req.method === 'GET') return handleObjectGet(req, env);
+      return new Response('Method not allowed', { status: 405 });
+    }
     if (url.pathname !== '/webhook') return new Response('Not found', { status: 404 });
 
     if (req.method === 'GET') {
@@ -415,4 +437,23 @@ export default {
 
     return new Response('Method not allowed', { status: 405 });
   },
+
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(
+      purgeExpiredWalkthroughs(env)
+        .then((purged) => {
+          if (purged) console.warn('cleaning.walkthrough_purged', { purged });
+        })
+        .catch((err) => console.error('cleaning.walkthrough_purge_failed', err)),
+    );
+    ctx.waitUntil(
+      driveQueuedReviews(env)
+        .then((driven) => {
+          if (driven) console.warn('cleaning.review_swept', { driven });
+        })
+        .catch((err) => console.error('cleaning.review_sweep_failed', err)),
+    );
+  },
 } satisfies ExportedHandler<Env>;
+
+export { CleaningReviewWorkflow } from './review-workflow';

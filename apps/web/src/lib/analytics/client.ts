@@ -1,6 +1,7 @@
 'use client';
 
 import posthog from 'posthog-js';
+import { scrubUrl } from '@/lib/observability/scrub';
 
 const ANON_KEY = 'luxel.anon';
 const SESSION_KEY = 'luxel.session';
@@ -58,8 +59,13 @@ function captureUtm(): Record<string, string> | undefined {
 export function track(event: string, properties: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') return;
 
+  const safe: Record<string, unknown> = { ...properties };
+  for (const key of ['$current_url', 'url', 'href']) {
+    if (typeof safe[key] === 'string') safe[key] = scrubUrl(safe[key] as string);
+  }
+
   try {
-    if (posthog.__loaded) posthog.capture(event, properties);
+    if (posthog.__loaded) posthog.capture(event, safe);
   } catch {}
 
   try {
@@ -69,10 +75,10 @@ export function track(event: string, properties: Record<string, unknown> = {}): 
           event,
           anonId: getAnonId(),
           sessionId: getSessionId(),
-          path: window.location.pathname,
-          referrer: document.referrer || undefined,
+          path: scrubUrl(window.location.pathname),
+          referrer: document.referrer ? scrubUrl(document.referrer) : undefined,
           utm: captureUtm(),
-          properties,
+          properties: safe,
         },
       ],
     });

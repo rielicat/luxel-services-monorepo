@@ -37,16 +37,18 @@ effect and fails silently:
 
 ### Feature gates: absent means the feature is silently off
 
-| Variable                                           | Absent behaviour                                                                                                                                                             |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** Guest threads go straight to `needs_host` (a Luxel human answers). No error surfaces.              |
-| `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN`                                                             |
-| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false. Check-in emails (conserje fallback, host confirmation) and cleaning-confirmation emails are skipped, never sent. Our code never emails a guest |
-| `PRICELABS_API_KEY`                                | dynamic pricing (part of every plan) unavailable; the pricing panel reports `unavailable`                                                                                    |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp. A conserje with an email gets the check-in notice by email. A cleaner gets the cleaning confirmation by email instead                                           |
-| `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                                                                                |
-| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                                    |
-| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.                                                                          |
+| Variable                                           | Absent behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                                   | **`getOpenAI()` returns null — the AI concierge does not answer at all.** Guest threads go straight to `needs_host` (a Luxel human answers). No error surfaces.                                                                                                                                                                                                                                                                                                                               |
+| `GOOGLE_API_KEY`                                   | `geminiConfigured()` is false. The walkthrough inventory draft is written as `unavailable`; the crew still records, still uploads and writes the inventory by hand. The later review still runs and still reports differences, from the two confirmed inventories alone (`reason` `model_unavailable`). **The key must come from a billing-enabled Google project**: the free tier's terms permit training on and human review of submitted content, and the video shows the inside of a home |
+| `PROVIDER_API_KEY`                                 | no properties import; the central-account model depends on this. Falls back to the legacy `HOSPITABLE_API_TOKEN`                                                                                                                                                                                                                                                                                                                                                                              |
+| `RESEND_API_KEY` + `RESEND_FROM`                   | `emailConfigured()` is false. Check-in emails (conserje fallback, host confirmation) and cleaning-confirmation emails are skipped, never sent. Our code never emails a guest                                                                                                                                                                                                                                                                                                                  |
+| `PRICELABS_API_KEY`                                | dynamic pricing (part of every plan) unavailable; the pricing panel reports `unavailable`                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | no WhatsApp. A conserje with an email gets the check-in notice by email. A cleaner gets the cleaning confirmation by email instead                                                                                                                                                                                                                                                                                                                                                            |
+| `LUXEL_WORKER_URL`                                 | optional; the media routes and the review start call fall back to the origin of `WHATSAPP_WORKER_SEND_URL`. Neither set → `cleaningMediaConfigured()` is false, the crew cannot record a walkthrough, and a queued review waits for the worker's nightly sweep                                                                                                                                                                                                                                |
+| `HOSPITABLE_WEBHOOK_IPS`                           | optional; defaults to Hospitable's published `38.80.170.0/24`                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `CLERK_WEBHOOK_SECRET`                             | Clerk events not ingested                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| _(no variable)_                                    | The public origin for outbound links is derived, not configured — see "Outbound link origin" below.                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ### Billing
 
@@ -123,9 +125,74 @@ a change in `admin.ts` needs a redeploy of the admin project.
 Set with `wrangler secret put`, not in Vercel:
 `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`,
 `WHATSAPP_APP_SECRET`, `INTERNAL_SEND_TOKEN` (must match the web value),
+`CLEANING_MEDIA_KEY` (optional; must match the web value when set),
 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `LUXEL_OPERATOR_WHATSAPP`. The two crew
 templates below must exist and be approved on the same WhatsApp Business
 account.
+
+`INTERNAL_SEND_TOKEN` now runs in both directions. The web app authenticates to
+the worker with it, and the worker authenticates back to the web app with it on
+`POST /api/cleaning/review`. One value, set in both places.
+
+The same worker holds the cleaning walkthrough videos. Its extra configuration
+is not secret and lives in `wrangler.toml`:
+
+| Item                     | Kind         | Purpose                                                          |
+| ------------------------ | ------------ | ---------------------------------------------------------------- |
+| `CLEANING_MEDIA`         | R2 binding   | the `luxel-cleaning-media` bucket, created by `infra/cloudflare` |
+| `MEDIA_LIMITER`          | rate limiter | 60 requests per minute per key; `namespace_id` 1002              |
+| `CLEANING_MEDIA_ORIGINS` | var          | browser origins allowed to upload; comma separated               |
+| `CLEANING_REVIEW`        | Workflow     | `CleaningReviewWorkflow`; `wrangler deploy` provisions it        |
+| `LUXEL_APP_URL`          | var          | origin of the web app; the Workflow calls it back                |
+| `[triggers] crons`       | cron         | nightly retention pass and review sweep at 04:23 UTC             |
+
+`CLEANING_MEDIA_KEY` seals the upload and read tickets, and the media routes
+accept it as well as `INTERNAL_SEND_TOKEN`. It is optional: the worker falls
+back to `INTERNAL_SEND_TOKEN` while it is unset, so nothing breaks before an
+operator provisions it. Set it on the worker first, then on Vercel; the worker
+keeps accepting the old bearer either way.
+
+Rotating `CLEANING_MEDIA_KEY` is the break-glass for video access. It
+invalidates every ticket still in flight — a ticket lives 15 minutes at most —
+and it changes the seal, so a leaked `INTERNAL_SEND_TOKEN` no longer lets anyone
+forge a ticket offline. WhatsApp keeps working through the rotation.
+
+A ticket is sealed with AES-GCM, so it is opaque: the object key is not readable
+from it, and a request URL that carries one tells a log nothing. The upload leg
+sends it in the `x-luxel-ticket` header. The read leg keeps it in the query
+because a `<video>` element cannot set a header.
+
+### Cleaning media routes
+
+The video never passes through a Next.js route: a Vercel function caps a request
+body at 4.5 MB. The browser sends it to the worker instead, where the limit is
+100 MB.
+
+| Route                        | Method  | Auth                      | Body                               | Answer                                                  |
+| ---------------------------- | ------- | ------------------------- | ---------------------------------- | ------------------------------------------------------- |
+| `/cleaning-media/upload-url` | POST    | `x-luxel-internal-token`  | `{cleaningId, contentType, bytes}` | `{key, uploadUrl, ticket, expiresAt, maxBytes}`         |
+| `/cleaning-media/read-url`   | POST    | `x-luxel-internal-token`  | `{key}`                            | `{url, ticket, expiresAt}`                              |
+| `/cleaning-media/object`     | PUT     | `x-luxel-ticket` header   | the video bytes                    | `{key, bytes, contentType}`                             |
+| `/cleaning-media/object`     | GET     | `x-luxel-ticket` or query | none                               | the bytes; `Range` gives `206`                          |
+| `/cleaning-media/object`     | OPTIONS | none                      | none                               | `204` with the CORS headers                             |
+| `/cleaning-review/start`     | POST    | `x-luxel-internal-token`  | `{runId, attempt}`                 | `{started, instanceId}`; `503` with no Workflow binding |
+
+### Cleaning review route (worker → web app)
+
+| Route                  | Method | Auth                     | Body                   | Answer                     |
+| ---------------------- | ------ | ------------------------ | ---------------------- | -------------------------- |
+| `/api/cleaning/review` | POST   | `x-luxel-internal-token` | `{runId}`              | `{status, findings}`       |
+| `/api/cleaning/review` | POST   | `x-luxel-internal-token` | `{op: "sweep", limit}` | `{runs: [{id, attempts}]}` |
+
+`status` is `done`, `skipped`, `failed`, `retry`, `running` or `unknown`. The
+Workflow throws on `retry` and on `running`, so Cloudflare retries the step with
+exponential backoff. It returns on every other value.
+
+The worker chooses the object key: `walkthrough/<cleaning id>/<32 hex>.<mp4 or
+webm>`. The caller cannot name it. There is no list route, so a leaked key
+reaches one object and nothing else. An upload ticket is valid 15 minutes, a
+read ticket 10 minutes, and each one names a single key and a single operation.
+The web client is `apps/web/src/lib/cleaning/media.ts`.
 
 ## Outbound link origin
 

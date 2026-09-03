@@ -38,13 +38,23 @@ Details: [`DEPLOY.md`](DEPLOY.md), [`ENV.md`](ENV.md).
 
 Open follow-ups that need operator credentials: Clerk production instance
 (prod runs the dev instance), Meta WhatsApp go-live (portfolio, number,
-templates). Open follow-ups in code: plan activation and a crew/cleanings
-view in `apps/admin`.
+templates), and a billing-enabled `GOOGLE_API_KEY`. The cleaning review also
+needs a `wrangler deploy` to provision the `cleaning-review` Workflow and
+`LUXEL_APP_URL` pointed at the live web origin. Open follow-ups in code: plan
+activation.
 
 ## Gotchas
 
 - Supabase local image pulls can 403 from `public.ecr.aws`; mirror from
   Docker Hub.
+- PostgREST refuses an `or=` filter on an **UPDATE**: it answers a bare
+  `42703` "column does not exist" even when the column is there. The same
+  filter is fine on a `select`. `claimDraft` in `lib/cleaning/inventory.ts`
+  reads the row first, then updates with a compare-and-swap on the old
+  `claimed_at`. Do not reach for `.or()` on an update.
+- A migration applied with `psql` does not reload PostgREST's schema cache. Run
+  `NOTIFY pgrst, 'reload schema';`, or `pnpm supabase:reset`, or every new column
+  reads as missing over the REST API while `\d` shows it.
 - Clerk keyless mode breaks next-intl routing. Use real dev keys and set
   `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`, `..._SIGN_UP_URL=/sign-up` so auth
   stays on localhost. Test user: `you+clerk_test@example.com`, OTP `424242`.
@@ -59,6 +69,12 @@ view in `apps/admin`.
   prod migrations while CI stays green.
 - Vercel Hobby rejects sub-daily crons in `vercel.json` and silently blocks
   every deploy. Do not add a `vercel.json` cron.
+- Cloudflare Workflows need `compatibility_date >= 2024-10-22`.
+  `workers/whatsapp/wrangler.toml` pins exactly that. Do not lower it.
+- `cloudflare:workers` does not resolve under vitest, and the worker entrypoint
+  re-exports the Workflow class. `apps/web/vitest.config.ts` aliases the module
+  to `test/stubs/cloudflare-workers.ts`. Without that alias
+  `whatsapp-bridge.e2e.test.ts` fails to load the worker at all.
 - Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
   `E2E_SKIP_AUTH`.
 - Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then
