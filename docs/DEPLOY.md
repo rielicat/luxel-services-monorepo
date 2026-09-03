@@ -45,7 +45,7 @@ These are external accounts. The code cannot provision them:
    access. Author the time-based guest messages as message rules. See
    [`ENV.md`](./ENV.md) § Scheduled guest messages.
 4. **OpenAI** — an API key for Lux and the guest auto-replies (`OPENAI_API_KEY`).
-   The model defaults to `gpt-4o-mini`; override with `OPENAI_MODEL`.
+   The model is pinned in code (`lib/ai/client.ts`). There is no env override.
 5. **Resend** — verify the sending domain. Set `RESEND_API_KEY` and
    `RESEND_FROM`.
 6. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
