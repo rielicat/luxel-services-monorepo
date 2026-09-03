@@ -136,8 +136,8 @@ Trigger: Hospitable posts `message.created` to
 3. **Store.** `handleInboundMessage()` (`lib/channels/pipeline.ts`) drops
    duplicates by `external_id`. It upserts `guest_threads` and inserts the
    inbound row in `guest_messages`.
-4. **Operator switch.** If `properties.ai_enabled` is false, the thread becomes
-   `needs_host`. Nothing is sent. Only a Luxel operator changes `ai_enabled`;
+4. **Operator switch.** If `properties.ai_replies` is false, the thread becomes
+   `needs_host`. Nothing is sent. Only a Luxel operator changes `ai_replies`;
    hosts have no toggle.
 5. **Ground.** `buildGrounding()` (`lib/ai/grounding.ts`) collects the
    property's `learned_answers` and its past guest→answer pairs. A property
@@ -203,7 +203,7 @@ the same pipeline without Hospitable.
 - **Handoff.** `escalate_to_human` creates a lead and shows the WhatsApp link
   with the working-hours status. A guest thread flips to `needs_host` for
   Luxel's operators. Hosts have no inbox.
-- **Operator switch.** `ai_enabled = false` on a property stops auto-replies for
+- **Operator switch.** `ai_replies = false` on a property stops auto-replies for
   that property. Operator-only.
 - **Rate limiting.** The human bridge (`/api/chat/human`) rate-limits. The AI
   route relies on the caps above.

@@ -411,7 +411,7 @@ beforeAll(async () => {
   const a = await import('../src/app/[locale]/(site)/properties/channel-actions');
   connectHospitable = a.connectHospitable;
   sendWithoutReview = async () => {
-    await admin.from('properties').update({ ai_review: false }).eq('owner_id', customerId);
+    await admin.from('properties').update({ ai_reviews: false }).eq('owner_id', customerId);
   };
   const syncLib = await import('../src/lib/channels/hospitable-sync');
   syncHospitable = () => syncLib.syncHospitableAccount(customerId, FAKE_TOKEN);

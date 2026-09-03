@@ -1,17 +1,34 @@
 import { Bot } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase';
 import { Card, Pill } from '@/components/ui';
-import { submitAiFlag, submitAiFlagForAll } from './actions';
+import { submitAiFlag, submitAiFlagForAll, submitAiFlagForSelection } from './actions';
 
 export const dynamic = 'force-dynamic';
+
+const SELECTION_FORM = 'ai-selection';
+const ALL_FORM = 'ai-all';
+
+const ERROR_MESSAGE: Record<string, string> = {
+  denied: 'No tienes permiso de operador. Vuelve a entrar.',
+  invalid: 'La operación llegó mal formada. Nada cambió.',
+  no_selection: 'Marca al menos una propiedad antes de aplicar el cambio.',
+  write_failed: 'No pudimos guardar el cambio. Revisa los registros del servidor.',
+};
+
+const SELECTION_OPS = [
+  { operation: 'ai_replies:true', label: 'Activar Lux' },
+  { operation: 'ai_replies:false', label: 'Apagar Lux' },
+  { operation: 'ai_reviews:true', label: 'Pedir revisión' },
+  { operation: 'ai_reviews:false', label: 'Enviar sin revisar' },
+] as const;
 
 interface PropertyRow {
   id: string;
   nickname: string | null;
   comuna: string | null;
   owner_id: string;
-  ai_enabled: boolean;
-  ai_review: boolean;
+  ai_replies: boolean;
+  ai_reviews: boolean;
 }
 
 interface AiView {
@@ -27,7 +44,7 @@ async function getAiSettings(): Promise<AiView> {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('properties')
-    .select('id, nickname, comuna, owner_id, ai_enabled, ai_review')
+    .select('id, nickname, comuna, owner_id, ai_replies, ai_reviews')
     .order('nickname', { ascending: true })
     .limit(500);
 
@@ -106,14 +123,22 @@ function inboxUrl(): string | null {
 export default async function AiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ failed?: string }>;
+  searchParams: Promise<{ failed?: string; ok?: string }>;
 }) {
-  const { failed: failedId } = await searchParams;
-  const { rows, owners, pending, needsHost, failed, threadsFailed } = await getAiSettings();
-  const answering = rows.filter((r) => r.ai_enabled).length;
-  const reviewing = rows.filter((r) => r.ai_enabled && r.ai_review).length;
+  const { failed, ok } = await searchParams;
+  const {
+    rows,
+    owners,
+    pending,
+    needsHost,
+    failed: readFailed,
+    threadsFailed,
+  } = await getAiSettings();
+  const answering = rows.filter((r) => r.ai_replies).length;
+  const reviewing = rows.filter((r) => r.ai_replies && r.ai_reviews).length;
   const pendingTotal = Object.values(pending).reduce((sum, n) => sum + n, 0);
   const inbox = inboxUrl();
+  const changed = ok === undefined ? null : Number(ok);
 
   return (
     <div>
@@ -144,7 +169,7 @@ export default async function AiPage({
         </p>
       </div>
 
-      {failed && (
+      {readFailed && (
         <div
           role="alert"
           className="border-destructive/40 bg-destructive/10 text-destructive mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
@@ -154,7 +179,7 @@ export default async function AiPage({
         </div>
       )}
 
-      {!failed && threadsFailed && (
+      {!readFailed && threadsFailed && (
         <div
           role="alert"
           className="border-warning/40 bg-warning/10 text-warning mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
@@ -163,35 +188,70 @@ export default async function AiPage({
         </div>
       )}
 
-      {failedId === 'all' && (
+      {failed && (
         <div
           role="alert"
           className="border-destructive/40 bg-destructive/10 text-destructive mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
         >
-          No se pudo aplicar el cambio a todas las propiedades. Nada cambió.
+          {ERROR_MESSAGE[failed] ?? ERROR_MESSAGE.write_failed}
+        </div>
+      )}
+
+      {changed !== null && !Number.isNaN(changed) && (
+        <div
+          role="status"
+          className="border-success/40 bg-success/10 text-success mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
+        >
+          {changed === 1 ? 'Cambiamos 1 propiedad.' : `Cambiamos ${changed} propiedades.`}
         </div>
       )}
 
       {rows.length > 0 && (
         <Card className="mb-4 p-4">
-          <p className="text-sm font-semibold">Aplicar a todas</p>
+          <p className="text-sm font-semibold">Cambio en lote</p>
           <p className="text-muted-foreground mb-3 text-sm">
-            Útil al empezar: deja todo en revisión mientras leas lo que Lux contesta.
+            Marca las propiedades en la tabla y aplica el cambio a todas las marcadas. Los botones
+            de la derecha alcanzan a cada propiedad importada, esté marcada o no.
           </p>
-          <div className="flex flex-wrap gap-2">
-            <form action={submitAiFlagForAll}>
-              <input type="hidden" name="flag" value="ai_review" />
-              <input type="hidden" name="value" value="true" />
-              <button className="bg-primary text-primary-foreground rounded-lg px-3 py-1.5 text-xs font-semibold">
-                Pedir revisión en todas
-              </button>
+          <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
+            <form id={SELECTION_FORM} action={submitAiFlagForSelection}>
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold uppercase">
+                A las marcadas
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {SELECTION_OPS.map((op) => (
+                  <button
+                    key={op.operation}
+                    name="operation"
+                    value={op.operation}
+                    className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                  >
+                    {op.label}
+                  </button>
+                ))}
+              </div>
             </form>
-            <form action={submitAiFlagForAll}>
-              <input type="hidden" name="flag" value="ai_review" />
-              <input type="hidden" name="value" value="false" />
-              <button className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold">
-                Enviar sin revisar en todas
-              </button>
+
+            <form id={ALL_FORM} action={submitAiFlagForAll}>
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold uppercase">
+                A todas
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  name="operation"
+                  value="ai_reviews:true"
+                  className="bg-primary text-primary-foreground rounded-lg px-3 py-1.5 text-xs font-semibold"
+                >
+                  Pedir revisión en todas
+                </button>
+                <button
+                  name="operation"
+                  value="ai_reviews:false"
+                  className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                >
+                  Enviar sin revisar en todas
+                </button>
+              </div>
             </form>
           </div>
         </Card>
@@ -202,6 +262,9 @@ export default async function AiPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-border text-muted-foreground border-b text-left text-xs uppercase">
+                <th className="px-4 py-3 font-medium">
+                  <span className="sr-only">Marcar</span>
+                </th>
                 <th className="px-4 py-3 font-medium">Propiedad</th>
                 <th className="px-4 py-3 font-medium">Anfitrión</th>
                 <th className="px-4 py-3 font-medium">Lux responde</th>
@@ -217,41 +280,51 @@ export default async function AiPage({
                   className="border-border/60 hover:bg-muted/40 border-b"
                 >
                   <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      form={SELECTION_FORM}
+                      name="ids"
+                      value={r.id}
+                      aria-label={`Marcar ${r.nickname ?? 'propiedad'}`}
+                      className="accent-primary h-4 w-4"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
                     <div className="font-medium">{r.nickname ?? '—'}</div>
                     {r.comuna && <div className="text-muted-foreground text-xs">{r.comuna}</div>}
                   </td>
                   <td className="text-muted-foreground px-4 py-3">{owners[r.owner_id] ?? '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Pill tone={r.ai_enabled ? 'converted' : 'lost'}>
-                        {r.ai_enabled ? 'Activo' : 'Apagado'}
+                      <Pill tone={r.ai_replies ? 'converted' : 'lost'}>
+                        {r.ai_replies ? 'Activo' : 'Apagado'}
                       </Pill>
                       <form action={submitAiFlag}>
                         <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="flag" value="ai_enabled" />
-                        <input type="hidden" name="value" value={r.ai_enabled ? 'false' : 'true'} />
+                        <input type="hidden" name="flag" value="ai_replies" />
+                        <input type="hidden" name="value" value={r.ai_replies ? 'false' : 'true'} />
                         <button className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold">
-                          {r.ai_enabled ? 'Apagar' : 'Activar'}
+                          {r.ai_replies ? 'Apagar' : 'Activar'}
                         </button>
                       </form>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {r.ai_enabled ? (
+                    {r.ai_replies ? (
                       <div className="flex items-center gap-2">
-                        <Pill tone={r.ai_review ? 'new' : 'contacted'}>
-                          {r.ai_review ? 'Revisamos' : 'Envío directo'}
+                        <Pill tone={r.ai_reviews ? 'new' : 'contacted'}>
+                          {r.ai_reviews ? 'Revisamos' : 'Envío directo'}
                         </Pill>
                         <form action={submitAiFlag}>
                           <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="flag" value="ai_review" />
+                          <input type="hidden" name="flag" value="ai_reviews" />
                           <input
                             type="hidden"
                             name="value"
-                            value={r.ai_review ? 'false' : 'true'}
+                            value={r.ai_reviews ? 'false' : 'true'}
                           />
                           <button className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold">
-                            {r.ai_review ? 'Enviar sin revisar' : 'Pedir revisión'}
+                            {r.ai_reviews ? 'Enviar sin revisar' : 'Pedir revisión'}
                           </button>
                         </form>
                       </div>
@@ -272,18 +345,13 @@ export default async function AiPage({
                         )}
                       </div>
                     )}
-                    {failedId === r.id && (
-                      <p className="text-destructive mt-1 text-xs font-semibold">
-                        No se pudo actualizar
-                      </p>
-                    )}
                   </td>
                 </tr>
               ))}
               {!rows.length && (
                 <tr>
-                  <td colSpan={5} className="text-muted-foreground px-4 py-10 text-center">
-                    {failed
+                  <td colSpan={6} className="text-muted-foreground px-4 py-10 text-center">
+                    {readFailed
                       ? 'No se pudo leer la lista de propiedades.'
                       : 'Todavía no hay propiedades importadas.'}
                   </td>

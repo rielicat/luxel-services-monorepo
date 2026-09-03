@@ -26,7 +26,7 @@ export type PropertyRow = {
   guest_context: Record<string, string> | null;
   external_listing_id: string | null;
   platform: string | null;
-  ai_enabled: boolean;
+  ai_replies: boolean;
   price_optimization_enabled: boolean;
   pricelabs_status: 'off' | 'pending_connection' | 'connected';
   bedrooms: number | null;

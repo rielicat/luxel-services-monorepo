@@ -107,7 +107,7 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
               >
                 {statusLabel(thread.status)}
               </span>
-              {!thread.aiEnabled && (
+              {!thread.aiReplies && (
                 <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[11px] font-semibold">
                   {t('ai_off')}
                 </span>
@@ -115,15 +115,15 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
               <span
                 className={cn(
                   'flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                  thread.aiReview ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning',
+                  thread.aiReviews ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning',
                 )}
               >
-                {thread.aiReview ? (
+                {thread.aiReviews ? (
                   <ShieldCheck className="h-3 w-3" />
                 ) : (
                   <Zap className="h-3 w-3" />
                 )}
-                {thread.aiReview ? t('review_on') : t('review_off')}
+                {thread.aiReviews ? t('review_on') : t('review_off')}
               </span>
             </div>
           </div>

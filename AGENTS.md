@@ -135,14 +135,15 @@ supabase/        migrations + local config
   Hosts have no cleaning controls and no guest inbox. `guest_threads` status
   `needs_host` means "needs a Luxel human". Do not add host-facing crew or inbox
   surfaces.
-- Lux replies to guests **behind a review gate**. `properties.ai_review` defaults to
+- Lux replies to guests **behind a review gate**. `properties.ai_reviews` defaults to
   `true`: the pipeline stores the AI reply in `guest_reply_drafts` with status
   `pending` and sends nothing. A Luxel operator reviews it at `/admin/inbox`,
   edits it if needed, and approves it; only then does the message reach the
   guest. An approved text that differs from the draft is stored as `host`, not
   `ai`. `simulateThreadReply` drafts a reply for a thread already on record
-  without sending it. `ai_enabled` and `ai_review` are operator-managed in
-  `apps/admin` at `/ai`, per property or for every property at once; there is no
+  without sending it. `ai_replies` and `ai_reviews` are operator-managed in
+  `apps/admin` at `/ai`, one property at a time, over a checkbox selection, or
+  over every property at once; there is no
   host-facing switch, and the web inbox only shows the mode. Only one pending
   draft per thread: a newer guest message supersedes the older draft.
 - Plans live in `plan_subscriptions`: `plan` is always `commission`, the only

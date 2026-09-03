@@ -6,25 +6,36 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { createServiceClient } from '@/lib/supabase';
 
-const FLAGS = ['ai_enabled', 'ai_review'] as const;
+const FLAGS = ['ai_replies', 'ai_reviews'] as const;
 
-const Schema = z.object({
+const FlagSchema = z.enum(FLAGS);
+
+const OneSchema = z.object({
   id: z.string().uuid(),
-  flag: z.enum(FLAGS),
+  flag: FlagSchema,
   value: z.boolean(),
 });
 
-const BulkSchema = z.object({
-  flag: z.enum(FLAGS),
+const ManySchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(500),
+  flag: FlagSchema,
   value: z.boolean(),
 });
 
-const EVENT: Record<string, string> = {
-  'ai_enabled:true': 'ai_enabled_on',
-  'ai_enabled:false': 'ai_enabled_off',
-  'ai_review:true': 'ai_review_on',
-  'ai_review:false': 'ai_review_off',
-};
+const AllSchema = z.object({
+  flag: FlagSchema,
+  value: z.boolean(),
+});
+
+export interface AiFlagResult {
+  ok: boolean;
+  error?: string;
+  changed?: number;
+}
+
+function eventName(flag: string, value: boolean): string {
+  return `${flag}_${value ? 'on' : 'off'}`;
+}
 
 async function recordAiEvent(
   actor: string,
@@ -34,7 +45,7 @@ async function recordAiEvent(
 ): Promise<void> {
   const supabase = createServiceClient();
   const { error } = await supabase.from('analytics_events').insert({
-    event: EVENT[`${flag}:${value}`] ?? 'ai_flag_changed',
+    event: eventName(flag, value),
     distinct_id: `operator:${actor}`,
     properties: { ...properties, actor: 'operator' },
     source: 'server',
@@ -46,17 +57,17 @@ export async function setPropertyAiFlag(input: {
   id: string;
   flag: string;
   value: boolean;
-}): Promise<{ ok: boolean }> {
+}): Promise<AiFlagResult> {
   const admin = await requireAdmin();
   if (!admin) {
     console.warn('admin.ai_flag_denied', { id: input.id, flag: input.flag });
-    return { ok: false };
+    return { ok: false, error: 'denied' };
   }
 
-  const parsed = Schema.safeParse(input);
+  const parsed = OneSchema.safeParse(input);
   if (!parsed.success) {
     console.warn('admin.ai_flag_invalid', { id: input.id, flag: input.flag });
-    return { ok: false };
+    return { ok: false, error: 'invalid' };
   }
 
   const supabase = createServiceClient();
@@ -73,30 +84,74 @@ export async function setPropertyAiFlag(input: {
       flag: parsed.data.flag,
       message: error?.message ?? 'no row updated',
     });
-    return { ok: false };
+    return { ok: false, error: 'write_failed' };
   }
 
   await recordAiEvent(admin.email, parsed.data.flag, parsed.data.value, {
     propertyId: parsed.data.id,
   });
   revalidatePath('/ai');
-  return { ok: true };
+  return { ok: true, changed: 1 };
+}
+
+export async function setSelectedPropertiesAiFlag(input: {
+  ids: string[];
+  flag: string;
+  value: boolean;
+}): Promise<AiFlagResult> {
+  const admin = await requireAdmin();
+  if (!admin) {
+    console.warn('admin.ai_flag_selection_denied', { flag: input.flag });
+    return { ok: false, error: 'denied' };
+  }
+
+  if (!input.ids.length) return { ok: false, error: 'no_selection' };
+
+  const parsed = ManySchema.safeParse(input);
+  if (!parsed.success) {
+    console.warn('admin.ai_flag_selection_invalid', { flag: input.flag, count: input.ids.length });
+    return { ok: false, error: 'invalid' };
+  }
+
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('properties')
+    .update({ [parsed.data.flag]: parsed.data.value })
+    .in('id', parsed.data.ids)
+    .select('id');
+
+  if (error) {
+    console.error('admin.ai_flag_selection_failed', {
+      flag: parsed.data.flag,
+      count: parsed.data.ids.length,
+      message: error.message,
+    });
+    return { ok: false, error: 'write_failed' };
+  }
+
+  const changed = ((data ?? []) as unknown[]).length;
+  await recordAiEvent(admin.email, parsed.data.flag, parsed.data.value, {
+    properties: changed,
+    scope: 'selection',
+  });
+  revalidatePath('/ai');
+  return { ok: true, changed };
 }
 
 export async function setAllPropertiesAiFlag(input: {
   flag: string;
   value: boolean;
-}): Promise<{ ok: boolean }> {
+}): Promise<AiFlagResult> {
   const admin = await requireAdmin();
   if (!admin) {
-    console.warn('admin.ai_flag_bulk_denied', { flag: input.flag });
-    return { ok: false };
+    console.warn('admin.ai_flag_all_denied', { flag: input.flag });
+    return { ok: false, error: 'denied' };
   }
 
-  const parsed = BulkSchema.safeParse(input);
+  const parsed = AllSchema.safeParse(input);
   if (!parsed.success) {
-    console.warn('admin.ai_flag_bulk_invalid', { flag: input.flag });
-    return { ok: false };
+    console.warn('admin.ai_flag_all_invalid', { flag: input.flag });
+    return { ok: false, error: 'invalid' };
   }
 
   const supabase = createServiceClient();
@@ -107,35 +162,53 @@ export async function setAllPropertiesAiFlag(input: {
     .select('id');
 
   if (error) {
-    console.error('admin.ai_flag_bulk_failed', {
-      flag: parsed.data.flag,
-      message: error.message,
-    });
-    return { ok: false };
+    console.error('admin.ai_flag_all_failed', { flag: parsed.data.flag, message: error.message });
+    return { ok: false, error: 'write_failed' };
   }
 
+  const changed = ((data ?? []) as unknown[]).length;
   await recordAiEvent(admin.email, parsed.data.flag, parsed.data.value, {
-    properties: ((data ?? []) as unknown[]).length,
+    properties: changed,
     scope: 'all',
   });
   revalidatePath('/ai');
-  return { ok: true };
+  return { ok: true, changed };
+}
+
+function splitOperation(raw: string): { flag: string; value: boolean } {
+  const [flag = '', value = ''] = raw.split(':');
+  return { flag, value: value === 'true' };
+}
+
+function resultUrl(result: AiFlagResult, hash = ''): string {
+  const params = new URLSearchParams(
+    result.ok ? { ok: String(result.changed ?? 0) } : { failed: result.error ?? 'write_failed' },
+  );
+  return `/ai?${params.toString()}${hash}`;
 }
 
 export async function submitAiFlag(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
-  const { ok } = await setPropertyAiFlag({
+  const result = await setPropertyAiFlag({
     id,
     flag: String(formData.get('flag') ?? ''),
     value: String(formData.get('value') ?? '') === 'true',
   });
-  redirect(ok ? `/ai#p-${id}` : `/ai?failed=${encodeURIComponent(id)}#p-${id}`);
+  redirect(resultUrl(result, `#p-${id}`));
+}
+
+export async function submitAiFlagForSelection(formData: FormData): Promise<void> {
+  const { flag, value } = splitOperation(String(formData.get('operation') ?? ''));
+  const result = await setSelectedPropertiesAiFlag({
+    ids: formData.getAll('ids').map(String),
+    flag,
+    value,
+  });
+  redirect(resultUrl(result));
 }
 
 export async function submitAiFlagForAll(formData: FormData): Promise<void> {
-  const { ok } = await setAllPropertiesAiFlag({
-    flag: String(formData.get('flag') ?? ''),
-    value: String(formData.get('value') ?? '') === 'true',
-  });
-  redirect(ok ? '/ai' : '/ai?failed=all');
+  const { flag, value } = splitOperation(String(formData.get('operation') ?? ''));
+  const result = await setAllPropertiesAiFlag({ flag, value });
+  redirect(resultUrl(result));
 }
