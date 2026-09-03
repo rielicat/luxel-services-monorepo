@@ -22,10 +22,13 @@ type HandoffWidget = {
 type AirbnbQuoteWidget = {
   kind: 'airbnb_quote';
   listings: number;
-  plan: 'commission' | 'hybrid' | 'fixed';
-  planLabel: string;
+  planLabel?: string;
   revenueClp: number | null;
+  revenueMaxClp?: number | null;
+  keptMaxClp?: number | null;
+  monthlyMaxClp?: number | null;
   monthlyClp: number;
+  keptClp?: number | null;
 };
 type LinksWidget = {
   kind: 'links';
@@ -53,6 +56,38 @@ function getOrCreateSession(): string {
 }
 
 const clp = (n: number) => '$' + n.toLocaleString('es-CL');
+
+function mergeQuotes(a: AirbnbQuoteWidget, b: AirbnbQuoteWidget): AirbnbQuoteWidget {
+  const bounds = [a.revenueClp, a.revenueMaxClp, b.revenueClp, b.revenueMaxClp].filter(
+    (v): v is number => v != null && v > 0,
+  );
+  const fees = [a.monthlyClp, b.monthlyClp];
+  const kept = [a.keptClp, b.keptClp].filter((v): v is number => v != null && v > 0);
+  return {
+    ...a,
+    revenueClp: bounds.length ? Math.min(...bounds) : a.revenueClp,
+    revenueMaxClp: bounds.length ? Math.max(...bounds) : a.revenueMaxClp,
+    monthlyClp: Math.min(...fees),
+    keptClp: kept.length ? Math.min(...kept) : null,
+  };
+}
+
+function collapseWidgets(widgets: Widget[]): Widget[] {
+  const out: Widget[] = [];
+  let quoteAt = -1;
+  for (const w of widgets) {
+    if (w.kind !== 'airbnb_quote') {
+      out.push(w);
+      continue;
+    }
+    if (quoteAt < 0) {
+      quoteAt = out.push(w) - 1;
+      continue;
+    }
+    out[quoteAt] = mergeQuotes(out[quoteAt] as AirbnbQuoteWidget, w);
+  }
+  return out;
+}
 
 export function ChatWidget() {
   const t = useTranslations('chat');
@@ -352,7 +387,7 @@ export function ChatWidget() {
                           </div>
                         )
                       )}
-                      {m.widgets.map((w, i) => (
+                      {collapseWidgets(m.widgets).map((w, i) => (
                         <WidgetCard key={i} widget={w} t={t} />
                       ))}
                     </div>
@@ -420,44 +455,88 @@ export function ChatWidget() {
   );
 }
 
-function WidgetCard({
-  widget,
-  t,
-}: {
-  widget: Widget;
-  t: ReturnType<typeof useTranslations<'chat'>>;
-}) {
-  if (widget.kind === 'airbnb_quote') {
-    return (
-      <div className="border-border bg-background shadow-soft max-w-[90%] rounded-xl border p-3.5">
-        <div className="flex items-center gap-2">
-          <Home className="text-secondary h-4 w-4" />
-          <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-            {widget.planLabel} ·{' '}
-            {t(widget.listings === 1 ? 'listing_one' : 'listing_many', {
-              n: widget.listings,
-            })}
-          </span>
-        </div>
-        <p className="font-display text-primary mt-1 text-2xl font-extrabold">
-          {clp(widget.monthlyClp)}{' '}
-          <span className="text-muted-foreground text-xs font-medium">{t('per_month')}</span>
-        </p>
-        {widget.revenueClp != null && (
-          <p className="text-muted-foreground mt-0.5 text-xs font-medium">
-            {t('airbnb_revenue', { revenue: clp(widget.revenueClp) })}
-          </p>
-        )}
-        <Button asChild variant="default" size="sm" className="mt-3 w-full">
-          <Link
-            href="/calculator"
-            onClick={() => track(EVENTS.CTA_CLICKED, { source: 'chat_airbnb', cta: 'plans' })}
-          >
-            {t('airbnb_cta')} <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
+type ChatT = ReturnType<typeof useTranslations<'chat'>>;
+
+function AirbnbQuoteCard({ widget, t }: { widget: AirbnbQuoteWidget; t: ChatT }) {
+  const listings = Math.max(1, Math.round(widget.listings) || 1);
+  const revenueMin = widget.revenueClp != null && widget.revenueClp > 0 ? widget.revenueClp : null;
+  const revenueMax =
+    revenueMin != null && widget.revenueMaxClp != null && widget.revenueMaxClp > revenueMin
+      ? widget.revenueMaxClp
+      : null;
+  const rate = revenueMin != null ? widget.monthlyClp / (revenueMin * listings) : 0;
+  const feeAt = (revenue: number) => Math.round(revenue * listings * rate);
+  const keptAt = (revenue: number) => Math.round(revenue * listings) - feeAt(revenue);
+  const paidKept =
+    widget.keptClp != null && Number.isFinite(widget.keptClp) && widget.keptClp > 0
+      ? Math.round(widget.keptClp)
+      : null;
+  const derivedKept = revenueMin != null ? keptAt(revenueMin) : null;
+  const positive = (v: number | null | undefined) =>
+    v != null && Number.isFinite(v) && v > 0 ? Math.round(v) : null;
+  const keptMin = revenueMax != null ? derivedKept : (paidKept ?? derivedKept);
+  const keptMax = revenueMax != null ? (positive(widget.keptMaxClp) ?? keptAt(revenueMax)) : null;
+  const feeMax = revenueMax != null ? (positive(widget.monthlyMaxClp) ?? feeAt(revenueMax)) : null;
+  const amount = (min: number, max: number | null) =>
+    max == null ? clp(min) : t('quote_range', { min: clp(min), max: clp(max) });
+
+  return (
+    <div className="border-border bg-background shadow-soft max-w-[90%] rounded-xl border p-3.5">
+      <div className="flex items-center gap-2">
+        <Home className="text-secondary h-4 w-4 shrink-0" />
+        <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+          {widget.planLabel ?? t('quote_plan')} ·{' '}
+          {t(listings === 1 ? 'listing_one' : 'listing_many', { n: listings })}
+        </span>
       </div>
-    );
+
+      {keptMin == null ? (
+        <p className="text-foreground mt-2 text-sm leading-relaxed">{t('quote_no_revenue')}</p>
+      ) : (
+        <>
+          <p className="text-muted-foreground mt-2 text-xs font-medium">{t('quote_kept_label')}</p>
+          <p
+            className={cn(
+              'font-display text-primary mt-0.5 font-extrabold tabular-nums',
+              keptMax == null ? 'text-2xl' : 'text-xl',
+            )}
+          >
+            {amount(keptMin, keptMax)}{' '}
+            <span className="text-muted-foreground text-xs font-medium">{t('per_month')}</span>
+          </p>
+          <p className="text-muted-foreground mt-1.5 text-xs tabular-nums">
+            {t('quote_fee', { fee: amount(widget.monthlyClp, feeMax) })}
+          </p>
+          {revenueMin != null && (
+            <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
+              {t(listings === 1 ? 'quote_revenue' : 'quote_revenue_each', {
+                revenue: amount(revenueMin, revenueMax),
+              })}
+            </p>
+          )}
+        </>
+      )}
+
+      <p className="text-muted-foreground border-border/60 mt-2.5 border-t pt-2.5 text-xs leading-relaxed">
+        {t('quote_cleaning')}
+      </p>
+      <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{t('quote_billing')}</p>
+
+      <Button asChild variant="default" size="sm" className="mt-3 w-full">
+        <Link
+          href="/calculator"
+          onClick={() => track(EVENTS.CTA_CLICKED, { source: 'chat_airbnb', cta: 'plans' })}
+        >
+          {t('airbnb_cta')} <ArrowRight className="h-4 w-4" />
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+function WidgetCard({ widget, t }: { widget: Widget; t: ChatT }) {
+  if (widget.kind === 'airbnb_quote') {
+    return <AirbnbQuoteCard widget={widget} t={t} />;
   }
 
   if (widget.kind === 'links') {

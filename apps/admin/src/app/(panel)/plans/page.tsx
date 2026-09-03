@@ -115,7 +115,7 @@ async function getPlans(now: Date = new Date()): Promise<PlansView> {
 
   const { data: revenueData, error: revenueError } = await supabase
     .from('reservation_revenue')
-    .select('property_id, host_revenue_clp')
+    .select('property_id, host_revenue_clp, cleaning_fee_clp')
     .in(
       'property_id',
       properties.map((p) => p.id),
@@ -131,10 +131,12 @@ async function getPlans(now: Date = new Date()): Promise<PlansView> {
   for (const row of (revenueData ?? []) as unknown as {
     property_id: string;
     host_revenue_clp: number | null;
+    cleaning_fee_clp: number | null;
   }[]) {
     const owner = ownerByProperty[row.property_id];
     if (!owner) continue;
-    revenue[owner] = (revenue[owner] ?? 0) + (row.host_revenue_clp ?? 0);
+    const base = Math.max(0, (row.host_revenue_clp ?? 0) - (row.cleaning_fee_clp ?? 0));
+    revenue[owner] = (revenue[owner] ?? 0) + base;
   }
 
   return { rows, listings, revenue, failed: false, statsFailed: false };
@@ -167,8 +169,8 @@ export default async function PlansPage({
           {!statsFailed && <> · {formatCLP(billable)} por facturar este mes</>}
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          Plan único: {PCT_LABEL} de los ingresos del anfitrión, IVA incluido. Luxel cobra cada mes,
-          fuera de la plataforma.
+          Plan único: {PCT_LABEL} de las reservas del anfitrión, sin la tarifa de limpieza, IVA
+          incluido. Luxel cobra cada mes, fuera de la plataforma.
         </p>
       </div>
 
@@ -206,7 +208,7 @@ export default async function PlansPage({
               <tr className="border-border text-muted-foreground border-b text-left text-xs uppercase">
                 <th className="px-4 py-3 font-medium">Anfitrión</th>
                 <th className="px-4 py-3 font-medium">Propiedades</th>
-                <th className="px-4 py-3 font-medium">Ingresos del mes</th>
+                <th className="px-4 py-3 font-medium">Base del mes</th>
                 <th className="px-4 py-3 font-medium">Cobro {PCT_LABEL}</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3 font-medium">Acciones</th>
@@ -215,7 +217,7 @@ export default async function PlansPage({
             <tbody>
               {rows.map((r) => {
                 const hostListings = listings[r.customer_id];
-                const hostRevenue = revenue[r.customer_id];
+                const commissionBase = revenue[r.customer_id];
                 return (
                   <tr key={r.id} className="border-border/60 hover:bg-muted/40 border-b">
                     <td className="px-4 py-3">
@@ -239,12 +241,12 @@ export default async function PlansPage({
                       )}
                     </td>
                     <td className="text-muted-foreground px-4 py-3 tabular-nums">
-                      {hostRevenue === undefined ? '—' : formatCLP(hostRevenue)}
+                      {commissionBase === undefined ? '—' : formatCLP(commissionBase)}
                     </td>
                     <td className="px-4 py-3 font-medium tabular-nums">
-                      {hostRevenue === undefined
+                      {commissionBase === undefined
                         ? '—'
-                        : `${formatCLP(planMonthlyCost(hostRevenue))}/mes`}
+                        : `${formatCLP(planMonthlyCost(commissionBase))}/mes`}
                     </td>
                     <td className="px-4 py-3">
                       <Pill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status] ?? r.status}</Pill>

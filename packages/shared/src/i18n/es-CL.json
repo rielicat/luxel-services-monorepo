@@ -188,7 +188,15 @@
     "agent_tagline": "agente IA · en línea",
     "close": "Cerrar",
     "airbnb_cta": "Ver el precio",
-    "airbnb_revenue": "Con {revenue} de ingresos al mes por propiedad"
+    "quote_plan": "Plan Luxel",
+    "quote_kept_label": "Te queda a ti",
+    "quote_range": "{min} a {max}",
+    "quote_fee": "Comisión Luxel: {fee} al mes, IVA incluido.",
+    "quote_revenue": "Sobre {revenue} de ingresos por reservas al mes.",
+    "quote_revenue_each": "Sobre {revenue} de ingresos por reservas al mes, por cada propiedad.",
+    "quote_cleaning": "La tarifa de limpieza que paga el huésped no entra: va completa al equipo de aseo.",
+    "quote_billing": "Airbnb te paga a ti y Luxel te cobra a fin de mes.",
+    "quote_no_revenue": "Dime cuánto generan tus reservas en un mes y te muestro el número exacto."
   },
   "errors": {
     "not_found": "Página no encontrada",

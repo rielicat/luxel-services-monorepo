@@ -5,6 +5,9 @@ import { PLAN_COMMISSION_PCT, planMonthlyCost } from '@/lib/plan-pricing';
 import { fetchProperties } from '@/lib/host/queries';
 import { hospitableAmountToClp, listHospitableCalendar } from '@/lib/channels/hospitable';
 import { hospitableAccess } from '@/lib/channels/scope';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { createLead } from '@/lib/leads';
+import { comparableMarketReference, MIN_COMPARABLE_LISTINGS } from './pricing-reference';
 
 export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
 
@@ -19,8 +22,13 @@ type Widget =
       kind: 'airbnb_quote';
       listings: number;
       planLabel: string;
-      revenueClp: number | null;
+      commissionPct: number;
+      revenueClp: number;
+      revenueMaxClp: number | null;
+      keptClp: number;
+      keptMaxClp: number | null;
       monthlyClp: number;
+      monthlyMaxClp: number | null;
     }
   | {
       kind: 'links';
@@ -56,7 +64,14 @@ export interface ToolContext {
   whatsappNumber?: string | null;
   customerId?: string | null;
   signedIn?: boolean;
+  sessionId?: string | null;
 }
+
+const NO_INVENTED_PRICING =
+  'Nunca inventes ni estimes un precio por noche, una ocupación, unos ingresos ni una tarifa de limpieza, y nunca le pidas al visitante que investigue Airbnb o la competencia: fijar el precio por noche es el servicio que vende Luxel.';
+
+const PRICING_PROPOSAL_STEP =
+  'Explícale que Luxel fija y ajusta el precio por noche todos los días con PriceLabs, incluido en el plan, y ofrécele que Luxel prepare una propuesta de precios para su propiedad. Para eso pídele dirección o comuna, tamaño y dormitorios, y guárdalos con save_property_details.';
 
 export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
   return [
@@ -64,7 +79,7 @@ export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
       type: 'function',
       function: {
         name: 'get_airbnb_quote',
-        description: `Calcula el cobro mensual de la administración completa de Airbnb: ${pct(PLAN_COMMISSION_PCT)} de los ingresos por reservas, IVA incluido. Úsala cuando el usuario quiere saber cuánto cuesta que Luxel administre sus propiedades. NUNCA inventes el monto: el cobro depende de los ingresos, así que si no los sabes, primero pídeselos.`,
+        description: `Calcula cuánto le queda al anfitrión y cuánto cobra Luxel: ${pct(PLAN_COMMISSION_PCT)} de los ingresos por reservas, IVA incluido, por propiedad al mes. Úsala cuando el usuario quiere saber cuánto cuesta que Luxel administre sus propiedades. NUNCA inventes el monto: depende de los ingresos que el usuario declare. Si el usuario da un rango ("entre 900.000 y 1.100.000"), pasa los dos extremos en la misma llamada; NO la llames dos veces para dos escenarios.`,
         parameters: {
           type: 'object',
           properties: {
@@ -75,10 +90,65 @@ export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
             monthly_revenue_clp: {
               type: 'integer',
               description:
-                'Ingresos mensuales estimados por reservas de UNA propiedad, en pesos chilenos, sin la tarifa de limpieza. Sin este dato no hay monto que mostrar.',
+                'Ingresos mensuales por reservas de UNA propiedad, en pesos chilenos, sin la tarifa de limpieza. Si el usuario da un rango, este es el extremo bajo. Sin este dato no hay monto que mostrar.',
+            },
+            monthly_revenue_max_clp: {
+              type: 'integer',
+              description:
+                'Extremo alto del rango de ingresos mensuales por reservas de UNA propiedad, si el usuario dio un rango. Omítelo cuando dio una sola cifra.',
             },
           },
           required: ['listings'],
+          additionalProperties: false,
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_pricing_reference',
+        description: `Referencia de mercado a partir de datos REALES de las propiedades que Luxel administra: tarifa promedio por noche, ocupación e ingresos por reservas. Úsala siempre que pregunten cuánto puede ganar una propiedad, cuánto cobrar por noche, qué ocupación esperar o cuánto se cobra por el aseo. La herramienta responde con cifras solo si hay una muestra suficiente; si no la hay, te dirá qué responder. ${NO_INVENTED_PRICING}`,
+        parameters: {
+          type: 'object',
+          properties: {
+            comuna: {
+              type: 'string',
+              description: 'Comuna de la propiedad, por ejemplo "Santiago Centro" o "Providencia".',
+            },
+            bedrooms: {
+              type: 'integer',
+              description: 'Cantidad de dormitorios de la propiedad (0 para estudio).',
+            },
+          },
+          required: [],
+          additionalProperties: false,
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'save_property_details',
+        description:
+          'Guarda los datos de la propiedad que el visitante entrega (dirección, comuna, tamaño, dormitorios, ingresos) para que el equipo Luxel prepare la propuesta de precios y lo contacte. Llámala apenas tengas datos reales de la propiedad. Llámala una sola vez por dato nuevo, no repitas la misma información.',
+        parameters: {
+          type: 'object',
+          properties: {
+            address: { type: 'string', description: 'Dirección tal como la dio el visitante.' },
+            comuna: { type: 'string', description: 'Comuna de la propiedad.' },
+            bedrooms: { type: 'integer', description: 'Dormitorios (0 para estudio).' },
+            size_m2: { type: 'integer', description: 'Superficie en metros cuadrados.' },
+            monthly_revenue_clp: {
+              type: 'integer',
+              description: 'Ingresos mensuales por reservas que declaró el visitante, si los dio.',
+            },
+            notes: {
+              type: 'string',
+              description:
+                'Otros datos útiles en una frase: equipamiento, amenities, si ya está publicada en Airbnb.',
+            },
+          },
+          required: [],
           additionalProperties: false,
         },
       },
@@ -141,6 +211,10 @@ export async function runTool(
   switch (name) {
     case 'get_airbnb_quote':
       return getAirbnbQuote(input);
+    case 'get_pricing_reference':
+      return getPricingReference(input);
+    case 'save_property_details':
+      return savePropertyDetails(input, ctx);
     case 'get_host_status':
       return getHostStatus(ctx);
     case 'share_links':
@@ -152,28 +226,191 @@ export async function runTool(
   }
 }
 
+function positiveInt(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
 function getAirbnbQuote(input: Record<string, unknown>): ToolResult {
   const listings = Math.max(1, Math.min(50, Math.round(Number(input.listings ?? 1)) || 1));
-  const rawRevenue = Number(input.monthly_revenue_clp);
-  const revenueClp = Number.isFinite(rawRevenue) && rawRevenue > 0 ? Math.round(rawRevenue) : null;
-  const per = listings === 1 ? 'la propiedad' : `${listings} propiedades`;
+  const low = positiveInt(input.monthly_revenue_clp);
   const priceLine = `${PLAN_LABEL}: ${PLAN_PRICE_LINE}, por propiedad al mes, IVA incluido. Todo incluido.`;
-  if (revenueClp == null) {
+  if (low == null) {
     return {
-      content: `${priceLine} El cobro se calcula sobre los ingresos reales por reservas, así que todavía no hay monto. Pídele el ingreso mensual estimado por propiedad y vuelve a cotizar; no inventes ni aproximes la cifra.`,
+      content: `${priceLine} Todavía no hay monto: el cobro se calcula sobre los ingresos reales por reservas. Si el visitante sabe cuánto genera al mes, pídeselo UNA sola vez y acepta un rango (mínimo y máximo). Si no lo sabe, no repitas la pregunta: usa get_pricing_reference y ofrécele la propuesta de precios de Luxel. ${NO_INVENTED_PRICING}`,
     };
   }
-  const monthlyClp = planMonthlyCost(revenueClp) * listings;
-  const content = `${priceLine} Con ingresos de ${clp(revenueClp)} al mes por propiedad, para ${per} el cobro es ${clp(monthlyClp)} al mes. Airbnb le paga los ingresos directo al anfitrión y Luxel le cobra a fin de mes con el detalle. Comunícalo con claridad e invítalo a solicitar su plan.`;
+  const rawHigh = positiveInt(input.monthly_revenue_max_clp);
+  const high = rawHigh != null && rawHigh > low ? rawHigh : null;
+
+  const feeOf = (revenue: number) => planMonthlyCost(revenue) * listings;
+  const keptOf = (revenue: number) => (revenue - planMonthlyCost(revenue)) * listings;
+
+  const feeClp = feeOf(low);
+  const keptClp = keptOf(low);
+  const feeMaxClp = high == null ? null : feeOf(high);
+  const keptMaxClp = high == null ? null : keptOf(high);
+
+  const perListing = listings === 1 ? 'la propiedad' : `cada una de las ${listings} propiedades`;
+  const forAll = listings === 1 ? '' : ` por las ${listings} propiedades`;
+  const revenueText = high == null ? clp(low) : `entre ${clp(low)} y ${clp(high)}`;
+  const keptText = keptMaxClp == null ? clp(keptClp) : `entre ${clp(keptClp)} y ${clp(keptMaxClp)}`;
+  const feeText = feeMaxClp == null ? clp(feeClp) : `entre ${clp(feeClp)} y ${clp(feeMaxClp)}`;
+
+  const content = [
+    `Con ingresos de ${revenueText} al mes en ${perListing}, al anfitrión le quedan ${keptText} al mes${forAll}.`,
+    `La comisión Luxel es ${feeText} al mes${forAll}. ${priceLine}`,
+    'Parte SIEMPRE por lo que le queda al anfitrión; la comisión va después y en segundo plano.',
+    'La tarifa de limpieza que paga el huésped no entra en esta base: va completa al equipo de aseo y no paga comisión.',
+    'Airbnb le paga los ingresos directo al anfitrión y Luxel factura a fin de mes con el detalle.',
+    'Ya se muestra UNA tarjeta con el resultado: no vuelvas a llamar esta herramienta en la misma respuesta para un segundo escenario.',
+  ].join(' ');
+
   return {
     content,
     widget: {
       kind: 'airbnb_quote',
       listings,
       planLabel: PLAN_LABEL,
-      revenueClp,
-      monthlyClp,
+      commissionPct: PLAN_COMMISSION_PCT,
+      revenueClp: low,
+      revenueMaxClp: high,
+      keptClp,
+      keptMaxClp,
+      monthlyClp: feeClp,
+      monthlyMaxClp: feeMaxClp,
     },
+  };
+}
+
+async function getPricingReference(input: Record<string, unknown>): Promise<ToolResult> {
+  const rawBedrooms = Number(input.bedrooms);
+  const reference = await comparableMarketReference({
+    comuna: typeof input.comuna === 'string' ? input.comuna : null,
+    bedrooms: Number.isFinite(rawBedrooms) ? Math.round(rawBedrooms) : null,
+  });
+
+  if (!reference.ok) {
+    return {
+      content: `Sin datos comparables suficientes (Luxel exige al menos ${MIN_COMPARABLE_LISTINGS} propiedades administradas para publicar un promedio, y así protege los ingresos de cada anfitrión). NO entregues ningún número: ni precio por noche, ni ocupación, ni ingresos, ni tarifa de limpieza, ni un rango, ni "referencias del mercado". No comentes cuántas propiedades administra Luxel ni menciones esta restricción interna. ${NO_INVENTED_PRICING} ${PRICING_PROPOSAL_STEP}`,
+    };
+  }
+
+  return {
+    content: `Datos reales de ${reference.listings} propiedades comparables que administra Luxel (últimos ${reference.windowDays} días): tarifa promedio por noche ${clp(reference.adrClp)}, ocupación ${reference.occupancyPct}%, ingresos por reservas ${clp(reference.monthlyRevenueClp)} al mes por propiedad. Son promedios ya realizados, no una promesa de resultados: preséntalos como referencia. No entregues datos de una propiedad ni de un anfitrión en particular. El precio final por noche lo fija Luxel todos los días con PriceLabs, incluido en el plan.`,
+  };
+}
+
+interface PropertyDetails {
+  address: string | null;
+  comuna: string | null;
+  bedrooms: number | null;
+  sizeM2: number | null;
+  monthlyRevenueClp: number | null;
+  notes: string | null;
+}
+
+function text(value: unknown, max: number): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, max) : null;
+}
+
+function wholeNumber(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+}
+
+function readPropertyDetails(input: Record<string, unknown>): PropertyDetails {
+  return {
+    address: text(input.address, 200),
+    comuna: text(input.comuna, 80),
+    bedrooms: wholeNumber(input.bedrooms),
+    sizeM2: wholeNumber(input.size_m2),
+    monthlyRevenueClp: positiveInt(input.monthly_revenue_clp),
+    notes: text(input.notes, 500),
+  };
+}
+
+interface LeadRow {
+  id: string;
+  commune: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+async function storeLeadDetails(details: PropertyDetails, ctx: ToolContext): Promise<boolean> {
+  const property: Record<string, unknown> = {};
+  if (details.address) property.address = details.address;
+  if (details.comuna) property.comuna = details.comuna;
+  if (details.bedrooms != null) property.bedrooms = details.bedrooms;
+  if (details.sizeM2 != null) property.size_m2 = details.sizeM2;
+  if (details.monthlyRevenueClp != null) property.monthly_revenue_clp = details.monthlyRevenueClp;
+  if (details.notes) property.notes = details.notes;
+
+  const sessionId = ctx.sessionId ?? null;
+  try {
+    if (sessionId) {
+      const supabase = createSupabaseServiceRoleClient();
+      const { data } = await supabase
+        .from('leads')
+        .select('id, commune, metadata')
+        .eq('session_id', sessionId)
+        .eq('source', 'contact')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const existing = (data ?? [])[0] as unknown as LeadRow | undefined;
+      if (existing) {
+        const metadata = existing.metadata ?? {};
+        const previous = (metadata.property ?? {}) as Record<string, unknown>;
+        const { error } = await supabase
+          .from('leads')
+          .update({
+            commune: details.comuna ?? existing.commune,
+            metadata: {
+              ...metadata,
+              via: 'lux_concierge',
+              property: { ...previous, ...property },
+            },
+          })
+          .eq('id', existing.id);
+        return !error;
+      }
+    }
+    const created = await createLead({
+      source: 'contact',
+      commune: details.comuna,
+      message: details.notes,
+      sessionId,
+      customerId: ctx.customerId ?? null,
+      metadata: { via: 'lux_concierge', property },
+    });
+    return created.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function savePropertyDetails(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<ToolResult> {
+  const details = readPropertyDetails(input);
+  const usable =
+    Boolean(details.address) ||
+    Boolean(details.comuna) ||
+    details.bedrooms != null ||
+    details.sizeM2 != null;
+  if (!usable) {
+    return {
+      content: `Todavía no hay datos que guardar. Pídele dirección o comuna, tamaño y dormitorios, en una sola pregunta. ${NO_INVENTED_PRICING}`,
+    };
+  }
+  const saved = await storeLeadDetails(details, ctx);
+  const next = `Confírmale que el equipo Luxel prepara una propuesta de precios para su propiedad (precio por noche y proyección de ingresos) y lo contacta. ${NO_INVENTED_PRICING}`;
+  return {
+    content: saved
+      ? `Guardamos los datos de la propiedad para el equipo Luxel. ${next}`
+      : `No pudimos guardar los datos, pero no se lo menciones ni lo vuelvas a preguntar. ${next}`,
   };
 }
 

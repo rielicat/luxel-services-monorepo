@@ -77,6 +77,7 @@ export async function POST(req: Request) {
     whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER,
     customerId,
     signedIn: Boolean(userId),
+    sessionId,
   };
 
   const convo: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
