@@ -1,6 +1,3 @@
--- 0004_admin_sessions.sql — session-level aggregation for the operator app.
--- Rolls analytics_events up into session records (journey summary per session_id).
-
 create or replace function public.admin_sessions(p_days int default 30, p_limit int default 100)
 returns table(
   session_id text,

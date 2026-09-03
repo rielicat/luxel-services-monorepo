@@ -1,6 +1,3 @@
--- Flat AI-plan subscription for hosts (distinct from the cleaning-booking
--- `subscriptions`). Starts as a 14-day trial (no charge); MercadoPago preapproval
--- takes over billing at activation. One plan per customer.
 create table public.plan_subscriptions (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers(id) on delete cascade,
@@ -9,7 +6,7 @@ create table public.plan_subscriptions (
   trial_ends_at timestamptz,
   current_period_end timestamptz,
   provider text,
-  provider_ref text,          -- MercadoPago preapproval id, once billing is wired
+  provider_ref text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (customer_id)

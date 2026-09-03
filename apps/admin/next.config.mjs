@@ -1,5 +1,6 @@
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@luxel/shared'],
   poweredByHeader: false,
   typedRoutes: true,
 };

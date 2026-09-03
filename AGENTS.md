@@ -92,6 +92,12 @@ supabase/        migrations + local config
 
 - **No code comments.** Source carries no comments; the code and the tests explain
   themselves. Only tool directives stay (`eslint-disable`, `@ts-expect-error`).
+  The ban covers `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and the SQL
+  migrations in `supabase/migrations`. ESLint (`luxel/no-comments`) and
+  `pnpm lint:comments` enforce it. A blanket `eslint-disable` is itself an error;
+  always name the rules you disable. Only CI workflows, Pulumi stack config,
+  `wrangler.toml`, `supabase/config.toml` and `.env.example` keep their operator
+  comments.
 - **i18n.** No hardcoded user-facing strings. Site copy lives in
   `packages/shared/src/i18n/es-CL.json`; the guest check-in page also has
   `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix is

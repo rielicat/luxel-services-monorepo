@@ -38,6 +38,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Comments
+        run: pnpm lint:comments
+
       - name: Test
         run: pnpm test
 

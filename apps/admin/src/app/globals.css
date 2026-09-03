@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Operator app — shares the Servicios Luxel token system (see docs/BRAND.md). */
-
 @layer base {
   :root {
     --background: 160 44% 99%;

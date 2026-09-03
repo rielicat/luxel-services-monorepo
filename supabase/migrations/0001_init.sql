@@ -1,16 +1,5 @@
--- ─────────────────────────────────────────────────────────────
--- 0001_init.sql — Servicios Luxel core schema
---
--- Conventions:
---   • All times stored as timestamptz (UTC). Render in America/Santiago.
---   • Money as integer CLP (Chilean peso has no minor unit).
---   • Clerk is the source of truth for auth. Users mirror into customers.clerk_user_id.
---   • RLS: auth.jwt() ->> 'sub' is the Clerk user id (configure JWT template in Clerk).
--- ─────────────────────────────────────────────────────────────
-
 create extension if not exists "pgcrypto";
 
--- ───── operation_points ────────────────────────────────────────
 create table public.operation_points (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -26,8 +15,6 @@ create policy "operation_points_public_read"
   on public.operation_points for select
   using (active = true);
 
--- ───── operators ──────────────────────────────────────────────
--- Individual cleaning operators (no crew concept — each operator is booked solo).
 create table public.operators (
   id uuid primary key default gen_random_uuid(),
   operation_point_id uuid not null references public.operation_points(id) on delete cascade,
@@ -37,9 +24,7 @@ create table public.operators (
 );
 create index on public.operators(operation_point_id);
 alter table public.operators enable row level security;
--- Operators are admin-managed; no public SELECT policy → only service role can read.
 
--- ───── service_types ──────────────────────────────────────────
 create table public.service_types (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null,
@@ -55,7 +40,6 @@ create policy "service_types_public_read"
   on public.service_types for select
   using (active = true);
 
--- ───── pricing_config ─────────────────────────────────────────
 create table public.pricing_config (
   id text primary key,
   value_int integer,
@@ -68,7 +52,6 @@ create policy "pricing_config_public_read"
   on public.pricing_config for select
   using (true);
 
--- ───── customers (mirror of Clerk users) ──────────────────────
 create table public.customers (
   id uuid primary key default gen_random_uuid(),
   clerk_user_id text unique not null,
@@ -88,7 +71,6 @@ create policy "customers_self_update"
   on public.customers for update
   using (clerk_user_id = (auth.jwt() ->> 'sub'));
 
--- ───── addresses ──────────────────────────────────────────────
 create table public.addresses (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers(id) on delete cascade,
@@ -115,7 +97,6 @@ create policy "addresses_owner_all"
     )
   );
 
--- ───── subscriptions ──────────────────────────────────────────
 create table public.subscriptions (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers(id) on delete cascade,
@@ -144,7 +125,6 @@ create policy "subscriptions_owner_read"
     )
   );
 
--- ───── bookings ───────────────────────────────────────────────
 create table public.bookings (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers(id) on delete cascade,
@@ -184,7 +164,6 @@ create policy "bookings_owner_all"
     )
   );
 
--- ───── messages (web + whatsapp, unified) ─────────────────────
 create table public.messages (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid references public.customers(id) on delete set null,
@@ -214,7 +193,6 @@ create policy "messages_owner_insert"
     )
   );
 
--- ───── faq_entries ────────────────────────────────────────────
 create table public.faq_entries (
   id uuid primary key default gen_random_uuid(),
   question_key text not null,
@@ -229,7 +207,6 @@ create policy "faq_entries_public_read"
   on public.faq_entries for select
   using (active = true);
 
--- ───── updated_at triggers ────────────────────────────────────
 create or replace function public.tg_set_updated_at()
 returns trigger language plpgsql as $$
 begin

@@ -1,7 +1,3 @@
--- Cleaning coordination: properties carry a geocoded location so the @luxel/pricing
--- engine can quote a turnover by size + distance, and cleanings are scheduled off
--- calendar check-outs (guest-funded via the AirBnB cleaning fee).
-
 alter table public.properties add column lat double precision;
 alter table public.properties add column lng double precision;
 
@@ -13,7 +9,7 @@ create table public.cleanings (
   price_clp integer,
   source text not null default 'checkout' check (source in ('checkout', 'manual')),
   created_at timestamptz not null default now(),
-  unique (property_id, cleaning_date)   -- one cleaning per date; dedups checkout suggestions
+  unique (property_id, cleaning_date)
 );
 create index on public.cleanings(property_id, cleaning_date);
 alter table public.cleanings enable row level security;

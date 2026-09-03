@@ -1,9 +1,3 @@
--- Required reference/config data the app needs to function: pricing config,
--- service types, the Santiago operation point, and concierge FAQ. `supabase db
--- push` does NOT run seed.sql, so this migration carries the same rows to every
--- environment (prod included). Fully idempotent — safe to re-run; the operator
--- can tune the values later from the admin panel. Mirrors supabase/seed.sql.
-
 insert into public.pricing_config (id, value_int, description) values
   ('tools_surcharge_clp', 8000, 'Recargo cuando Luxel aporta los insumos.'),
   ('distance_per_km_clp', 400, 'Recargo por km desde el punto de operación más cercano.'),

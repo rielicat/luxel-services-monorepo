@@ -1,7 +1,3 @@
--- Per-guest check-in details: the person completing check-in registers EVERY
--- incoming guest (lead + companions). Same minimization/encryption scheme as
--- checkin_identity: doc number encrypted app-layer, last-4 for display, purged
--- alongside the check-in's retention window.
 create table public.checkin_guests (
   id uuid primary key default gen_random_uuid(),
   checkin_id uuid not null references public.checkins(id) on delete cascade,

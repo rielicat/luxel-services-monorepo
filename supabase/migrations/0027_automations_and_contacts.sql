@@ -1,10 +1,6 @@
--- Price optimization is opt-in per property, alongside AI replies as the two
--- headline automations.
 alter table public.properties
   add column if not exists price_optimization_enabled boolean not null default false;
 
--- Cleaning notifications go to a LIST of people the host manages, not a single
--- hardcoded contact.
 create table if not exists public.cleaning_contacts (
   id uuid primary key default gen_random_uuid(),
   property_id uuid not null references public.properties(id) on delete cascade,
@@ -26,7 +22,6 @@ create policy "cleaning_contacts_owner_all"
     select p.id from public.properties p join public.customers c on c.id = p.owner_id
     where c.clerk_user_id = (auth.jwt() ->> 'sub')));
 
--- Carry over the single legacy contact where one was configured.
 insert into public.cleaning_contacts (property_id, name, email, whatsapp)
 select id, cleaning_contact_name, cleaning_contact_email, cleaning_contact_whatsapp
 from public.properties

@@ -2,16 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─────────────────────────────────────────────────────────────
-   Servicios Luxel — design tokens ("Fresh Teal + Lime", elevated)
-   Colors are HSL channels so Tailwind composes them with alpha:
-   hsl(var(--x) / <alpha>). Deep teal primary on ivory surfaces,
-   crisp neutrals, lime as the high-energy accent. See docs/BRAND.md.
-   ───────────────────────────────────────────────────────────── */
-
 @layer base {
   :root {
-    /* Ivory canvas, crisp white cards for contrast */
     --background: 168 38% 99%;
     --foreground: 187 44% 10%;
 
@@ -21,23 +13,18 @@
     --popover: 0 0% 100%;
     --popover-foreground: 187 44% 10%;
 
-    /* Deep teal — primary brand (#0c7c6a) */
     --primary: 172 82% 26%;
     --primary-foreground: 0 0% 100%;
 
-    /* Teal-500 — secondary brand */
     --secondary: 172 66% 41%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Lime — high-energy accent (CTAs, highlights). Hue nudged toward green
-       and desaturated off the acid-yellow so it sits with the teal, not against it. */
     --lime: 82 72% 55%;
     --lime-foreground: 140 72% 14%;
 
     --muted: 168 32% 96%;
     --muted-foreground: 190 13% 38%;
 
-    /* Soft teal wash for subtle surfaces */
     --accent: 170 52% 94%;
     --accent-foreground: 172 80% 22%;
 
@@ -110,18 +97,15 @@
       'ss01' 1;
   }
 
-  /* Display headings — tighter tracking for a confident, modern voice. */
   .font-display {
     letter-spacing: -0.02em;
   }
 
-  /* Serif display headings — editorial, luxe feel. */
   .font-serif {
     font-feature-settings: 'ss01' 1;
     letter-spacing: -0.01em;
   }
 
-  /* Numeric readouts (prices, stats, calendars) line up crisply. */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
@@ -131,14 +115,12 @@
     color: hsl(var(--lime-foreground));
   }
 
-  /* Consistent, visible keyboard focus across the app. */
   :focus-visible {
     outline: none;
   }
 }
 
 @layer utilities {
-  /* Brand gradient text — for hero accent words */
   .text-gradient-brand {
     background-image: linear-gradient(
       100deg,
@@ -151,7 +133,6 @@
     color: transparent;
   }
 
-  /* Ambient radial glow used behind hero / section headers */
   .bg-brand-glow {
     background-image: radial-gradient(
       55% 45% at 50% 0%,
@@ -160,13 +141,11 @@
     );
   }
 
-  /* Subtle dotted grid backdrop (placeholder for hero imagery) */
   .bg-dot-grid {
     background-image: radial-gradient(hsl(var(--primary) / 0.08) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 
-  /* Layered ambient aurora for premium hero / section backdrops */
   .bg-aurora {
     background-image:
       radial-gradient(38% 42% at 12% 8%, hsl(var(--secondary) / 0.13) 0%, transparent 72%),
@@ -174,14 +153,12 @@
       radial-gradient(52% 52% at 50% 100%, hsl(var(--primary) / 0.07) 0%, transparent 72%);
   }
 
-  /* Frosted glass surface */
   .glass {
     background: hsl(var(--card) / 0.65);
     backdrop-filter: blur(14px) saturate(1.5);
     -webkit-backdrop-filter: blur(14px) saturate(1.5);
   }
 
-  /* Hairline luxe divider */
   .rule-lux {
     background-image: linear-gradient(
       90deg,
@@ -192,8 +169,6 @@
     );
   }
 
-  /* Interactive lift — pairs a smooth translate with a deeper shadow on hover.
-     Add `hover:shadow-lift` alongside it on the element. */
   .hover-lift {
     transition:
       transform 0.35s var(--ease-lux, cubic-bezier(0.16, 1, 0.3, 1)),
@@ -204,8 +179,6 @@
     transform: translateY(-4px);
   }
 
-  /* Scroll reveal — hidden until the <Reveal> observer adds `.is-visible`.
-     Honors an optional per-element --reveal-delay for staggering. */
   .reveal {
     opacity: 0;
     transform: translateY(22px);
@@ -219,7 +192,6 @@
       transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
     transition-delay: var(--reveal-delay, 0ms);
   }
-  /* Never leave content hidden if JS never runs. */
   @media (scripting: none) {
     .reveal {
       opacity: 1;
@@ -227,8 +199,6 @@
     }
   }
 
-  /* Slowly panning brand gradient — for hero accent words. Pair with
-     .text-gradient-brand (which sets the gradient) + this for the motion. */
   .animate-gradient {
     background-size: 220% auto;
     animation: gradient-pan 7s ease-in-out infinite;

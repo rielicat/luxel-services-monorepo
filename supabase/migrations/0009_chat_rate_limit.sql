@@ -1,12 +1,3 @@
--- Atomic per-session rate limit for the public human-handoff chat endpoint
--- (/api/chat/human). Replaces a check-then-insert in the API that was a TOCTOU
--- race: concurrent requests all read count < cap before any row was written, so
--- the cap didn't bound bursts. Counting AND the reservation insert now happen
--- under one per-session advisory lock, so N concurrent calls serialize and the
--- cap holds. The reservation is the user's own message row, so a request that is
--- rejected writes nothing (bounds unauthenticated insert spam), and the count is
--- of attempts — a forward that later fails to send still consumed its slot.
-
 create or replace function public.claim_chat_slot(
   p_session_id text,
   p_customer_id uuid,

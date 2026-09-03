@@ -1,8 +1,3 @@
--- Phase 2: full AI guest messaging. Inbound guest messages flow through a
--- channel-provider adapter (Hospitable in prod; a local dev adapter for testing),
--- the AI drafts + auto-sends grounded replies, or hands off to a human. Resolved
--- answers are learned per property so future drafts improve.
-
 create table public.guest_threads (
   id uuid primary key default gen_random_uuid(),
   property_id uuid not null references public.properties(id) on delete cascade,

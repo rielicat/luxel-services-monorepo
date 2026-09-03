@@ -1,10 +1,3 @@
--- 0002_payments.sql — provider session/payment ids on bookings + payment events ledger
---
--- The bookings table already has payment_provider + payment_status. We add the provider's
--- session/intent identifiers so webhooks can resolve back to the booking, and we add a
--- payment_events table as an idempotency ledger so repeated webhook deliveries don't
--- double-update bookings.
-
 alter table public.bookings
   add column if not exists provider_session_id text,
   add column if not exists provider_payment_id text;
@@ -29,4 +22,3 @@ create table if not exists public.payment_events (
 );
 
 alter table public.payment_events enable row level security;
--- No public policies — service role only.

@@ -1,6 +1,3 @@
--- Per-customer channel connections (SaaS model): each host connects their OWN
--- Hospitable account. The API token is stored encrypted (app-layer AES-256-GCM,
--- same scheme as guest IDs) — never plaintext.
 create table public.channel_connections (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers(id) on delete cascade,
