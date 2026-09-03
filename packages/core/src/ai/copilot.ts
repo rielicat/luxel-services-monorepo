@@ -122,7 +122,6 @@ export async function draftGuestReply(
   try {
     const res = await openai.chat.completions.create({
       model: AI_MODEL,
-      temperature: 0.3,
       messages: [
         { role: 'system', content: `${SYSTEM}\n\n--- Información del alojamiento ---\n${context}` },
         { role: 'user', content: guestMessage },
@@ -131,7 +130,12 @@ export async function draftGuestReply(
     const text = res.choices[0]?.message?.content?.trim() ?? '';
     const handoff = /\[HANDOFF\]/i.test(text);
     return { ok: true, draft: text.replace(/\[HANDOFF\]/gi, '').trim(), handoff };
-  } catch {
+  } catch (err) {
+    console.error('ai.draft_failed', {
+      propertyId,
+      model: AI_MODEL,
+      message: err instanceof Error ? err.message : String(err),
+    });
     return { ok: false, reason: 'error' };
   }
 }

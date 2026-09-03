@@ -6,6 +6,7 @@ import { customerForListing } from '@luxel/core/channels/scope';
 import { verifyConnection } from '@luxel/core/channels/connection';
 import { ingestThread, mirrorCheckinForReservation } from '@luxel/core/channels/hospitable-sync';
 import { getHospitableReservation } from '@luxel/core/channels/hospitable';
+import { providerApiKey } from '@luxel/core/channels/credentials';
 import { channelPlugin } from '@luxel/core/channels/registry';
 import type { ChannelPlugin } from '@luxel/core/channels/types';
 import { authorizeWebhook } from '@luxel/core/channels/webhook-auth';
@@ -93,6 +94,14 @@ async function resolveListingId(
     .eq('id', propertyId)
     .maybeSingle();
   return (data?.external_listing_id as string | undefined) ?? null;
+}
+
+async function listingIdFromReservation(reservationId: string): Promise<string | null> {
+  const token = providerApiKey();
+  if (!token) return null;
+  const reservation = await getHospitableReservation(token, reservationId);
+  const id = reservation?.properties?.find((p) => p?.id)?.id ?? null;
+  return id ? String(id) : null;
 }
 
 async function afterResponse(task: () => Promise<void>): Promise<void> {
@@ -219,10 +228,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
       return Response.json({ ok: true, ignored: true });
     }
 
-    const propertyId = await resolveProperty(ev.reservationId, ev.propertyExternalId);
-    if (!propertyId) return Response.json({ ok: true, ignored: true, reason: 'unmapped' });
+    let propertyExternalId = ev.propertyExternalId;
+    let propertyId = await resolveProperty(ev.reservationId, propertyExternalId);
+    if (!propertyId) {
+      propertyExternalId = await listingIdFromReservation(ev.reservationId);
+      propertyId = propertyExternalId ? await resolveProperty(null, propertyExternalId) : null;
+    }
+    if (!propertyId) {
+      console.warn('webhook.message_unmapped', { reservationId: ev.reservationId });
+      return Response.json({ ok: true, ignored: true, reason: 'unmapped' });
+    }
 
-    const listingId = await resolveListingId(ev.reservationId, ev.propertyExternalId);
+    const listingId = await resolveListingId(ev.reservationId, propertyExternalId);
     const customerId = listingId ? await customerForListing(listingId) : null;
     if (!customerId) return Response.json({ ok: true, ignored: true, reason: 'unassigned' });
 

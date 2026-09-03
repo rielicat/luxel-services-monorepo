@@ -42,6 +42,10 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
     send_failed: 'error_send_failed',
     no_access: 'error_no_access',
     already_decided: 'error_already_decided',
+    unknown_thread: 'error_unknown_thread',
+    not_found: 'error_unknown_thread',
+    write_failed: 'error_write_failed',
+    error: 'error_ai_failed',
   };
 
   const errorText = (reason?: string) => t(ERROR_KEY[reason ?? ''] ?? 'error_generic');

@@ -78,6 +78,7 @@ export interface HospitableReservation {
   check_out?: string | null;
   status: string | null;
   reservation_status?: { current?: { category?: string | null } | null } | null;
+  properties?: { id?: string | null }[] | null;
   guests?: { total?: number | null } | null;
   conversation_id?: string | null;
   conversation_language?: string | null;
@@ -313,7 +314,7 @@ export async function getHospitableReservation(
 ): Promise<HospitableReservation | null> {
   try {
     const res = await fetch(
-      `${BASE}/reservations/${encodeURIComponent(reservationId)}?include=guest`,
+      `${BASE}/reservations/${encodeURIComponent(reservationId)}?include=guest,properties`,
       { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } },
     );
     if (!res.ok) return null;

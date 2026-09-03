@@ -227,7 +227,10 @@ export async function POST(req: Request) {
             'Ocurrió un error con el asistente. Intenta nuevamente o escríbenos por WhatsApp.',
         });
         controller.close();
-        if (process.env.NODE_ENV !== 'production') console.error('chat route error', err);
+        console.error('chat.failed', {
+          model: AI_MODEL,
+          message: err instanceof Error ? err.message : String(err),
+        });
       }
     },
   });

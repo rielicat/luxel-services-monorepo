@@ -72,6 +72,9 @@
     "error_no_access": "No hay credencial del canal para esta propiedad.",
     "error_already_decided": "Ese borrador ya se resolvió. Recarga la página.",
     "error_generic": "No pudimos completar la acción. Inténtalo de nuevo.",
-    "review_managed": "El modo de cada propiedad se cambia en el panel de operación."
+    "review_managed": "El modo de cada propiedad se cambia en el panel de operación.",
+    "error_unknown_thread": "Esa conversación o su propiedad ya no existe. Recarga la página.",
+    "error_write_failed": "No pudimos guardar el borrador. Revisa los registros del servidor.",
+    "error_ai_failed": "Lux no pudo redactar: el modelo rechazó la solicitud. El detalle quedó en los registros del servidor (ai.draft_failed)."
   }
 }
