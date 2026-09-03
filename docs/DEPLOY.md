@@ -77,9 +77,9 @@ These are external accounts. The code cannot provision them:
     tickets. It is optional — the worker falls back to `INTERNAL_SEND_TOKEN`
     while it is unset — but set it: rotating it is the only way to revoke video
     access without touching WhatsApp. `infra/cloudflare` creates the bucket and
-    its 30-day lifecycle rule. **The Pulumi `CLOUDFLARE_API_TOKEN` must gain `Account: Workers R2
-Storage: Edit`**, or `infra.yml` fails with a 403. Apply that stack
-    **before** the next `wrangler deploy`: the worker binds the bucket, and
+    its 30-day lifecycle rule; both were applied on 2026-09-03, and the Pulumi
+    token already carried `Account: Workers R2 Storage: Edit`. Apply that stack
+    before any `wrangler deploy`: the worker binds the bucket, and
     `wrangler deploy` does not create it.
 12. **Cloudflare Workflows** — the `cleaning-review` Workflow compares a
     confirmed walkthrough against the previous confirmed inventory. Workflows run
