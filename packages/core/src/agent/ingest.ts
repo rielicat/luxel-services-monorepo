@@ -104,6 +104,15 @@ export async function ingestThreads(): Promise<{
 
   const batch = pending.slice(0, MAX_THREADS_PER_RUN);
   let digests = 0;
-  for (const head of batch) if (await digestThread(head, openai)) digests += 1;
+  for (const head of batch) {
+    try {
+      if (await digestThread(head, openai)) digests += 1;
+    } catch (err) {
+      console.error('agent.thread_ingest_failed', {
+        threadId: head.threadId,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
   return { ok: true, pending: pending.length, threads: batch.length, digests };
 }
