@@ -1,5 +1,6 @@
 import { appUrl } from '../urls';
 import { claimSession } from './session';
+import { finalMessage, requestedHandoff } from './stream';
 import { mintAgentToken } from './token';
 import type { Surface } from './types';
 
@@ -10,8 +11,6 @@ export interface TurnResult {
   text?: string;
   handoff?: boolean;
 }
-
-const HANDOFF_TOOLS = new Set(['escalate_to_luxel', 'escalate_to_human']);
 
 const TURN_TIMEOUT_MS = 55_000;
 
@@ -180,12 +179,9 @@ async function followTurn(
           continue;
         }
 
-        if (event.type === 'actions.requested') {
-          const actions = (event.data?.actions as { name?: string }[] | undefined) ?? [];
-          if (actions.some((a) => a.name && HANDOFF_TOOLS.has(a.name))) handoff = true;
-        }
-        if (event.type === 'message.completed' && event.data?.finishReason === 'stop') {
-          text = String(event.data.message ?? '').trim();
+        if (event.type === 'actions.requested' && requestedHandoff(event.data)) handoff = true;
+        if (event.type === 'message.completed') {
+          text = (finalMessage(event.data) ?? text).trim();
         }
         if (event.type === 'turn.completed') {
           await reader.cancel();
