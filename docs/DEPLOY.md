@@ -34,7 +34,13 @@ These are external accounts. The code cannot provision them:
    file. After that, `.github/workflows/db-migrate.yml` applies new migrations
    on push (repo secret `SUPABASE_DB_URL`).
 2. **Clerk** — create a production instance. Add **both** app domains to the
-   allowed origins. Copy `pk_live_*` / `sk_live_*`. Point a Clerk webhook at
+   allowed origins. Copy `pk_live_*` / `sk_live_*`. A production instance serves
+   its own frontend API from `clerk.<domain>`, so it does not work until five
+   CNAMEs resolve. They are Pulumi's, not the dashboard's: set
+   `clerkMailHash` in `infra/cloudflare/Pulumi.prod.yaml` to the label inside the
+   `clkmail` target shown under Domains > Manual DNS setup, and push. Never use
+   the dashboard's "Configure automatically" flow — it writes records Pulumi does
+   not know about. Point a Clerk webhook at
    `https://serviciosluxel.cl/api/webhooks/clerk` and copy
    `CLERK_WEBHOOK_SECRET`. Create the operator organization for the panel and add
    each operator to it (see `apps/admin` env below). Keep Organizations optional

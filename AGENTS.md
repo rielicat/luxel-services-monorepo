@@ -390,9 +390,10 @@ test → build. `db-migrate.yml` applies migrations to prod Supabase.
 `apps/admin` from their roots; the worker deploys with `wrangler deploy`.
 Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
-Open follow-ups that need operator credentials: Clerk production instance (prod
-runs the dev instance), Meta WhatsApp go-live (portfolio, number, templates),
-`PROVIDER_API_KEY` on the `luxel-admin` Vercel project (`/stays` needs it).
+Open follow-ups that need operator credentials: Meta WhatsApp go-live
+(portfolio, number, templates), `PROVIDER_API_KEY` on the `luxel-admin` Vercel
+project (`/stays` needs it), and moving `luxel-admin` onto the Clerk production
+instance (`apps/web` runs `pk_live_*`, `apps/admin` still runs `pk_test_*`).
 Open follow-ups in code: plan activation. Operator steps still open for the
 cleaning review: `GOOGLE_API_KEY` from a billing-enabled project, a
 `wrangler deploy` to provision the `cleaning-review` Workflow, and
@@ -414,6 +415,17 @@ cleaning review: `GOOGLE_API_KEY` from a billing-enabled project, a
   stays on localhost. Test user: `you+clerk_test@example.com`, OTP `424242`.
 - Keep Clerk **Organizations optional** on the instance. Admin gating is
   app-level.
+- A Clerk **production instance serves its own frontend API** from
+  `clerk.<domain>`, not from `clerk.accounts.dev`. Nothing loads until the five
+  CNAMEs resolve, and the browser failure is a bare `ERR_NAME_NOT_RESOLVED` with
+  a page that still renders, because only the client bundle needs them. The
+  records are Pulumi's (`clerkMailHash` in
+  `infra/cloudflare/Pulumi.prod.yaml`); never add them from Clerk's
+  "Configure automatically" flow, which writes records Pulumi does not know
+  about. A production instance also starts with an **empty user pool** and an
+  empty organization list: dev-instance accounts do not migrate, so
+  `LUXEL_ADMIN_ORG_ID`/`SLUG` must be recreated there before `apps/admin` can
+  move over.
 - Hospitable's calendar endpoint clamps `start_date` to the first day of the
   running month. A request for an earlier date silently returns the same
   window, so the previous month can only come from the mirrored
