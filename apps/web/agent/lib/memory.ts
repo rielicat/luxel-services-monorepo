@@ -1,11 +1,9 @@
 import { defineMemoryProvider } from 'eve/memory';
 import { defineTool } from 'eve/tools';
 import { z } from 'zod';
-import { captureTurn, type TurnMessage } from '@luxel/core/agent/digest';
 import { recallHost, recallPlaybook, recallProperty } from '@luxel/core/agent/recall';
 import { accessSecrets, deleteNote, upsertNote } from '@luxel/core/agent/store';
 import { hostScopeKey, propertyScopeKey } from '@luxel/core/agent/scope';
-import { readCaller } from './caller';
 
 function textOf(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -21,25 +19,15 @@ function textOf(value: unknown): string {
   return '';
 }
 
-function messagesOf(value: unknown): TurnMessage[] {
-  if (!Array.isArray(value)) return [];
-  const out: TurnMessage[] = [];
-  for (const raw of value) {
-    if (!raw || typeof raw !== 'object') continue;
-    const role = (raw as { role?: unknown }).role;
-    if (role !== 'user' && role !== 'assistant') continue;
-    const content = textOf((raw as { content?: unknown }).content).trim();
-    if (content) out.push({ role, content });
-  }
-  return out;
-}
-
 function queryOf(ctx: { turn?: { input?: unknown } | null }): string {
-  const messages = messagesOf(ctx.turn?.input);
-  return messages
+  const input = ctx.turn?.input;
+  if (!Array.isArray(input)) return textOf(input).slice(0, 400);
+  return input
+    .filter((m): m is { role: string; content: unknown } => Boolean(m) && typeof m === 'object')
     .filter((m) => m.role === 'user')
-    .map((m) => m.content)
+    .map((m) => textOf(m.content))
     .join(' ')
+    .trim()
     .slice(0, 400);
 }
 
@@ -54,22 +42,6 @@ export function playbookMemory() {
     recall: {
       async 'turn.started'() {
         return { messages: await recallPlaybook() };
-      },
-    },
-    capture: {
-      async 'turn.completed'(ctx) {
-        const caller = readCaller(ctx.session.auth.current);
-        if (!caller || (caller.surface !== 'web' && caller.surface !== 'guest')) return;
-        const messages = messagesOf(ctx.messages);
-        if (!messages.length) return;
-        await captureTurn({
-          sessionId: ctx.session.id,
-          operationId: ctx.operationId,
-          surface: caller.surface,
-          propertyId: caller.propertyId,
-          threadId: caller.threadId,
-          messages,
-        });
       },
     },
   });

@@ -128,6 +128,14 @@ export async function distillPending(): Promise<{
     if (written) propertyNotes += 1;
   }
 
+  if (!globalRules && !propertyNotes && (parsed.global.length || parsed.property.length)) {
+    console.warn('agent.distill_wrote_nothing', {
+      digests: digests.length,
+      proposed: parsed.global.length + parsed.property.length,
+    });
+    return { ok: false, reason: 'error', digests: digests.length, globalRules, propertyNotes };
+  }
+
   await markDistilled(digests.map((d) => d.id));
   return { ok: true, digests: digests.length, globalRules, propertyNotes };
 }

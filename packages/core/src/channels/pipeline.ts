@@ -84,7 +84,7 @@ export async function handleInboundMessage(input: {
     threadId,
   });
 
-  if (turn.sessionId && turn.sessionId !== existing) {
+  if (turn.ok && turn.sessionId && turn.sessionId !== existing) {
     await setThreadSession(threadId, turn.sessionId);
   }
 

@@ -22,6 +22,7 @@ const PLAIN_ENV: Record<string, string> = {
   NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: '/',
   LUXEL_ADMIN_ORG_SLUG: 'servicios-luxel-1783354109102489708',
   NEXT_PUBLIC_WEB_URL: 'https://serviciosluxel.cl',
+  EVE_AGENT_ORIGIN: 'https://serviciosluxel.cl',
 };
 
 export const adminEnv = Object.entries(PLAIN_ENV).map(

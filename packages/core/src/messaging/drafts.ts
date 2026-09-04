@@ -128,7 +128,7 @@ export async function simulateThreadReply(
     propertyId,
     threadId,
   });
-  if (turn.sessionId && turn.sessionId !== existing) {
+  if (turn.ok && turn.sessionId && turn.sessionId !== existing) {
     await setThreadSession(threadId, turn.sessionId);
   }
   if (!turn.ok) return { ok: false, reason: turn.reason ?? 'error' };

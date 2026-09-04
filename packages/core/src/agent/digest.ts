@@ -92,7 +92,10 @@ export async function captureTurn(input: {
   messages: readonly TurnMessage[];
 }): Promise<boolean> {
   const { summary, facts, outcome } = await summarizeTurn(input.messages);
-  if (!summary) return false;
+  if (!summary) {
+    console.warn('agent.capture_empty', { surface: input.surface, sessionId: input.sessionId });
+    return false;
+  }
   const secrets = await accessSecrets(input.propertyId);
   return writeDigest({
     sessionId: input.sessionId,
