@@ -48,10 +48,12 @@ jobs:
 
       - name: Typecheck the worker
         if: steps.guard.outputs.skip != 'true'
-        run: pnpm --filter @luxel/whatsapp-worker typecheck
+        run: pnpm --filter @luxel/whatsapp-worker run typecheck
 
       - name: Deploy
         if: steps.guard.outputs.skip != 'true'
-        run: pnpm --filter @luxel/whatsapp-worker deploy
+        # `run` is required: `deploy` is a built-in pnpm command, so without it
+        # pnpm parses this as `pnpm deploy <dir>` and fails on a missing target.
+        run: pnpm --filter @luxel/whatsapp-worker run deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
