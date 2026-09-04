@@ -10,7 +10,6 @@ const tokensIn = (doc: PrivacyDoc): string[] => {
   const scan = (text: string) => {
     for (const m of text.matchAll(/\[[^\]]+\]/g)) found.add(m[0]);
   };
-  scan(doc.placeholders_body);
   doc.draft_body.forEach(scan);
   for (const s of doc.sections) {
     scan(s.title);
@@ -28,7 +27,6 @@ describe('privacy catalogs', () => {
   it.each(DOCS)('%s parses with the same shape as the Spanish original', (_l, doc) => {
     expect(Object.keys(doc).sort()).toEqual(Object.keys(es).sort());
     expect(doc.draft_body.length).toBe(es.draft_body.length);
-    expect(doc.placeholders_items.length).toBe(es.placeholders_items.length);
     expect(doc.sections.map((s) => s.id)).toEqual(es.sections.map((s) => s.id));
     doc.sections.forEach((s, i) => {
       expect(s.body.length, `${s.id} body`).toBe(es.sections[i]!.body.length);
@@ -45,29 +43,21 @@ describe('privacy catalogs', () => {
       doc.updated_value,
       doc.version_value,
       doc.draft_title,
-      doc.placeholders_title,
-      doc.placeholders_body,
       doc.toc_title,
       ...doc.draft_body,
-      ...doc.placeholders_items,
       ...doc.sections.flatMap((s) => [s.id, s.title, s.plain, ...s.body]),
       ...doc.sections.flatMap((s) => s.rows.flatMap((r) => [r.name, r.detail])),
     ];
     for (const value of strings) expect(value.trim().length).toBeGreaterThan(0);
   });
 
-  it.each(DOCS)('%s declares every unfilled placeholder it uses', (_l, doc) => {
-    const declared = doc.placeholders_items.flatMap((item) =>
-      [...item.matchAll(/\[[^\]]+\]/g)].map((m) => m[0]),
-    );
-    expect(declared.length).toBe(doc.placeholders_items.length);
-    for (const token of tokensIn(doc)) expect(declared, token).toContain(token);
+  it('leaves no unfilled placeholder anywhere in the published copy', () => {
+    for (const [locale, doc] of DOCS) expect(tokensIn(doc), locale).toEqual([]);
   });
 
-  it('keeps the unknown legal identity visible in every language', () => {
+  it('names the contact address in every language', () => {
     for (const [locale, doc] of DOCS) {
-      expect(doc.placeholders_items.length, locale).toBeGreaterThan(0);
-      expect(tokensIn(doc).length, locale).toBeGreaterThan(0);
+      expect(JSON.stringify(doc), locale).toContain('info@serviciosluxel.cl');
     }
   });
 

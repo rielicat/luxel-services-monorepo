@@ -31,9 +31,6 @@ export interface PrivacyDoc {
   lang_pt: string;
   draft_title: string;
   draft_body: string[];
-  placeholders_title: string;
-  placeholders_body: string;
-  placeholders_items: string[];
   toc_title: string;
   sections: PrivacySection[];
 }

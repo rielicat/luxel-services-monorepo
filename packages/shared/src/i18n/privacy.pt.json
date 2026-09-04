@@ -17,22 +17,15 @@
     "Enquanto um advogado ou advogada no Chile não revisar e aprovar este texto, não afirmamos que esta política cumpre a lei. Afirmamos algo menor e mais honesto: que ela descreve com exatidão o que fazemos hoje com os seus dados.",
     "Se algo aqui não corresponder à sua experiência, escreva para a gente. Corrigir isto rápido importa mais do que parecer pronto."
   ],
-  "placeholders_title": "Faltam dados obrigatórios de identificação",
-  "placeholders_body": "A lei exige que uma política de privacidade identifique a empresa responsável e forneça um endereço para reclamações. Essa identidade legal ainda não está publicada. Marcamos assim, entre colchetes e em maiúsculas, para que ninguém a confunda com informação real:",
-  "placeholders_items": [
-    "[RAZÃO SOCIAL A DEFINIR] — o nome legal da empresa que responde por estes dados",
-    "[RUT A DEFINIR] — o número de identificação tributária chileno",
-    "[ENDEREÇO A DEFINIR] — o endereço postal registrado"
-  ],
   "toc_title": "O que você vai encontrar aqui",
   "sections": [
     {
       "id": "responsable",
       "title": "Quem responde pelos seus dados",
-      "plain": "Somos nós. Falta publicar a identidade legal da empresa, e não vamos inventá-la.",
+      "plain": "Somos nós, e este é o e-mail onde chegam os seus pedidos.",
       "body": [
         "A Servicios Luxel administra aluguéis de curta temporada no Chile. Um anfitrião nos entrega o anúncio dele no Airbnb e nós cuidamos de toda a operação: o preço, as respostas aos hóspedes, a limpeza, a lavanderia, o inventário e os pequenos reparos.",
-        "O controlador dos dados — el responsable del tratamiento na lei chilena — descritos aqui é [RAZÃO SOCIAL A DEFINIR], RUT [RUT A DEFINIR], com endereço em [ENDEREÇO A DEFINIR].",
+        "O controlador dos dados descritos aqui — el responsable del tratamiento na lei chilena — é a Servicios Luxel, a empresa que administra estes aluguéis no Chile. Para qualquer assunto relacionado aos seus dados, escreva para info@serviciosluxel.cl.",
         "Para qualquer solicitação sobre os seus dados, escreva para info@serviciosluxel.cl. Esse canal está aberto a todos, inclusive se você apenas visitou o site ou se a sua estadia já terminou. Se preferir, também chegam até nós: o chat do Airbnb da sua reserva se você é hóspede, o e-mail da sua conta se você é anfitrião, e o WhatsApp pelo qual já coordenamos se você é da equipe de campo."
       ],
       "rows": []
@@ -495,7 +488,7 @@
         "Hoje, sob a Ley N° 19.628, você tem o direito de saber quais dados seus temos, de onde vieram, a quem os entregamos e por que os guardamos. Pode pedir que os modifiquemos se estiverem errados, que os eliminemos e que os bloqueemos. É gratuito. Se não resolvermos a sua solicitação dentro de dois dias úteis, ou se a recusarmos sem um dos motivos que a lei permite, você pode recorrer ao juiz civil de primeira instância do domicílio do responsável.",
         "Quando a lei nova entrar em vigor, a lista cresce para seis: acesso, retificação, eliminação, oposição, portabilidade e bloqueio. Serão direitos pessoais, intransferíveis e irrenunciáveis, e nenhum contrato poderá limitá-los.",
         "A portabilidade alcança menos do que se costuma imaginar: cobre apenas dados tratados de forma automatizada e com base no seu consentimento. Quase tudo o que tratamos se apoia no contrato, então ali a portabilidade não chega. Preferimos dizer isso a prometer algo que a lei não dá.",
-        "Para pedir qualquer uma dessas coisas, escreva para info@serviciosluxel.cl, ou por escrito para [ENDEREÇO A DEFINIR]. Se você é hóspede e a estadia ainda está em curso, o chat do Airbnb da sua reserva chega igualmente rápido.",
+        "Para pedir qualquer uma dessas coisas, escreva para info@serviciosluxel.cl. Se você é hóspede e a estadia ainda está em curso, o chat do Airbnb da sua reserva chega igualmente rápido.",
         "Antes de entregar dados vamos pedir algo que nos permita confirmar que é você. Não é burocracia: é para que ninguém possa pedir os seus dados se passando por você."
       ],
       "rows": [
@@ -556,7 +549,7 @@
       "title": "Como falar com a gente",
       "plain": "Um e-mail, um endereço, e uma pessoa lendo do outro lado.",
       "body": [
-        "Escreva para info@serviciosluxel.cl, ou por escrito para [ENDEREÇO A DEFINIR], aos cuidados de [RAZÃO SOCIAL A DEFINIR].",
+        "Escreva para info@serviciosluxel.cl.",
         "Conte quem você é e do que precisa: o nome com que registrou a sua estadia, ou o e-mail da sua conta de anfitrião, ou o telefone pelo qual combinamos as coisas, se você é da equipe. Com isso já começamos."
       ],
       "rows": []

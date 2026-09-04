@@ -115,26 +115,6 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Sear
         </div>
       </section>
 
-      <section
-        aria-labelledby="placeholders-title"
-        className="border-border bg-card shadow-soft mt-5 grid gap-4 rounded-2xl border p-6"
-      >
-        <div className="flex items-start gap-3">
-          <ShieldQuestion className="text-primary mt-0.5 h-5 w-5 shrink-0" />
-          <h2 id="placeholders-title" className="font-display text-lg font-semibold">
-            {doc.placeholders_title}
-          </h2>
-        </div>
-        <p className="text-muted-foreground text-sm leading-relaxed">{doc.placeholders_body}</p>
-        <ul className="grid gap-2 text-sm">
-          {doc.placeholders_items.map((item, i) => (
-            <li key={i} className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
-              <Prose text={item} />
-            </li>
-          ))}
-        </ul>
-      </section>
-
       <nav aria-labelledby="toc-title" className="mt-12">
         <h2 id="toc-title" className="font-display text-sm font-semibold uppercase tracking-wide">
           {doc.toc_title}
