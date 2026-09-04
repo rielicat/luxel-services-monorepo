@@ -2,7 +2,7 @@ import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
 import { AI_MODEL } from './model';
 import { getAgentModelClient, modelId } from '../agent/gateway';
-import { propertyScopeKey } from '../agent/scope';
+import { pricingScopeKey } from '../agent/scope';
 import { accessSecrets, upsertNote } from '../agent/store';
 import { pricingReference, propertyCalendar } from './analyst-tools';
 
@@ -51,7 +51,7 @@ async function candidates(): Promise<Candidate[]> {
   return (properties as Candidate[])
     .map((property) => ({
       property,
-      seen: analysedAt.get(propertyScopeKey(property.id)) ?? '',
+      seen: analysedAt.get(pricingScopeKey(property.id)) ?? '',
     }))
     .sort((a, b) => a.seen.localeCompare(b.seen))
     .slice(0, MAX_PROPERTIES_PER_RUN)
@@ -97,7 +97,7 @@ async function analyse(
     if (typeof note?.key !== 'string' || typeof note?.note !== 'string') continue;
     const saved = await upsertNote({
       tier: 'property',
-      scopeKey: propertyScopeKey(property.id),
+      scopeKey: pricingScopeKey(property.id),
       noteKey: note.key.slice(0, 120),
       body: note.note,
       source: 'pricing',
