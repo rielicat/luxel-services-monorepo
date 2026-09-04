@@ -179,7 +179,7 @@ export async function sendReplyDraft(
 
   const { data: thread } = await supabase
     .from('guest_threads')
-    .select('id, property_id, channel, external_thread_id')
+    .select('id, property_id, channel, external_thread_id, reservation_category')
     .eq('id', draft.thread_id as string)
     .maybeSingle();
   if (!thread) return { ok: false, reason: 'unknown_thread' };
@@ -200,7 +200,7 @@ export async function sendReplyDraft(
   const externalId = await getMessageSender(channel).send(
     (thread.external_thread_id as string | null) ?? null,
     text,
-    { token },
+    { token, kind: thread.reservation_category === 'inquiry' ? 'inquiry' : 'reservation' },
   );
   if (channel !== 'local' && !externalId) return { ok: false, reason: 'send_failed' };
 

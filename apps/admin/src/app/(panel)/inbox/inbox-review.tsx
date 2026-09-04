@@ -37,6 +37,7 @@ const fmt = (iso: string) =>
   }).format(new Date(iso));
 
 const CATEGORY_TONE: Record<string, string> = {
+  inquiry: 'bg-primary/15 text-primary',
   request: 'bg-warning/15 text-warning',
   checkpoint: 'bg-warning/15 text-warning',
   accepted: 'bg-success/15 text-success',
@@ -125,6 +126,8 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
 
   const categoryLabel = (category: string | null) => {
     switch (category) {
+      case 'inquiry':
+        return t('category_inquiry');
       case 'request':
         return t('category_request');
       case 'checkpoint':
