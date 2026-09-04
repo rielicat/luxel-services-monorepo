@@ -17,8 +17,6 @@ enabled = true
 port = 54323
 
 [auth]
-# Clerk owns auth — Supabase only verifies JWTs via the configured signing key.
-# Configure in Supabase dashboard: Settings → API → JWT Settings → use Clerk's JWKS.
 enabled = false
 
 [realtime]

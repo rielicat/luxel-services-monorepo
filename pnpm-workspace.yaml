@@ -4,8 +4,6 @@ packages:
   - 'workers/*'
   - 'infra/*'
 
-# pnpm 11+: explicit allow-list for postinstall/build scripts.
-# Each of these legitimately needs its build step (native binary download or codegen).
 allowBuilds:
   '@clerk/shared': true
   '@sentry/cli': true

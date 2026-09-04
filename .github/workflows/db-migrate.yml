@@ -1,13 +1,5 @@
 name: DB migrate
 
-# Applies supabase/migrations/** to the production database. This is the piece
-# that makes the admin panel show data: without the tables + admin_* RPCs, the
-# site's writes silently drop and the panel reads nothing.
-#
-# Add the `SUPABASE_DB_URL` repo secret (the prod Postgres connection string,
-# e.g. postgresql://postgres:<pwd>@db.<ref>.supabase.co:5432/postgres) to enable
-# it. Until then the job skips green.
-
 on:
   push:
     branches: [main]

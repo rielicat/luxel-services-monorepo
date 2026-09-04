@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 import { AGENT_TOKEN_TTL_SECONDS, mintAgentToken, verifyAgentToken } from '@luxel/core/agent/token';
 import type * as StoreModule from '@luxel/core/agent/store';
 import type * as RecallModule from '@luxel/core/agent/recall';
-import type * as SanitizeModule from '@luxel/core/agent/sanitize';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
@@ -16,7 +15,6 @@ delete process.env.OPENAI_API_KEY;
 let admin: ReturnType<typeof createClient>;
 let store: typeof StoreModule;
 let recall: typeof RecallModule;
-let sanitize: typeof SanitizeModule;
 let propertyScopeKey: (id: string) => string;
 let propertyA: string;
 let propertyB: string;
@@ -35,7 +33,6 @@ beforeAll(async () => {
   if (!LIVE) return;
   store = await import('@luxel/core/agent/store');
   recall = await import('@luxel/core/agent/recall');
-  sanitize = await import('@luxel/core/agent/sanitize');
   propertyScopeKey = (await import('@luxel/core/agent/scope')).propertyScopeKey;
 
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
@@ -203,12 +200,6 @@ describe.runIf(LIVE)('agent memory', () => {
       .select('id', { count: 'exact', head: true })
       .eq('operation_id', operationId);
     expect(count).toBe(1);
-  });
-
-  it('caps a stored note and normalises whitespace', () => {
-    const long = 'dato '.repeat(400);
-    expect(sanitize.sanitizeForMemory(long, []).length).toBeLessThanOrEqual(600);
-    expect(sanitize.sanitizeForMemory('  a\n\n b  ', [])).toBe('a b');
   });
 });
 

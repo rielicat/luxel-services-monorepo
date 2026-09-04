@@ -1,8 +1,5 @@
 name: Infra (Cloudflare)
 
-# PR touching infra → `pulumi preview` (plan, commented on the PR).
-# Push to main touching infra (or manual dispatch) → `pulumi up` (apply).
-# State lives in the R2 bucket luxel-pulumi-state; the Worker is not managed here.
 on:
   push:
     branches: [main]
@@ -11,7 +8,6 @@ on:
     paths: ['infra/cloudflare/**']
   workflow_dispatch:
 
-# Never let two applies (or an apply and a preview) touch the stack at once.
 concurrency:
   group: infra-cloudflare-prod
   cancel-in-progress: false
@@ -53,8 +49,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
-    # push to main + manual dispatch. `production` environment lets you add
-    # required reviewers later without touching this file.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: production

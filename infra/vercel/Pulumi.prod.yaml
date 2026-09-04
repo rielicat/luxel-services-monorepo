@@ -1,7 +1,3 @@
-# Non-secret stack config. Auth is via the VERCEL_API_TOKEN env var.
-# `web.name` (and `teamId` if the projects are on a Team) are set automatically
-# in CI by scripts/discover-web.mjs; the admin app's shared secrets are set once
-# in the Vercel dashboard, not here.
 config:
   luxel-vercel:gitRepo: rielicat/luxel-services-monorepo
   luxel-vercel:productionBranch: main

@@ -1,55 +1,22 @@
-# Stack config for the `prod` stack. Non-secret values live here; the Cloudflare
-# API token and R2 state credentials are supplied via environment variables (see
-# README). Set the two identifiers below before the first `pulumi up`:
-#
-#   pulumi config set accountId <your Cloudflare account id>
-#   pulumi config set zoneId    <the serviciosluxel.cl zone id>
-#
-# Both are shown by `pnpm --filter @luxel/infra-cloudflare export` (or the
-# Cloudflare dashboard). They are identifiers, not credentials.
 config:
   luxel-cloudflare:accountId: a592f6c9ed79454bf7c8ab489ece9036
   luxel-cloudflare:zoneId: 5f63078a62ac7516e60d81be7c692dd2
   luxel-cloudflare:zoneName: serviciosluxel.cl
-  # Vercel CNAME target for both apex (Cloudflare-flattened) and www. DNS-only;
-  # Vercel terminates TLS. Update if the Vercel project's DNS target changes.
   luxel-cloudflare:vercelTarget: ae0aca0ff9e30f31.vercel-dns-017.com
-
-  # CNAME target for admin.serviciosluxel.cl (operator panel on Vercel).
   luxel-cloudflare:adminTarget: cname.vercel-dns.com
-  # Clerk production instance hash, from Clerk Dashboard -> Domains -> the
-  # primary domain -> Manual DNS setup. It is the label inside the clkmail and
-  # DKIM CNAME targets (mail.<hash>.clerk.services). Setting it creates all five
-  # Clerk records; clearing it removes them. Not a credential: every value ends
-  # up published in public DNS. The frontend-api and accounts targets carry no
-  # hash, so dns.ts holds them literally. Clerk documents neither as a constant,
-  # so re-read all five from the dashboard if the instance is ever recreated.
   luxel-cloudflare:clerkMailHash: dw7l996s5zgh
-  # DMARC policy for _dmarc TXT. Start at "none" (monitor only — never rejects
-  # mail); tighten to "quarantine"/"reject" once you've confirmed alignment.
   luxel-cloudflare:dmarcPolicy: none
-  # Email Routing. MX / SPF / DKIM are managed automatically by Cloudflare once
-  # routing is enabled — do NOT add them as DNS records here (they'd conflict).
-  # Fill `rules`/`destinations`/`catchAll` to EXACTLY match your live setup
-  # (see `pnpm export`) before the first apply, or Pulumi will reconcile them.
   luxel-cloudflare:emailRouting:
     enabled: true
-    # Verified forwarding destinations (account-level). A newly added address gets
-    # a Cloudflare verification email; forwarding only delivers once confirmed.
     destinations:
       - catrielguillen@gmail.com
-    # Address-level forwards: { address, forwardTo, name?, enabled? }.
     rules:
       - address: catriel@serviciosluxel.cl
         forwardTo: catrielguillen@gmail.com
-      # Published in the privacy policy as the channel for data-subject
-      # requests, so mail here can carry identity documents. Moving it off a
-      # personal mailbox is an open task.
       - address: info@serviciosluxel.cl
         forwardTo: catrielguillen@gmail.com
-    # What happens to every other address at the domain.
     catchAll:
       enabled: true
-      action: drop # "drop" | "forward"
-      forwardTo: [] # required only when action == "forward"
+      action: drop
+      forwardTo: []
 encryptionsalt: v1:o4W2HeoOLYY=:v1:RYTASX6j0agRx34L:vdGf+yDSzY/XCipOCZjR1Bi2QaLpzQ==

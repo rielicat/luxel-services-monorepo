@@ -33,7 +33,9 @@ These are external accounts. The code cannot provision them:
    key and the `sb_secret_*` key. Apply the schema once:
    `supabase link --project-ref <ref>` → `supabase db push`. There is no seed
    file. After that, `.github/workflows/db-migrate.yml` applies new migrations
-   on push (repo secret `SUPABASE_DB_URL`).
+   on push (repo secret `SUPABASE_DB_URL`). Supabase Auth stays disabled: Clerk
+   owns auth, and Supabase only verifies the JWT. Point Settings > API > JWT
+   Settings at Clerk's JWKS.
 2. **Clerk** — create a production instance. Add **both** app domains to the
    allowed origins. Copy `pk_live_*` / `sk_live_*`. A production instance serves
    its own frontend API from `clerk.<domain>`, so it does not work until five
