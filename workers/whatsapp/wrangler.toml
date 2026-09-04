@@ -1,5 +1,9 @@
 name = "luxel-whatsapp-webhook"
 main = "src/index.ts"
+# Pinned so wrangler does not call /memberships to discover the account,
+# which a scoped API token is not permitted to do. Same id as
+# infra/cloudflare/Pulumi.prod.yaml and the R2 endpoint in CI.
+account_id = "a592f6c9ed79454bf7c8ab489ece9036"
 compatibility_date = "2024-10-22"
 compatibility_flags = ["nodejs_compat"]
 
