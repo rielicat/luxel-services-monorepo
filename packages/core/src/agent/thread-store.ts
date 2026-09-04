@@ -4,6 +4,10 @@ const THREADS = 'guest_threads';
 const MESSAGES = 'guest_messages';
 const DIGESTS = 'lux_conversation_digest';
 
+const ID_CHUNK = 80;
+const PAGE = 500;
+const MAX_PAGES = 40;
+
 export interface ThreadHead {
   threadId: string;
   propertyId: string | null;
@@ -25,6 +29,36 @@ export function threadOperationId(threadId: string, lastMessageId: string): stri
   return `thread:${threadId}:${lastMessageId}`;
 }
 
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+async function messageRowsFor(threadIds: readonly string[]): Promise<Record<string, unknown>[]> {
+  const supabase = createSupabaseServiceRoleClient();
+  const rows: Record<string, unknown>[] = [];
+  for (const ids of chunk(threadIds, ID_CHUNK)) {
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const from = page * PAGE;
+      const { data, error } = await supabase
+        .from(MESSAGES)
+        .select('id, thread_id, created_at')
+        .in('thread_id', ids as string[])
+        .order('created_at', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error('agent.thread_scan_failed', { message: error.message });
+        break;
+      }
+      const batch = (data ?? []) as Record<string, unknown>[];
+      rows.push(...batch);
+      if (batch.length < PAGE) break;
+    }
+  }
+  return rows;
+}
+
 export async function threadHeads(scanLimit = 400): Promise<ThreadHead[]> {
   const supabase = createSupabaseServiceRoleClient();
   const { data: threads } = await supabase
@@ -41,14 +75,8 @@ export async function threadHeads(scanLimit = 400): Promise<ThreadHead[]> {
     ]),
   );
 
-  const { data: messages } = await supabase
-    .from(MESSAGES)
-    .select('id, thread_id, created_at')
-    .in('thread_id', [...propertyOf.keys()])
-    .order('created_at', { ascending: true });
-
   const heads = new Map<string, ThreadHead>();
-  for (const row of (messages ?? []) as Record<string, unknown>[]) {
+  for (const row of await messageRowsFor([...propertyOf.keys()])) {
     const threadId = row.thread_id as string;
     const current = heads.get(threadId);
     heads.set(threadId, {
@@ -65,13 +93,16 @@ export async function undigestedThreads(heads: readonly ThreadHead[]): Promise<T
   if (!heads.length) return [];
   const wanted = heads.map((head) => threadOperationId(head.threadId, head.lastMessageId));
   const done = new Set<string>();
-  const CHUNK = 100;
   const supabase = createSupabaseServiceRoleClient();
-  for (let i = 0; i < wanted.length; i += CHUNK) {
-    const { data } = await supabase
+  for (const ids of chunk(wanted, ID_CHUNK)) {
+    const { data, error } = await supabase
       .from(DIGESTS)
       .select('operation_id')
-      .in('operation_id', wanted.slice(i, i + CHUNK));
+      .in('operation_id', ids);
+    if (error) {
+      console.error('agent.digest_lookup_failed', { message: error.message });
+      return [];
+    }
     for (const row of (data ?? []) as Record<string, unknown>[]) {
       done.add(row.operation_id as string);
     }
