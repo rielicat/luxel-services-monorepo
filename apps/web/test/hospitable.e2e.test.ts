@@ -880,6 +880,16 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     };
     RESERVATIONS_PAYLOAD.data.push(request as (typeof RESERVATIONS_PAYLOAD.data)[number]);
     MESSAGE_IDS.add(`res-req${RES_ID_SUFFIX}`);
+    const priorMessages = MESSAGES;
+    MESSAGES = [
+      {
+        id: 'req-m1',
+        body: '¿Sigue disponible para esas fechas?',
+        sender_type: 'guest',
+        created_at: '2026-01-02T10:00:00Z',
+        sender: { first_name: 'Ana' },
+      },
+    ];
     try {
       await connectHospitable({ token: FAKE_TOKEN });
       HOSP_URLS.length = 0;
@@ -915,6 +925,7 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
     } finally {
       RESERVATIONS_PAYLOAD.data.pop();
       MESSAGE_IDS.delete(`res-req${RES_ID_SUFFIX}`);
+      MESSAGES = priorMessages;
     }
   });
 
