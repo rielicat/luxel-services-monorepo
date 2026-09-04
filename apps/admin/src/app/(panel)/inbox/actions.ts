@@ -11,6 +11,7 @@ import {
   type InboxThread,
   type ReplyDraft,
 } from '@luxel/core/messaging/drafts';
+import { syncAllConnectedAccounts, type SyncAllResult } from '@luxel/core/channels/sync-all';
 
 export type { InboxThread, ReplyDraft };
 
@@ -29,6 +30,13 @@ const SendSchema = z.object({
 export async function loadInbox(): Promise<{ ok: boolean; threads?: InboxThread[] }> {
   if (!(await requireAdmin())) return { ok: false };
   return { ok: true, threads: await listInboxThreads() };
+}
+
+export async function syncInbox(): Promise<InboxActionResult & { sync?: SyncAllResult }> {
+  if (!(await requireAdmin())) return { ok: false, reason: 'denied' };
+  const sync = await syncAllConnectedAccounts();
+  revalidatePath('/inbox');
+  return { ok: sync.failed === 0 || sync.accounts > 0, sync };
 }
 
 export async function simulateReply(threadId: string): Promise<InboxActionResult> {

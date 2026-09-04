@@ -14,6 +14,8 @@ import {
   type HospitablePricedReservation,
   type HospitableReservation,
   type HospitableTeammate,
+  reservationCategory,
+  type ReservationCategory,
 } from './hospitable';
 import { suggestCleaningsFromCheckouts } from '../cleaning/schedule';
 import { autoConfirmSuggested } from '../cleaning/notify';
@@ -678,6 +680,7 @@ export async function ingestThread(
   propertyId: string,
   reservationId: string,
   watermark: string | null,
+  category: ReservationCategory | null = null,
 ): Promise<{ imported: number; replies: number; drafts: number }> {
   let imported = 0;
   let replies = 0;
@@ -695,6 +698,7 @@ export async function ingestThread(
         channel: 'hospitable',
         external_thread_id: reservationId,
         guest_name: guestName,
+        ...(category ? { reservation_category: category } : {}),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'property_id,channel,external_thread_id' },
@@ -761,7 +765,14 @@ async function syncConversations(
   const active = reservations.filter((r) => r.departure_date.slice(0, 10) >= recentCutoff);
 
   for (const r of active) {
-    const one = await ingestThread(supabase, token, propertyId, r.id, watermark);
+    const one = await ingestThread(
+      supabase,
+      token,
+      propertyId,
+      r.id,
+      watermark,
+      reservationCategory(r),
+    );
     imported += one.imported;
     replies += one.replies;
     drafts += one.drafts;

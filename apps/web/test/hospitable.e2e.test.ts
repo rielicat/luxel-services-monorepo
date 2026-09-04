@@ -55,6 +55,8 @@ const PROPERTIES_PAYLOAD = {
   links: { next: null },
 };
 
+const MESSAGE_IDS = new Set<string>();
+
 const RESERVATIONS_PAYLOAD = {
   data: [
     {
@@ -316,7 +318,10 @@ beforeAll(async () => {
           return Response.json({ data: { id: `sent-${SENT.length}` } });
         }
         return Response.json({
-          data: msgMatch[1] === `res-1${RES_ID_SUFFIX}` ? MESSAGES : [],
+          data:
+            msgMatch[1] === `res-1${RES_ID_SUFFIX}` || MESSAGE_IDS.has(msgMatch[1]!)
+              ? MESSAGES
+              : [],
           links: { next: null },
         });
       }
@@ -863,6 +868,54 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       .eq('status', 'pending');
     expect(drafts).toHaveLength(1);
     expect(drafts![0].guest_message).toBe('¿El depto tiene estacionamiento?');
+  });
+
+  it('threads a booking request without blocking its nights, and labels it', async () => {
+    const request = {
+      ...RESERVATIONS_PAYLOAD.data[0]!,
+      id: 'res-req',
+      code: 'HMREQUEST01',
+      reservation_status: { current: { category: 'request' } },
+      status: 'request',
+    };
+    RESERVATIONS_PAYLOAD.data.push(request as (typeof RESERVATIONS_PAYLOAD.data)[number]);
+    MESSAGE_IDS.add(`res-req${RES_ID_SUFFIX}`);
+    try {
+      await connectHospitable({ token: FAKE_TOKEN });
+      HOSP_URLS.length = 0;
+      const r = await syncHospitable();
+      expect(r.ok).toBe(true);
+
+      expect(
+        HOSP_URLS.some((u) => u.includes('/reservations?') && u.includes('status%5B%5D=request')),
+      ).toBe(true);
+
+      const { data: thread } = await admin
+        .from('guest_threads')
+        .select('id, reservation_category')
+        .eq('channel', 'hospitable')
+        .eq('external_thread_id', `res-req${RES_ID_SUFFIX}`)
+        .maybeSingle();
+      expect(thread).not.toBeNull();
+      expect(thread!.reservation_category).toBe('request');
+
+      const { data: accepted } = await admin
+        .from('guest_threads')
+        .select('reservation_category')
+        .eq('channel', 'hospitable')
+        .eq('external_thread_id', `res-1${RES_ID_SUFFIX}`)
+        .maybeSingle();
+      expect(accepted!.reservation_category).toBe('accepted');
+
+      const { data: blocks } = await admin
+        .from('calendar_blocks')
+        .select('external_uid')
+        .like('external_uid', '%res-req%');
+      expect(blocks ?? []).toHaveLength(0);
+    } finally {
+      RESERVATIONS_PAYLOAD.data.pop();
+      MESSAGE_IDS.delete(`res-req${RES_ID_SUFFIX}`);
+    }
   });
 
   it('never speaks for a guest — a forged payload body is not delivered', async () => {

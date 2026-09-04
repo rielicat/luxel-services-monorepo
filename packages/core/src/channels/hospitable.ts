@@ -213,6 +213,26 @@ export async function listHospitableTeammates(token: string): Promise<Hospitable
   return out;
 }
 
+export const RESERVATION_CATEGORIES = [
+  'request',
+  'checkpoint',
+  'accepted',
+  'cancelled',
+  'not_accepted',
+] as const;
+export type ReservationCategory = (typeof RESERVATION_CATEGORIES)[number];
+
+const RESERVATION_STATUS_QUERY = RESERVATION_CATEGORIES.map((s) => `&status%5B%5D=${s}`).join('');
+
+export function reservationCategory(r: HospitableReservation): ReservationCategory | null {
+  const raw = String(r.reservation_status?.current?.category ?? r.status ?? '')
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  return (RESERVATION_CATEGORIES as readonly string[]).includes(raw)
+    ? (raw as ReservationCategory)
+    : null;
+}
+
 export async function listHospitableReservations(
   token: string,
   propertyId: string,
@@ -221,7 +241,7 @@ export async function listHospitableReservations(
 ): Promise<HospitableReservation[] | null> {
   const out: HospitableReservation[] = [];
   let url: string | null =
-    `/reservations?properties%5B%5D=${encodeURIComponent(propertyId)}&start_date=${startDate}&end_date=${endDate}&per_page=100&include=guest`;
+    `/reservations?properties%5B%5D=${encodeURIComponent(propertyId)}&start_date=${startDate}&end_date=${endDate}&per_page=100&include=guest${RESERVATION_STATUS_QUERY}`;
   for (let page = 0; url && page < 10; page++) {
     const r: Awaited<ReturnType<typeof hospGet<HospitableReservation>>> = await hospGet(token, url);
     if (!r.ok) return null;
