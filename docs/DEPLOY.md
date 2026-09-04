@@ -45,9 +45,28 @@ These are external accounts. The code cannot provision them:
    route authorises by source IP. See [`ENV.md`](./ENV.md) § Inbound webhook
    access. Author the time-based guest messages as message rules. See
    [`ENV.md`](./ENV.md) § Scheduled guest messages.
-4. **OpenAI** — an API key for Lux and the guest auto-replies (`OPENAI_API_KEY`).
-   The model is pinned in code (`lib/ai/client.ts`). There is no env override.
-5. **Google AI (Gemini)** — an API key for the cleaning walkthrough inventory
+4. **OpenAI** — an API key for the conversation digests and the memory
+   embeddings (`OPENAI_API_KEY`). The models are pinned in code
+   (`lib/ai/model.ts`, `lib/agent/embed.ts`). There is no env override. Without
+   the key the agent still answers; digests fall back to an extractive summary
+   and retrieval runs on Spanish full-text alone.
+5. **The eve agent** — the agent lives at `apps/web/agent/` and deploys with
+   `apps/web` as one Vercel project, because `next.config.mjs` wraps its config
+   with `withEve()`. Three operator steps:
+   - Set `LUXEL_AGENT_TOKEN_SECRET` on `luxel-web`. Any long random string.
+     Without it the chat answers nothing.
+   - Confirm the model route. On Vercel, project OIDC authenticates the AI
+     Gateway and no key is needed. Off Vercel, set `AI_GATEWAY_API_KEY`.
+   - Confirm the project's **Node.js Version** is 24. eve requires Node 24 and
+     Vercel does not read `.nvmrc`. `infra/vercel` now pins `nodeVersion`, so a
+     `pulumi up` sets it; check the dashboard if you deploy without Pulumi.
+
+   Every agent turn is a Vercel Workflow run, and every state transition is a
+   billed Workflow event. Confirm the account's plan and its Workflow limits
+   before this carries production traffic. eve is in preview, so its APIs may
+   change; the version is pinned in `apps/web/package.json`.
+
+6. **Google AI (Gemini)** — an API key for the cleaning walkthrough inventory
    pre-fill and the later review (`GOOGLE_API_KEY`). **Issue it from a project
    with billing enabled.** The unpaid tier's terms permit training on and human
    review of submitted content; a walkthrough video shows the inside of a host's
@@ -55,7 +74,7 @@ These are external accounts. The code cannot provision them:
    Without the key the crew still records and writes the inventory by hand, and
    the review still reports differences from the two confirmed inventories. The
    model is pinned in `lib/ai/gemini.ts`.
-6. **Resend** — done. `serviciosluxel.cl` is verified in the `sa-east-1` region
+7. **Resend** — done. `serviciosluxel.cl` is verified in the `sa-east-1` region
    and `RESEND_FROM` is `info@serviciosluxel.cl`. Verification put DKIM on
    `resend._domainkey` and the bounce MX plus SPF on the `send.` subdomain, so
    the apex MX and apex SPF stay with Cloudflare Email Routing and inbound mail
@@ -63,7 +82,7 @@ These are external accounts. The code cannot provision them:
    are **not** in `infra/cloudflare` — adopt them there before anyone rebuilds
    the zone. The production API key is send-only, which is why domain changes
    cannot be made from code.
-7. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
+8. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
    secrets with `wrangler secret put`. Use a System User token, never the 24-hour
    token from the app dashboard. Subscribe the webhook with the Graph API:
    `POST /{app-id}/subscriptions` (`object=whatsapp_business_account`,
@@ -72,12 +91,12 @@ These are external accounts. The code cannot provision them:
    with the System User token. Get the templates `luxel_conserje_registro` and
    `luxel_aseo_confirmacion` approved. Set `WHATSAPP_WORKER_SEND_URL` and
    `INTERNAL_SEND_TOKEN` on the web project.
-8. **PriceLabs** — `PRICELABS_API_KEY` for dynamic pricing. Dynamic pricing is
+9. **PriceLabs** — `PRICELABS_API_KEY` for dynamic pricing. Dynamic pricing is
    part of every plan; without the key the pricing panel reports `unavailable`.
-9. **PostHog / Sentry** — optional. In-house analytics works without PostHog.
-10. **DNS** — records live in `infra/cloudflare`. They point the domains at
+10. **PostHog / Sentry** — optional. In-house analytics works without PostHog.
+11. **DNS** — records live in `infra/cloudflare`. They point the domains at
     Vercel.
-11. **Cloudflare R2** — the bucket `luxel-cleaning-media` holds the cleaning
+12. **Cloudflare R2** — the bucket `luxel-cleaning-media` holds the cleaning
     walkthrough videos. Set `CLEANING_MEDIA_KEY` as a worker secret and as a
     Vercel variable on both projects, together — once it is set on one side the
     other must match or the media routes answer 401. It seals the upload and read
@@ -88,7 +107,7 @@ These are external accounts. The code cannot provision them:
     token already carried `Account: Workers R2 Storage: Edit`. Apply that stack
     before any `wrangler deploy`: the worker binds the bucket, and
     `wrangler deploy` does not create it.
-12. **Cloudflare Workflows** — the `cleaning-review` Workflow compares a
+13. **Cloudflare Workflows** — the `cleaning-review` Workflow compares a
     confirmed walkthrough against the previous confirmed inventory. Workflows run
     on the Workers **Free** plan; there is no plan to buy. `wrangler deploy`
     provisions the Workflow from the `[[workflows]]` block, so the only operator
@@ -106,7 +125,7 @@ Plan billing has no external account. Luxel invoices the plans off-platform.
   (`apps/web`, resp. `apps/admin`) and the Git link to `main`. Vercel detects the
   pnpm workspace and installs at the repo root. Enable "Include files outside
   the root directory" in the project settings.
-- Node 22 (`.nvmrc`).
+- Node 24 (`.nvmrc`), and the Vercel projects pin `nodeVersion: '24.x'`.
 - Set the environment variables in the Vercel project settings. The exception is
   the admin config managed as code below.
 

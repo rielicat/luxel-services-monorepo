@@ -1,2 +1,5 @@
 import next from '@luxel/config/eslint/next';
-export default next;
+
+const config = [{ ignores: ['.eve/**', '.output/**'] }, ...next];
+
+export default config;

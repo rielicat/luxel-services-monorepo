@@ -1,7 +1,7 @@
 import 'server-only';
 import OpenAI from 'openai';
 
-export const AI_MODEL = 'gpt-5.6-terra';
+export { AI_MODEL, AI_GATEWAY_MODEL } from './model';
 
 let client: OpenAI | null = null;
 

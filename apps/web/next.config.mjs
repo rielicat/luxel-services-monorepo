@@ -1,5 +1,6 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { withEve } from 'eve/next';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -7,7 +8,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: true,
-  transpilePackages: ['@luxel/shared'],
+  transpilePackages: ['@luxel/shared', '@luxel/core'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'img.clerk.com' },
@@ -18,7 +19,7 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(withNextIntl(nextConfig), {
+export default withSentryConfig(withEve(withNextIntl(nextConfig)), {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   silent: !process.env.CI,

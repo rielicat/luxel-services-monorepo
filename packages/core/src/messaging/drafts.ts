@@ -1,8 +1,8 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
-import { draftGuestReply } from '../ai/copilot';
-import { buildGrounding } from '../ai/grounding';
-import { AI_MODEL } from '../ai/client';
+import { AI_MODEL } from '../ai/model';
+import { runAgentTurn } from '../agent/dispatch';
+import { sessionForThread, setThreadSession } from '../agent/session';
 import { getMessageSender } from '../channels/provider';
 import { hospitableTokenForCustomer } from '../channels/hospitable';
 
@@ -97,31 +97,6 @@ export async function recordReplyDraft(
   return toDraft(data as Record<string, unknown>);
 }
 
-export async function buildThreadHistory(
-  supabase: Supabase,
-  threadId: string,
-  propertyId: string,
-): Promise<string> {
-  const [grounding, { data: recent }] = await Promise.all([
-    buildGrounding(propertyId),
-    supabase
-      .from('guest_messages')
-      .select('source, body')
-      .eq('thread_id', threadId)
-      .order('created_at', { ascending: false })
-      .limit(8),
-  ]);
-  return [
-    grounding.text,
-    'Conversación actual:',
-    ...(recent ?? [])
-      .reverse()
-      .map((m) => `${m.source === 'guest' ? 'Huésped' : 'Anfitrión'}: ${m.body}`),
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
 export async function simulateThreadReply(
   threadId: string,
 ): Promise<{ ok: boolean; reason?: string; draft?: ReplyDraft }> {
@@ -144,16 +119,26 @@ export async function simulateThreadReply(
   if (!last) return { ok: false, reason: 'no_guest_message' };
 
   const propertyId = thread.property_id as string;
-  const history = await buildThreadHistory(supabase, threadId, propertyId);
-  const result = await draftGuestReply(propertyId, last.body as string, { history });
-  if (!result.ok) return { ok: false, reason: result.reason ?? 'error' };
+  const existing = await sessionForThread(threadId);
+  const turn = await runAgentTurn({
+    surface: 'guest',
+    principalId: `guest:${threadId}`,
+    sessionId: existing,
+    message: last.body as string,
+    propertyId,
+    threadId,
+  });
+  if (turn.sessionId && turn.sessionId !== existing) {
+    await setThreadSession(threadId, turn.sessionId);
+  }
+  if (!turn.ok) return { ok: false, reason: turn.reason ?? 'error' };
 
   const draft = await recordReplyDraft(supabase, {
     threadId,
     inboundMessageId: last.id as string,
     guestMessage: last.body as string,
-    body: result.draft ?? '',
-    handoff: Boolean(result.handoff),
+    body: (turn.text ?? '').trim(),
+    handoff: Boolean(turn.handoff),
     origin: 'simulation',
   });
   if (!draft) return { ok: false, reason: 'write_failed' };

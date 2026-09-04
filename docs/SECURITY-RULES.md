@@ -115,6 +115,27 @@ rules. Do not add code paths that break them.
   Deleting a property that holds a `manual` row is refused: the foreign keys
   cascade, so `deletablePropertyIds` in `lib/channels/manual-stays.ts` guards the
   prune and both listing reassignment paths.
+- Lux is one eve agent at `apps/web/agent/`, mounted by `withEve()`. Two
+  surfaces, told apart by the authenticated principal and never by model input:
+  `web` and `guest`. Tools, instructions and memory scope follow that principal,
+  so the guest surface never reaches a pricing or lead tool.
+- eve cannot import a module carrying `import 'server-only'`. That marker is the
+  agent/domain boundary. Agent-facing code lives in `packages/core/src/agent/`
+  and stays marker-free; marked domain logic is reached over
+  `POST /api/agent/tools` with `INTERNAL_SEND_TOKEN`. Never delete a marker to
+  make a build pass.
+- Route auth also enforces session ownership. `agent/channels/eve.ts` reads the
+  session id from the request URL and refuses a caller who does not own the
+  `lux_agent_session` row. The browser never creates a session directly;
+  `POST /api/agent/session` creates it and claims ownership first.
+- Memory has three tiers, all service-role only (RLS on, no policy), all written
+  through `sanitizeForMemory` (redacts known door codes, emails, phones). Global
+  playbook, per-property facts by hybrid Spanish full-text plus pgvector rank,
+  and eve's durable session as the conversation tier. A property with no history
+  falls back to global digests and never cites another property as its own.
+  Hosts never see any of it.
+- The daily distillation writes the global tier. Keep it daily or slower: Vercel
+  Hobby rejects sub-daily crons.
 - Lux replies to guests behind a review gate. `properties.ai_reviews` defaults to
   `true`. The pipeline stores the AI reply in `guest_reply_drafts` with status
   `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in `apps/admin`,
@@ -142,7 +163,7 @@ rules. Do not add code paths that break them.
   so the link never lands before it. There is no cron either; code handles
   events only.
 - Door codes are secret; wifi passwords are not. `accessSecrets` in
-  `lib/ai/grounding.ts` feeds only `property_access.keyless_code` to
+  `lib/agent/store.ts` feeds only `property_access.keyless_code` to
   `redactSecrets`, so Lux may give a guest the wifi password and never the door
   code. Never log either. The guest receives the door code only through
   Hospitable's T-3 message rule. Never show it on the check-in page or send it

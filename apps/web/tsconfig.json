@@ -10,10 +10,11 @@
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "agent/**/*.ts",
     ".next/types/**/*.ts",
     "instrumentation.ts",
     "instrumentation-client.ts",
     "next.config.mjs"
   ],
-  "exclude": ["node_modules", ".next"]
+  "exclude": ["node_modules", ".next", ".eve", ".output"]
 }

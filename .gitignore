@@ -5,6 +5,8 @@ node_modules/
 # build
 .next/
 .turbo/
+.eve/
+.output/
 dist/
 build/
 out/

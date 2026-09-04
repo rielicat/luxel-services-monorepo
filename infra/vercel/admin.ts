@@ -5,6 +5,7 @@ export const adminProject = new vercel.Project('admin', {
   name: admin.name,
   framework: 'nextjs',
   rootDirectory: admin.rootDirectory,
+  nodeVersion: '24.x',
   teamId,
   gitRepository: { type: 'github', repo: gitRepo, productionBranch },
 });

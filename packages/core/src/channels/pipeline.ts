@@ -1,7 +1,8 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
-import { draftGuestReply } from '../ai/copilot';
-import { buildThreadHistory, recordReplyDraft } from '../messaging/drafts';
+import { runAgentTurn } from '../agent/dispatch';
+import { sessionForThread, setThreadSession } from '../agent/session';
+import { recordReplyDraft } from '../messaging/drafts';
 import { getMessageSender } from './provider';
 import { hospitableTokenForCustomer } from './hospitable';
 
@@ -68,57 +69,72 @@ export async function handleInboundMessage(input: {
     .eq('id', input.propertyId)
     .maybeSingle();
   if (property && property.ai_replies === false) {
-    await supabase
-      .from('guest_threads')
-      .update({ status: 'needs_host', updated_at: new Date().toISOString() })
-      .eq('id', thread.id);
+    await markNeedsHost(supabase, thread.id as string);
     return { ok: true, action: 'handoff', threadId: thread.id };
   }
 
-  const history = await buildThreadHistory(supabase, thread.id as string, input.propertyId);
-  const draft = await draftGuestReply(input.propertyId, input.body, { history });
-  if (!draft.ok) return { ok: false, threadId: thread.id };
+  const threadId = thread.id as string;
+  const existing = await sessionForThread(threadId);
+  const turn = await runAgentTurn({
+    surface: 'guest',
+    principalId: `guest:${threadId}`,
+    sessionId: existing,
+    message: input.body,
+    propertyId: input.propertyId,
+    threadId,
+  });
 
-  if (draft.handoff || !draft.draft) {
-    await supabase
-      .from('guest_threads')
-      .update({ status: 'needs_host', updated_at: new Date().toISOString() })
-      .eq('id', thread.id);
-    return { ok: true, action: 'handoff', draft: draft.draft, threadId: thread.id };
+  if (turn.sessionId && turn.sessionId !== existing) {
+    await setThreadSession(threadId, turn.sessionId);
+  }
+
+  if (!turn.ok) {
+    await markNeedsHost(supabase, threadId);
+    return { ok: false, action: 'handoff', threadId };
+  }
+
+  const reply = (turn.text ?? '').trim();
+  if (turn.handoff || !reply) {
+    await markNeedsHost(supabase, threadId);
+    return { ok: true, action: 'handoff', draft: reply || undefined, threadId };
   }
 
   if (property?.ai_reviews !== false) {
     const pending = await recordReplyDraft(supabase, {
-      threadId: thread.id as string,
+      threadId,
       inboundMessageId: inbound?.id ?? null,
       guestMessage: input.body,
-      body: draft.draft,
+      body: reply,
       handoff: false,
       origin: 'inbound',
     });
-    if (!pending) return { ok: false, threadId: thread.id };
-    return {
-      ok: true,
-      action: 'drafted',
-      draft: draft.draft,
-      threadId: thread.id,
-      draftId: pending.id,
-    };
+    if (!pending) return { ok: false, threadId };
+    return { ok: true, action: 'drafted', draft: reply, threadId, draftId: pending.id };
   }
 
   let token: string | null = null;
   if (channel === 'hospitable') {
     token = await hospitableTokenForCustomer((property?.owner_id as string | undefined) ?? null);
   }
-  const extId = await getMessageSender(channel).send(input.externalThreadId ?? null, draft.draft, {
+  const extId = await getMessageSender(channel).send(input.externalThreadId ?? null, reply, {
     token,
   });
   await supabase.from('guest_messages').insert({
-    thread_id: thread.id,
+    thread_id: threadId,
     direction: 'out',
     source: 'ai',
-    body: draft.draft,
+    body: reply,
     external_id: extId,
   });
-  return { ok: true, action: 'sent', draft: draft.draft, threadId: thread.id };
+  return { ok: true, action: 'sent', draft: reply, threadId };
+}
+
+async function markNeedsHost(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  threadId: string,
+): Promise<void> {
+  await supabase
+    .from('guest_threads')
+    .update({ status: 'needs_host', updated_at: new Date().toISOString() })
+    .eq('id', threadId);
 }

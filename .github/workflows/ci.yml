@@ -57,6 +57,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_stub
           SUPABASE_SERVICE_ROLE_KEY: sb_secret_stub
           NEXT_PUBLIC_POSTHOG_KEY: phc_stub
+          # The eve agent compiles during `next build`; it needs no live model
+          # credential, only a format-valid token secret.
+          LUXEL_AGENT_TOKEN_SECRET: stub-agent-token-secret
+          INTERNAL_SEND_TOKEN: stub-internal-token
 
   e2e:
     runs-on: ubuntu-latest
@@ -92,6 +96,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_stub
           SUPABASE_SERVICE_ROLE_KEY: sb_secret_stub
           NEXT_PUBLIC_POSTHOG_KEY: phc_stub
+          # The eve agent compiles during `next build`; it needs no live model
+          # credential, only a format-valid token secret.
+          LUXEL_AGENT_TOKEN_SECRET: stub-agent-token-secret
+          INTERNAL_SEND_TOKEN: stub-internal-token
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
