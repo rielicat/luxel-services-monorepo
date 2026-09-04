@@ -63,8 +63,11 @@ These are external accounts. The code cannot provision them:
    `POST /{app-id}/subscriptions` (`object=whatsapp_business_account`,
    `fields=messages`, `callback_url=<worker>/webhook`, the worker's verify token,
    `access_token=<app-id>|<app-secret>`), then `POST /{waba-id}/subscribed_apps`
-   with the System User token. Get the templates `luxel_conserje_registro` and
-   `luxel_aseo_confirmacion` approved. Set `WHATSAPP_WORKER_SEND_URL` and
+   with the System User token. Get the templates `luxel_conserje_registro`,
+   `luxel_aseo_confirmacion` and `luxel_anfitrion_registro` approved. The last
+   one carries the check-in notice to the host; until Meta approves it the host
+   still gets the email and the WhatsApp send simply fails and is recorded as
+   failed in `notify_result`. Set `WHATSAPP_WORKER_SEND_URL` and
    `INTERNAL_SEND_TOKEN` on the web project.
 8. **PriceLabs** — `PRICELABS_API_KEY` for dynamic pricing. Dynamic pricing is
    part of every plan; without the key the pricing panel reports `unavailable`.

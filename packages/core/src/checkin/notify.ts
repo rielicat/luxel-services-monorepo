@@ -5,6 +5,7 @@ import { sendWhatsAppTemplate, whatsappBridgeConfigured } from '../whatsapp/send
 import { longDateEs, stayRangeEs } from './copy';
 import { guestListLine, type GuestRow } from './guest-list';
 import { recipients } from '../crew';
+import { toE164Digits } from '../phone';
 
 type NotifyResult = Array<{ channel: string; to: string; role: string; ok: boolean }>;
 
@@ -50,7 +51,7 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
   if (!property) return;
   const { data: owner } = await supabase
     .from('customers')
-    .select('email, full_name')
+    .select('email, full_name, phone')
     .eq('id', property.owner_id)
     .maybeSingle();
 
@@ -85,15 +86,27 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
       const to = c.phone;
       if (!to || reached.has(to)) continue;
       const ok = Boolean(await sendWhatsAppTemplate(to, 'concierge_arrival', params));
-      if (ok) reached.add(to);
+      reached.add(to);
       results.push({ channel: 'whatsapp', to: `+${to}`, role: 'concierge', ok });
+    }
+
+    const ownerPhone = toE164Digits(owner?.phone as string | null | undefined);
+    if (ownerPhone) {
+      const ok = Boolean(
+        await sendWhatsAppTemplate(ownerPhone, 'host_checkin', [
+          stay,
+          property.nickname,
+          checkin.guest_name ?? 'Huésped',
+          `${headcount} · llegada ${arrival}`,
+        ]),
+      );
+      results.push({ channel: 'whatsapp', to: `+${ownerPhone}`, role: 'host', ok });
     }
   }
 
   if (emailConfigured()) {
     for (const c of conserjes) {
-      const to = c.phone;
-      if ((to && reached.has(to)) || !c.email) continue;
+      if (!c.email) continue;
       const html =
         `<p>Registro de huéspedes — <strong>${esc(unit)}</strong> (${esc(where)})</p>` +
         `<p>Estadía: ${esc(stay)}.</p>` +

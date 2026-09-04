@@ -66,6 +66,7 @@ beforeAll(async () => {
       clerk_user_id: process.env.TEST_CLERK_ID!,
       email: 'host@test.cl',
       full_name: 'Anfitrión Test',
+      phone: '+56 9 1111 2222',
     })
     .select('id')
     .single();
@@ -158,12 +159,10 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(res.ok).toBe(true);
     expect(JSON.stringify(res)).not.toContain('4821');
 
-    expect(workerSends).toHaveLength(1);
-    expect(workerSends[0]).toMatchObject({
-      to: '56987654321',
-      template: { kind: 'concierge_arrival' },
-    });
-    expect(workerSends[0]!.template!.params).toEqual([
+    expect(workerSends.filter((w) => w.template?.kind === 'concierge_arrival')).toHaveLength(1);
+    const conserjeSend = workerSends.find((w) => w.template?.kind === 'concierge_arrival')!;
+    expect(conserjeSend.to).toBe('56987654321');
+    expect(conserjeSend.template!.params).toEqual([
       stayRangeEs(arrival, departure),
       'Depto. 401 · Providencia',
       'sí · patente ABCD12',
@@ -191,6 +190,10 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(result.some((r) => r.role === 'concierge' && r.channel === 'whatsapp' && r.ok)).toBe(
       true,
     );
+    expect(result.some((r) => r.role === 'host' && r.channel === 'whatsapp')).toBe(true);
+    expect(workerSends.some((w) => w.template?.kind === 'host_checkin')).toBe(true);
+    const hostSend = workerSends.find((w) => w.template?.kind === 'host_checkin');
+    expect(JSON.stringify(hostSend!.template!.params)).not.toContain('12.345.678');
     expect(JSON.stringify(result)).not.toContain('12.345.678');
 
     const { data: guests } = await admin
@@ -250,7 +253,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     });
     expect(res.ok).toBe(true);
 
-    expect(workerSends).toHaveLength(1);
+    expect(workerSends.filter((w) => w.template?.kind === 'concierge_arrival')).toHaveLength(1);
     expect(workerSends[0]).toMatchObject({
       to: '56933334444',
       template: { kind: 'concierge_arrival' },
@@ -312,7 +315,8 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     });
     expect(res.ok).toBe(true);
     expect(res).toEqual({ ok: true });
-    expect(workerSends).toHaveLength(0);
+    expect(workerSends.filter((w) => w.template?.kind === 'concierge_arrival')).toHaveLength(0);
+    expect(JSON.stringify(workerSends)).not.toContain('4821');
     const { data: checkin } = await admin
       .from('checkins')
       .select('party_size, arrival_time, departure_time')
@@ -357,7 +361,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
       .eq('checkin_id', checkin!.id as string);
     expect(guests).toHaveLength(2);
     expect(checkin!.party_size).toBe(2);
-    expect(workerSends).toHaveLength(1);
+    expect(workerSends.filter((w) => w.template?.kind === 'concierge_arrival')).toHaveLength(1);
   });
 
   it('opens by Airbnb confirmation code as well as by token, whatever the casing', async () => {
