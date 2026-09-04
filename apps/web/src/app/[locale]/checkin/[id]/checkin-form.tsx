@@ -2,17 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import {
-  Check,
-  ChevronLeft,
-  CigaretteOff,
-  House,
-  PartyPopper,
-  PawPrint,
-  Plus,
-  Trash2,
-  TriangleAlert,
-} from 'lucide-react';
+import { Check, ChevronLeft, House, Plus, Trash2, TriangleAlert } from 'lucide-react';
 import { LuxelLogo, LuxelMark } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { formatDocument } from '@luxel/shared/document';
 import { arrivalSlots, departureSlots, nightsBetween } from '@luxel/core/checkin/slots';
-import { docNeedsRetype, type CheckinDraft } from '@luxel/core/checkin/draft-shape';
+import type { CheckinDraft } from '@luxel/core/checkin/draft-shape';
 import { saveCheckinDraft, submitCheckin } from './actions';
 
 export type DocType = 'rut' | 'passport' | 'dni' | 'other';
@@ -43,7 +33,6 @@ export interface Rules {
 }
 
 export interface RegisteredGuest {
-  isLead: boolean;
   fullName: string;
   docType: string | null;
   docLast4: string | null;
@@ -68,7 +57,6 @@ type GuestDraft = {
   fullName: string;
   docType: DocType;
   docNumber: string;
-  docMask: string | null;
 };
 
 type Parking = '' | 'yes' | 'no';
@@ -121,12 +109,14 @@ const SECTION_TITLE = 'font-display text-base font-semibold';
 const nameKey = (i: number): string => `g${i}-name`;
 const docKey = (i: number): string => `g${i}-doc`;
 
+const isFilled = (g: GuestDraft): boolean =>
+  Boolean(g.fullName.trim()) && g.docNumber.trim().length >= MIN_DOC;
+
 const newGuest = (uid: string, docType: DocType): GuestDraft => ({
   uid,
   fullName: '',
   docType,
   docNumber: '',
-  docMask: null,
 });
 
 const freshUid = (): string =>
@@ -334,7 +324,7 @@ function GuestRow({
   guest,
   errors,
   open,
-  onOpen,
+  onToggle,
   onRemove,
   bindRef,
   onChange,
@@ -346,7 +336,7 @@ function GuestRow({
   guest: GuestDraft;
   errors: Errors;
   open: boolean;
-  onOpen: () => void;
+  onToggle: () => void;
   onRemove: (() => void) | null;
   bindRef: (key: string, el: HTMLInputElement | null) => void;
   onChange: (patch: Partial<GuestDraft>) => void;
@@ -360,113 +350,125 @@ function GuestRow({
   const nameErr = errors[nameId];
   const docErr = errors[docId];
 
-  const summary = guest.fullName.trim() || t('guest_n', { n: index + 1 });
+  const named = guest.fullName.trim();
+  const fallback = t('guest_n', { n: index + 1 });
   const flagged = Boolean(nameErr || docErr);
-
-  if (!open) {
-    return (
-      <Card>
-        <div className="flex items-center gap-2 p-1">
-          <button
-            type="button"
-            onClick={onOpen}
-            className={cn(
-              'flex min-h-12 flex-1 items-center gap-3 rounded-lg px-3 text-left',
-              'hover:bg-accent transition-colors',
-              FOCUS,
-            )}
-          >
-            <span className="truncate text-sm font-medium">{summary}</span>
-            {flagged && (
-              <span className="text-destructive ml-auto shrink-0 text-xs font-medium">
-                {t('row_incomplete')}
-              </span>
-            )}
-          </button>
-          {onRemove && <RemoveGuest index={index} onRemove={onRemove} />}
-        </div>
-      </Card>
-    );
-  }
 
   return (
     <Card>
-      <div role="group" aria-labelledby={`g${index}-label`} className="grid gap-5 p-4 sm:p-5">
-        <div className="flex min-h-6 items-center justify-between gap-3">
+      <div className="flex items-center gap-2 p-1">
+        <button
+          type="button"
+          id={`g${index}-label`}
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-controls={open ? `g${index}-fields` : undefined}
+          className={cn(
+            'flex min-h-12 flex-1 items-center gap-3 rounded-lg px-3 text-left',
+            'hover:bg-accent transition-colors',
+            FOCUS,
+          )}
+        >
           <span
-            id={`g${index}-label`}
-            className="text-muted-foreground text-xs font-semibold uppercase tracking-wide"
+            className={cn(
+              'truncate text-sm',
+              named ? 'font-medium' : 'text-muted-foreground font-normal',
+            )}
           >
-            {t('guest_n', { n: index + 1 })}
+            {named || fallback}
           </span>
-          {onRemove && <RemoveGuest index={index} onRemove={onRemove} className="-my-2 -mr-1" />}
-        </div>
-
-        <Field id={nameId} label={t('name')} error={nameErr}>
-          <Input
-            id={nameId}
-            ref={(el) => bindRef(nameId, el)}
-            value={guest.fullName}
-            onChange={(e) => onChange({ fullName: e.target.value })}
-            onBlur={onBlurName}
-            maxLength={120}
-            aria-required
-            aria-invalid={nameErr ? true : undefined}
-            aria-describedby={nameErr ? `${nameId}-err` : undefined}
-            autoCapitalize="words"
-            autoComplete={index === 0 ? 'name' : `section-guest-${index} name`}
-            enterKeyHint="next"
-            placeholder={t('name_ph')}
-            className={cn(
-              'h-12 text-base',
-              nameErr && 'border-destructive focus-visible:border-destructive',
-            )}
-          />
-        </Field>
-
-        <div className="grid gap-1.5">
-          <GroupLabel id={`${docId}type-label`}>{t('doc_type')}</GroupLabel>
-          <Chips
-            id={`${docId}type`}
-            labelId={`${docId}type-label`}
-            options={DOC_TYPES.map((v) => ({ value: v, label: t(DOC_KEY[v]) }))}
-            value={guest.docType}
-            onChange={(v) => onCommit({ docType: v })}
-            className="grid-cols-2"
-          />
-        </div>
-
-        <Field id={docId} label={t('doc_number')} error={docErr}>
-          <Input
-            id={docId}
-            ref={(el) => bindRef(docId, el)}
-            value={guest.docNumber}
-            onChange={(e) => onChange({ docNumber: e.target.value })}
-            onFocus={(e) => {
-              if (guest.docMask && e.currentTarget.value === guest.docMask)
-                e.currentTarget.select();
-            }}
-            onBlur={onBlurDoc}
-            inputMode="text"
-            maxLength={40}
-            aria-required
-            aria-invalid={docErr ? true : undefined}
-            aria-describedby={docErr ? `${docId}-err` : undefined}
-            autoCapitalize={guest.docType === 'rut' ? 'none' : 'characters'}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            enterKeyHint="next"
-            placeholder={t(guest.docType === 'rut' ? 'doc_number_ph' : 'doc_number_ph_other')}
-            className={cn(
-              'h-12 text-base tabular-nums tracking-wider',
-              docErr && 'border-destructive focus-visible:border-destructive',
-            )}
-          />
-        </Field>
+          {flagged && !open && (
+            <span className="text-destructive ml-auto shrink-0 text-xs font-medium">
+              {t('row_incomplete')}
+            </span>
+          )}
+        </button>
+        {onRemove && <RemoveGuest index={index} onRemove={onRemove} />}
       </div>
+
+      {open && (
+        <div
+          id={`g${index}-fields`}
+          role="group"
+          aria-labelledby={`g${index}-label`}
+          className="grid gap-5 px-4 pb-4 pt-1 sm:px-5 sm:pb-5"
+        >
+          <Field id={nameId} label={t('name')} error={nameErr}>
+            <Input
+              id={nameId}
+              ref={(el) => bindRef(nameId, el)}
+              value={guest.fullName}
+              onChange={(e) => onChange({ fullName: e.target.value })}
+              onBlur={onBlurName}
+              maxLength={120}
+              aria-required
+              aria-invalid={nameErr ? true : undefined}
+              aria-describedby={nameErr ? `${nameId}-err` : undefined}
+              autoCapitalize="words"
+              autoComplete={index === 0 ? 'name' : `section-guest-${index} name`}
+              enterKeyHint="next"
+              placeholder={fallback}
+              className={cn(
+                'h-12 text-base',
+                nameErr && 'border-destructive focus-visible:border-destructive',
+              )}
+            />
+          </Field>
+
+          <div className="grid gap-1.5">
+            <GroupLabel id={`${docId}type-label`}>{t('doc_type')}</GroupLabel>
+            <Chips
+              id={`${docId}type`}
+              labelId={`${docId}type-label`}
+              options={DOC_TYPES.map((v) => ({ value: v, label: t(DOC_KEY[v]) }))}
+              value={guest.docType}
+              onChange={(v) => onCommit({ docType: v })}
+              className="grid-cols-2"
+            />
+          </div>
+
+          <Field id={docId} label={t('doc_number')} error={docErr}>
+            <Input
+              id={docId}
+              ref={(el) => bindRef(docId, el)}
+              value={guest.docNumber}
+              onChange={(e) => onChange({ docNumber: e.target.value })}
+              onBlur={onBlurDoc}
+              inputMode="text"
+              maxLength={40}
+              aria-required
+              aria-invalid={docErr ? true : undefined}
+              aria-describedby={docErr ? `${docId}-err` : undefined}
+              autoCapitalize={guest.docType === 'rut' ? 'none' : 'characters'}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
+              placeholder={t(guest.docType === 'rut' ? 'doc_number_ph' : 'doc_number_ph_other')}
+              className={cn(
+                'h-12 text-base tabular-nums tracking-wider',
+                docErr && 'border-destructive focus-visible:border-destructive',
+              )}
+            />
+          </Field>
+        </div>
+      )}
     </Card>
   );
+}
+
+type RuleItem = { mark: string; text: string };
+
+const RULE_MARK =
+  /^(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*)\s*/u;
+const RULE_BULLET = /^[-*•]\s*/;
+const RULE_HEADING = /^[^\p{Ll}]*:$/u;
+
+function splitRule(line: string): RuleItem {
+  const clean = line.replace(RULE_BULLET, '').trim();
+  const found = RULE_MARK.exec(clean);
+  if (!found) return { mark: '•', text: RULE_HEADING.test(clean) ? '' : clean };
+  return { mark: found[1]!, text: clean.slice(found[0].length).trim() };
 }
 
 function DoneView({
@@ -490,19 +492,23 @@ function DoneView({
   if (arrivalTime) rows.push([t('summary_arrival'), arrivalTime]);
   if (departureTime) rows.push([t('summary_departure'), departureTime]);
 
-  const written = rules.lines ?? [];
-  const stated = written.join(' ').toLowerCase();
-  const ruleItems: Array<{ label: string; Icon: typeof PawPrint }> = [];
+  const written = (rules.lines ?? []).map(splitRule).filter((r) => r.text);
+  const stated = written
+    .map((r) => r.text)
+    .join(' ')
+    .toLowerCase();
+  const ruleItems: RuleItem[] = [];
   const says = (re: RegExp) => re.test(stated);
   if (rules.noSmoking && !says(/\bfuma/)) {
-    ruleItems.push({ label: t('rule_no_smoking'), Icon: CigaretteOff });
+    ruleItems.push({ mark: '🚭', text: t('rule_no_smoking') });
   }
   if (rules.noPets && !says(/\b(mascotas?|perros?|gatos?)\b/)) {
-    ruleItems.push({ label: t('rule_no_pets'), Icon: PawPrint });
+    ruleItems.push({ mark: '🐾', text: t('rule_no_pets') });
   }
   if (rules.noEvents && !says(/\b(fiestas?|eventos?)\b/)) {
-    ruleItems.push({ label: t('rule_no_events'), Icon: PartyPopper });
+    ruleItems.push({ mark: '🎉', text: t('rule_no_events') });
   }
+  const allRules = [...written, ...ruleItems];
 
   return (
     <div className="grid gap-4">
@@ -541,14 +547,7 @@ function DoneView({
               const detail = [docLabel, last].filter(Boolean).join(' ');
               return (
                 <li key={i} className="py-3 first:pt-0 last:pb-0">
-                  <div className="flex items-baseline gap-3">
-                    <span className="truncate text-sm font-medium">{g.fullName}</span>
-                    {g.isLead && (
-                      <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
-                        {t('lead_badge')}
-                      </span>
-                    )}
-                  </div>
+                  <span className="block truncate text-sm font-medium">{g.fullName}</span>
                   {detail && (
                     <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">{detail}</p>
                   )}
@@ -559,19 +558,16 @@ function DoneView({
         </Card>
       )}
 
-      {(written.length > 0 || ruleItems.length > 0) && (
+      {allRules.length > 0 && (
         <Card className="p-4">
           <h2 className={cn(SECTION_TITLE, 'mb-2')}>{t('rules_title')}</h2>
-          <ul className="grid gap-2">
-            {written.map((line) => (
-              <li key={line} className="text-sm leading-relaxed">
-                {line}
-              </li>
-            ))}
-            {ruleItems.map(({ label, Icon }) => (
-              <li key={label} className="flex items-center gap-3">
-                <Icon className="text-muted-foreground h-4 w-4 shrink-0" />
-                <span className="text-sm">{label}</span>
+          <ul className="grid gap-2.5">
+            {allRules.map(({ mark, text }) => (
+              <li key={text} className="flex items-start gap-2.5 text-sm leading-snug">
+                <span aria-hidden className="w-5 shrink-0 text-base leading-snug">
+                  {mark}
+                </span>
+                <span>{text}</span>
               </li>
             ))}
           </ul>
@@ -608,8 +604,7 @@ export function CheckinForm({
     uid: g.uid || `g${i + 1}`,
     fullName: g.fullName,
     docType: isDocType(g.docType) ? g.docType : defaultDocType,
-    docNumber: g.docMask ?? '',
-    docMask: g.docMask,
+    docNumber: g.docNumber,
   }));
 
   const [done, setDone] = useState(alreadyDone);
@@ -635,7 +630,10 @@ export function CheckinForm({
 
   const countRef = useRef<HTMLHeadingElement>(null);
   const guestsHeadingRef = useRef<HTMLHeadingElement>(null);
-  const [openUid, setOpenUid] = useState<string | null>(() => resumed[0]?.uid ?? 'g1');
+  const [openUid, setOpenUid] = useState<string | null>(() => {
+    const start = resumed.length ? resumed : [newGuest('g1', defaultDocType)];
+    return start.find((g) => !isFilled(g))?.uid ?? null;
+  });
   const settled = useRef(false);
   useEffect(() => {
     if (!settled.current) {
@@ -736,7 +734,6 @@ export function CheckinForm({
 
   const docErrorFor = (g: GuestDraft): string | null => {
     const doc = g.docNumber.trim();
-    if (docNeedsRetype(doc, g.docMask)) return t('error_doc_again');
     return doc.length >= MIN_DOC ? null : t('error_doc');
   };
 
@@ -803,12 +800,8 @@ export function CheckinForm({
     const g = guests[i]!;
     const raw = g.docNumber;
     const typed = raw.trim();
-    const fresh = Boolean(typed) && !docNeedsRetype(typed, g.docMask);
-    const next = fresh && g.docType === 'rut' ? formatDocument('rut', typed) : raw;
-    const patch: Partial<GuestDraft> = fresh
-      ? { docNumber: next, docMask: null }
-      : { docNumber: next };
-    const list = commitGuest(i, patch);
+    const next = typed && g.docType === 'rut' ? formatDocument('rut', typed) : raw;
+    const list = commitGuest(i, { docNumber: next });
     setError(docKey(i), docErrorFor(list[i]!));
   };
 
@@ -871,8 +864,7 @@ export function CheckinForm({
       }).catch(() => ({ ok: false, error: 'generic', expected: undefined }));
       if (r.ok) {
         setRegistered(
-          guests.map((g, i) => ({
-            isLead: i === 0,
+          guests.map((g) => ({
             fullName: g.fullName.trim(),
             docType: g.docType,
             docLast4: maskDoc(g.docNumber.trim()),
@@ -957,8 +949,8 @@ export function CheckinForm({
                 guest={g}
                 errors={errors}
                 open={openUid === g.uid}
-                onOpen={() => setOpenUid(g.uid)}
-                onRemove={i > 0 ? () => removeGuest(i) : null}
+                onToggle={() => setOpenUid(openUid === g.uid ? null : g.uid)}
+                onRemove={guests.length > 1 ? () => removeGuest(i) : null}
                 bindRef={bindRef}
                 onChange={(patch) => {
                   changeGuest(i, patch);

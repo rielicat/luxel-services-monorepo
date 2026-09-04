@@ -194,13 +194,13 @@ rules. Do not add code paths that break them.
   visible; it is never silent. A document number in the draft is encrypted with
   the same `encryptPII` the submitted rows use. The draft never holds a raw
   number. Each guest row carries a client `uid`, so a remembered document follows
-  its own row through an add or a remove. A masked value never replaces stored
-  ciphertext; it keeps it. On resume the page returns the document masked to its
-  last four characters, as `···1234`. That keeps the link a write credential, not a
-  document viewer. The guest must type the number again before the form can be
-  submitted. `docNeedsRetype` refuses the mask and the bare last four on the
-  client. `submitCheckin` refuses a masked string, and any value equal to a
-  remembered last four. A successful submit deletes the draft. The draft dies
+  its own row through an add or a remove. On resume `readCheckinDraft` decrypts
+  and returns the complete number, so the guest finishes the form rather than
+  retyping. That makes the check-in link a reader of the documents in its own
+  unsent draft: the owner asked for it, and the privacy policy says so. A number
+  that cannot be decrypted comes back empty rather than throwing.
+  `submitCheckin` still refuses a masked string, because a tab opened before this
+  change can still post one. A successful submit deletes the draft. The draft dies
   with the check-in row by cascade. The page stops reading the draft after the
   departure date, the same window `saveCheckinDraft` applies to the write.
   `purgeExpiredGuestDocuments` clears it 90 days after departure.

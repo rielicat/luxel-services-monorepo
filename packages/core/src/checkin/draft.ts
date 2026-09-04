@@ -1,9 +1,8 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { encryptPII, last4 } from '../crypto/pii';
+import { decryptPII, encryptPII, last4 } from '../crypto/pii';
 import {
   looksMaskedDoc,
-  maskedDoc,
   type CheckinDraft,
   type CheckinDraftInput,
   type CheckinDraftWrite,
@@ -38,6 +37,15 @@ interface StoredRow {
 }
 
 const text = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+function readDoc(enc: unknown): string {
+  if (typeof enc !== 'string' || !enc) return '';
+  try {
+    return decryptPII(enc);
+  } catch {
+    return '';
+  }
+}
 const count = (v: unknown): number =>
   Number.isInteger(v) && (v as number) > 0 ? (v as number) : 0;
 
@@ -77,7 +85,7 @@ export async function readCheckinDraft(
       uid: text(g?.uid) || `g${i}`,
       fullName: text(g?.fullName),
       docType: text(g?.docType),
-      docMask: g?.docLast4 ? maskedDoc(g.docLast4) : null,
+      docNumber: readDoc(g?.docEnc),
     })),
     arrivalTime: text(payload.arrivalTime),
     departureTime: text(payload.departureTime),

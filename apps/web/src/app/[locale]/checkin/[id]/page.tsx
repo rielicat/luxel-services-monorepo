@@ -94,7 +94,6 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
     .slice(0, 20);
   const maxGuests = Math.min(Math.max(property?.max_guests ?? MAX_PARTY, 1), MAX_PARTY);
   const registered: RegisteredGuest[] = (guestsRes?.data ?? []).map((g) => ({
-    isLead: Boolean(g.is_lead),
     fullName: g.full_name as string,
     docType: (g.doc_type as string | null) ?? null,
     docLast4: (g.doc_last4 as string | null) ?? null,

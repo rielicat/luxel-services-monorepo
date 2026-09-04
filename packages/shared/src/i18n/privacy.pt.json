@@ -6,7 +6,7 @@
   "updated_label": "Atualizada em",
   "updated_value": "5 de setembro de 2026",
   "version_label": "Versão",
-  "version_value": "1.2",
+  "version_value": "1.3",
   "lang_label": "Ler em",
   "lang_es": "Español",
   "lang_en": "English",
@@ -80,7 +80,7 @@
         "O formulário de registro exige o documento para ser concluído e não oferece alternativa. Não pedimos um consentimento separado, porque não é o consentimento que sustenta este tratamento.",
         "Não perguntamos a sua idade, a sua nacionalidade, o seu e-mail nem o seu telefone no formulário de registro.",
         "Uma coisa que você deve saber: a página de registro da sua estadia abre com um link privado ou com o código de confirmação do Airbnb. Todas as pessoas da sua reserva têm esse código. Quem tiver o código pode abrir a página e ver os nomes registrados e os quatro últimos caracteres de cada documento. A página não aparece em buscadores.",
-        "Guardamos o que você escreve antes de enviar o formulário, para você poder terminar depois ou de outro celular. O rascunho abre com o mesmo link, então quem tiver o link vê o formulário pela metade. O número do documento também fica criptografado nesse rascunho. Ao voltar você vê os quatro últimos caracteres e precisa escrevê-lo de novo para poder enviar o formulário. O rascunho é apagado quando você envia o formulário."
+        "Guardamos o que você escreve antes de enviar o formulário, para você poder terminar depois ou de outro celular. O rascunho abre com o mesmo link, então quem tiver o link vê o formulário pela metade, com os números de documento completos de quem já estiver preenchido. O número fica criptografado no banco de dados e o formulário o descriptografa para mostrá-lo a você. O rascunho é apagado quando você envia o formulário."
       ],
       "rows": [
         {

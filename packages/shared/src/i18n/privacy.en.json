@@ -6,7 +6,7 @@
   "updated_label": "Last updated",
   "updated_value": "5 September 2026",
   "version_label": "Version",
-  "version_value": "1.2",
+  "version_value": "1.3",
   "lang_label": "Read in",
   "lang_es": "Español",
   "lang_en": "English",
@@ -80,7 +80,7 @@
         "The registration form requires the ID document in order to be completed, and offers no alternative. We do not ask for separate consent, because consent is not what this processing rests on.",
         "We do not ask for your age, your nationality, your email address or your phone number on the registration form.",
         "One thing you should know: the registration page for your stay opens with a private link or with your Airbnb confirmation code. Everyone on your booking has that code. Anyone holding it can open the page and see the registered names and the last four characters of each document. The page is not listed in search engines.",
-        "We keep what you type before you submit the form, so you can finish it later or from another phone. The draft opens with the same link, so anyone who has the link sees the half-filled form. The document number is encrypted in that draft too. When you come back you see its last four characters, and you have to type it again before you can submit the form. The draft is deleted when you submit the form."
+        "We keep what you type before you submit the form, so you can finish it later or from another phone. The draft opens with the same link, so anyone who has the link sees the half-filled form, including the complete document numbers of anyone already entered. The number is encrypted in the database, and the form decrypts it to show it back to you. The draft is deleted when you submit the form."
       ],
       "rows": [
         {

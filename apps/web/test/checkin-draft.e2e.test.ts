@@ -143,7 +143,7 @@ const lone = (name: string, docNumber: string) => ({
 });
 
 describe.skipIf(!LIVE)('check-in draft (end to end)', () => {
-  it('round-trips the progress and hands the document back masked, never in the clear', async () => {
+  it('round-trips the progress and hands the document back whole, stored encrypted', async () => {
     const token = await mint('Depto Borrador');
     expect(await saveCheckinDraft(partial(token))).toEqual({ ok: true, rev: 1 });
 
@@ -159,15 +159,14 @@ describe.skipIf(!LIVE)('check-in draft (end to end)', () => {
       rev: 1,
       partySize: 2,
       guests: [
-        { uid: 'g1', fullName: 'María Pérez', docType: 'rut', docMask: '···78-9' },
-        { uid: 'g2', fullName: '', docType: 'rut', docMask: null },
+        { uid: 'g1', fullName: 'María Pérez', docType: 'rut', docNumber: '12.345.678-9' },
+        { uid: 'g2', fullName: '', docType: 'rut', docNumber: '' },
       ],
       arrivalTime: '18:00',
       departureTime: '11:00',
       parking: 'yes',
       vehiclePlate: 'ABCD12',
     });
-    expect(JSON.stringify(back)).not.toContain('12.345.678-9');
   });
 
   it('keeps the stored number whenever the browser sends a mask back, never nulls it', async () => {
@@ -201,7 +200,7 @@ describe.skipIf(!LIVE)('check-in draft (end to end)', () => {
       }),
     );
     const after = await readCheckinDraft(admin, checkinId);
-    expect(after!.guests.map((g) => g.docMask)).toEqual(['···78-9', null]);
+    expect(after!.guests.map((g) => g.docNumber)).toEqual(['12.345.678-9', '']);
   });
 
   it('follows the guest row by its uid when a row is removed', async () => {
@@ -343,7 +342,7 @@ describe.skipIf(!LIVE)('check-in draft (end to end)', () => {
     expect(await payloadFor(hereId)).not.toBeNull();
   });
 
-  it('refuses the remembered document, whether it comes back masked or as its last four', async () => {
+  it('gives the document back complete, and never stores it in the clear', async () => {
     const token = await mint('Depto Enmascarado');
     const checkinId = await checkinIdFor(token);
     expect(
@@ -359,9 +358,12 @@ describe.skipIf(!LIVE)('check-in draft (end to end)', () => {
     ).toEqual({ ok: true, rev: 1 });
 
     const resumed = await readCheckinDraft(admin, checkinId);
-    expect(resumed!.guests[0]!.docMask).toBe('···78-9');
+    expect(resumed!.guests[0]!.docNumber).toBe('12.345.678-9');
 
-    for (const docNumber of ['···78-9', '•••78-9', '…78-9', '78-9']) {
+    const stored = await payloadFor(checkinId);
+    expect(JSON.stringify(stored)).not.toContain('12.345.678-9');
+
+    for (const docNumber of ['···78-9', '•••78-9', '…78-9']) {
       expect(
         await submitCheckin({
           id: token,
@@ -382,7 +384,7 @@ describe.skipIf(!LIVE)('check-in draft (end to end)', () => {
     expect(
       await submitCheckin({
         id: token,
-        guests: [lone('María Pérez', '12.345.678-9')],
+        guests: [lone('María Pérez', resumed!.guests[0]!.docNumber)],
         arrivalTime: '18:00',
       }),
     ).toEqual({ ok: true });

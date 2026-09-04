@@ -8,7 +8,7 @@ import { MAX_PARTY, SLOT_RE, guestSlots } from '@luxel/core/checkin/slots';
 import { santiagoToday } from '@luxel/core/checkin/window';
 import { findCheckin } from '@luxel/core/checkin/resolve';
 import { clearCheckinDrafts, readCheckinDraft, writeCheckinDraft } from '@luxel/core/checkin/draft';
-import { looksMaskedDoc, maskLast4, type CheckinDraftWrite } from '@luxel/core/checkin/draft-shape';
+import { looksMaskedDoc, type CheckinDraftWrite } from '@luxel/core/checkin/draft-shape';
 
 const DocType = z.enum(['rut', 'passport', 'dni', 'other']);
 
@@ -94,13 +94,6 @@ export async function submitCheckin(input: unknown): Promise<Result> {
       : Math.min(draft?.partySize ?? 0, roomFor);
   if (target > 0 && d.guests.length !== target) {
     return { ok: false, error: 'party_size', expected: target };
-  }
-
-  const remembered = new Set(
-    (draft?.guests ?? []).map((g) => (g.docMask ? maskLast4(g.docMask) : '')).filter(Boolean),
-  );
-  if (d.guests.some((g) => remembered.has(g.docNumber.trim()))) {
-    return { ok: false, error: 'validation' };
   }
 
   let rows: Array<Record<string, unknown>>;
