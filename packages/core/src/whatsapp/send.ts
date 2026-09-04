@@ -2,11 +2,24 @@ import 'server-only';
 import { WHATSAPP_TEXT_MAX, type WhatsAppTemplateKind } from '@luxel/shared/whatsapp';
 
 export function whatsappBridgeConfigured(): boolean {
-  return Boolean(process.env.WHATSAPP_WORKER_SEND_URL && process.env.INTERNAL_SEND_TOKEN);
+  return Boolean(workerSendUrl() && process.env.INTERNAL_SEND_TOKEN);
+}
+
+export function workerSendUrl(
+  raw: string | undefined = process.env.WHATSAPP_WORKER_SEND_URL,
+): string | null {
+  if (!raw?.trim()) return null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.pathname === '' || url.pathname === '/') url.pathname = '/send';
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 async function postToWorker(body: Record<string, unknown>): Promise<string | null> {
-  const url = process.env.WHATSAPP_WORKER_SEND_URL;
+  const url = workerSendUrl();
   const token = process.env.INTERNAL_SEND_TOKEN;
   if (!url || !token) return null;
   try {
@@ -15,7 +28,10 @@ async function postToWorker(body: Record<string, unknown>): Promise<string | nul
       headers: { 'content-type': 'application/json', 'x-luxel-internal-token': token },
       body: JSON.stringify(body),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn('whatsapp.send_failed', { status: res.status, path: new URL(url).pathname });
+      return null;
+    }
     const json = (await res.json()) as { wamid?: string | null };
     return json.wamid ?? null;
   } catch {

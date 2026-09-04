@@ -13,6 +13,21 @@ function esc(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 }
 
+const TEMPLATE_HEAD = 'Registro de huéspedes en conserjería';
+const TEMPLATE_FOOT = 'Gracias, equipo Luxel';
+
+function registrationHtml(params: string[]): string {
+  const [stay, place, parking, people] = params;
+  return (
+    `<p>${esc(TEMPLATE_HEAD)}</p>` +
+    `<p>📅 Estadía: ${esc(stay ?? '—')}<br />` +
+    `🏠 Departamento: ${esc(place ?? '—')}<br />` +
+    `🚗 Estacionamiento: ${esc(parking ?? '—')}<br />` +
+    `👥 Huéspedes: ${esc(people ?? '—')}</p>` +
+    `<p>${esc(TEMPLATE_FOOT)}</p>`
+  );
+}
+
 export async function notifyCheckin(checkinId: string): Promise<void> {
   const supabase = createSupabaseServiceRoleClient();
 
@@ -56,8 +71,6 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
     .maybeSingle();
 
   const results: NotifyResult = [];
-  const place = esc(property.nickname);
-  const who = esc(checkin.guest_name ?? 'Huésped');
   const arrival =
     checkin.arrival_date && checkin.arrival_time
       ? `${longDateEs(checkin.arrival_date as string)}, ${checkin.arrival_time}`
@@ -78,10 +91,18 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
         : 'no';
   const headcount = String(guestRows.length || checkin.party_size || 1);
 
+  const place = where === '—' ? unit : `${unit} · ${where}`;
+  const conserjeParams = [stay, place, parking, `${headcount} · ${guestList}`];
+  const hostParams = [
+    stay,
+    place,
+    parking,
+    `${headcount} · reserva de ${checkin.guest_name ?? 'huésped'} · llegada ${arrival}`,
+  ];
+
   const reached = new Set<string>();
   if (whatsappBridgeConfigured()) {
-    const place = where === '—' ? unit : `${unit} · ${where}`;
-    const params = [stay, place, parking, `${headcount} · ${guestList}`];
+    const params = conserjeParams;
     for (const c of conserjes) {
       const to = c.phone;
       if (!to || reached.has(to)) continue;
@@ -92,14 +113,7 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
 
     const ownerPhone = toE164Digits(owner?.phone as string | null | undefined);
     if (ownerPhone && !reached.has(ownerPhone)) {
-      const ok = Boolean(
-        await sendWhatsAppTemplate(ownerPhone, 'concierge_arrival', [
-          stay,
-          place,
-          parking,
-          `${headcount} · reserva de ${checkin.guest_name ?? 'huésped'} · llegada ${arrival}`,
-        ]),
-      );
+      const ok = Boolean(await sendWhatsAppTemplate(ownerPhone, 'concierge_arrival', hostParams));
       results.push({ channel: 'whatsapp', to: `+${ownerPhone}`, role: 'host', ok });
     }
   }
@@ -107,30 +121,19 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
   if (emailConfigured()) {
     for (const c of conserjes) {
       if (!c.email) continue;
-      const html =
-        `<p>Registro de huéspedes — <strong>${esc(unit)}</strong> (${esc(where)})</p>` +
-        `<p>Estadía: ${esc(stay)}.</p>` +
-        `<p>Estacionamiento: ${esc(parking)}.</p>` +
-        `<p>Huéspedes (${headcount}):</p>` +
-        `<ul>${guestRows.map((g) => `<li>${esc(guestListLine([g]))}</li>`).join('')}</ul>` +
-        `<p>Llegada estimada: ${arrival}.</p>`;
       const r = await sendEmail({
         to: c.email,
-        subject: `Ya tenemos el registro de ${property.nickname}`,
-        html,
+        subject: `${TEMPLATE_HEAD} — ${property.nickname}`,
+        html: registrationHtml(conserjeParams),
       });
       results.push({ channel: 'email', to: c.email, role: 'concierge', ok: Boolean(r) });
     }
 
     if (owner?.email) {
-      const html =
-        `<p>Ya tenemos el registro de los huéspedes de <strong>${place}</strong>.</p>` +
-        `<p>Huésped: ${who}${checkin.party_size ? ` · ${checkin.party_size} personas` : ''}</p>` +
-        `<p>Llegada: ${arrival}.</p>`;
       const r = await sendEmail({
         to: owner.email,
-        subject: `Ya tenemos el registro de ${property.nickname}`,
-        html,
+        subject: `${TEMPLATE_HEAD} — ${property.nickname}`,
+        html: registrationHtml(hostParams),
       });
       results.push({ channel: 'email', to: owner.email, role: 'host', ok: Boolean(r) });
     }
