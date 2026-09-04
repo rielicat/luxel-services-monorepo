@@ -40,8 +40,8 @@ push to `main` touching `workers/**`.
 Details: [`DEPLOY.md`](DEPLOY.md), [`ENV.md`](ENV.md).
 
 No follow-up needs operator credentials. Meta WhatsApp is live,
-`PROVIDER_API_KEY` is set on `luxel-admin`, and `GOOGLE_API_KEY` is
-billing-enabled. The `cleaning-review` Workflow and `LUXEL_APP_URL` ship with
+`PROVIDER_API_KEY` is set on `luxel-admin`, and the walkthrough model runs on
+the AI Gateway credential. The `cleaning-review` Workflow and `LUXEL_APP_URL` ship with
 the CI worker deploy. Plan activation is done: an operator moves a subscription
 to `active` at `/plans` in `apps/admin`.
 

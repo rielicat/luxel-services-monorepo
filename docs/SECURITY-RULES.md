@@ -74,7 +74,7 @@ rules. Do not add code paths that break them.
   token, claimed with a compare-and-swap on `claimed_at` so two tabs cannot run
   it twice. `store: false` on every call, and the uploaded file is deleted after
   the run. Never log the model's raw description: it describes a home interior.
-  Without `GOOGLE_API_KEY` the draft is written `unavailable` and the crew fills
+  Without a Gateway credential the draft is written `unavailable` and the crew fills
   the inventory by hand — no crash, no dead end. The key must come from a
   billing-enabled Google project; see [`DEPLOY.md`](./DEPLOY.md).
 - After the crew confirms, a durable review compares the walkthrough against the

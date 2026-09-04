@@ -13,6 +13,11 @@ function credential(): { apiKey: string; baseURL?: string } | null {
   return null;
 }
 
+export function gatewayTarget(): { url: string; key: string } | null {
+  const key = process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim();
+  return key ? { url: `${GATEWAY_BASE_URL}/chat/completions`, key } : null;
+}
+
 export function gatewayConfigured(): boolean {
   return credential() !== null;
 }

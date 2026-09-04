@@ -10,7 +10,8 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABAS
 const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-inventory-${nodeCrypto.randomUUID()}`;
-delete process.env.GOOGLE_API_KEY;
+delete process.env.AI_GATEWAY_API_KEY;
+delete process.env.VERCEL_OIDC_TOKEN;
 delete process.env.LUXEL_WORKER_URL;
 delete process.env.WHATSAPP_WORKER_SEND_URL;
 

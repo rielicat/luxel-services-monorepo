@@ -11,7 +11,8 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABAS
 const LIVE = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 process.env.TEST_CLERK_ID = `test-review-${nodeCrypto.randomUUID()}`;
-delete process.env.GOOGLE_API_KEY;
+delete process.env.AI_GATEWAY_API_KEY;
+delete process.env.VERCEL_OIDC_TOKEN;
 delete process.env.LUXEL_WORKER_URL;
 delete process.env.WHATSAPP_WORKER_SEND_URL;
 delete process.env.INTERNAL_SEND_TOKEN;
@@ -66,7 +67,8 @@ beforeAll(async () => {
 
 afterEach(async () => {
   if (!LIVE || !customerId) return;
-  delete process.env.GOOGLE_API_KEY;
+  delete process.env.AI_GATEWAY_API_KEY;
+  delete process.env.VERCEL_OIDC_TOKEN;
   await admin.from('properties').delete().eq('owner_id', customerId);
 });
 
@@ -233,7 +235,7 @@ describe.skipIf(!LIVE)('cleaning walkthrough review (end to end)', () => {
       true,
     );
 
-    process.env.GOOGLE_API_KEY = 'test-key-not-used';
+    process.env.AI_GATEWAY_API_KEY = 'test-key-not-used';
     const run = await rawRun(after.cleaningId);
 
     for (let attempt = 1; attempt < REVIEW_MAX_ATTEMPTS; attempt += 1) {

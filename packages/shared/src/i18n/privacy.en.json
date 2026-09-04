@@ -6,7 +6,7 @@
   "updated_label": "Last updated",
   "updated_value": "5 September 2026",
   "version_label": "Version",
-  "version_value": "1.3",
+  "version_value": "1.4",
   "lang_label": "Read in",
   "lang_es": "Español",
   "lang_en": "English",
@@ -285,7 +285,7 @@
         },
         {
           "name": "Vercel",
-          "detail": "Hosts the web application and the internal panel. It sees every request that arrives, including the one that submits your registration."
+          "detail": "Hosts the web application and the internal panel. It sees every request that arrives, including the one that submits your registration. Its model gateway also carries the walkthrough video and the conversations that go to the models."
         },
         {
           "name": "Cloudflare",
@@ -349,7 +349,7 @@
         "The video is filmed with the unit empty, after check-out. It shows the interior: the rooms, the furniture and the objects. If you left something behind, it may appear.",
         "The team's phone browser records it, capped at two minutes and at a deliberately low quality. When it is uploaded it goes straight from that phone to the Cloudflare service that stores it, without passing through the web application. Afterwards, each time we send it to the model, our server downloads the whole file in order to forward it: at that moment the file does pass through the application, in memory, and is not stored there. Until it is uploaded, the recording waits up to 24 hours on the phone that filmed it.",
         "The video serves two purposes: letting the team confirm the unit's inventory, and letting us compare that inventory against the previous cleaning's to spot something broken or missing.",
-        "We send the file to Google so that a model writes a draft inventory, and a second time to compare the unit against the previous inventory. We ask that it not be retained for their own use, and we delete the uploaded file at the end of each run. The Google account we use must be a paid one, because on the free tier Google may review and reuse submitted content. Confirming that the production key meets that condition is an open task and we do not treat it as done.",
+        "We send the file to the model twice: once so it writes a draft inventory and once to compare the unit against the previous one. It travels inside the request itself, through Vercel's model gateway, which hands it to Google. No file is left stored at the provider, so there is nothing to delete afterwards. Zero data retention is a paid Vercel feature and is not switched on today, so retention follows the terms of the account that serves the request. We do not treat that as settled.",
         "The model is instructed not to describe people and not to copy documents, screens, passwords or codes. That is an instruction written to the model, not a technical filter, and it should be understood that way.",
         "The host never sees this video. Neither does the guest. There is no public page that shows it and no way to list the stored videos. Only a Luxel person opens it, from the internal panel, and to do that the system mints a link that works for one file and expires in ten minutes.",
         "The video is deleted 30 days after it is filmed. A nightly task deletes it and, as a backstop, a rule on the storage itself. After that a record remains with the size, the duration, who filmed it and when; the file is gone.",

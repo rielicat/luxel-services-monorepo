@@ -345,7 +345,7 @@
     "intro_1": "Nos das acceso a tu cuenta de Airbnb y desde ahí nos hacemos cargo: precios, huéspedes, aseo entre estadías y el reporte de cada mes.",
     "intro_2": "No instalas nada y tu propiedad sigue siendo tuya. Airbnb te paga a ti, directo, como siempre.",
     "pending_title": "Estamos preparando tu invitación",
-    "pending_body": "Preparamos tu invitación a mano y te avisamos apenas esté lista. La enviamos a {email}.",
+    "pending_body": "Preparamos tu invitación a mano y te la mandamos por correo a {email}.",
     "invite_title": "Tu invitación está lista",
     "invite_body": "Abre el enlace y verás la pantalla de Airbnb: inicias sesión con {email}, eliges tus propiedades y aceptas. Después vuelves acá.",
     "invite_body_generic": "Abre el enlace y verás la pantalla de Airbnb: inicias sesión, eliges tus propiedades y aceptas. Después vuelves acá.",
@@ -370,15 +370,11 @@
     "operator_body": "Algo no calzó al conectar tu cuenta y ya lo estamos revisando nosotros. No tienes que hacer nada más.",
     "operator_wa": "Hablar con una persona por WhatsApp",
     "operator_wa_text": "Hola, vengo de Mis propiedades y necesito ayuda para conectar mi Airbnb.",
-    "trust_title": "Qué vemos y qué no",
-    "trust_can": "Vemos tus propiedades, tu calendario, tus reservas y los mensajes de tus huéspedes. Es lo que necesitamos para hacernos cargo.",
-    "trust_cannot": "No vemos tu cuenta bancaria y no movemos tu plata. Tus pagos siguen llegando a ti.",
-    "trust_revoke": "Puedes cortar el acceso cuando quieras desde Airbnb y dejamos de ver tu cuenta.",
     "error_validation": "Ese correo no se ve bien. Revísalo y prueba de nuevo.",
     "error_auth": "Tu sesión venció. Vuelve a entrar y seguimos.",
     "error_generic": "No pudimos guardar tu correo. Prueba de nuevo en un momento.",
     "error_check": "No pudimos revisar en este momento. Prueba de nuevo en un rato.",
-    "wa_text": "Hola, quiero conectar mi Airbnb con Luxel."
+    "pending_body_generic": "Preparamos tu invitación a mano y te la mandamos por correo."
   },
   "detail": {
     "back": "Mis propiedades",
@@ -407,14 +403,12 @@
   "onboarding": {
     "title": "Así lo dejamos andando",
     "subtitle": "Traemos tus propiedades directo desde tu cuenta de Airbnb.",
-    "s1_title": "Nos dices tu correo",
-    "s1_body": "El correo de tu cuenta de Airbnb. Con eso preparamos tu invitación.",
+    "s1_title": "Te llega la invitación",
+    "s1_body": "La preparamos a mano y te la mandamos por correo.",
     "s2_title": "Aceptas en Airbnb",
     "s2_body": "Abres el enlace, inicias sesión en Airbnb y nos das el acceso. Nada que instalar.",
     "s3_title": "Nosotros seguimos",
-    "s3_body": "Llegan tus propiedades, tus reservas y tu calendario, y partimos a trabajar.",
-    "help_pre": "¿Prefieres que lo hagamos contigo?",
-    "help_link": "Escríbenos por WhatsApp"
+    "s3_body": "Llegan tus propiedades, tus reservas y tu calendario, y partimos a trabajar."
   },
   "about": {
     "meta_title": "Nosotros",

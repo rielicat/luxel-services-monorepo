@@ -15,7 +15,6 @@ import {
   Plug,
   RefreshCw,
   Settings2,
-  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -84,47 +83,6 @@ function HowItWorks() {
         </li>
       ))}
     </ol>
-  );
-}
-
-function TrustCard() {
-  const t = useTranslations('connect');
-  const lines = [t('trust_can'), t('trust_cannot'), t('trust_revoke')];
-  return (
-    <Card>
-      <CardContent className="grid gap-2.5 p-5">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          <ShieldCheck className="text-primary h-4 w-4" />
-          {t('trust_title')}
-        </p>
-        <ul className="text-muted-foreground grid gap-1.5 text-sm">
-          {lines.map((line) => (
-            <li key={line} className="flex gap-2">
-              <Check className="text-success mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
-function HelpLine() {
-  const t = useTranslations('onboarding');
-  const c = useTranslations('connect');
-  return (
-    <p className="text-muted-foreground text-center text-xs">
-      {t('help_pre')}{' '}
-      <a
-        className="text-primary underline underline-offset-2"
-        href={whatsappHref(c('wa_text'))}
-        target="_blank"
-        rel="noreferrer"
-      >
-        {t('help_link')}
-      </a>
-    </p>
   );
 }
 
@@ -224,7 +182,11 @@ export function ConnectPanel({
                   <Clock className="h-4 w-4 shrink-0" />
                   {t('pending_title')}
                 </p>
-                <p className="text-sm">{t('pending_body', { email: signupEmail ?? '' })}</p>
+                <p className="text-sm">
+                  {signupEmail
+                    ? t('pending_body', { email: signupEmail })
+                    : t('pending_body_generic')}
+                </p>
               </div>
               <WhatsAppButton variant="outline" />
               {errorText && (
@@ -296,9 +258,6 @@ export function ConnectPanel({
           )}
         </CardContent>
       </Card>
-
-      <TrustCard />
-      <HelpLine />
     </div>
   );
 }

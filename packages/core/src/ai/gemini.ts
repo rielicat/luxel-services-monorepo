@@ -13,15 +13,12 @@ import {
   parseFindings,
   type ReviewFinding,
 } from '@luxel/shared/cleaning-review';
+import { gatewayTarget } from '../agent/gateway';
 
-export const GEMINI_MODEL = 'gemini-3.5-flash-lite';
+export const GEMINI_MODEL = 'google/gemini-3.5-flash-lite';
 
-const API_BASE = 'https://generativelanguage.googleapis.com';
-const API_REVISION = '2026-05-20';
-const UPLOAD_DISPLAY_NAME = 'walkthrough';
-const POLL_FIRST_MS = 500;
-const POLL_MAX_MS = 4_000;
-const POLL_BUDGET_MS = 30_000;
+const MAX_INLINE_BYTES = 14 * 1024 * 1024;
+const MAX_OUTPUT_TOKENS = 4_096;
 
 export interface WalkthroughAnalysis {
   items: InventoryItem[];
@@ -30,15 +27,7 @@ export interface WalkthroughAnalysis {
 }
 
 export function geminiConfigured(): boolean {
-  return Boolean(process.env.GOOGLE_API_KEY);
-}
-
-function apiKey(): string | null {
-  return process.env.GOOGLE_API_KEY?.trim() || null;
-}
-
-function authHeaders(key: string, extra?: Record<string, string>): Record<string, string> {
-  return { 'x-goog-api-key': key, ...(extra ?? {}) };
+  return gatewayTarget() !== null;
 }
 
 const ITEM_SCHEMA = {
@@ -111,109 +100,12 @@ function prompt(baseline: readonly InventoryItem[]): string {
   return lines.join('\n');
 }
 
-async function startUpload(
-  key: string,
-  bytes: number,
-  contentType: string,
-  signal: AbortSignal,
-): Promise<string | null> {
-  const res = await fetch(`${API_BASE}/upload/v1beta/files`, {
-    method: 'POST',
-    signal,
-    headers: authHeaders(key, {
-      'X-Goog-Upload-Protocol': 'resumable',
-      'X-Goog-Upload-Command': 'start',
-      'X-Goog-Upload-Header-Content-Length': String(bytes),
-      'X-Goog-Upload-Header-Content-Type': contentType,
-      'content-type': 'application/json',
-    }),
-    body: JSON.stringify({ file: { display_name: UPLOAD_DISPLAY_NAME } }),
-  });
-  if (!res.ok) return null;
-  return res.headers.get('x-goog-upload-url');
-}
-
-interface UploadedFile {
-  name: string;
-  uri: string;
-  state: string;
-}
-
-function readFile(payload: unknown): UploadedFile | null {
-  const file = (payload as { file?: Record<string, unknown> } | null)?.file;
-  const direct = (payload as Record<string, unknown> | null) ?? {};
-  const source = file ?? direct;
-  const name = typeof source.name === 'string' ? source.name : '';
-  const uri = typeof source.uri === 'string' ? source.uri : '';
-  const state = typeof source.state === 'string' ? source.state : '';
-  if (!name || !uri) return null;
-  return { name, uri, state };
-}
-
-async function finishUpload(
-  url: string,
-  body: ArrayBuffer,
-  contentType: string,
-  signal: AbortSignal,
-): Promise<UploadedFile | null> {
-  const res = await fetch(url, {
-    method: 'POST',
-    signal,
-    headers: {
-      'content-type': contentType,
-      'Content-Length': String(body.byteLength),
-      'X-Goog-Upload-Offset': '0',
-      'X-Goog-Upload-Command': 'upload, finalize',
-    },
-    body,
-  });
-  if (!res.ok) return null;
-  return readFile(await res.json().catch(() => null));
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function waitForActive(
-  key: string,
-  file: UploadedFile,
-  signal: AbortSignal,
-): Promise<{ ok: boolean; retryable: boolean }> {
-  let state = file.state;
-  let wait = POLL_FIRST_MS;
-  const deadline = Date.now() + POLL_BUDGET_MS;
-  while (Date.now() < deadline) {
-    if (state === 'ACTIVE') return { ok: true, retryable: false };
-    if (state === 'FAILED') return { ok: false, retryable: false };
-    await sleep(wait);
-    wait = Math.min(wait * 2, POLL_MAX_MS);
-    if (signal.aborted) return { ok: false, retryable: true };
-    const res = await fetch(`${API_BASE}/v1beta/${file.name}`, {
-      signal,
-      cache: 'no-store',
-      headers: authHeaders(key),
-    });
-    if (!res.ok) return { ok: false, retryable: true };
-    state = readFile(await res.json().catch(() => null))?.state ?? '';
-  }
-  return { ok: state === 'ACTIVE', retryable: true };
-}
-
-async function deleteFile(key: string, name: string): Promise<void> {
-  try {
-    await fetch(`${API_BASE}/v1beta/${name}`, { method: 'DELETE', headers: authHeaders(key) });
-  } catch {}
-}
-
 function readText(payload: unknown): string {
-  const steps = (payload as { steps?: unknown } | null)?.steps;
-  if (!Array.isArray(steps)) return '';
-  for (const step of steps) {
-    const content = (step as { content?: unknown } | null)?.content;
-    if (!Array.isArray(content)) continue;
-    for (const part of content) {
-      const value = (part as { text?: unknown } | null)?.text;
-      if (typeof value === 'string' && value.trim()) return value;
-    }
+  const choices = (payload as { choices?: unknown } | null)?.choices;
+  if (!Array.isArray(choices)) return '';
+  for (const choice of choices) {
+    const value = (choice as { message?: { content?: unknown } } | null)?.message?.content;
+    if (typeof value === 'string' && value.trim()) return value;
   }
   return '';
 }
@@ -231,39 +123,45 @@ async function runOnVideo(input: {
   schema: unknown;
   signal?: AbortSignal;
 }): Promise<ModelOutcome> {
-  const key = apiKey();
-  if (!key) return { ok: false, retryable: false, stage: 'no_key' };
+  const target = gatewayTarget();
+  if (!target) return { ok: false, retryable: false, stage: 'no_key' };
   if (input.video.byteLength === 0) return { ok: false, retryable: false, stage: 'empty_video' };
+  if (input.video.byteLength > MAX_INLINE_BYTES) {
+    console.warn('cleaning.video_too_large', { bytes: input.video.byteLength });
+    return { ok: false, retryable: false, stage: 'video_too_large' };
+  }
 
-  const controller = new AbortController();
-  const abort = () => controller.abort();
-  input.signal?.addEventListener('abort', abort, { once: true });
-  const signal = controller.signal;
-
-  let uploaded: UploadedFile | null = null;
   try {
-    const uploadUrl = await startUpload(key, input.video.byteLength, input.contentType, signal);
-    if (!uploadUrl) return { ok: false, retryable: true, stage: 'upload_start' };
-    uploaded = await finishUpload(uploadUrl, input.video, input.contentType, signal);
-    if (!uploaded) return { ok: false, retryable: true, stage: 'upload_finish' };
-    const active = await waitForActive(key, uploaded, signal);
-    if (!active.ok) return { ok: false, retryable: active.retryable, stage: 'file_state' };
-
-    const res = await fetch(`${API_BASE}/v1beta/interactions`, {
+    const res = await fetch(target.url, {
       method: 'POST',
-      signal,
-      headers: authHeaders(key, {
+      signal: input.signal,
+      headers: {
+        authorization: `Bearer ${target.key}`,
         'content-type': 'application/json',
-        'Api-Revision': API_REVISION,
-      }),
+      },
       body: JSON.stringify({
         model: GEMINI_MODEL,
-        store: false,
-        input: [
-          { type: 'video', uri: uploaded.uri, mime_type: input.contentType },
-          { type: 'text', text: input.instructions },
+        max_tokens: MAX_OUTPUT_TOKENS,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: input.instructions },
+              {
+                type: 'file',
+                file: {
+                  filename: 'walkthrough',
+                  media_type: input.contentType,
+                  data: Buffer.from(input.video).toString('base64'),
+                },
+              },
+            ],
+          },
         ],
-        response_format: { type: 'text', mime_type: 'application/json', schema: input.schema },
+        response_format: {
+          type: 'json_schema',
+          json_schema: { name: 'walkthrough', schema: input.schema },
+        },
       }),
     });
     if (!res.ok) {
@@ -279,9 +177,6 @@ async function runOnVideo(input: {
     }
   } catch {
     return { ok: false, retryable: true, stage: 'network' };
-  } finally {
-    input.signal?.removeEventListener('abort', abort);
-    if (uploaded) await deleteFile(key, uploaded.name);
   }
 }
 

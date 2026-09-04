@@ -217,7 +217,7 @@ supabase/        migrations + local config
   token, claimed with a compare-and-swap on `claimed_at` so two tabs cannot run
   it twice. `store: false` on every call, and the uploaded file is deleted after
   the run. Never log the model's raw description: it describes a home interior.
-  Without `GOOGLE_API_KEY` the draft is written `unavailable` and the crew fills
+  Without a Gateway credential the draft is written `unavailable` and the crew fills
   the inventory by hand — no crash, no dead end. The key must come from a
   billing-enabled Google project; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - After the crew confirms, a **durable review** compares the walkthrough against
@@ -438,8 +438,8 @@ roots.
 Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
 No follow-up needs operator credentials. Meta WhatsApp is live,
-`PROVIDER_API_KEY` is set on `luxel-admin`, and `GOOGLE_API_KEY` comes from a
-billing-enabled project. The worker deploys from CI on a push to `main`
+`PROVIDER_API_KEY` is set on `luxel-admin`, and the walkthrough model runs on
+the AI Gateway credential rather than a Google key of its own. The worker deploys from CI on a push to `main`
 touching `workers/**`, so the `cleaning-review` Workflow and `LUXEL_APP_URL`
 need no hand-run `wrangler deploy`. Plan activation is done: an operator moves
 a subscription to `active` at `/plans` in `apps/admin`.

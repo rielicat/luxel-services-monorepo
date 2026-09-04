@@ -6,7 +6,7 @@
   "updated_label": "Atualizada em",
   "updated_value": "5 de setembro de 2026",
   "version_label": "Versão",
-  "version_value": "1.3",
+  "version_value": "1.4",
   "lang_label": "Ler em",
   "lang_es": "Español",
   "lang_en": "English",
@@ -285,7 +285,7 @@
         },
         {
           "name": "Vercel",
-          "detail": "Hospeda o aplicativo web e o painel interno. Vê cada solicitação que chega, inclusive a que envia o seu registro."
+          "detail": "Hospeda o aplicativo web e o painel interno. Vê cada solicitação que chega, inclusive a que envia o seu registro. A passarela de modelos dela também transporta o vídeo do percurso e as conversas que vão para os modelos."
         },
         {
           "name": "Cloudflare",
@@ -349,7 +349,7 @@
         "O vídeo é gravado com a unidade vazia, depois do check-out. Mostra o interior: os ambientes, os móveis e os objetos. Se você esqueceu algo lá dentro, pode aparecer.",
         "Quem grava é o navegador do celular da equipe, com no máximo dois minutos e uma qualidade deliberadamente baixa. Ao ser enviado, o arquivo vai direto desse celular para o serviço da Cloudflare que o guarda, sem passar pelo aplicativo web. Depois, cada vez que o enviamos ao modelo, o nosso servidor baixa o arquivo inteiro para reencaminhá-lo: nesse momento ele passa pelo aplicativo, em memória, e não fica guardado ali. Enquanto não é enviada, a gravação espera até 24 horas no celular que gravou.",
         "O vídeo serve para duas coisas: para a equipe confirmar o inventário da unidade, e para depois compararmos esse inventário com o da limpeza anterior e detectar algo quebrado ou algo que falta.",
-        "Enviamos o arquivo ao Google para que um modelo escreva um rascunho de inventário, e uma segunda vez para comparar a unidade com o inventário anterior. Pedimos que ele não seja conservado para uso próprio e apagamos o arquivo enviado ao fim de cada execução. A conta do Google que usamos precisa ser uma conta paga, porque na camada gratuita o Google pode revisar e reutilizar o conteúdo enviado. Confirmar que a chave em produção cumpre essa condição é uma tarefa pendente e não damos isso como feito.",
+        "Enviamos o arquivo ao modelo duas vezes: uma para que escreva um rascunho de inventário e outra para comparar a unidade com o inventário anterior. Ele vai dentro da própria solicitação, pela passarela de modelos da Vercel, que o entrega ao Google. Nenhum arquivo fica guardado no provedor e, por isso, também não há nada para apagar depois. A retenção zero de dados é um recurso do plano pago da Vercel e hoje não está ativada, então a conservação segue os termos da conta que atende a solicitação. Não damos isso por resolvido.",
         "O modelo tem a instrução de não descrever pessoas e de não copiar documentos, telas, senhas nem códigos. É uma instrução escrita ao modelo, não um filtro técnico, e é assim que ela deve ser entendida.",
         "O anfitrião nunca vê este vídeo. O hóspede também não. Não existe página pública que o mostre nem forma de listar os vídeos guardados. Só uma pessoa da Luxel o abre, pelo painel interno, e para isso o sistema cria um link que serve para um único arquivo e expira em dez minutos.",
         "O vídeo é apagado 30 dias depois de gravado. Uma tarefa noturna apaga o arquivo e, como reforço, uma regra do próprio armazenamento. Depois disso resta o registro com o tamanho, a duração, quem gravou e quando; o arquivo já não existe.",

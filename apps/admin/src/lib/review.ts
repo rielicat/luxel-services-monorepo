@@ -24,7 +24,7 @@ export const REVIEW_REASON_LABEL: Record<string, string> = {
   no_inventory: 'El equipo no dejó inventario confirmado',
   no_video: 'Sin video: comparamos solo las listas',
   video_unreadable: 'No pudimos bajar el video; lo reintentamos',
-  model_unavailable: 'Falta GOOGLE_API_KEY: comparamos solo las listas',
+  model_unavailable: 'Falta la credencial del modelo: comparamos solo las listas',
   model_failed: 'Lux no pudo leer el video; comparamos solo las listas',
   attempts_exhausted: 'Se acabaron los reintentos. Queda la comparación de listas',
 };

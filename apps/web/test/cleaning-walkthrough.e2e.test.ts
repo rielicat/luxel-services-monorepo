@@ -21,8 +21,7 @@ vi.mock('next/cache', () => ({ revalidatePath: () => {}, unstable_cache: (fn: un
 const WORKER = 'http://worker.test';
 const OBJECT_ENDPOINT = 'http://worker.test/cleaning-media/object';
 const OBJECT_URL = `${OBJECT_ENDPOINT}?ticket=v2.sealed-read-ticket`;
-const GEMINI = 'https://generativelanguage.googleapis.com';
-const UPLOAD_SESSION = 'https://upload.test/session';
+const GATEWAY = 'https://ai-gateway.vercel.sh/v1/chat/completions';
 const VIDEO = new Uint8Array(2048).fill(7);
 
 const MODEL_JSON = JSON.stringify({
@@ -85,20 +84,9 @@ function stubFetch() {
     if (url === OBJECT_URL || url === OBJECT_ENDPOINT) {
       return new Response(VIDEO, { headers: { 'content-type': 'video/mp4' } });
     }
-    if (url.startsWith(`${GEMINI}/upload/v1beta/files`)) {
-      return new Response(null, { status: 200, headers: { 'x-goog-upload-url': UPLOAD_SESSION } });
-    }
-    if (url === UPLOAD_SESSION) {
-      return Response.json({
-        file: { name: 'files/abc123', uri: `${GEMINI}/v1beta/files/abc123`, state: 'ACTIVE' },
-      });
-    }
-    if (url.startsWith(`${GEMINI}/v1beta/interactions`)) {
+    if (url.startsWith(GATEWAY)) {
       if (modelStatus !== 200) return new Response('nope', { status: modelStatus });
-      return Response.json({ steps: [{ content: [{ text: modelBody }] }] });
-    }
-    if (url.startsWith(`${GEMINI}/v1beta/files/`)) {
-      return Response.json({ name: 'files/abc123', uri: `${GEMINI}/v1beta/files/abc123` });
+      return Response.json({ choices: [{ message: { content: modelBody } }] });
     }
     return realFetch(input, init);
   });
@@ -131,7 +119,8 @@ afterEach(async () => {
   calls.length = 0;
   modelStatus = 200;
   modelBody = MODEL_JSON;
-  delete process.env.GOOGLE_API_KEY;
+  delete process.env.AI_GATEWAY_API_KEY;
+  delete process.env.VERCEL_OIDC_TOKEN;
 });
 
 async function seedCleaning(nickname: string, offset = 3) {
@@ -221,7 +210,7 @@ describe.skipIf(!LIVE)('cleaning walkthrough capture and pre-fill (end to end)',
   });
 
   it('reads the clip with the model, keeps the result a draft and never sends the object key out', async () => {
-    process.env.GOOGLE_API_KEY = 'test-google-key';
+    process.env.AI_GATEWAY_API_KEY = 'test-gateway-key';
     const { token, cleaningId } = await seedCleaning('Depto con Lux', 5);
     const finished = await upload(token);
     expect(finished).toEqual({ ok: true, analysing: true });
@@ -251,13 +240,12 @@ describe.skipIf(!LIVE)('cleaning walkthrough capture and pre-fill (end to end)',
       .single();
     expect(cleaning!.status).toBe('scheduled');
 
-    expect(calls.some((url) => url.startsWith(`${GEMINI}/upload/v1beta/files`))).toBe(true);
-    expect(calls.filter((url) => url.startsWith(`${GEMINI}/v1beta/files/`))).toHaveLength(1);
+    expect(calls.filter((url) => url.startsWith(GATEWAY))).toHaveLength(1);
     expect(calls.some((url) => url.includes(state!.walkthrough!.id))).toBe(false);
     const bodies = JSON.stringify(calls);
     expect(bodies).not.toContain('walkthrough/');
-    expect(calls.filter((url) => url.startsWith(GEMINI)).length).toBeGreaterThan(0);
-    for (const call of calls.filter((url) => url.startsWith(GEMINI))) {
+    expect(calls.some((url) => url.includes('generativelanguage'))).toBe(false);
+    for (const call of calls.filter((url) => url.startsWith(GATEWAY))) {
       expect(new URL(call).searchParams.get('key')).toBeNull();
     }
     for (const call of calls) {
@@ -286,7 +274,7 @@ describe.skipIf(!LIVE)('cleaning walkthrough capture and pre-fill (end to end)',
     const state = await inventory.readCrewState(token);
     expect(state?.draft?.status).toBe('unavailable');
     expect(state?.draft?.items).toEqual([]);
-    expect(calls.some((url) => url.startsWith(GEMINI))).toBe(false);
+    expect(calls.some((url) => url.startsWith(GATEWAY))).toBe(false);
 
     expect(
       await actions.confirmCleaningInventory(
@@ -299,7 +287,7 @@ describe.skipIf(!LIVE)('cleaning walkthrough capture and pre-fill (end to end)',
   });
 
   it('falls back to a hand-written list when the model refuses or answers nothing', async () => {
-    process.env.GOOGLE_API_KEY = 'test-google-key';
+    process.env.AI_GATEWAY_API_KEY = 'test-gateway-key';
     const refused = await seedCleaning('Depto rechazado', 7);
     await upload(refused.token);
     modelStatus = 429;
@@ -322,7 +310,7 @@ describe.skipIf(!LIVE)('cleaning walkthrough capture and pre-fill (end to end)',
   });
 
   it('refuses to analyse a cleaning with no stored video and a token that names nothing', async () => {
-    process.env.GOOGLE_API_KEY = 'test-google-key';
+    process.env.AI_GATEWAY_API_KEY = 'test-gateway-key';
     const { token } = await seedCleaning('Depto sin video', 9);
     expect(await (await analyse(token)).json()).toEqual({ status: 'failed' });
 

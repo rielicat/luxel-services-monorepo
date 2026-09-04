@@ -77,14 +77,17 @@ These are external accounts. The code cannot provision them:
    before this carries production traffic. eve is in preview, so its APIs may
    change; the version is pinned in `apps/web/package.json`.
 
-6. **Google AI (Gemini)** — an API key for the cleaning walkthrough inventory
-   pre-fill and the later review (`GOOGLE_API_KEY`). **Issue it from a project
-   with billing enabled.** The unpaid tier's terms permit training on and human
-   review of submitted content; a walkthrough video shows the inside of a host's
-   home. The code cannot detect an unpaid key, so this is an operator control.
-   Without the key the crew still records and writes the inventory by hand, and
-   the review still reports differences from the two confirmed inventories. The
-   model is pinned in `lib/ai/gemini.ts`.
+6. **Walkthrough model** — no key of its own. The inventory pre-fill and the
+   later review send the clip inline through the AI Gateway to
+   `google/gemini-3.5-flash-lite`, on the same `AI_GATEWAY_API_KEY` (or Vercel
+   OIDC) the rest of the model calls use. Nothing is uploaded to a provider file
+   store and nothing is left there to delete. Zero Data Retention is a Vercel Pro
+   feature and is not enabled: the Gateway routes to Vertex on the account's own
+   provider credential, so retention follows that account's terms. A walkthrough
+   video shows the inside of a host's home, so this is worth revisiting if the
+   plan changes. Without a Gateway credential the crew still records and writes
+   the inventory by hand, and the review still reports differences from the two
+   confirmed inventories. The model is pinned in `packages/core/src/ai/gemini.ts`.
 7. **Resend** — done. `serviciosluxel.cl` is verified in the `sa-east-1` region
    and `RESEND_FROM` is `info@serviciosluxel.cl`. Verification put DKIM on
    `resend._domainkey` and the bounce MX plus SPF on the `send.` subdomain, so
