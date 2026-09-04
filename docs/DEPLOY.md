@@ -55,8 +55,14 @@ These are external accounts. The code cannot provision them:
    Without the key the crew still records and writes the inventory by hand, and
    the review still reports differences from the two confirmed inventories. The
    model is pinned in `lib/ai/gemini.ts`.
-6. **Resend** — verify the sending domain. Set `RESEND_API_KEY` and
-   `RESEND_FROM`.
+6. **Resend** — done. `serviciosluxel.cl` is verified in the `sa-east-1` region
+   and `RESEND_FROM` is `info@serviciosluxel.cl`. Verification put DKIM on
+   `resend._domainkey` and the bounce MX plus SPF on the `send.` subdomain, so
+   the apex MX and apex SPF stay with Cloudflare Email Routing and inbound mail
+   is untouched. Those three records were added in the Cloudflare dashboard and
+   are **not** in `infra/cloudflare` — adopt them there before anyone rebuilds
+   the zone. The production API key is send-only, which is why domain changes
+   cannot be made from code.
 7. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
    secrets with `wrangler secret put`. Use a System User token, never the 24-hour
    token from the app dashboard. Subscribe the webhook with the Graph API:
