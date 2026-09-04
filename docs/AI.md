@@ -28,21 +28,21 @@ prompt.
 
 ### Lux by journey stage
 
-| Journey stage                 | How Lux helps                                                                                         |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Host pre-sale                 | "¿Cuánto cuesta?" → `get_airbnb_quote`. The answer leads with what the host keeps.                    |
-| "What do I charge per night?" | → `get_pricing_reference`, then the `propuesta-de-precios` skill. Lux never states a rate of its own. |
-| Host support                  | A signed-in host asks about occupancy or revenue → `get_host_status`.                                 |
-| Navigation                    | `share_links` renders 1–3 buttons. The model never writes a URL.                                      |
-| Guest question                | `property_facts` and `reservation_status`. Never an answer from memory.                               |
-| Guest problem                 | `escalate_to_luxel`. The thread flips to `needs_host`.                                                |
+| Journey stage                 | How Lux helps                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| Host pre-sale                 | "¿Cuánto cuesta?" → `get_airbnb_quote`. The answer leads with what the host keeps. |
+| "What do I charge per night?" | → `get_pricing_reference`. Lux never states a rate of its own.                     |
+| Host support                  | A signed-in host asks about occupancy or revenue → `get_host_status`.              |
+| Navigation                    | `share_links` renders 1–3 buttons. The model never writes a URL.                   |
+| Guest question                | `property_facts` and `reservation_status`. Never an answer from memory.            |
+| Guest problem                 | `escalate_to_luxel`. The thread flips to `needs_host`.                             |
 
 ### Example flow — the visitor does not know the revenue
 
 1. Lux asks for the monthly revenue **once**.
 2. The visitor cannot give it. Lux does not ask again in other words.
 3. Lux calls `get_pricing_reference` with what the visitor already gave.
-4. The tool returns no numbers today. The `propuesta-de-precios` skill carries
+4. The tool returns no numbers today. The web persona carries
    the shape of the answer: reflect the property back in the visitor's own
    words, say the nightly rate is part of the service, explain PriceLabs, and
    offer a pricing proposal.
@@ -251,10 +251,16 @@ The always-on prompt is small: identity, the memory trust policy, and the rule
 that no figure exists unless a tool returned it. The persona for the active
 surface is added at `session.started`.
 
-Everything situational is a **skill**, loaded only when the request calls for
-it: `cotizar`, `propuesta-de-precios`, `estado-del-anfitrion`,
-`huesped-acceso`, `huesped-incidencia`. This keeps the per-turn prompt small and
-makes routing a decision the model makes once, against a description.
+Two **skills** stay loaded on demand, both on the guest surface:
+`huesped-acceso` and `huesped-incidencia`. The web surface carries none.
+
+A skill is not free. Loading one costs a model round trip to ask for it and
+another to answer with it in context, measured at about 2.5 seconds of the 7.8
+the web chat took to say its first word. The guest surface can pay that, because
+a reply there is reviewed by an operator before it is sent. The web chat cannot,
+so its three procedures moved into the persona, where they had mostly been
+duplicated anyway. `cotizar`, `propuesta-de-precios` and `estado-del-anfitrion`
+are gone.
 
 ---
 
