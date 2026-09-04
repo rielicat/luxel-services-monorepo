@@ -239,6 +239,7 @@
   "checkin": {
     "meta_title": "Registro de llegada",
     "notice": "Debes agregar a todas las personas que se alojan.",
+    "notice_n": "{n, plural, one {Debes agregar a la persona que se aloja.} other {Debes agregar a las # personas que se alojan.}}",
     "guest_n": "Huésped {n}",
     "add_guest": "Agregar huésped",
     "remove_guest": "Quitar huésped {n}",
@@ -294,7 +295,8 @@
     "name_ph": "María Pérez",
     "doc_number_ph": "12.345.678-9",
     "doc_number_ph_other": "X1234567",
-    "add_guest_limit": "La reserva es para {n} personas.",
+    "add_guest_limit": "{n, plural, one {La reserva es para # persona.} other {La reserva es para # personas.}}",
+    "add_guest_max": "{n, plural, one {Capacidad máxima: # persona.} other {Capacidad máxima: # personas.}}",
     "guests_sr": "Huéspedes: {n}",
     "row_incomplete": "Falta completar"
   },

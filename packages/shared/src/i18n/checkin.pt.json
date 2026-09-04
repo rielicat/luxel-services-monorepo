@@ -1,6 +1,7 @@
 {
   "meta_title": "Check-in do hóspede",
   "notice": "Você deve adicionar todas as pessoas que vão se hospedar.",
+  "notice_n": "{n, plural, one {Você deve adicionar a pessoa que vai se hospedar.} other {Você deve adicionar as # pessoas que vão se hospedar.}}",
   "guest_n": "Hóspede {n}",
   "add_guest": "Adicionar hóspede",
   "remove_guest": "Remover hóspede {n}",
@@ -56,7 +57,8 @@
   "name_ph": "María Pérez",
   "doc_number_ph": "12.345.678-9",
   "doc_number_ph_other": "X1234567",
-  "add_guest_limit": "A reserva é para {n} pessoas.",
+  "add_guest_limit": "{n, plural, one {A reserva é para # pessoa.} other {A reserva é para # pessoas.}}",
+  "add_guest_max": "{n, plural, one {Capacidade máxima: # pessoa.} other {Capacidade máxima: # pessoas.}}",
   "guests_sr": "Hóspedes: {n}",
   "row_incomplete": "Falta completar"
 }

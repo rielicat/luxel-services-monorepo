@@ -9,10 +9,9 @@ import {
   House,
   PartyPopper,
   PawPrint,
-  Pencil,
   Plus,
+  Trash2,
   TriangleAlert,
-  X,
 } from 'lucide-react';
 import { LuxelLogo, LuxelMark } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
@@ -304,6 +303,32 @@ function Welcome({ stay, line, times }: { stay: Stay; line: string | null; times
   );
 }
 
+function RemoveGuest({
+  index,
+  onRemove,
+  className,
+}: {
+  index: number;
+  onRemove: () => void;
+  className?: string;
+}) {
+  const t = useTranslations('checkin');
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      aria-label={t('remove_guest', { n: index + 1 })}
+      className={cn(
+        'text-destructive hover:bg-destructive/10 ease-lux flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
+        FOCUS,
+        className,
+      )}
+    >
+      <Trash2 aria-hidden className="h-[18px] w-[18px]" />
+    </button>
+  );
+}
+
 function GuestRow({
   index,
   guest,
@@ -353,25 +378,12 @@ function GuestRow({
           >
             <span className="truncate text-sm font-medium">{summary}</span>
             {flagged && (
-              <span className="text-destructive shrink-0 text-xs font-medium">
+              <span className="text-destructive ml-auto shrink-0 text-xs font-medium">
                 {t('row_incomplete')}
               </span>
             )}
-            <Pencil className="text-muted-foreground ml-auto h-4 w-4 shrink-0" />
           </button>
-          {onRemove && (
-            <button
-              type="button"
-              onClick={onRemove}
-              aria-label={t('remove_guest', { n: index + 1 })}
-              className={cn(
-                'text-muted-foreground hover:text-foreground flex h-12 w-12 shrink-0 items-center justify-center rounded-lg',
-                FOCUS,
-              )}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          {onRemove && <RemoveGuest index={index} onRemove={onRemove} />}
         </div>
       </Card>
     );
@@ -387,19 +399,7 @@ function GuestRow({
           >
             {t('guest_n', { n: index + 1 })}
           </span>
-          {onRemove && (
-            <button
-              type="button"
-              onClick={onRemove}
-              aria-label={t('remove_guest', { n: index + 1 })}
-              className={cn(
-                'text-muted-foreground hover:text-foreground hover:bg-accent ease-lux -my-2.5 -mr-1.5 flex h-11 w-11 items-center justify-center rounded-lg transition-colors duration-200',
-                FOCUS,
-              )}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          {onRemove && <RemoveGuest index={index} onRemove={onRemove} className="-my-2 -mr-1" />}
         </div>
 
         <Field id={nameId} label={t('name')} error={nameErr}>
@@ -619,12 +619,7 @@ export function CheckinForm({
     return resumed.length ? draft?.partySize || resumed.length : 0;
   });
   const [guests, setGuests] = useState<GuestDraft[]>(() =>
-    askCount
-      ? resumed
-      : Array.from(
-          { length: expectedGuests },
-          (_, i) => resumed[i] ?? newGuest(`g${i + 1}`, defaultDocType),
-        ),
+    resumed.length ? resumed : [newGuest('g1', defaultDocType)],
   );
   const [arrival, setArrival] = useState(draft?.arrivalTime ?? '');
   const [departure, setDeparture] = useState(draft?.departureTime ?? '');
@@ -640,8 +635,13 @@ export function CheckinForm({
 
   const countRef = useRef<HTMLHeadingElement>(null);
   const guestsHeadingRef = useRef<HTMLHeadingElement>(null);
-  const [openUid, setOpenUid] = useState<string | null>(null);
+  const [openUid, setOpenUid] = useState<string | null>(() => resumed[0]?.uid ?? 'g1');
+  const settled = useRef(false);
   useEffect(() => {
+    if (!settled.current) {
+      settled.current = true;
+      return;
+    }
     if (!openUid) return;
     const i = guests.findIndex((g) => g.uid === openUid);
     if (i < 0) return;
@@ -829,18 +829,21 @@ export function CheckinForm({
       newGuest(freshUid(), guests[guests.length - 1]?.docType ?? defaultDocType),
     ];
     setGuests(list);
-    setPartySize(list.length);
+    if (askCount) setPartySize(list.length);
     setErrors({});
+    setMessage(null);
     setOpenUid(list[list.length - 1]!.uid);
-    save({ guests: list, partySize: list.length });
+    save(askCount ? { guests: list, partySize: list.length } : { guests: list });
   };
 
   const removeGuest = (i: number) => {
     const list = guests.filter((_, j) => j !== i);
     setGuests(list);
-    setPartySize(list.length);
+    if (askCount) setPartySize(list.length);
     setErrors({});
-    save({ guests: list, partySize: list.length });
+    setMessage(null);
+    if (openUid === guests[i]!.uid) setOpenUid(null);
+    save(askCount ? { guests: list, partySize: list.length } : { guests: list });
   };
 
   const onBack = () => {
@@ -904,9 +907,7 @@ export function CheckinForm({
     send();
   };
 
-  const fixedTarget = askCount ? 0 : expectedGuests;
-  const addLimit = fixedTarget > 0 ? fixedTarget : Math.max(maxGuests, 1);
-  const minGuests = fixedTarget > 0 ? fixedTarget : 1;
+  const addLimit = askCount ? Math.max(maxGuests, 1) : expectedGuests;
 
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-6">
@@ -947,7 +948,7 @@ export function CheckinForm({
             </h2>
             <p className="border-warning/40 bg-warning/10 text-warning-foreground dark:text-foreground flex items-start gap-2.5 rounded-xl border p-3 text-sm font-medium">
               <TriangleAlert aria-hidden className="dark:text-warning mt-0.5 h-4 w-4 shrink-0" />
-              {t('notice')}
+              {askCount ? t('notice') : t('notice_n', { n: expectedGuests })}
             </p>
             {guests.map((g, i) => (
               <GuestRow
@@ -957,7 +958,7 @@ export function CheckinForm({
                 errors={errors}
                 open={openUid === g.uid}
                 onOpen={() => setOpenUid(g.uid)}
-                onRemove={i > 0 && guests.length > minGuests ? () => removeGuest(i) : null}
+                onRemove={i > 0 ? () => removeGuest(i) : null}
                 bindRef={bindRef}
                 onChange={(patch) => {
                   changeGuest(i, patch);
@@ -983,7 +984,7 @@ export function CheckinForm({
             </Button>
             {guests.length >= addLimit && (
               <p id="add-guest-limit" className="text-muted-foreground text-xs">
-                {t('add_guest_limit', { n: addLimit })}
+                {t(askCount ? 'add_guest_max' : 'add_guest_limit', { n: addLimit })}
               </p>
             )}
           </section>
