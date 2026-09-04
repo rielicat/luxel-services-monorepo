@@ -25,10 +25,6 @@ export interface Stay {
   checkoutTime: string | null;
 }
 
-export interface Rules {
-  lines?: string[];
-}
-
 export interface RegisteredGuest {
   fullName: string;
   docType: string | null;
@@ -42,7 +38,6 @@ export interface CheckinFormProps {
   expectedGuests: number;
   maxGuests: number;
   askCount?: boolean;
-  rules: Rules;
   registered?: RegisteredGuest[];
   draft?: CheckinDraft | null;
   arrivalTime?: string | null;
@@ -454,39 +449,16 @@ function GuestRow({
   );
 }
 
-type RuleItem = { mark: string; text: string };
-
-const EMOJI = '\\p{Extended_Pictographic}(?:️|‍\\p{Extended_Pictographic}|[\\u{1F3FB}-\\u{1F3FF}])*';
-const RULE_MARK = new RegExp(`^(${EMOJI})\\s*`, 'u');
-const RULE_TAIL = new RegExp(`\\s*(${EMOJI})[\\s.]*$`, 'u');
-const RULE_BULLET = /^[-*•]\s*/;
-const RULE_HEADING = /^[^\p{Ll}]*:$/u;
-const RULE_FALLBACK = '📌';
-
-function splitRule(line: string, title: string): RuleItem {
-  const clean = line.replace(RULE_BULLET, '').trim();
-  const lead = RULE_MARK.exec(clean);
-  const body = lead ? clean.slice(lead[0].length).trim() : clean;
-  if (!lead && RULE_HEADING.test(clean)) return { mark: RULE_FALLBACK, text: '' };
-  if (body.toLowerCase() === title.toLowerCase()) return { mark: RULE_FALLBACK, text: '' };
-  if (lead) return { mark: lead[1]!, text: body };
-  const tail = RULE_TAIL.exec(body);
-  if (tail) return { mark: tail[1]!, text: body.slice(0, tail.index).trim() };
-  return { mark: RULE_FALLBACK, text: body };
-}
-
 function DoneView({
   stay,
   registered,
   arrivalTime,
   departureTime,
-  rules,
 }: {
   stay: Stay;
   registered: RegisteredGuest[];
   arrivalTime: string | null;
   departureTime: string | null;
-  rules: Rules;
 }) {
   const t = useTranslations('checkin');
   const dates = useStayLine(stay);
@@ -495,11 +467,6 @@ function DoneView({
   if (dates) rows.push([t('summary_dates'), dates]);
   if (arrivalTime) rows.push([t('summary_arrival'), arrivalTime]);
   if (departureTime) rows.push([t('summary_departure'), departureTime]);
-
-  const rulesTitle = t('rules_title');
-  const allRules = (rules.lines ?? [])
-    .map((line) => splitRule(line, rulesTitle))
-    .filter((r) => r.text);
 
   return (
     <div className="grid gap-4">
@@ -549,22 +516,6 @@ function DoneView({
         </Card>
       )}
 
-      {allRules.length > 0 && (
-        <Card className="p-4">
-          <h2 className={cn(SECTION_TITLE, 'mb-2')}>{rulesTitle}</h2>
-          <ul className="grid gap-2.5">
-            {allRules.map(({ mark, text }) => (
-              <li key={text} className="flex items-start gap-2.5 text-sm leading-snug">
-                <span aria-hidden className="w-5 shrink-0 text-base leading-snug">
-                  {mark}
-                </span>
-                <span>{text}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
       <p className="text-muted-foreground text-xs">{t('missing_someone')}</p>
       <p className="text-muted-foreground text-xs">
         <PrivacyLink />
@@ -580,7 +531,6 @@ export function CheckinForm({
   expectedGuests,
   maxGuests,
   askCount = false,
-  rules,
   registered: initialRegistered = [],
   draft = null,
   arrivalTime: initialArrival = null,
@@ -661,7 +611,6 @@ export function CheckinForm({
         registered={registered}
         arrivalTime={arrival || initialArrival}
         departureTime={departure || initialDeparture}
-        rules={rules}
       />
     );
   }

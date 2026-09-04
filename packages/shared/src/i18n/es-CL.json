@@ -314,7 +314,6 @@
     "summary_departure": "Salida",
     "registered_title": "Huéspedes registrados",
     "missing_someone": "¿Falta alguien? Escríbenos por el chat de Airbnb.",
-    "rules_title": "Reglas de la casa",
     "doc_number_ph": "12.345.678-9",
     "doc_number_ph_other": "X1234567",
     "add_guest_limit": "{n, plural, one {La reserva es para # persona.} other {La reserva es para # personas.}}",

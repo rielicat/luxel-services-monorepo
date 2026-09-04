@@ -59,7 +59,7 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
   const [{ data: property }, guestsRes, draft] = await Promise.all([
     supabase
       .from('properties')
-      .select('nickname, address, comuna, checkin_time, checkout_time, listing_details, max_guests')
+      .select('nickname, address, comuna, checkin_time, checkout_time, max_guests')
       .eq('id', checkin.property_id as string)
       .maybeSingle(),
     done
@@ -75,14 +75,6 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
 
   const lang = await guestLang(checkin);
 
-  const listing = (property?.listing_details ?? null) as {
-    additional_rules?: string | null;
-  } | null;
-  const houseRuleLines = (listing?.additional_rules ?? '')
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(0, 20);
   const maxGuests = Math.min(Math.max(property?.max_guests ?? MAX_PARTY, 1), MAX_PARTY);
   const registered: RegisteredGuest[] = (guestsRes?.data ?? []).map((g) => ({
     fullName: g.full_name as string,
@@ -117,7 +109,6 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
             expectedGuests={guestSlots(checkin.expected_guests as number | null, maxGuests)}
             maxGuests={maxGuests}
             askCount={checkin.expected_guests == null}
-            rules={{ lines: houseRuleLines }}
             registered={registered}
             draft={draft}
             arrivalTime={(checkin.arrival_time as string | null) ?? null}
