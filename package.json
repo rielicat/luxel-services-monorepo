@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "Servicios Luxel — Airbnb host automation platform for Santiago (es-CL).",
   "engines": {
-    "node": ">=22.13.0",
+    "node": ">=24.0.0",
     "pnpm": ">=11.0.0"
   },
   "packageManager": "pnpm@11.0.9",

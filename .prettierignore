@@ -1,6 +1,8 @@
 node_modules
 .next
 .turbo
+.eve
+.output
 dist
 build
 out

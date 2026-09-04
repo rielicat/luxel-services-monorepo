@@ -21,7 +21,12 @@
         "SUPABASE_SERVICE_ROLE_KEY",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
-        "SENTRY_AUTH_TOKEN"
+        "SENTRY_AUTH_TOKEN",
+        "AI_GATEWAY_API_KEY",
+        "LUXEL_AGENT_TOKEN_SECRET",
+        "INTERNAL_SEND_TOKEN",
+        "OPENAI_API_KEY",
+        "EVE_AGENT_ORIGIN"
       ]
     },
     "dev": {

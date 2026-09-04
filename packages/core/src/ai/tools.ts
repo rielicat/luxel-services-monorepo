@@ -2,6 +2,7 @@ import 'server-only';
 import type OpenAI from 'openai';
 import { workingHoursStatus } from '../working-hours';
 import { PLAN_COMMISSION_PCT, planMonthlyCost } from '../plan-pricing';
+import { clp, pct, PLAN_LABEL, PLAN_PRICE_LINE } from './plan-copy';
 import { fetchProperties } from '../host/queries';
 import { hospitableAmountToClp, listHospitableCalendar } from '../channels/hospitable';
 import { hospitableAccess } from '../channels/scope';
@@ -10,13 +11,7 @@ import { createLead } from '../leads';
 import { monthBounds, santiagoMonth } from '../revenue';
 import { comparableMarketReference, MIN_COMPARABLE_LISTINGS } from './pricing-reference';
 
-export const clp = (n: number) => '$' + n.toLocaleString('es-CL');
-
-const pct = (n: number) => `${Math.round(n * 100)}%`;
-
-export const PLAN_LABEL = 'Plan Luxel';
-
-export const PLAN_PRICE_LINE = `${pct(PLAN_COMMISSION_PCT)} de los ingresos por reservas, sin costo fijo`;
+export { clp, pct, PLAN_LABEL, PLAN_PRICE_LINE } from './plan-copy';
 
 type Widget =
   | {

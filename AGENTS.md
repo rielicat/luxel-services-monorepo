@@ -61,7 +61,10 @@ guest messages; those are Luxel operations. pnpm + Turborepo monorepo: Next.js
 PATH="/opt/homebrew/bin:$PATH" npx --yes pnpm@11.0.9 <args>
 ```
 
-Node 22 (`.nvmrc`). Husky's pre-commit runs the broken shim: run the checks by hand,
+Node 24 (`.nvmrc`). eve needs it, and `.npmrc` sets `engine-strict=true`, so an
+older Node fails `pnpm install`. Vercel does not read `.nvmrc`: the project's Node
+version is pinned in `infra/vercel`. Husky's pre-commit runs the broken shim: run
+the checks by hand,
 then `git commit --no-verify`.
 
 ## Commands
@@ -94,17 +97,18 @@ supabase/        migrations + local config
 
 ## Stack
 
-| Concern         | Tool                                                                                                     |
-| --------------- | -------------------------------------------------------------------------------------------------------- |
-| Hosting         | Vercel (one project per app root)                                                                        |
-| Edge            | Cloudflare Workers, DNS, Email Routing, R2 (`luxel-cleaning-media`)                                      |
-| Auth            | Clerk. `apps/web` = host sign-in only; `apps/admin` = Clerk org membership (`LUXEL_ADMIN_ORG_ID`/`SLUG`) |
-| Database        | Supabase Postgres + RLS                                                                                  |
-| Channel (PMS)   | Hospitable, as a plugin behind `packages/core/src/channels/registry.ts`                                  |
-| Messaging       | WhatsApp Cloud API (worker), Resend email fallback                                                       |
-| AI              | OpenAI `gpt-5.6-terra`, pinned in `lib/ai/client.ts` (no env override)                                   |
-| Dynamic pricing | PriceLabs (part of the plan)                                                                             |
-| Analytics       | In-house `analytics_events` + `leads`                                                                    |
+| Concern         | Tool                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| Hosting         | Vercel (one project per app root)                                                                           |
+| Edge            | Cloudflare Workers, DNS, Email Routing, R2 (`luxel-cleaning-media`)                                         |
+| Auth            | Clerk. `apps/web` = host sign-in only; `apps/admin` = Clerk org membership (`LUXEL_ADMIN_ORG_ID`/`SLUG`)    |
+| Database        | Supabase Postgres + RLS                                                                                     |
+| Channel (PMS)   | Hospitable, as a plugin behind `packages/core/src/channels/registry.ts`                                     |
+| Messaging       | WhatsApp Cloud API (worker), Resend email fallback                                                          |
+| Agent           | **eve** (`eve@0.51.1`) at `apps/web/agent/`, mounted in the web app by `withEve()`                          |
+| AI              | OpenAI `gpt-5.6-terra`, pinned in `lib/ai/model.ts` (no env override), routed through the Vercel AI Gateway |
+| Dynamic pricing | PriceLabs (part of the plan)                                                                                |
+| Analytics       | In-house `analytics_events` + `leads`                                                                       |
 
 ## Conventions
 
@@ -261,13 +265,47 @@ supabase/        migrations + local config
   `deletablePropertyIds` in `lib/channels/manual-stays.ts` guards the prune and
   both listing reassignment paths, because the foreign keys cascade and no
   `origin` filter can reach a cascade.
+- **Lux is one eve agent**, at `apps/web/agent/`, mounted in the web app by
+  `withEve()` in `next.config.mjs`. It serves two surfaces, told apart by the
+  authenticated principal and never by model input: the web concierge
+  (`surface` `web`) and the Airbnb guest replies (`surface` `guest`). Tools,
+  instructions and memory scope all follow that principal, so the guest surface
+  can never reach a pricing or lead tool and the web surface can never reach a
+  property's guest facts.
+- eve **cannot import a module that carries `import 'server-only'`**: its
+  compiler takes that package's throwing default export, and it exposes no
+  condition or alias knob. That marker is the boundary. Agent-facing code lives
+  in `packages/core/src/agent/` and stays marker-free, so memory recall is a
+  direct call. Marked domain logic is reached over `POST /api/agent/tools`,
+  authenticated with `INTERNAL_SEND_TOKEN`. Never delete a marker to make a
+  build pass, and never add one to a module the agent imports.
+- The agent's **route auth also enforces session ownership**. eve's route auth
+  identifies a caller but does not decide which sessions that caller may read,
+  so `agent/channels/eve.ts` reads the session id out of the request URL and
+  refuses a caller who does not own the `lux_agent_session` row. A browser never
+  creates a session directly: `POST /api/agent/session` creates it server-side
+  and claims ownership before the id reaches the browser.
+- Memory has **three tiers**, all service-role only (RLS on, no policy), all
+  written through `sanitizeForMemory`, which applies `redactSecrets` and strips
+  emails and phone numbers. `lux_memory_note` tier `global` is the playbook
+  distilled from every property and recalled on every turn. Tier `property` is
+  that unit's facts, retrieved from `lux_memory_note` and
+  `lux_conversation_digest` by hybrid rank: Spanish full-text fused with pgvector
+  cosine. A property with no history falls back to the global digests and never
+  cites another property as its own. The conversation tier is eve's own durable
+  session, keyed to `guest_threads.agent_session_id`. Hosts never see any of it.
+- The **daily distillation** (`agent/schedules/distill.ts`, 06:00 UTC) is what
+  writes the global tier. Keep it daily or slower: Vercel Hobby rejects
+  sub-daily crons.
 - Lux replies to guests **behind a review gate**. `properties.ai_reviews` defaults to
   `true`: the pipeline stores the AI reply in `guest_reply_drafts` with status
   `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in `apps/admin`,
   edits it if needed, and approves it; only then does the message reach the
   guest. An approved text that differs from the draft is stored as `host`, not
-  `ai`. `simulateThreadReply` drafts a reply for a thread already on record
-  without sending it. `ai_replies` and `ai_reviews` are operator-managed in
+  `ai`. The gate lives in `lib/channels/pipeline.ts`, which runs the agent turn
+  and then writes the draft; the agent itself sends the guest nothing.
+  `simulateThreadReply` drafts a reply for a thread already on record without
+  sending it. `ai_replies` and `ai_reviews` are operator-managed in
   `apps/admin` at `/ai`, one property at a time, over a checkbox selection, or
   over every property at once; there is no
   host-facing switch, and the web inbox only shows the mode. Only one pending
@@ -287,7 +325,7 @@ supabase/        migrations + local config
   debounced resync, because the Hospitable rule sends the link the moment the
   booking is accepted. There is no cron either; code handles events only.
 - Door codes are secret; wifi passwords are not. `accessSecrets` in
-  `lib/ai/grounding.ts` feeds only `property_access.keyless_code` to
+  `lib/agent/store.ts` feeds only `property_access.keyless_code` to
   `redactSecrets`, so Lux may give a guest the wifi password and never the door
   code. Never log either. The guest receives the door code only through
   Hospitable's T-3 message rule. Never show it on the check-in page or send it

@@ -1,261 +1,226 @@
-# Servicios Luxel — AI Concierge & Guest-Reply Pipeline
+# Servicios Luxel — the Lux agent
 
-> "Lux", the AI concierge, and the guest auto-replies. OpenAI Node SDK
-> (`openai`) · model `gpt-5.6-terra`, pinned in code · SSE streaming ·
-> tool-use. Prose is English; user-facing copy is es-CL.
+> "Lux" is one **eve** agent (`eve@0.51.1`) at `apps/web/agent/`. It serves the
+> site concierge and the Airbnb guest replies. Model `gpt-5.6-terra`, pinned in
+> code, routed through the Vercel AI Gateway. Prose is English; user-facing copy
+> is es-CL.
 
 ---
 
-## 1. Two AI surfaces
+## 1. One agent, two surfaces
 
-The AI does two jobs. Both use the same client
-(`packages/core/src/ai/client.ts`).
+`next.config.mjs` wraps the Next.js config with `withEve()`. The agent and the
+web app deploy as one Vercel project on one origin. eve is a sidecar service,
+not a library: server code reaches it over HTTP at `/eve/v1/*`.
 
-Lux carries the Luxel positioning. Luxel gives the host the time back. An
-Airbnb must be income that the host receives, not people that the host
-coordinates. Lux writes as a partner of the host, never as a distant supplier.
+The two surfaces are told apart by the **authenticated principal**, never by
+model input. The principal carries `surface`, and the tools, the instructions
+and the memory scope all follow it.
 
-| Surface                     | Where                                                             | What it does                                                                                                                                                                                            |
-| --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Lux**, the site concierge | Chat widget → `POST /api/chat`                                    | Speaks for the partner that carries the work. Sells and supports Airbnb management. Quotes the fee with `get_airbnb_quote`. Shows a signed-in host real account data. Hands off to a human on WhatsApp. |
-| Guest auto-replies          | Hospitable `message.created` webhook → `lib/channels/pipeline.ts` | Answers a guest in the Airbnb thread from the property's own data. Flags the thread for a Luxel human when it cannot answer.                                                                            |
+| Surface                     | Principal                             | What it does                                                                                                          |
+| --------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Lux**, the site concierge | `surface: web`, Clerk user or visitor | Sells and supports Airbnb management. Quotes the fee. Shows a signed-in host real account data. Hands off to a human. |
+| Guest replies               | `surface: guest`, internal service    | Answers a guest from the property's own data. Writes a draft. Sends the guest nothing.                                |
+
+A guest turn can never reach a pricing or lead tool, and a web turn can never
+reach a property's guest facts. That is a property of the resolver, not of the
+prompt.
 
 ### Lux by journey stage
 
-| Journey stage                 | How Lux helps                                                                                                                                                                      |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Host pre-sale                 | "¿Cuánto cuesta que administren mi depto?" → `get_airbnb_quote`. The fee is one number: 12% of the booking revenue. The answer leads with what the host keeps, then the Luxel fee. |
-| "What do I charge per night?" | → `get_pricing_reference`. With no market data wired up it returns no numbers. Lux then offers a pricing proposal. It never states a rate of its own.                              |
-| Host support                  | A signed-in host asks about occupancy, upcoming stays or revenue → `get_host_status`.                                                                                              |
-| Navigation                    | `share_links` renders 1–3 buttons to real routes. The model never writes a URL.                                                                                                    |
-| Human handoff                 | Anything it cannot or must not do → `escalate_to_human` (WhatsApp).                                                                                                                |
-
-Lux compresses the funnel. It turns a visitor into a plan request inside one
-conversation. It hands off when a human is the right answer.
+| Journey stage                 | How Lux helps                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Host pre-sale                 | "¿Cuánto cuesta?" → `get_airbnb_quote`. The answer leads with what the host keeps.                    |
+| "What do I charge per night?" | → `get_pricing_reference`, then the `propuesta-de-precios` skill. Lux never states a rate of its own. |
+| Host support                  | A signed-in host asks about occupancy or revenue → `get_host_status`.                                 |
+| Navigation                    | `share_links` renders 1–3 buttons. The model never writes a URL.                                      |
+| Guest question                | `property_facts` and `reservation_status`. Never an answer from memory.                               |
+| Guest problem                 | `escalate_to_luxel`. The thread flips to `needs_host`.                                                |
 
 ### Example flow — the visitor does not know the revenue
 
-The visitor asks the price, then says "no sé cuánto cobrar por noche".
-
 1. Lux asks for the monthly revenue **once**.
-2. The visitor cannot give it. Lux does not ask again and does not repeat the
-   question in other words.
-3. Lux calls `get_pricing_reference` with what the visitor already gave: the
-   comuna or address, the bedrooms, the size, the capacity.
-4. The tool returns no numbers today. Lux answers in this shape: it reflects the
-   property back in the visitor's own words; it says that the nightly rate is
-   part of the service; it explains that Luxel prices with PriceLabs by demand,
-   season and weekday; it offers a pricing proposal for that property and asks
-   only for the one input it still needs.
-5. Lux never says "revisa la competencia". That is the work the visitor is
-   buying.
+2. The visitor cannot give it. Lux does not ask again in other words.
+3. Lux calls `get_pricing_reference` with what the visitor already gave.
+4. The tool returns no numbers today. The `propuesta-de-precios` skill carries
+   the shape of the answer: reflect the property back in the visitor's own
+   words, say the nightly rate is part of the service, explain PriceLabs, and
+   offer a pricing proposal.
+5. Lux never says "revisa la competencia". That is the work being bought.
 
 ### Example flow — the visitor gives a revenue range
 
-The visitor says "entre 900.000 y 1.100.000". Lux calls `get_airbnb_quote`
-**once** with the range. One answer carries one quote widget, never two
-scenarios. The sentence order is what the host keeps first, the Luxel fee
+Lux calls `get_airbnb_quote` **once** with both bounds. One answer carries one
+quote card. The sentence order is what the host keeps first, the Luxel fee
 second. Lux adds that the guest cleaning fee goes whole to the crew and pays no
 commission.
 
 ---
 
-## 2. Lux — technical architecture
+## 2. Architecture
 
-### Stack
+### The agent directory
 
-- **SDK:** OpenAI Node SDK (`openai`), Chat Completions with function tools.
-- **Model:** `AI_MODEL` = `gpt-5.6-terra`, a constant in `lib/ai/client.ts`. No
-  env override: every environment answers with the same model.
-- **Streaming:** the route streams **SSE** events (`text`, `tool`, `widget`,
-  `done`, `error`) from `apps/web/src/app/api/chat/route.ts`. The widget
-  (`components/chat/chat-widget.tsx`) consumes the stream.
-- **Tool loop:** up to `MAX_TOOL_ROUNDS = 6`. Each round streams one completion.
-  When it ends with `tool_calls`, the route runs each tool server-side
-  (`runTool`), appends the `tool` messages, and calls again. When the rounds run
-  out, one final call without tools produces the closing answer.
-- **Prompt caching:** system prompt + tools form a stable prefix. OpenAI caches
-  those input tokens across turns.
-- **Limits:** the body schema allows 40 messages of up to 4000 chars each.
-  `max_completion_tokens` is 1024. `maxDuration` is 60 s.
-- **Without a key:** `getOpenAI()` returns null. The route streams a fixed
-  fallback reply that points to the calculator and WhatsApp. It records the turn
-  as `ai_unavailable`.
+```
+apps/web/agent/
+├── agent.ts                 model, reasoning 'none', compaction, limits
+├── instructions.md          the small always-on base
+├── instructions/persona.ts  dynamic: the web or the guest persona
+├── channels/eve.ts          the auth walk and the session-ownership check
+├── tools/surface.ts         the dynamic tool map, resolved per principal
+├── tools/<builtin>.ts       disableTool() for every permissive default
+├── skills/*.md             five procedures, loaded on demand
+├── memory/{playbook,property,host}.ts
+├── hooks/persist.ts         writes messages, analytics and leads
+├── schedules/distill.ts     the daily distillation, 06:00 UTC
+└── subagents/pricing-analyst/
+```
 
-### Persistence & analytics
+### The `server-only` boundary
 
-Every turn is written to the `messages` table (`channel: 'web'`, `direction`,
-`session_id`, `customer_id`, `body`, `metadata.kind` ∈
-`ai | handoff | ai_unavailable`). The route emits `chat_message_sent`,
-`ai_tool_called` (property `tool`) and `ai_handoff_to_human`. A handoff also
-creates a `leads` row (`source: 'chat_handoff'`). See
-[`METRICS.md`](./METRICS.md).
+eve cannot import a module carrying `import 'server-only'`: its compiler takes
+that package's throwing default export, and eve exposes no condition or alias
+knob. The marker is therefore the boundary.
 
-### Tools
+- Agent-facing logic lives in `packages/core/src/agent/` and stays marker-free,
+  so **memory recall is a direct call with no HTTP hop**.
+- Marked domain logic (`ai/tools`, `host/queries`, `leads`, `channels/*`) is
+  reached over `POST /api/agent/tools`, authenticated with
+  `INTERNAL_SEND_TOKEN`. That hop costs one round trip, and only when the model
+  actually calls a tool.
 
-`buildTools()` in `packages/core/src/ai/tools.ts` declares them. Each tool has a
-strict input schema. Each returns text for the model and, optionally, a widget
-for the chat UI (`airbnb_quote`, `links`, `handoff`). Tools reuse the production
-code, so the concierge and the website never disagree.
+Never delete a marker to make a build pass, and never add one to a module the
+agent imports.
 
-| Tool                    | Purpose                                                                                                                                                         | Inputs                                                                            | Backed by                                             |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `get_airbnb_quote`      | Monthly fee for full management, plus what the host keeps. **The only source of the Luxel price.** An optional upper revenue bound turns one call into a range. | `listings`, `monthly_revenue_clp?`, optional upper revenue bound                  | `planMonthlyCost()` in `lib/plan-pricing`             |
-| `get_pricing_reference` | Market reference for a nightly rate, an occupancy rate or an expected revenue. **The only source of those numbers.** It returns no numbers when none are real.  | the property facts the visitor gave (comuna or address, bedrooms, size, capacity) | `lib/pricelabs`, mirrored reservation data            |
-| `get_host_status`       | Real data for the signed-in host: listings, upcoming stays, occupancy, estimated revenue.                                                                       | none (uses `ToolContext.customerId`)                                              | `fetchProperties()`, `listHospitableCalendar()`       |
-| `share_links`           | Clickable buttons to curated routes. The model picks keys; the server resolves hrefs.                                                                           | `destinations[]` (keys of `LINK_DESTINATIONS`)                                    | static map in `tools.ts`                              |
-| `escalate_to_human`     | Hand off to a person over WhatsApp. Sets `handoff`.                                                                                                             | `reason?`                                                                         | `workingHoursStatus()`, `NEXT_PUBLIC_WHATSAPP_NUMBER` |
+### Route auth and session ownership
 
-`PRICELABS_API_KEY` is not set today, and Luxel manages one listing. So
-`get_pricing_reference` has no source with a large enough sample and returns no
-numbers. That is the designed answer, not a failure: one host's income must
-never reach a stranger. The tool tells Lux to offer the pricing proposal
-instead.
+`agent/channels/eve.ts` verifies a short-lived HS256 token minted by
+`POST /api/agent/session`. eve's route auth identifies a caller but does not
+decide which sessions that caller may read, so the same function reads the
+session id out of the request URL and refuses a caller who does not own the
+`lux_agent_session` row.
 
-**Requesting a plan stays a deliberate user action.** Lux guides to
-`/calculator` and to `/properties`. It never requests a plan, never activates
-one and never charges. This is a safety choice, not a limitation.
+The browser never creates a session directly. `POST /api/agent/session` creates
+it server-side and claims ownership **before** the id reaches the browser, which
+closes the create-then-stream race.
+
+### Memory — three tiers
+
+| Slot       | Scope             | Holds                                                              |
+| ---------- | ----------------- | ------------------------------------------------------------------ |
+| `playbook` | constant `global` | How Lux behaves, distilled from every property. Recalled each turn |
+| `property` | the property id   | That unit's own facts, retrieved by relevance                      |
+| `host`     | the customer id   | A signed-in host's durable preferences                             |
+
+The conversation itself is eve's **durable session**, keyed to
+`guest_threads.agent_session_id`. A guest thread keeps its history, so a reply
+follows the conversation instead of a rebuilt string.
+
+Property retrieval is hybrid. `lux_search_notes` and `lux_search_digests` fuse a
+Spanish full-text rank with a pgvector cosine rank by reciprocal rank fusion.
+The lexical leg uses `lux_any_tsquery`, which rewrites `websearch_to_tsquery`'s
+AND into OR — without it a whole guest question matches nothing.
+
+A property with no history falls back to the global digests, marked as generic,
+and never cites another property's data as its own.
+
+`playbook` is also the only slot that captures. A per-property scope resolves to
+null on the web surface, which would disable capture there.
+
+### Distillation
+
+`agent/schedules/distill.ts` runs daily at 06:00 UTC. It reads the digests that
+are not distilled yet, across every property, and writes global playbook rules
+and property notes. Keep it daily or slower: Vercel Hobby rejects sub-daily
+crons.
+
+### Persistence and analytics
+
+`agent/hooks/persist.ts` writes through `POST /api/agent/events`. It records the
+inbound and outbound web messages in `messages`, fires `CHAT_MESSAGE_SENT`, and
+creates a lead on handoff. Every row is keyed by the **browser** session id,
+which travels in the agent token, so the AI half and the human half of a
+conversation stay one thread.
+
+The guest surface does not use the hook. `lib/channels/pipeline.ts` runs the
+turn and then writes `guest_reply_drafts` itself, which keeps the review gate in
+one tested place.
 
 ---
 
 ## 3. Guest-reply pipeline
 
-Trigger: Hospitable posts `message.created` to
-`POST /api/channels/hospitable`
-(`apps/web/src/app/api/channels/[provider]/route.ts`).
+The Hospitable `message.created` webhook reaches
+`lib/channels/pipeline.ts`. It writes the inbound row, checks `ai_replies`, then
+runs one agent turn against the thread's durable session.
 
-1. **Route.** The route resolves the plugin from the `[provider]` URL segment
-   (`channelPlugin()` in `lib/channels/registry.ts`). An unknown id answers 404.
-   It authorises by source IP (`lib/channels/webhook-auth.ts`). It reads only
-   the reservation id from the payload, never the body. It answers 200 and
-   continues in `after()`.
-2. **Ingest.** `ingestThread()` (`lib/channels/hospitable-sync.ts`) reads the
-   thread back from Hospitable with Luxel's own credential. It stores host and
-   guest messages. It calls `handleInboundMessage()` for each guest message
-   newer than the account's `messages_synced_at` watermark. An account with no
-   watermark imports its history silently.
-3. **Store.** `handleInboundMessage()` (`lib/channels/pipeline.ts`) drops
-   duplicates by `external_id`. It upserts `guest_threads` and inserts the
-   inbound row in `guest_messages`.
-4. **Operator switch.** If `properties.ai_replies` is false, the thread becomes
-   `needs_host`. Nothing is sent. Only a Luxel operator changes `ai_replies`;
-   hosts have no toggle.
-5. **Ground.** `buildGrounding()` (`lib/ai/grounding.ts`) collects the
-   property's `learned_answers` and its past guest→answer pairs. A property
-   with no history gets anonymized pairs from other properties, marked as
-   generic. Every snippet passes `redactSecrets()` (`lib/ai/redact.ts`):
-   keyless codes and wifi passwords become `[dato de acceso]`. Cross-property
-   snippets also lose emails and phone numbers. The last 8 messages of the
-   thread are appended.
-6. **Draft.** `draftGuestReply()` (`lib/ai/copilot.ts`) builds the context from
-   the synced listing: capacity, times, amenities, rules, access method, wifi
-   name (never the password), listing texts, `guest_info`, and the grounding.
-   One Chat Completions call at `temperature 0.3`. The system prompt forbids
-   invented facts and access codes. It asks for the tag `[HANDOFF]` when the
-   answer is missing, the guest is frustrated, or the guest asks for a person.
-7. **Handoff.** If the reply carries `[HANDOFF]` or is empty, the thread becomes
-   `needs_host`. The tag is stripped; the draft is kept for the Luxel operator.
-   Without an API key the result is `handoff` with reason `no_ai`.
-8. **Send.** Otherwise `getMessageSender(channel).send()` posts the reply into
-   the Airbnb thread with the property owner's Hospitable token
-   (`hospitableTokenForCustomer()`). The outbound row is stored with
-   `source: 'ai'`.
+- `ai_replies = false` → the thread flips to `needs_host` before any model call.
+- The turn escalates, or returns nothing → `needs_host`.
+- `ai_reviews` is on, the default → `recordReplyDraft`, status `pending`. **The
+  guest receives nothing.** A Luxel operator approves it at `/inbox`.
+- `ai_reviews` is off → the reply is sent through the existing sender.
 
-`needs_host` is a literal. It means "this thread needs a Luxel human". Hosts do
-not see guest threads; there is no host inbox.
-
-The local adapter (`provider: 'local'`, dev only, behind `LUXEL_DEV_MOCK`) runs
-the same pipeline without Hospitable.
+An approved text that differs from the draft is stored as `host`, not `ai`. Only
+one pending draft per thread: a newer guest message supersedes the older one.
 
 ---
 
-## 4. Guardrails & Safety
+## 4. Guardrails and safety
 
-- **Scope.** Lux talks only about Luxel's management service. Off-topic
-  requests get a polite redirect.
-- **Never invents the Luxel price.** The fee comes from `get_airbnb_quote`. The
-  prompt forbids estimates.
-- **Never invents a market number.** A nightly rate, an occupancy rate, a
-  cleaning fee or an expected monthly revenue must come from a tool. The prompt
-  forbids the number in every form: a range, a "referencial" figure, an
-  "aproximado", a "suele estar entre". No tool number means no number. The
-  prompt states that no answer beats an invented one.
-- **Never sends the visitor to do our work.** The prompt bans "revisa la
-  competencia" and every variant. Dynamic pricing is the product.
-- **Never asks twice.** After one unanswered request for an input, Lux changes
-  tack and offers the pricing proposal.
-- **Leads with what the host keeps.** A quote says the host's net amount first
-  and the Luxel fee second. It also says that the guest cleaning fee goes whole
-  to the crew and pays no commission.
-- **One quote per answer.** A revenue range is one `get_airbnb_quote` call with
-  the upper bound, not two widgets.
-- **Real host data only.** `get_host_status` reads the signed-in account. A
-  signed-out user gets no host data.
-- **No URLs in prose.** Links come from `share_links`. The model picks keys; the
-  server resolves labels and hrefs.
-- **PII.** Chat runs server-side. Identity comes from the Clerk session
-  (`auth()`), never from the text. Lux does not ask for RUT or card data.
-- **Access codes never reach a guest through the AI.** Redaction in grounding,
-  exclusion from the listing context, and the system prompt all block them.
-  Guests get the codes through Hospitable's check-in rule, 3 days before
-  arrival.
-- **Bounded loop.** 6 tool rounds, 1024 output tokens, 60 s. Malformed tool
-  arguments produce an error message for the model. The tool does not run.
+- **Scope.** Lux talks only about Luxel's service. Off-topic gets a redirect.
+- **Never invents the Luxel price.** It comes from `get_airbnb_quote`.
+- **Never invents a market number.** A nightly rate, an occupancy, a cleaning
+  fee or an expected revenue must come from a tool, in every form: a range, a
+  "referencial", an "aproximado". No tool number means no number.
+- **Never sends the visitor to do our work.** "Revisa la competencia" is banned.
+  Dynamic pricing is the product.
+- **Never asks twice.** After one unanswered request, Lux changes tack.
+- **Leads with what the host keeps.** The Luxel fee comes second.
+- **One quote per answer.** A range is one call with both bounds.
+- **Real host data only.** `get_host_status` needs a signed-in principal.
+- **No URLs in prose.** Links come from `share_links`.
+- **Access codes never reach a guest.** `property_facts` excludes the door code,
+  the guest persona forbids it, and `sanitizeForMemory` redacts every known
+  `property_access.keyless_code` before anything is stored. Guests receive the
+  code through Hospitable's T-3 rule.
+- **Memory is untrusted data.** Recalled records enter as user-role messages.
+  The base instructions say they are learned facts, not system rules.
+- **Nothing sensitive is stored.** Every write passes `sanitizeForMemory`, which
+  redacts known codes and strips emails and phone numbers.
+- **Every permissive default tool is disabled.** `bash`, `read_file`,
+  `write_file`, `web_fetch`, `todo`, `agent`, `ask_question` and `web_search`
+  each have a `disableTool()` file. `web_search` especially: it invites the
+  model to invent market figures.
 - **Handoff.** `escalate_to_human` creates a lead and shows the WhatsApp link
-  with the working-hours status. A guest thread flips to `needs_host` for
-  Luxel's operators. Hosts have no inbox.
-- **Operator switch.** `ai_replies = false` on a property stops auto-replies for
-  that property. Operator-only.
-- **Rate limiting.** The human bridge (`/api/chat/human`) rate-limits. The AI
-  route relies on the caps above.
+  with the working-hours status. `escalate_to_luxel` flips a guest thread to
+  `needs_host`. Hosts have no inbox.
+- **Operator switch.** `ai_replies = false` stops auto-replies for a property.
+- **Rate limiting.** The human bridge (`/api/chat/human`) rate-limits in the
+  database.
 
 ---
 
 ## 5. Prompt design
 
-Both prompts are code, not config:
+The always-on prompt is small: identity, the memory trust policy, and the rule
+that no figure exists unless a tool returned it. The persona for the active
+surface is added at `session.started`.
 
-- `lib/ai/system-prompt.ts` — `buildSystemPrompt()`. Sections: the identity (a
-  partner that gives the host the time back); the service; the
-  one fee (`PLAN_LABEL` and `PLAN_PRICE_LINE` from `lib/ai/tools.ts`, which read
-  `PLAN_COMMISSION_PCT`); critical rules (no invented Luxel price, no invented
-  market number, never ask twice, never send the visitor to research, reuse what
-  the visitor said, the host manages neither crew nor guests, `share_links` for
-  every navigation, no URLs, stay on topic, no sensitive data, hide reasoning);
-  the answer shape for "what do I charge per night"; how to quote (net kept
-  first, one quote per answer, the cleaning fee pays no commission); next steps
-  (the host requests the plan on the site; Luxel activates it);
-  `escalate_to_human`. Tools: `get_airbnb_quote`, `get_pricing_reference`,
-  `get_host_status`, `share_links`, `escalate_to_human`.
-- `lib/ai/copilot.ts` — `SYSTEM`. Short, warm Spanish. Only the supplied
-  property info. Missing answer → `[HANDOFF]`. Frustration or "a person" →
-  `[HANDOFF]`. Never access codes or wifi passwords; they arrive 3 days before
-  arrival.
-
-Principles: role and boundaries first; the partner voice; tool-first for facts;
-Chilean, warm, concise (`tú`); always a next step; graceful handoff.
+Everything situational is a **skill**, loaded only when the request calls for
+it: `cotizar`, `propuesta-de-precios`, `estado-del-anfitrion`,
+`huesped-acceso`, `huesped-incidencia`. This keeps the per-turn prompt small and
+makes routing a decision the model makes once, against a description.
 
 ---
 
-## 6. Future AI opportunities
+## 6. Environment
 
-- **Host win-back** — drafts for hosts whose plan is `cancelled`, from their
-  plan history and calendar data.
-- **Review summarization** — condense reviews into trust signals for landing
-  pages.
-- **Monthly report drafting** — a plain-language summary of occupancy, revenue
-  and incidents per listing.
+| Variable                   | Effect when unset                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `LUXEL_AGENT_TOKEN_SECRET` | No token is minted. The chat answers nothing and guest threads go to `needs_host`              |
+| `AI_GATEWAY_API_KEY`       | Fine on Vercel, where project OIDC authenticates the Gateway. Off Vercel, the model call fails |
+| `INTERNAL_SEND_TOKEN`      | Every tool returns its unavailable answer and no chat message is persisted                     |
+| `OPENAI_API_KEY`           | Digests fall back to an extractive summary and retrieval runs on full-text alone               |
+| `EVE_AGENT_ORIGIN`         | Optional. Defaults to the app's own origin, which is correct for the single-project deploy     |
 
----
-
-## 7. Environment
-
-| Variable                      | Effect                                                                                                                                                                                               |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`              | Required for any AI answer. Absent: `getOpenAI()` returns null, Lux streams the fixed fallback, and guest threads go to `needs_host` (a Luxel human answers) with reason `no_ai`. No error surfaces. |
-| `NEXT_PUBLIC_WHATSAPP_NUMBER` | The handoff link Lux shows.                                                                                                                                                                          |
-| `PRICELABS_API_KEY`           | Not set today. Without it `get_pricing_reference` has no market source and returns no numbers. Lux then offers the pricing proposal. It never fills the gap with an estimate.                        |
-| `LUXEL_DEV_MOCK`              | Dev only. Simulates guest drafts without a key. Never set in production.                                                                                                                             |
-
-Set them in `apps/web/.env.local` locally and in the Vercel `luxel-web` project.
-There is no Anthropic key. See [`ENV.md`](./ENV.md).
+See [`ENV.md`](./ENV.md) and [`DEPLOY.md`](./DEPLOY.md).

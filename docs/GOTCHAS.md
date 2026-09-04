@@ -11,7 +11,9 @@ Gotchas.
 PATH="/opt/homebrew/bin:$PATH" npx --yes pnpm@11.0.9 <args>
 ```
 
-Node 22 (`.nvmrc`). Husky's pre-commit runs the broken shim: run the checks by
+Node 24 (`.nvmrc`); eve needs it and `engine-strict=true` enforces it. Vercel's
+Node version is pinned in `infra/vercel`, not by `.nvmrc`. Husky's pre-commit
+runs the broken shim: run the checks by
 hand, then `git commit --no-verify`.
 
 ## Commands

@@ -8,6 +8,7 @@ export const webProject = new vercel.Project(
     name: web.name,
     framework: 'nextjs',
     rootDirectory: web.rootDirectory,
+    nodeVersion: '24.x',
     teamId,
     gitRepository: { type: 'github', repo: gitRepo, productionBranch },
   },

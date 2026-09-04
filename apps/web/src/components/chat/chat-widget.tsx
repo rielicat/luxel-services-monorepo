@@ -11,6 +11,12 @@ import { track } from '@/lib/analytics/client';
 import { EVENTS } from '@luxel/core/analytics/events';
 import { cn } from '@/lib/utils';
 import { CHAT_OPEN_EVENT } from './open-event';
+import {
+  followAgentTurn,
+  openAgent,
+  sendAgentMessage,
+  startAgentSession,
+} from '@/lib/agent/transport';
 
 type HandoffWidget = {
   kind: 'handoff';
@@ -102,6 +108,10 @@ export function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cursorRef = useRef<string | null>(null);
+  const agentSessionRef = useRef<string | null>(null);
+  const credentialsRef = useRef<{ token: string; principalId: string; signedIn: boolean } | null>(
+    null,
+  );
 
   useEffect(() => {
     const onOpen = () => {
@@ -121,6 +131,13 @@ export function ChatWidget() {
       setHumanMode(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!open || humanMode || credentialsRef.current) return;
+    void openAgent(sessionId).then((credentials) => {
+      if (credentials) credentialsRef.current = credentials;
+    });
+  }, [open, humanMode, sessionId]);
 
   useEffect(() => {
     const text = isSignedIn ? t('bot_greeting_host') : t('bot_greeting');
@@ -246,61 +263,57 @@ export function ChatWidget() {
     }
 
     const botId = crypto.randomUUID();
-    const history = [...messages, userMsg];
-    setMessages([...history, { id: botId, role: 'bot', text: '', widgets: [] }]);
+    setMessages([...messages, userMsg, { id: botId, role: 'bot', text: '', widgets: [] }]);
     setInput('');
     setPending(true);
     setWorking(true);
 
-    const payload = history
-      .filter((m) => m.text.trim())
-      .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
-
     const update = (fn: (m: ChatMessage) => ChatMessage) =>
       setMessages((prev) => prev.map((m) => (m.id === botId ? fn(m) : m)));
 
+    const handlers = {
+      onText: (delta: string) => update((m) => ({ ...m, text: m.text + delta })),
+      onWorking: setWorking,
+      onWidget: (widget: Record<string, unknown>) =>
+        update((m) => ({ ...m, widgets: [...m.widgets, widget as unknown as Widget] })),
+      onDone: (handoff: boolean) => {
+        setWorking(false);
+        if (handoff) setHumanMode(true);
+      },
+      onError: () => {
+        setWorking(false);
+        update((m) => ({ ...m, text: m.text || t('connect_error') }));
+      },
+    };
+
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ sessionId, messages: payload }),
-      });
-      if (!res.body) throw new Error('no stream');
+      let token = credentialsRef.current?.token ?? null;
+      let agentSession = agentSessionRef.current;
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() ?? '';
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line.startsWith('data:')) continue;
-          const evt = JSON.parse(line.slice(5).trim());
-          if (evt.type === 'text') {
-            setWorking(false);
-            update((m) => ({ ...m, text: m.text + evt.value }));
-          } else if (evt.type === 'tool') {
-            setWorking(evt.status === 'running');
-          } else if (evt.type === 'widget') {
-            const { type, ...w } = evt;
-            void type;
-            update((m) => ({ ...m, widgets: [...m.widgets, w as Widget] }));
-          } else if (evt.type === 'error') {
-            setWorking(false);
-            update((m) => ({ ...m, text: m.text || evt.message }));
-          } else if (evt.type === 'done') {
-            setWorking(false);
-            if (evt.handoff) setHumanMode(true);
-          }
+      if (!agentSession) {
+        const started = await startAgentSession(clean, sessionId);
+        if (!started) throw new Error('no session');
+        agentSession = started.sessionId;
+        agentSessionRef.current = started.sessionId;
+        token = started.token;
+        credentialsRef.current = {
+          ...(credentialsRef.current ?? { principalId: '', signedIn: false }),
+          token: started.token,
+        };
+        await followAgentTurn(agentSession, token, 0, handlers);
+      } else {
+        if (!token) {
+          const opened = await openAgent(sessionId);
+          if (!opened) throw new Error('no token');
+          credentialsRef.current = opened;
+          token = opened.token;
         }
+        const from = await sendAgentMessage(agentSession, token, clean);
+        if (from === null) throw new Error('send failed');
+        await followAgentTurn(agentSession, token, from, handlers);
       }
     } catch {
-      update((m) => ({ ...m, text: m.text || t('connect_error') }));
+      handlers.onError();
     } finally {
       setPending(false);
       setWorking(false);
