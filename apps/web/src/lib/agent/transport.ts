@@ -1,3 +1,5 @@
+import { messageDelta, requestedHandoff, resultWidget } from '@luxel/core/agent/stream';
+
 export interface AgentCredentials {
   token: string;
   principalId: string;
@@ -11,8 +13,6 @@ export interface TurnHandlers {
   onDone: (handoff: boolean) => void;
   onError: () => void;
 }
-
-const HANDOFF_TOOLS = new Set(['escalate_to_human', 'escalate_to_luxel']);
 
 export async function openAgent(webSessionId: string): Promise<AgentCredentials | null> {
   const res = await fetch('/api/agent/session', {
@@ -108,19 +108,18 @@ export async function followAgentTurn(
         const data = event.data ?? {};
 
         if (event.type === 'message.appended') {
-          const delta = typeof data.messageDelta === 'string' ? data.messageDelta : '';
+          const delta = messageDelta(data);
           if (delta) {
             handlers.onWorking(false);
             handlers.onText(delta);
           }
         } else if (event.type === 'actions.requested') {
-          const actions = (data.actions as { name?: string }[] | undefined) ?? [];
-          if (actions.some((a) => a.name && HANDOFF_TOOLS.has(a.name))) handoff = true;
+          if (requestedHandoff(data)) handoff = true;
           handlers.onWorking(true);
         } else if (event.type === 'action.result') {
           handlers.onWorking(false);
-          const output = data.output as { widget?: Record<string, unknown> } | undefined;
-          if (output?.widget) handlers.onWidget(output.widget);
+          const widget = resultWidget(data);
+          if (widget) handlers.onWidget(widget);
         } else if (event.type === 'turn.completed') {
           await reader.cancel();
           handlers.onDone(handoff);
