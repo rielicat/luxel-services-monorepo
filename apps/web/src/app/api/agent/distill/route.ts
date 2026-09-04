@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { distillPending } from '@luxel/core/agent/distill';
+import { runPricingPass } from '@luxel/core/ai/pricing-pass';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,9 +18,11 @@ function authorised(req: Request): boolean {
 export async function POST(req: Request) {
   if (!authorised(req)) return new Response('Unauthorized', { status: 401 });
 
-  const result = await distillPending();
-  return Response.json(result, {
-    status: result.ok ? 200 : 500,
-    headers: { 'cache-control': 'no-store' },
-  });
+  const distilled = await distillPending();
+  const pricing = await runPricingPass();
+  const ok = distilled.ok && pricing.ok;
+  return Response.json(
+    { ok, distilled, pricing },
+    { status: ok ? 200 : 500, headers: { 'cache-control': 'no-store' } },
+  );
 }

@@ -71,10 +71,13 @@ apps/web/agent/
 ├── tools/<builtin>.ts       disableTool() for every permissive default
 ├── skills/*.md             five procedures, loaded on demand
 ├── memory/{playbook,property,host}.ts
-├── hooks/persist.ts         writes messages, analytics and leads
-├── schedules/distill.ts     the daily distillation, 06:00 UTC
-└── subagents/pricing-analyst/
+└── hooks/persist.ts         writes messages, analytics, leads and the digest
 ```
+
+There are no subagents and no eve schedules. The `agent` builtin is disabled, so
+nothing in the agent can delegate, and eve never registers a cron: `withEve`
+writes no `crons` key into the Build Output config. The nightly work runs from
+the Cloudflare Worker instead.
 
 ### The `server-only` boundary
 
@@ -124,15 +127,30 @@ AND into OR — without it a whole guest question matches nothing.
 A property with no history falls back to the global digests, marked as generic,
 and never cites another property's data as its own.
 
-`playbook` is also the only slot that captures. A per-property scope resolves to
-null on the web surface, which would disable capture there.
+Capture does not use eve's `capture['turn.completed']` hook. eve emits that
+event with the messages alone, so a slot's capture handler never fires. The
+digest is written from `agent/hooks/persist.ts`, which already runs on every
+settled turn and already knows the surface, the property and the thread.
 
-### Distillation
+### The nightly pass
 
-`agent/schedules/distill.ts` runs daily at 06:00 UTC. It reads the digests that
-are not distilled yet, across every property, and writes global playbook rules
-and property notes. Keep it daily or slower: Vercel Hobby rejects sub-daily
-crons.
+The Cloudflare Worker's cron (04:23 UTC) calls
+`POST /api/agent/distill` with `INTERNAL_SEND_TOKEN`. It does two things in
+order.
+
+`distillPending` reads the digests that are not distilled yet, across every
+property, and writes global playbook rules and property notes. It never invents
+a market figure.
+
+`runPricingPass` then takes the eight properties analysed longest ago, reads
+each one's real occupancy and the comparable market reference, and writes at
+most two property notes per unit with `source` `pricing`. It only uses the
+figures the two tools return, and it says nothing about the market when the
+comparable sample is too small.
+
+Both live behind one route so the worker makes one call. The pass is a plain
+server function, not an eve subagent: eve subagents are reachable only through
+the `agent` tool, which is disabled on every surface.
 
 ### Persistence and analytics
 
