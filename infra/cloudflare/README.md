@@ -77,6 +77,15 @@ CF_ZONE_ID=<zone id> CF_ACCOUNT_ID=a592f6c9ed79454bf7c8ab489ece9036 \
 
 Copy the `rules` / `destinations` / `catchAll` the export prints into the
 `emailRouting` block of `Pulumi.prod.yaml`, and confirm `vercelTarget` matches.
+
+`info@serviciosluxel.cl` is published in the privacy policy as the channel for
+data-subject requests, so mail sent there can carry an identity document. It
+forwards to a personal mailbox today. Moving it to a Luxel-owned mailbox is an
+open task.
+
+Email Routing manages the MX, SPF and DKIM records itself once it is enabled.
+Never add those as DNS records in this stack: they conflict.
+
 The config must equal live state, or the apply will reconcile the diff.
 
 ---

@@ -6,7 +6,9 @@ const RULE_NAME = ['luxel', 'no-comments'].join('/');
 const RULE_PATTERN = RULE_NAME.replace('/', '\\/');
 const SELF = 'scripts/check-comments.mjs';
 const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.css', '.json'];
+const HASH_EXTENSIONS = ['.yml', '.yaml', '.toml'];
 const MIGRATIONS_PREFIX = 'supabase/migrations/';
+const GENERATED = ['pnpm-lock.yaml'];
 
 function trackedFiles() {
   const out = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8', maxBuffer: 32e6 });
@@ -39,6 +41,30 @@ function findCssComments(text) {
       i = end === -1 ? text.length : end + 1;
     }
   }
+  return hits;
+}
+
+function findHashComments(text) {
+  const hits = [];
+  text.split('\n').forEach((raw, index) => {
+    let quote = null;
+    for (let i = 0; i < raw.length; i += 1) {
+      const char = raw[i];
+      if (quote) {
+        if (char === '\\') i += 1;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === '"' || char === "'") {
+        quote = char;
+        continue;
+      }
+      if (char === '#' && (i === 0 || raw[i - 1] === ' ' || raw[i - 1] === '\t')) {
+        hits.push({ line: index + 1 });
+        return;
+      }
+    }
+  });
   return hits;
 }
 
@@ -112,8 +138,10 @@ function findRuleEscapes(text) {
 }
 
 function isScanned(path) {
+  if (GENERATED.includes(path)) return false;
   const extension = path.slice(path.lastIndexOf('.'));
   if (extension === '.sql') return path.startsWith(MIGRATIONS_PREFIX);
+  if (HASH_EXTENSIONS.includes(extension)) return true;
   return SCANNED_EXTENSIONS.includes(extension);
 }
 
@@ -130,6 +158,12 @@ function scanFile(path, text) {
   if (extension === '.sql') {
     for (const hit of findSqlComments(text)) {
       problems.push(`${path}:${hit.line}  SQL ${hit.kind} comment is not allowed`);
+    }
+  }
+
+  if (HASH_EXTENSIONS.includes(extension)) {
+    for (const hit of findHashComments(text)) {
+      problems.push(`${path}:${hit.line}  comment is not allowed; document it in docs/`);
     }
   }
 
@@ -205,6 +239,36 @@ const SELF_TEST_CASES = [
     name: 'sql without comments passes',
     path: 'supabase/migrations/0001_init.sql',
     text: 'alter table t add column n text;\n',
+    expected: 0,
+  },
+  {
+    name: 'yaml comment is reported',
+    path: '.github/workflows/ci.yml',
+    text: 'jobs:\n  # run the checks\n  build: {}\n',
+    expected: 1,
+  },
+  {
+    name: 'yaml hash inside a quoted value is not a comment',
+    path: '.github/workflows/ci.yml',
+    text: "jobs:\n  build:\n    run: echo '::notice::a # b'\n",
+    expected: 0,
+  },
+  {
+    name: 'toml comment is reported',
+    path: 'workers/whatsapp/wrangler.toml',
+    text: '# pinned\nname = "w"\n',
+    expected: 1,
+  },
+  {
+    name: 'toml hash inside a string is not a comment',
+    path: 'workers/whatsapp/wrangler.toml',
+    text: 'name = "a # b"\n',
+    expected: 0,
+  },
+  {
+    name: 'a hash with no leading space is a value, not a comment',
+    path: 'infra/cloudflare/Pulumi.prod.yaml',
+    text: 'config:\n  colour: ff#00\n',
     expected: 0,
   },
   {

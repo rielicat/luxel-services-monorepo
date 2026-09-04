@@ -112,14 +112,16 @@ supabase/        migrations + local config
 
 ## Conventions
 
-- **No code comments.** Source carries no comments; the code and the tests explain
-  themselves. Only tool directives stay (`eslint-disable`, `@ts-expect-error`).
-  The ban covers `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css` and the SQL
-  migrations in `supabase/migrations`. ESLint (`luxel/no-comments`) and
-  `pnpm lint:comments` enforce it. A blanket `eslint-disable` is itself an error;
-  always name the rules you disable. Only CI workflows, Pulumi stack config,
-  `wrangler.toml`, `supabase/config.toml` and `.env.example` keep their operator
-  comments.
+- **No comments. Anywhere.** Every file this repository authors carries no
+  comments: source, tests, SQL migrations, CI workflows, `wrangler.toml`, the
+  Pulumi stack config and `supabase/config.toml`. The code and the tests explain
+  themselves; anything an operator must know goes in `docs/`, not in a comment.
+  Only tool directives stay (`eslint-disable`, `@ts-expect-error`), and a blanket
+  `eslint-disable` is itself an error — always name the rules you disable.
+  `.env.example` is the one exemption: it is a documentation template with no
+  code, and its comments are the variable descriptions. Never add a comment to
+  explain a change; that belongs in the commit message. ESLint
+  (`luxel/no-comments`) and `pnpm lint:comments` enforce this.
 - **i18n.** No hardcoded user-facing strings. Site copy lives in
   `packages/shared/src/i18n/es-CL.json`; the guest check-in page also has
   `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix is

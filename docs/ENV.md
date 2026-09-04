@@ -140,14 +140,26 @@ the worker with it, and the worker authenticates back to the web app with it on
 The same worker holds the cleaning walkthrough videos. Its extra configuration
 is not secret and lives in `wrangler.toml`:
 
-| Item                     | Kind         | Purpose                                                          |
-| ------------------------ | ------------ | ---------------------------------------------------------------- |
-| `CLEANING_MEDIA`         | R2 binding   | the `luxel-cleaning-media` bucket, created by `infra/cloudflare` |
-| `MEDIA_LIMITER`          | rate limiter | 60 requests per minute per key; `namespace_id` 1002              |
-| `CLEANING_MEDIA_ORIGINS` | var          | browser origins allowed to upload; comma separated               |
-| `CLEANING_REVIEW`        | Workflow     | `CleaningReviewWorkflow`; `wrangler deploy` provisions it        |
-| `LUXEL_APP_URL`          | var          | origin of the web app; the Workflow calls it back                |
-| `[triggers] crons`       | cron         | nightly retention pass and review sweep at 04:23 UTC             |
+| Item                     | Kind         | Purpose                                                                    |
+| ------------------------ | ------------ | -------------------------------------------------------------------------- |
+| `account_id`             | pin          | pinned so wrangler never calls `/memberships`, which a scoped token cannot |
+| `CLEANING_MEDIA`         | R2 binding   | the `luxel-cleaning-media` bucket, created by `infra/cloudflare`           |
+| `SEND_LIMITER`           | rate limiter | 30 requests per minute per key; `namespace_id` 1001                        |
+| `MEDIA_LIMITER`          | rate limiter | 60 requests per minute per key; `namespace_id` 1002                        |
+| `CLEANING_MEDIA_ORIGINS` | var          | browser origins allowed to upload; comma separated                         |
+| `CLEANING_REVIEW`        | Workflow     | `CleaningReviewWorkflow`; `wrangler deploy` provisions it                  |
+| `LUXEL_APP_URL`          | var          | origin of the web app; the Workflow and the distill pass call it back      |
+| `[triggers] crons`       | cron         | nightly retention pass, review sweep and agent distill at 04:23 UTC        |
+
+A rate limiter `namespace_id` must be unique inside the account and the period
+must be 10 or 60. Two bindings that share an id share one counter.
+
+The nightly cron does three things: it purges expired walkthrough media, it
+re-drives every `cleaning_review` row still queued, and it calls
+`POST <LUXEL_APP_URL>/api/agent/distill` so the agent playbook is rebuilt from
+the day's conversations. It lives here and not on Vercel: `withEve` writes no
+`crons` key into the Build Output config, and Vercel Hobby rejects sub-daily
+crons.
 
 `CLEANING_MEDIA_KEY` seals the upload and read tickets and is the only bearer
 the media routes accept once it is set. It is optional: while it is unset both

@@ -1,13 +1,5 @@
 name: Infra (Vercel)
 
-# Provisions the Vercel projects as code. On push to main (or manual dispatch)
-# touching infra/vercel, CI adopts the web project + creates the admin project
-# (with its domain + non-secret config) on the first run, and applies changes on
-# every run after. PRs get a `pulumi preview`. State is in the R2 backend.
-#
-# This does NOT deploy app code — Vercel's Git integration deploys web + admin on
-# push. The admin app's shared secrets (Supabase/Clerk) are set once in the
-# Vercel dashboard, like the web project's.
 on:
   push:
     branches: [main]
@@ -77,7 +69,6 @@ jobs:
           pulumi stack select prod 2>/dev/null || pulumi stack init prod
           node scripts/discover-web.mjs
 
-          # First run: web project not yet in state → adopt it via import.
           if pulumi stack --show-urns 2>/dev/null | grep -q 'Project::web'; then
             ADOPT=0
           else

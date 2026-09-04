@@ -1,96 +1,35 @@
 name = "luxel-whatsapp-webhook"
 main = "src/index.ts"
-# Pinned so wrangler does not call /memberships to discover the account,
-# which a scoped API token is not permitted to do. Same id as
-# infra/cloudflare/Pulumi.prod.yaml and the R2 endpoint in CI.
 account_id = "a592f6c9ed79454bf7c8ab489ece9036"
 compatibility_date = "2024-10-22"
 compatibility_flags = ["nodejs_compat"]
 
-# Secrets — set with `wrangler secret put <NAME>`:
-#   WHATSAPP_VERIFY_TOKEN     (chosen by us; matched in Meta dashboard)
-#   WHATSAPP_APP_SECRET       (Meta App secret — used to verify webhook signature)
-#   WHATSAPP_ACCESS_TOKEN     (long-lived system user token)
-#   WHATSAPP_PHONE_NUMBER_ID  (numeric phone number id from Meta)
-#   SUPABASE_URL
-#   SUPABASE_SECRET_KEY       (sb_secret_* — replaces the legacy service_role key)
-#   LUXEL_OPERATOR_WHATSAPP   (operator E.164 — receives handoffs, replies bridge back)
-#   INTERNAL_SEND_TOKEN       (shared with the web app; authenticates POST /send,
-#                              POST /cleaning-media/*-url and POST /cleaning-review/start,
-#                              and authenticates us back to the web app.
-#                              Unset → those routes 401.)
-#   CLEANING_MEDIA_KEY        (optional, recommended; seals the upload and read
-#                              tickets and is accepted on the media routes.
-#                              Unset → the worker falls back to
-#                              INTERNAL_SEND_TOKEN, so nothing breaks before it
-#                              is set. Rotating it invalidates every ticket in
-#                              flight and is the break-glass for video access,
-#                              with no effect on WhatsApp. Set it on the worker
-#                              first, then on Vercel.)
-
-# Workers Logs record the request URL of every invocation, so a ticket must
-# never be readable from one. Tickets are sealed with AES-GCM: the URL carries
-# an opaque blob, never the object key. The upload leg sends the ticket in the
-# x-luxel-ticket header; only the read leg needs it in the URL, because a
-# <video> element cannot set headers.
 [observability]
 enabled = true
 
-# Browser origins allowed to PUT / GET /cleaning-media/object. The crew page is
-# served from the web app, the worker from workers.dev, so every upload is
-# cross-origin. Comma separated; add http://localhost:3000 for local dev.
-# The preflight allows the x-luxel-ticket header.
 [vars]
 CLEANING_MEDIA_ORIGINS = "https://serviciosluxel.cl,https://www.serviciosluxel.cl"
-
-# Origin of the web app. The cleaning-review Workflow calls
-# POST <LUXEL_APP_URL>/api/cleaning/review with INTERNAL_SEND_TOKEN. Unset → the
-# Workflow can do nothing and the review stays queued.
 LUXEL_APP_URL = "https://serviciosluxel.cl"
 
-# Walkthrough videos. The bucket and its 30-day lifecycle rule are created by
-# infra/cloudflare (Pulumi); wrangler only binds them. `wrangler deploy` does
-# NOT create the bucket, so apply the Pulumi stack first.
 [[r2_buckets]]
 binding = "CLEANING_MEDIA"
 bucket_name = "luxel-cleaning-media"
 preview_bucket_name = "luxel-cleaning-media-preview"
 
-# Durable comparison of a confirmed walkthrough against the previous confirmed
-# inventory. `wrangler deploy` provisions the Workflow from this block; it needs
-# compatibility_date >= 2024-10-22. Workflows run on the Workers Free plan.
 [[workflows]]
 name = "cleaning-review"
 binding = "CLEANING_REVIEW"
 class_name = "CleaningReviewWorkflow"
 
-# Nightly pass (04:23 UTC). It deletes every walkthrough object whose
-# cleaning_walkthrough.retention_until has passed, then nulls the key on the
-# row. It drains media_tombstone, the rows a cascade delete leaves behind, and
-# reconciles the bucket against the table so an object older than a day with no
-# row is deleted too. It then strips the model's text from expired inventory
-# drafts and review findings, and re-drives every cleaning_review row still
-# queued, so a review is never lost when the start call failed. This repo has no
-# Vercel cron (Hobby blocks them), so all of it lives here and the R2 lifecycle
-# rule backstops retention.
-# The nightly cron does three things: purge expired walkthrough media, sweep
-# queued cleaning reviews, and POST <LUXEL_APP_URL>/api/agent/distill so the
-# agent's global playbook is rebuilt from the day's conversations. It lives
-# here and not on Vercel: withEve writes no crons key into the Build Output
-# config, and Vercel Hobby rejects sub-daily crons anyway.
 [triggers]
 crons = ["23 4 * * *"]
 
-# Backstops POST /send against a leaked INTERNAL_SEND_TOKEN. namespace_id is any
-# unique integer within the account; period must be 10 or 60.
 [[unsafe.bindings]]
 name = "SEND_LIMITER"
 type = "ratelimit"
 namespace_id = "1001"
 simple = { limit = 30, period = 60 }
 
-# Same backstop for the media routes. A separate namespace_id: reusing 1001
-# would silently share the counter with /send.
 [[unsafe.bindings]]
 name = "MEDIA_LIMITER"
 type = "ratelimit"
