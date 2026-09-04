@@ -150,6 +150,61 @@ describe.runIf(LIVE)('agent memory', () => {
     expect(await session.claimSessionSlot(`visitor:${nodeCrypto.randomUUID()}`)).toBe(true);
   });
 
+  it('writes a conversation digest through the real capture path', async () => {
+    const digest = await import('@luxel/core/agent/digest');
+    const operationId = `op-${nodeCrypto.randomUUID()}`;
+
+    const wrote = await digest.captureTurn({
+      sessionId: `sess-${nodeCrypto.randomUUID()}`,
+      operationId,
+      surface: 'guest',
+      propertyId: propertyA,
+      threadId: null,
+      messages: [
+        { role: 'user', content: 'El codigo 481516 no me sirve, escribeme a hola@luxel.cl' },
+        { role: 'assistant', content: 'Lo revisamos y te confirmamos.' },
+      ],
+    });
+    expect(wrote).toBe(true);
+
+    const { data } = await admin
+      .from('lux_conversation_digest')
+      .select('summary, surface, property_id')
+      .eq('operation_id', operationId)
+      .single();
+
+    expect(data!.surface).toBe('guest');
+    expect(data!.property_id).toBe(propertyA);
+    expect(data!.summary as string).not.toContain('481516');
+    expect(data!.summary as string).not.toContain('hola@luxel.cl');
+  });
+
+  it('is idempotent on operationId, so a replay adds no second digest', async () => {
+    const digest = await import('@luxel/core/agent/digest');
+    const operationId = `op-${nodeCrypto.randomUUID()}`;
+    const messages = [
+      { role: 'user' as const, content: 'Hay estacionamiento?' },
+      { role: 'assistant' as const, content: 'Si, el numero 12.' },
+    ];
+    const input = {
+      sessionId: `sess-${nodeCrypto.randomUUID()}`,
+      operationId,
+      surface: 'web' as const,
+      propertyId: null,
+      threadId: null,
+      messages,
+    };
+
+    await digest.captureTurn(input);
+    await digest.captureTurn(input);
+
+    const { count } = await admin
+      .from('lux_conversation_digest')
+      .select('id', { count: 'exact', head: true })
+      .eq('operation_id', operationId);
+    expect(count).toBe(1);
+  });
+
   it('caps a stored note and normalises whitespace', () => {
     const long = 'dato '.repeat(400);
     expect(sanitize.sanitizeForMemory(long, []).length).toBeLessThanOrEqual(600);

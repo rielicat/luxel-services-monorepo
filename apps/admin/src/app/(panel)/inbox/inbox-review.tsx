@@ -58,6 +58,10 @@ const ERROR_KEY: Record<string, string> = {
   not_found: 'error_unknown_thread',
   write_failed: 'error_write_failed',
   error: 'error_ai_failed',
+  no_token: 'error_agent_unconfigured',
+  create_failed: 'error_agent_unreachable',
+  stream_failed: 'error_agent_unreachable',
+  timeout: 'error_agent_unreachable',
 };
 
 export function InboxReview({ threads }: { threads: InboxThread[] }) {

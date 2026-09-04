@@ -1,4 +1,5 @@
 import { defineHook } from 'eve/hooks';
+import { captureTurn } from '@luxel/core/agent/digest';
 import { finalMessage, receivedMessage, requestedHandoff } from '@luxel/core/agent/stream';
 import { readCaller } from '../lib/caller';
 import { emit } from '../lib/events';
@@ -38,10 +39,31 @@ export default defineHook({
       if (reply) turnRecord.update((s) => ({ ...s, reply }));
     },
 
-    async 'turn.completed'(_event, ctx) {
+    async 'turn.completed'(event, ctx) {
       const caller = readCaller(ctx.session.auth.current);
-      if (!caller || caller.surface !== 'web') return;
+      if (!caller) return;
       const state = turnRecord.get();
+
+      if (
+        (caller.surface === 'web' || caller.surface === 'guest') &&
+        state.lastGuestMessage &&
+        state.reply
+      ) {
+        const turnId = (event.data as { turnId?: unknown } | null)?.turnId;
+        await captureTurn({
+          sessionId: ctx.session.id,
+          operationId: `${ctx.session.id}:${typeof turnId === 'string' ? turnId : ctx.session.turn.id}`,
+          surface: caller.surface,
+          propertyId: caller.propertyId,
+          threadId: caller.threadId,
+          messages: [
+            { role: 'user', content: state.lastGuestMessage },
+            { role: 'assistant', content: state.reply },
+          ],
+        });
+      }
+
+      if (caller.surface !== 'web') return;
 
       if (state.reply) {
         await emit({

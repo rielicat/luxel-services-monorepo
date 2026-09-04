@@ -92,6 +92,8 @@
     "draft_badge": "Borrador listo",
     "no_messages": "Sin mensajes todavía.",
     "messages_count": "{count} mensaje(s)",
-    "category_inquiry": "Consulta"
+    "category_inquiry": "Consulta",
+    "error_agent_unconfigured": "El agente no está configurado en este panel. Falta LUXEL_AGENT_TOKEN_SECRET.",
+    "error_agent_unreachable": "No pudimos contactar al agente. Reintenta en un momento."
   }
 }

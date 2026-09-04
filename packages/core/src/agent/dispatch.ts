@@ -1,4 +1,4 @@
-import { appUrl } from '../urls';
+import { webUrl } from '../urls';
 import { claimSession } from './session';
 import { finalMessage, requestedHandoff } from './stream';
 import { mintAgentToken } from './token';
@@ -44,7 +44,7 @@ interface DispatchInput {
 }
 
 function base(): string {
-  return process.env.EVE_AGENT_ORIGIN?.trim().replace(/\/$/, '') || appUrl();
+  return process.env.EVE_AGENT_ORIGIN?.trim().replace(/\/$/, '') || webUrl();
 }
 
 function tokenFor(input: DispatchInput): string | null {
