@@ -344,7 +344,7 @@
     "intro_1": "Nos das acceso a tu cuenta de Airbnb y desde ahí nos hacemos cargo: precios, huéspedes, aseo entre estadías y el reporte de cada mes.",
     "intro_2": "No instalas nada y tu propiedad sigue siendo tuya. Airbnb te paga a ti, directo, como siempre.",
     "pending_title": "Estamos preparando tu invitación",
-    "pending_body": "Preparamos tu invitación a mano y te avisamos apenas esté lista. Te escribimos a {email}.",
+    "pending_body": "Preparamos tu invitación a mano y te avisamos apenas esté lista.",
     "invite_title": "Tu invitación está lista",
     "invite_body": "Abre el enlace y verás la pantalla de Airbnb: inicias sesión con {email}, eliges tus propiedades y aceptas. Después vuelves acá.",
     "invite_body_generic": "Abre el enlace y verás la pantalla de Airbnb: inicias sesión, eliges tus propiedades y aceptas. Después vuelves acá.",
@@ -361,7 +361,7 @@
     "waiting_check": "Ya lo hice",
     "waiting_checking": "Revisando…",
     "waiting_not_yet": "Todavía no aparecen. Airbnb a veces demora un poco: prueba de nuevo en unos minutos.",
-    "waiting_slow": "Si mañana sigues viendo esta pantalla, avísanos y lo resolvemos nosotros.",
+    "waiting_slow": "Si mañana sigues viendo esta pantalla, escríbenos a {email} y lo resolvemos nosotros.",
     "no_listings_title": "Tu cuenta está conectada, pero sin propiedades publicadas",
     "no_listings_body": "No vemos propiedades publicadas en esa cuenta. Si acabas de publicar una, dale unos minutos y revisa de nuevo.",
     "no_listings_check": "Revisar de nuevo",
@@ -371,7 +371,7 @@
     "error_auth": "Tu sesión venció. Vuelve a entrar y seguimos.",
     "error_generic": "No pudimos guardar tu correo. Prueba de nuevo en un momento.",
     "error_check": "No pudimos revisar en este momento. Prueba de nuevo en un rato.",
-    "pending_body_generic": "Preparamos tu invitación a mano y te avisamos apenas esté lista."
+    "operator_body_email": "Escríbenos a {email} y lo resolvemos nosotros."
   },
   "detail": {
     "back": "Mis propiedades",

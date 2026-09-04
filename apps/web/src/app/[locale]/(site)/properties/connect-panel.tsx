@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { SUPPORT_EMAIL } from '@luxel/shared/constants';
 import { checkConnection, type ConnectError } from './connect-actions';
 
 export type ConnectStage =
@@ -143,7 +144,7 @@ export function ConnectPanel({
           {errorText}
         </p>
       )}
-      <p className="text-muted-foreground text-xs">{t('waiting_slow')}</p>
+      <p className="text-muted-foreground text-xs">{t('waiting_slow', { email: SUPPORT_EMAIL })}</p>
     </div>
   );
 
@@ -164,11 +165,7 @@ export function ConnectPanel({
                   <Clock className="h-4 w-4 shrink-0" />
                   {t('pending_title')}
                 </p>
-                <p className="text-sm">
-                  {signupEmail
-                    ? t('pending_body', { email: signupEmail })
-                    : t('pending_body_generic')}
-                </p>
+                <p className="text-sm">{t('pending_body')}</p>
               </div>
               {errorText && (
                 <p role="alert" className="text-destructive text-sm">
@@ -234,6 +231,7 @@ export function ConnectPanel({
             <>
               <StageHead icon={LifeBuoy} title={t('operator_title')} />
               <p className="text-sm">{t('operator_body')}</p>
+              <p className="text-sm">{t('operator_body_email', { email: SUPPORT_EMAIL })}</p>
             </>
           )}
         </CardContent>
