@@ -91,13 +91,13 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
     }
 
     const ownerPhone = toE164Digits(owner?.phone as string | null | undefined);
-    if (ownerPhone) {
+    if (ownerPhone && !reached.has(ownerPhone)) {
       const ok = Boolean(
-        await sendWhatsAppTemplate(ownerPhone, 'host_checkin', [
+        await sendWhatsAppTemplate(ownerPhone, 'concierge_arrival', [
           stay,
-          property.nickname,
-          checkin.guest_name ?? 'Huésped',
-          `${headcount} · llegada ${arrival}`,
+          place,
+          parking,
+          `${headcount} · reserva de ${checkin.guest_name ?? 'huésped'} · llegada ${arrival}`,
         ]),
       );
       results.push({ channel: 'whatsapp', to: `+${ownerPhone}`, role: 'host', ok });

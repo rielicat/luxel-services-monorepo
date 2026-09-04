@@ -325,7 +325,7 @@
         },
         {
           "name": "O anfitrião da unidade",
-          "detail": "Pode alcançar a lista de pessoas registradas na propriedade dele: o nome, o tipo de documento e os quatro últimos caracteres. O número completo viaja criptografado e a chave não está na base de dados. Quando alguém completa o registro, avisamos por e-mail e, se houver um telefone salvo na conta, por WhatsApp: o nome de quem reserva, quantas pessoas chegam e o horário de chegada. Os documentos não vão nesse aviso."
+          "detail": "Pode alcançar a lista de pessoas registradas na propriedade dele: o nome, o tipo de documento e os quatro últimos caracteres. O número completo viaja criptografado e a chave não está na base de dados. Quando alguém completa o registro, avisamos por e-mail e, se houver um telefone salvo na conta, por WhatsApp: a estadia, a propriedade, o estacionamento, quem reserva, quantas pessoas chegam e a que horas. Os documentos não vão nesse aviso."
         }
       ]
     },

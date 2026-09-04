@@ -268,7 +268,7 @@ contain newlines, so the guest list arrives as one line. Meta rejects bodies who
 variable count is high for their length and bodies that end with a variable, so
 both templates keep a static first and last line.
 
-`luxel_conserje_registro` — sent when a guest completes registration (language `es`, four parameters: stay, unit + address, parking, headcount + guest list):
+`luxel_conserje_registro` — sent when a guest completes registration (language `es`, four parameters: stay, unit + address, parking, headcount + guest list). The same template also carries the notice to the host, with the guest list replaced by who booked and when they arrive — the host has no need of the documents:
 
 ```
 Registro de huéspedes en conserjería

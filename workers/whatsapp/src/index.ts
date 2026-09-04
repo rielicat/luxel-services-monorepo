@@ -253,7 +253,6 @@ async function persistInbound(env: Env, payload: WhatsAppWebhookPayload): Promis
 const TEMPLATES: Record<WhatsAppTemplateKind, string> = {
   concierge_arrival: 'luxel_conserje_registro',
   cleaning_confirm: 'luxel_aseo_confirmacion',
-  host_checkin: 'luxel_anfitrion_registro',
 };
 const TEMPLATE_LANG = 'es';
 const BUTTON_PAYLOAD_MAX = 128;

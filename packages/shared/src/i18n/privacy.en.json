@@ -325,7 +325,7 @@
         },
         {
           "name": "The host of the unit",
-          "detail": "Can reach the list of people registered at their property: the name, the document type and the last four characters. The full number travels encrypted and the key is not in the database. When someone completes the registration, we notify them by email and, if their account has a phone number saved, by WhatsApp: the name of the person booking, how many people are arriving and the arrival time. The documents are not in that notice."
+          "detail": "Can reach the list of people registered at their property: the name, the document type and the last four characters. The full number travels encrypted and the key is not in the database. When someone completes the registration, we notify them by email and, if their account has a phone number saved, by WhatsApp: the stay, the property, the parking, who booked, how many people are arriving and at what time. The documents are not in that notice."
         }
       ]
     },
