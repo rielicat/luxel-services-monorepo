@@ -17,7 +17,7 @@ export const authAppearance = {
   elements: {
     rootBox: 'w-full',
     cardBox: 'w-full shadow-none border-0',
-    card: 'w-full bg-transparent shadow-none border-0 p-0',
+    card: 'm-0 w-full bg-transparent shadow-none border-0 p-0',
     header: 'hidden',
     footer: 'hidden',
     formButtonPrimary: 'shadow-soft',
