@@ -437,16 +437,18 @@ without `CLOUDFLARE_API_TOKEN`, and a deploy never touches secrets set with
 roots.
 Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
-Open follow-ups that need operator credentials: Meta WhatsApp go-live
-(portfolio, number, templates), `PROVIDER_API_KEY` on the `luxel-admin` Vercel
-project (`/stays` needs it), moving `luxel-admin` onto the Clerk production
-instance (`apps/web` runs `pk_live_*` against `clerk.serviciosluxel.cl`;
-`apps/admin` still runs `pk_test_*` against `clerk.accounts.dev`), and
-`GOOGLE_API_KEY` from a billing-enabled project for the walkthrough inventory.
-The worker deploys from CI on a push to `main` touching `workers/**`, so the
-`cleaning-review` Workflow and `LUXEL_APP_URL` no longer need a hand-run
-`wrangler deploy`. Plan activation is done: an operator moves a subscription to
-`active` at `/plans` in `apps/admin`.
+No follow-up needs operator credentials. Meta WhatsApp is live,
+`PROVIDER_API_KEY` is set on `luxel-admin`, and `GOOGLE_API_KEY` comes from a
+billing-enabled project. The worker deploys from CI on a push to `main`
+touching `workers/**`, so the `cleaning-review` Workflow and `LUXEL_APP_URL`
+need no hand-run `wrangler deploy`. Plan activation is done: an operator moves
+a subscription to `active` at `/plans` in `apps/admin`.
+
+The two apps run **separate Clerk applications on purpose**. `apps/web` uses the
+production instance at `clerk.serviciosluxel.cl`; `apps/admin` uses its own,
+which today is a `pk_test_*` instance on `clerk.accounts.dev`. Hosts and Luxel
+operators are different populations and never share a session. Do not "fix" this
+by pointing both at one instance.
 
 ## Gotchas
 

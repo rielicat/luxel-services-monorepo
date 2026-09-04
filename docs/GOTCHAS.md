@@ -39,14 +39,16 @@ Web tests need local Supabase and `apps/web/.env.local` sourced. Scope with
 push to `main` touching `workers/**`.
 Details: [`DEPLOY.md`](DEPLOY.md), [`ENV.md`](ENV.md).
 
-Open follow-ups that need operator credentials: Meta WhatsApp go-live
-(portfolio, number, templates), a billing-enabled `GOOGLE_API_KEY`,
-`PROVIDER_API_KEY` on `luxel-admin`, and moving `luxel-admin` onto the Clerk
-production instance (`apps/web` runs `pk_live_*` against
-`clerk.serviciosluxel.cl`; `apps/admin` still runs `pk_test_*` against
-`clerk.accounts.dev`). The `cleaning-review` Workflow and `LUXEL_APP_URL` ship
-with the CI worker deploy. Plan activation is done: an operator moves a
-subscription to `active` at `/plans` in `apps/admin`.
+No follow-up needs operator credentials. Meta WhatsApp is live,
+`PROVIDER_API_KEY` is set on `luxel-admin`, and `GOOGLE_API_KEY` is
+billing-enabled. The `cleaning-review` Workflow and `LUXEL_APP_URL` ship with
+the CI worker deploy. Plan activation is done: an operator moves a subscription
+to `active` at `/plans` in `apps/admin`.
+
+The two apps run separate Clerk applications on purpose. `apps/web` uses the
+production instance at `clerk.serviciosluxel.cl`; `apps/admin` uses its own
+`pk_test_*` instance on `clerk.accounts.dev`. Hosts and operators never share a
+session. Do not point both at one instance.
 
 ## Gotchas
 

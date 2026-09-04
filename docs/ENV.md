@@ -79,7 +79,7 @@ Set in the Vercel dashboard:
 | ------------------------------------------------------------- | -------------------------------------------------------- |
 | `NEXT_PUBLIC_SUPABASE_URL`                                    | database endpoint                                        |
 | `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) | server-side reads of analytics, leads and sessions       |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                           | sign-in (same Clerk instance as web)                     |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                           | sign-in (its own Clerk application, not web's)           |
 | `CLERK_SECRET_KEY`                                            | session verification and organization-membership lookup  |
 | `PROVIDER_API_KEY` (or legacy `HOSPITABLE_API_TOKEN`)         | blocks and releases nights for a direct stay at `/stays` |
 
