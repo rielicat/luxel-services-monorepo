@@ -35,7 +35,8 @@ Web tests need local Supabase and `apps/web/.env.local` sourced. Scope with
 `.github/workflows/ci.yml`: frozen install → format:check → typecheck → lint
 → test → build. `db-migrate.yml` applies migrations to prod Supabase.
 `infra.yml` / `infra-vercel.yml` run Pulumi. Vercel deploys `apps/web` and
-`apps/admin` from their roots; the worker deploys with `wrangler deploy`.
+`apps/admin` from their roots; `worker-deploy.yml` runs `wrangler deploy` on a
+push to `main` touching `workers/**`.
 Details: [`DEPLOY.md`](DEPLOY.md), [`ENV.md`](ENV.md).
 
 Open follow-ups that need operator credentials: Meta WhatsApp go-live

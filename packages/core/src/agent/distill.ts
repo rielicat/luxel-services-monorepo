@@ -1,5 +1,5 @@
-import OpenAI from 'openai';
 import { AI_MODEL } from '../ai/model';
+import { getAgentModelClient, modelId } from './gateway';
 import { propertyScopeKey } from './scope';
 import { accessSecrets, markDistilled, pendingDigests, upsertNote } from './store';
 import { MAX_PLAYBOOK_NOTES, PLAYBOOK_SCOPE, type ConversationDigest } from './types';
@@ -24,11 +24,6 @@ interface Distilled {
   property: { propertyId: string; key: string; note: string }[];
 }
 
-function getClient(): OpenAI | null {
-  if (!process.env.OPENAI_API_KEY) return null;
-  return new OpenAI();
-}
-
 function corpus(digests: readonly ConversationDigest[]): string {
   return digests
     .map((d) => {
@@ -49,7 +44,7 @@ export async function distillPending(): Promise<{
   const digests = await pendingDigests();
   if (!digests.length) return { ok: true, digests: 0, globalRules: 0, propertyNotes: 0 };
 
-  const openai = getClient();
+  const openai = getAgentModelClient();
   if (!openai)
     return {
       ok: false,
@@ -62,7 +57,7 @@ export async function distillPending(): Promise<{
   let parsed: Distilled;
   try {
     const res = await openai.chat.completions.create({
-      model: AI_MODEL,
+      model: modelId(AI_MODEL),
       reasoning_effort: 'none',
       response_format: { type: 'json_object' },
       max_completion_tokens: 2000,
@@ -79,7 +74,7 @@ export async function distillPending(): Promise<{
     };
   } catch (err) {
     console.error('agent.distill_failed', {
-      model: AI_MODEL,
+      model: modelId(AI_MODEL),
       message: err instanceof Error ? err.message : String(err),
     });
     return {

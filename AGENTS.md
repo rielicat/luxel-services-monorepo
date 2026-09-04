@@ -294,9 +294,13 @@ supabase/        migrations + local config
   cosine. A property with no history falls back to the global digests and never
   cites another property as its own. The conversation tier is eve's own durable
   session, keyed to `guest_threads.agent_session_id`. Hosts never see any of it.
-- The **daily distillation** (`agent/schedules/distill.ts`, 06:00 UTC) is what
-  writes the global tier. Keep it daily or slower: Vercel Hobby rejects
-  sub-daily crons.
+- The **nightly distillation** is what writes the global tier. It runs from the
+  Cloudflare Worker's existing cron, which POSTs `/api/agent/distill` with
+  `INTERNAL_SEND_TOKEN`, exactly as the cleaning review already does. It is
+  never a Vercel cron: `withEve` writes no `crons` key into the Build Output
+  config, so an eve schedule never registers, and Hobby rejects sub-daily crons
+  regardless. The worker deploys from `.github/workflows/worker-deploy.yml` on
+  a push to `main` that touches `workers/**`.
 - Lux replies to guests **behind a review gate**. `properties.ai_reviews` defaults to
   `true`: the pipeline stores the AI reply in `guest_reply_drafts` with status
   `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in `apps/admin`,
@@ -424,8 +428,11 @@ commit that deletes the gate.
 
 `.github/workflows/ci.yml`: frozen install → format:check → typecheck → lint →
 test → build. `db-migrate.yml` applies migrations to prod Supabase.
-`infra.yml` / `infra-vercel.yml` run Pulumi. Vercel deploys `apps/web` and
-`apps/admin` from their roots; the worker deploys with `wrangler deploy`.
+`infra.yml` / `infra-vercel.yml` run Pulumi. `worker-deploy.yml` runs
+`wrangler deploy` on a push to `main` that touches `workers/**`; it skips green
+without `CLOUDFLARE_API_TOKEN`, and a deploy never touches secrets set with
+`wrangler secret put`. Vercel deploys `apps/web` and `apps/admin` from their
+roots.
 Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
 Open follow-ups that need operator credentials: Meta WhatsApp go-live

@@ -134,8 +134,9 @@ rules. Do not add code paths that break them.
   and eve's durable session as the conversation tier. A property with no history
   falls back to global digests and never cites another property as its own.
   Hosts never see any of it.
-- The daily distillation writes the global tier. Keep it daily or slower: Vercel
-  Hobby rejects sub-daily crons.
+- The nightly distillation writes the global tier, from the Cloudflare Worker's
+  cron via `/api/agent/distill`. Never a Vercel cron: `withEve` writes no
+  `crons` key, so an eve schedule never registers.
 - Lux replies to guests behind a review gate. `properties.ai_reviews` defaults to
   `true`. The pipeline stores the AI reply in `guest_reply_drafts` with status
   `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in `apps/admin`,

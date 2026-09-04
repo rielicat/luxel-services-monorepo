@@ -26,7 +26,8 @@
         "LUXEL_AGENT_TOKEN_SECRET",
         "INTERNAL_SEND_TOKEN",
         "OPENAI_API_KEY",
-        "EVE_AGENT_ORIGIN"
+        "EVE_AGENT_ORIGIN",
+        "VERCEL_OIDC_TOKEN"
       ]
     },
     "dev": {
