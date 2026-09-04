@@ -345,7 +345,7 @@
     "intro_1": "Nos das acceso a tu cuenta de Airbnb y desde ahí nos hacemos cargo: precios, huéspedes, aseo entre estadías y el reporte de cada mes.",
     "intro_2": "No instalas nada y tu propiedad sigue siendo tuya. Airbnb te paga a ti, directo, como siempre.",
     "pending_title": "Estamos preparando tu invitación",
-    "pending_body": "Preparamos tu invitación a mano y te la mandamos por correo a {email}.",
+    "pending_body": "Preparamos tu invitación a mano y te avisamos apenas esté lista. Te escribimos a {email}.",
     "invite_title": "Tu invitación está lista",
     "invite_body": "Abre el enlace y verás la pantalla de Airbnb: inicias sesión con {email}, eliges tus propiedades y aceptas. Después vuelves acá.",
     "invite_body_generic": "Abre el enlace y verás la pantalla de Airbnb: inicias sesión, eliges tus propiedades y aceptas. Después vuelves acá.",
@@ -374,7 +374,7 @@
     "error_auth": "Tu sesión venció. Vuelve a entrar y seguimos.",
     "error_generic": "No pudimos guardar tu correo. Prueba de nuevo en un momento.",
     "error_check": "No pudimos revisar en este momento. Prueba de nuevo en un rato.",
-    "pending_body_generic": "Preparamos tu invitación a mano y te la mandamos por correo."
+    "pending_body_generic": "Preparamos tu invitación a mano y te avisamos apenas esté lista."
   },
   "detail": {
     "back": "Mis propiedades",
@@ -404,7 +404,7 @@
     "title": "Así lo dejamos andando",
     "subtitle": "Traemos tus propiedades directo desde tu cuenta de Airbnb.",
     "s1_title": "Te llega la invitación",
-    "s1_body": "La preparamos a mano y te la mandamos por correo.",
+    "s1_body": "La preparamos a mano y te avisamos apenas esté lista.",
     "s2_title": "Aceptas en Airbnb",
     "s2_body": "Abres el enlace, inicias sesión en Airbnb y nos das el acceso. Nada que instalar.",
     "s3_title": "Nosotros seguimos",
