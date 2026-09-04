@@ -25,6 +25,14 @@ Compacted from `AGENTS.md` sections "Product constraints (user-set)" and
   copy may say that Airbnb pays Luxel, deducts our fee, or splits the payout.
   An operator must set the split up first, then this line changes.
 - Hosts never see the crew or the guest messages. Those are Luxel operations.
+- **The website never sends anyone to WhatsApp.** No page a host or a visitor
+  reads offers a `wa.me` link, a "message us on WhatsApp" button or WhatsApp as
+  a way to reach us: not the landing page, not the chat widget's human handoff,
+  not the connect panel. A human handoff continues in the chat it started in.
+  WhatsApp stays what it already is — the channel Luxel uses outbound to reach
+  conserjes, the cleaning crew and a host an operator is chasing, and the crew's
+  own `/cleaning/confirm/[token]` page. It is an operations channel, never a
+  published front door.
 - Copy never says "0% comisión", "tarifa plana", "14 días gratis", "prueba
   gratis", or "m²". Voice per [`BRAND.md`](BRAND.md).
 - **Copy never names a city.** No city appears in anything a person reads: page

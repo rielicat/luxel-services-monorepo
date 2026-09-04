@@ -1,6 +1,5 @@
 export type HandoffWidget = {
   kind: 'handoff';
-  whatsappUrl: string | null;
   withinHours: boolean;
   openHour: number;
   closeHour: number;

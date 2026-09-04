@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
-import { Send, Phone, X, Home, ArrowRight } from 'lucide-react';
+import { Send, X, Home, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/routing';
 import { LuxelMark } from '@/components/brand/logo';
@@ -521,13 +521,6 @@ function WidgetCard({ widget, t }: { widget: Widget; t: ChatT }) {
           ? t('handoff_open')
           : t('handoff_closed', { open: widget.openHour, close: widget.closeHour })}
       </p>
-      {widget.whatsappUrl && (
-        <Button asChild variant="outline" size="sm" className="mt-2.5 w-full">
-          <a href={widget.whatsappUrl} target="_blank" rel="noopener noreferrer">
-            <Phone className="h-4 w-4" /> {t('handoff_whatsapp')}
-          </a>
-        </Button>
-      )}
     </div>
   );
 }

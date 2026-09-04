@@ -11,7 +11,6 @@ import {
   Home,
   LifeBuoy,
   Loader2,
-  MessageCircle,
   Plug,
   RefreshCw,
   Settings2,
@@ -37,11 +36,6 @@ export type ConnectState = {
 };
 
 type ConnectView = 'pending' | 'invite' | 'waiting' | 'no_listings' | 'operator';
-
-function whatsappHref(text: string): string {
-  const number = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, '');
-  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
-}
 
 function viewFor(state: ConnectState): ConnectView {
   if (state.stage === 'needs_operator') return 'operator';
@@ -83,18 +77,6 @@ function HowItWorks() {
         </li>
       ))}
     </ol>
-  );
-}
-
-function WhatsAppButton({ variant = 'default' }: { variant?: 'default' | 'outline' }) {
-  const t = useTranslations('connect');
-  return (
-    <Button asChild size="lg" variant={variant} className="justify-self-start">
-      <a href={whatsappHref(t('operator_wa_text'))} target="_blank" rel="noreferrer">
-        <MessageCircle className="h-4 w-4" />
-        {t('operator_wa')}
-      </a>
-    </Button>
   );
 }
 
@@ -188,7 +170,6 @@ export function ConnectPanel({
                     : t('pending_body_generic')}
                 </p>
               </div>
-              <WhatsAppButton variant="outline" />
               {errorText && (
                 <p role="alert" className="text-destructive text-sm">
                   {errorText}
@@ -253,7 +234,6 @@ export function ConnectPanel({
             <>
               <StageHead icon={LifeBuoy} title={t('operator_title')} />
               <p className="text-sm">{t('operator_body')}</p>
-              <WhatsAppButton />
             </>
           )}
         </CardContent>

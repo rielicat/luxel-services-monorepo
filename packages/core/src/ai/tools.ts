@@ -32,7 +32,6 @@ type Widget =
     }
   | {
       kind: 'handoff';
-      whatsappUrl: string | null;
       withinHours: boolean;
       openHour: number;
       closeHour: number;
@@ -57,7 +56,6 @@ interface ToolResult {
 }
 
 export interface ToolContext {
-  whatsappNumber?: string | null;
   customerId?: string | null;
   signedIn?: boolean;
   sessionId?: string | null;
@@ -497,12 +495,7 @@ function shareLinks(input: Record<string, unknown>): ToolResult {
   };
 }
 
-async function escalate(input: Record<string, unknown>, ctx: ToolContext): Promise<ToolResult> {
-  const reason = input.reason ? String(input.reason) : 'Solicitud de contacto humano';
-  const number = ctx.whatsappNumber?.replace(/[^\d]/g, '');
-  const url = number
-    ? `https://wa.me/${number}?text=${encodeURIComponent('Hola, vengo del chat de Luxel: ' + reason)}`
-    : null;
+async function escalate(_input: Record<string, unknown>, _ctx: ToolContext): Promise<ToolResult> {
   const hours = workingHoursStatus();
   return {
     content: hours.open
@@ -511,7 +504,6 @@ async function escalate(input: Record<string, unknown>, ctx: ToolContext): Promi
     handoff: true,
     widget: {
       kind: 'handoff',
-      whatsappUrl: url,
       withinHours: hours.open,
       openHour: hours.openHour,
       closeHour: hours.closeHour,

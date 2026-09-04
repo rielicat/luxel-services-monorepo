@@ -91,7 +91,6 @@ export async function POST(req: Request) {
   }
 
   const ctx: ToolContext = {
-    whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER,
     customerId: body.customerId ?? null,
     signedIn: Boolean(body.signedIn),
     sessionId: body.sessionId ?? null,
