@@ -5,25 +5,6 @@ import type { LucideIcon } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { LuxelLogo } from '@/components/brand/logo';
 
-export const authAppearance = {
-  layout: {
-    unsafe_disableDevelopmentModeWarnings: true,
-  },
-  variables: {
-    colorPrimary: 'hsl(175 78% 26%)',
-    borderRadius: '0.75rem',
-    fontFamily: 'var(--font-sans)',
-  },
-  elements: {
-    rootBox: 'w-full',
-    cardBox: 'w-full shadow-none border-0',
-    card: 'm-0 w-full bg-transparent shadow-none border-0 p-0',
-    header: 'hidden',
-    footer: 'hidden',
-    formButtonPrimary: 'shadow-soft',
-  },
-} as const;
-
 const POINTS: { icon: LucideIcon; key: 'guests' | 'pricing' | 'cleaning' | 'report' }[] = [
   { icon: MessageCircle, key: 'guests' },
   { icon: TrendingUp, key: 'pricing' },

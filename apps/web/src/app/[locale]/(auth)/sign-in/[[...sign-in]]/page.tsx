@@ -1,10 +1,13 @@
-import { SignIn } from '@clerk/nextjs';
-import { AuthShell, authAppearance } from '@/components/auth/auth-shell';
+import { Suspense } from 'react';
+import { AuthShell } from '@/components/auth/auth-shell';
+import { SignInForm } from '@/components/auth/sign-in-form';
 
 export default function SignInPage() {
   return (
     <AuthShell mode="sign-in">
-      <SignIn appearance={authAppearance} />
+      <Suspense fallback={null}>
+        <SignInForm />
+      </Suspense>
     </AuthShell>
   );
 }
