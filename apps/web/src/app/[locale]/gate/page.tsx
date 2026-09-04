@@ -57,6 +57,12 @@ export default function GatePage() {
           />
         ))}
       </div>
+      <a
+        href="/privacy"
+        className="text-xs font-medium text-white/50 underline underline-offset-4 transition-colors hover:text-white/80"
+      >
+        Política de privacidad
+      </a>
     </div>
   );
 }

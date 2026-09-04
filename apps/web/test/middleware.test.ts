@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { NextRequest, type NextFetchEvent } from 'next/server';
 import { tryToParsePath } from 'next/dist/lib/try-to-parse-path';
 
@@ -96,6 +96,30 @@ describe('clerk auth status on every matched request', () => {
     expect(api.status).not.toBe(307);
     expect(api.status).not.toBe(401);
     expect(servedPath(api, '/api/cleaning/inventory')).toBe('/api/cleaning/inventory');
+  });
+
+  it('keeps the privacy policy reachable through the production stealth gate', async () => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const gated = ((await import('../src/middleware')) as MiddlewareModule).default;
+      const call = async (pathname: string) =>
+        (await gated(new NextRequest(`http://localhost:3000${pathname}`), event)) as Response;
+
+      for (const path of ['/privacy', '/es/privacy', '/privacy/']) {
+        expect(servedPath(await call(path), path)).not.toContain('/gate');
+      }
+      expect(servedPath(await call('/calculator'), '/calculator')).toContain('/gate');
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
+
+  it('leaves the privacy policy public, with no sign-in bounce', async () => {
+    const res = await run('/privacy');
+    expect(res.status).not.toBe(307);
+    expect(servedPath(res, '/privacy')).toBe('/es/privacy');
   });
 
   it('leaves the review callback on its own token, with no sign-in bounce', async () => {

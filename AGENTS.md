@@ -104,8 +104,12 @@ supabase/        migrations + local config
 - **i18n.** No hardcoded user-facing strings. Site copy lives in
   `packages/shared/src/i18n/es-CL.json`; the guest check-in page also has
   `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix is
-  `never`.
-- **Routes are English.** `/calculator`, `/account`, `/properties`,
+  `never`. One surface deviates on purpose: the privacy policy is a long legal
+  document, so its copy lives in `privacy.{es,en,pt}.json` behind
+  `@luxel/shared/privacy`, as a typed object rather than `t()` keys. That keeps
+  it out of the `NextIntlClientProvider` payload of every other page.
+  `apps/web/test/privacy-copy.test.ts` holds the three files in step.
+- **Routes are English.** `/calculator`, `/account`, `/properties`, `/privacy`,
   `/checkin/[id]`, `/cleaning/confirm/[token]`. Never a Spanish path segment.
 - **TypeScript strict.** Extend `@luxel/config/tsconfig/{next,library,base}.json`.
   `infra/cloudflare` is standalone CommonJS for Pulumi.
@@ -280,6 +284,12 @@ Stealth gate: in production the middleware rewrites every page to
 `app/[locale]/gate` until the `luxel_gate` cookie exists. Typing `0612` unlocks.
 To lift it, delete `apps/web/src/app/[locale]/gate/` and the `withStealthGate`
 block in `apps/web/src/middleware.ts`.
+
+`/privacy` is exempt from the gate (`isPublicLegalRoute`), because the check-in
+page collects identity documents and must link to it. For that reason the page
+is `noindex` while the gate is up: it is the only publicly fetchable URL of a
+site the operator hid. Make it indexable in the same commit that deletes the
+gate.
 
 ## Product constraints (user-set)
 

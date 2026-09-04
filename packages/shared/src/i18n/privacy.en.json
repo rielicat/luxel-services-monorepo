@@ -1,0 +1,567 @@
+{
+  "meta_title": "Privacy policy",
+  "meta_description": "What personal data Servicios Luxel processes, why, who it is shared with, how long it is kept and what rights you have.",
+  "title": "Privacy policy",
+  "lead": "This page says plainly what personal data we process, why, who we share it with, how long we keep it and what you can demand from us. It is written to be read, not to be signed unread.",
+  "updated_label": "Last updated",
+  "updated_value": "3 September 2026",
+  "version_label": "Version",
+  "version_value": "1.0",
+  "lang_label": "Read in",
+  "lang_es": "Español",
+  "lang_en": "English",
+  "lang_pt": "Português",
+  "draft_title": "This document is a draft and no lawyer has reviewed it yet",
+  "draft_body": [
+    "We wrote this policy from what our systems actually do, reading the code line by line, and from Chilean personal data protection law. Nobody at Luxel is a lawyer.",
+    "Until a Chilean lawyer reviews and signs it off, we do not claim that this policy complies with the law. We claim something smaller and more honest: that it describes accurately what we do with your data today.",
+    "If anything here does not match your experience, write to us. Fixing this quickly matters more to us than looking finished."
+  ],
+  "placeholders_title": "Mandatory identification details are missing",
+  "placeholders_body": "The law requires a privacy policy to identify the company that answers for the data and to give an address where you can make a request. Those details are not published yet. We mark them like this, in brackets and capitals, so nobody mistakes them for real information:",
+  "placeholders_items": [
+    "[LEGAL NAME TO BE DEFINED] — the legal name of the company that answers for this data",
+    "[RUT TO BE DEFINED] — its Chilean tax identification number",
+    "[LEGAL REPRESENTATIVE TO BE DEFINED] — the person who represents it",
+    "[REGISTERED ADDRESS TO BE DEFINED] — its registered postal address",
+    "[CONTACT EMAIL TO BE DEFINED] — the address where we receive requests about your data"
+  ],
+  "toc_title": "What you will find here",
+  "sections": [
+    {
+      "id": "responsable",
+      "title": "Who answers for your data",
+      "plain": "We do. The company's legal identity is not published yet, and we are not going to invent it.",
+      "body": [
+        "Servicios Luxel manages short-term rentals in Chile. A host hands us their Airbnb listing and we run the whole operation: pricing, guest replies, cleaning, laundry, inventory and small repairs.",
+        "The data controller — el responsable del tratamiento under Chilean law — for the data described here is [LEGAL NAME TO BE DEFINED], tax number [RUT TO BE DEFINED], with its registered address at [REGISTERED ADDRESS TO BE DEFINED]. Its legal representative is [LEGAL REPRESENTATIVE TO BE DEFINED].",
+        "While those details are unpublished, these channels do work: if you are a guest, the Airbnb chat of your booking; if you are a host, the email address you sign in with; if you work on the ground, the WhatsApp number we already coordinate with you on."
+      ],
+      "rows": []
+    },
+    {
+      "id": "alcance",
+      "title": "Who this policy covers",
+      "plain": "Four groups of people, and each one appears here for a different reason.",
+      "body": [
+        "This policy covers what we do. It does not cover what Airbnb does with your data before the booking reaches us, nor what the host does on their own account, nor what other sites do when you follow a link from ours."
+      ],
+      "rows": [
+        {
+          "name": "Hosts",
+          "detail": "The owner of the apartment who hands us the management of their listing."
+        },
+        {
+          "name": "Guests",
+          "detail": "Every person who stays in a unit we manage, including those travelling with whoever made the booking."
+        },
+        {
+          "name": "Ground team",
+          "detail": "The cleaning, laundry and front-desk people who look after the unit, whether they work for Luxel or for the building."
+        },
+        {
+          "name": "Site visitors",
+          "detail": "Anyone who opens serviciosluxel.cl, writes in the chat or leaves us their details, even if they never buy anything."
+        }
+      ]
+    },
+    {
+      "id": "ley",
+      "title": "Which law applies, and from when",
+      "plain": "One law applies today; a stricter one starts soon. We wrote this policy for the stricter one.",
+      "body": [
+        "The Chilean Constitution, in article 19 number 4, guarantees the protection of personal data and leaves it to statute to set out how that protection works.",
+        "Today that statute is Ley N° 19.628, on the protection of private life. It is a short law: it recognises access, modification, deletion and blocking, it requires us to tell you why we store your data, and it creates no supervisory authority.",
+        "Ley N° 21.719 rewrites Ley N° 19.628 from top to bottom and creates the Agencia de Protección de Datos Personales, the Chilean data protection authority. Its entry into force is set for 1 December 2026. In August 2026 the Executive introduced a bill to move that date to 1 December 2027. That bill is not law yet: until it is published, the first date is the one that governs. We will update this line the day it changes.",
+        "We wrote this policy to the standard of the new regime, which is the stricter one, and we already recognise the rights that regime grants. Where a right is not yet legally enforceable, we say so.",
+        "If you live in the European Union, you may hold additional rights under the General Data Protection Regulation. We do not offer or advertise our service in the European Union: you reach us after booking on Airbnb. Even so, if you believe those rights apply to you, write to the same address and we will handle your request all the same."
+      ],
+      "rows": []
+    },
+    {
+      "id": "datos-huesped",
+      "title": "What we hold about a guest",
+      "plain": "The name and ID document of every person staying, the time you arrive and whether you come by car.",
+      "body": [
+        "We process this because it is necessary to perform your stay, and because the building's management needs to know who comes in. Those are the two lawful bases: performance of the contract, and our legitimate interest together with the building's.",
+        "The registration form requires the ID document in order to be completed, and offers no alternative. We do not ask for separate consent, because consent is not what this processing rests on.",
+        "We do not ask for your age, your nationality, your email address or your phone number on the registration form.",
+        "One thing you should know: the registration page for your stay opens with a private link or with your Airbnb confirmation code. Everyone on your booking has that code. Anyone holding it can open the page and see the registered names and the last four characters of each document. The page is not listed in search engines."
+      ],
+      "rows": [
+        {
+          "name": "Full name of every person in the party",
+          "detail": "You type it on the registration page. The building's front desk needs it to let you in."
+        },
+        {
+          "name": "Type and number of the identity document",
+          "detail": "RUT, passport, national ID card or other. The number is stored encrypted. Next to it we keep the document type and the last four characters unencrypted."
+        },
+        {
+          "name": "Arrival time, departure time, whether you arrive by car and its plate",
+          "detail": "It lets us coordinate the front desk and the cleaning between one stay and the next."
+        },
+        {
+          "name": "Booking language and expected number of people",
+          "detail": "It comes from Airbnb through Hospitable. We use it to show the registration page in your language."
+        },
+        {
+          "name": "Airbnb confirmation code and booking identifier",
+          "detail": "They let us recognise your booking and avoid duplicating it. The code also opens the registration page for your stay."
+        },
+        {
+          "name": "Messages you write in the Airbnb chat",
+          "detail": "We mirror them into our database so we can reply. They have their own section further down."
+        }
+      ]
+    },
+    {
+      "id": "datos-anfitrion",
+      "title": "What we hold about a host",
+      "plain": "Your account, your properties exactly as Hospitable sends them, and what each booking earns.",
+      "body": [
+        "The lawful basis is performance of the management contract. Without this data we cannot manage the listing.",
+        "Properties are a mirror of Hospitable. There is no way to create or edit a property by hand in our application: what you see is what is there.",
+        "If you delete your account we delete your record, and with it go your properties, the stays, the people registered on those stays, the messages and the cleanings attached to them."
+      ],
+      "rows": [
+        {
+          "name": "Account",
+          "detail": "Email, name, phone number and your session identifier. Clerk, our sign-in provider, holds the identity of record."
+        },
+        {
+          "name": "Properties",
+          "detail": "Internal name, street address, comuna, bedrooms, bathrooms, capacity, amenities, house rules and times. All mirrored from Hospitable."
+        },
+        {
+          "name": "Property context text",
+          "detail": "Whatever you write in the context form, including the wifi network and password if you choose to put them there. We hand that text to the model that drafts guest replies."
+        },
+        {
+          "name": "Access to the unit",
+          "detail": "The door code, if you enter one. It never appears in a message written by our code, and it sits on the list of secrets the model is forbidden to repeat."
+        },
+        {
+          "name": "Revenue per booking",
+          "detail": "What Airbnb pays you, what the guest paid in total, the cleaning fee and the nights. We use it to work out the 12% and to build your monthly summary."
+        },
+        {
+          "name": "Channel connection",
+          "detail": "The Hospitable token we read your listing with, stored encrypted."
+        }
+      ]
+    },
+    {
+      "id": "datos-equipo",
+      "title": "What we hold about cleaning and front-desk staff",
+      "plain": "How to reach you, which units you are assigned to, and what you did on each cleaning.",
+      "body": [
+        "The lawful basis is performance of the working or service relationship, and our legitimate interest in coordinating an operation that happens inside somebody else's home.",
+        "When somebody stops working with us we mark them inactive. Today their record is not deleted on its own, and we would rather say that than promise otherwise.",
+        "Your cleaning confirmation link is your only credential: there is no username and no password. That link closes three days after the cleaning date."
+      ],
+      "rows": [
+        {
+          "name": "Personal record",
+          "detail": "Name, WhatsApp number, email and an internal note. We enter it ourselves; it does not come from any external system."
+        },
+        {
+          "name": "Team members mirrored from Hospitable",
+          "detail": "Name, email and WhatsApp number of front-desk and cleaning staff entered by the host in Hospitable. They are rewritten on every sync."
+        },
+        {
+          "name": "Who recorded and who confirmed",
+          "detail": "The name you type when you upload the walkthrough video and when you confirm the inventory is stored against that cleaning."
+        },
+        {
+          "name": "Log of the notices we sent",
+          "detail": "For each stay we store which phone number and which email address we tried, and whether the notice arrived. That log has no deletion deadline today."
+        }
+      ]
+    },
+    {
+      "id": "datos-visitante",
+      "title": "What happens when you visit the site",
+      "plain": "We measure which pages get used. Today we do not ask your permission first, and that has to change.",
+      "body": [
+        "We do not store your IP address in our database. Vercel and Cloudflare do see it when the request arrives, because without it there is no internet.",
+        "Today the site shows no cookie notice and does not ask your permission before switching analytics on. That is a real gap against what the new law will require, and it is on the list of things to fix before this policy stops being a draft.",
+        "You can delete the anonymous identifier at any time: it lives in your browser's local storage and it goes when you clear the site's data."
+      ],
+      "rows": [
+        {
+          "name": "Anonymous and session identifiers",
+          "detail": "A random number stored in your browser so we do not count you twice. It carries no name."
+        },
+        {
+          "name": "Navigation event",
+          "detail": "Which page you saw, where you came from, the campaign that brought you, your browser string trimmed to 300 characters and the country the network reports."
+        },
+        {
+          "name": "Your account identifier",
+          "detail": "If you are signed in, the event is tied to your host account."
+        },
+        {
+          "name": "Contact form",
+          "detail": "Name, email, phone, comuna and whatever message you write. We process it to answer you."
+        },
+        {
+          "name": "Site chat",
+          "detail": "The whole conversation with you and with the assistant. If you ask for a person, your message and your name reach a Luxel person's WhatsApp."
+        },
+        {
+          "name": "Technical errors",
+          "detail": "If something breaks we send the error to our monitoring tool with sensitive parameters masked."
+        }
+      ]
+    },
+    {
+      "id": "bases",
+      "title": "Why we are allowed to process your data",
+      "plain": "Every use rests on a concrete reason. Here is which one.",
+      "body": [
+        "One point of substance, because it changes with the date. The law in force today, No. 19.628, allows only two routes: another law authorises the processing, or you authorise it expressly and in writing. The bases listed below — performance of the contract, legitimate interest, legal obligation — are those of the incoming law, and become directly applicable when it takes effect. We write them now because they honestly describe why we process each item, and because we want this policy to stay true after that date. Until then, where the current law requires your authorisation, we ask for it.",
+        "Where the reason is our legitimate interest, you may object at any time. If you do, we stop processing that data unless we have compelling grounds that outweigh your rights, and we will explain what they are.",
+        "Consent underpins very little of what we do, because most of it is necessary to perform a contract. Where we do ask for it, you may withdraw it whenever you like and without giving reasons. Withdrawing it does not make what we did before unlawful."
+      ],
+      "rows": [
+        {
+          "name": "Registering and organising your stay",
+          "detail": "Performance of the accommodation contract and pre-contractual steps."
+        },
+        {
+          "name": "Telling the building's front desk who is arriving",
+          "detail": "Our legitimate interest and the building's: knowing who enters a unit."
+        },
+        {
+          "name": "Managing the host's listing",
+          "detail": "Performance of the management contract."
+        },
+        {
+          "name": "Coordinating cleaning, laundry and front desk",
+          "detail": "Performance of the contract and our legitimate interest in running the unit."
+        },
+        {
+          "name": "Filming the walkthrough and keeping the inventory",
+          "detail": "Legitimate interest: protecting the host's unit and recording its condition between one stay and the next."
+        },
+        {
+          "name": "Answering guest messages",
+          "detail": "Performance of the accommodation contract."
+        },
+        {
+          "name": "Measuring site usage and replying to whoever writes to us",
+          "detail": "Legitimate interest in understanding which pages work, and your own request when you leave us your details. Under the new law part of this will need your consent."
+        },
+        {
+          "name": "Defending a claim or complying with a legal duty",
+          "detail": "Compliance with a legal obligation, and the exercise or defence of a right."
+        }
+      ]
+    },
+    {
+      "id": "terceros",
+      "title": "Who we share your data with",
+      "plain": "With providers who work on our instructions. We name them one by one.",
+      "body": [
+        "Every provider on this list processes data on our behalf and on our instructions. Airbnb and Hospitable are different: besides receiving data from us, they collect it on their own account before the booking reaches us, and they answer for that under their own policies.",
+        "We do not sell personal data. We do not hand it to advertising networks and we do not build commercial profiles with it.",
+        "A host never sees their guests' messages, the walkthrough video, the inventory, the review findings or the team's contact details. That is Luxel's operation."
+      ],
+      "rows": [
+        {
+          "name": "Hospitable",
+          "detail": "Our listing management system. It sends us bookings, messages, the calendar and the list of team members, and receives calendar blocks back."
+        },
+        {
+          "name": "Airbnb",
+          "detail": "Where the booking happens. Guest messages travel through its chat. We reach that data through Hospitable."
+        },
+        {
+          "name": "Clerk",
+          "detail": "Runs host sign-in: email, name, phone number, credentials and sessions."
+        },
+        {
+          "name": "Supabase",
+          "detail": "The database where everything described in this policy lives."
+        },
+        {
+          "name": "Vercel",
+          "detail": "Hosts the web application and the internal panel. It sees every request that arrives, including the one that submits your registration."
+        },
+        {
+          "name": "Cloudflare",
+          "detail": "The domain, the domain's email, the service that receives WhatsApp messages, and the storage that holds the walkthrough video."
+        },
+        {
+          "name": "Meta, through the WhatsApp Cloud API",
+          "detail": "We send the front desk the arrival notice through it, which carries the party's names and ID document numbers, the address and the vehicle plate. Cleaning notices go the same way."
+        },
+        {
+          "name": "Resend",
+          "detail": "Sends our email. If we cannot reach the front desk on WhatsApp, the same notice with names and documents goes by email."
+        },
+        {
+          "name": "OpenAI",
+          "detail": "The model that drafts guest replies. It receives the conversation, the property's details and the context text the host wrote."
+        },
+        {
+          "name": "Google",
+          "detail": "The model that reads the walkthrough video and writes the draft inventory. It receives the video file and that unit's previous inventory. In addition, our domain email is forwarded to a Google mailbox, so anything you write to that address — including a request about your data — is processed by Google."
+        },
+        {
+          "name": "PostHog",
+          "detail": "Receives the site's navigation events with the anonymous identifier or, if you are signed in, with your account's."
+        },
+        {
+          "name": "Sentry",
+          "detail": "Receives technical errors with sensitive parameters masked."
+        },
+        {
+          "name": "PriceLabs",
+          "detail": "Sets the listing's nightly price. Our code sends it no personal data at all: it only reads listings and prices."
+        },
+        {
+          "name": "The ground team and the building's front desk",
+          "detail": "They receive what they need to let you in and to service the unit: the party's names and documents, the address, the plate and the timing."
+        },
+        {
+          "name": "The host of the unit",
+          "detail": "Can reach the list of people registered at their property: the name, the document type and the last four characters. The full number travels encrypted and the key is not in the database."
+        }
+      ]
+    },
+    {
+      "id": "transferencias",
+      "title": "Your data leaves Chile",
+      "plain": "It does. Almost all of our infrastructure sits in the United States, and we are not hiding it.",
+      "body": [
+        "The walkthrough video is stored on Cloudflare storage configured in western North America. Navigation events reach PostHog's United States instance. OpenAI, Google, Meta, Clerk and Resend are United States companies and their services answer from there.",
+        "For Vercel, Supabase and Sentry we have not yet confirmed the exact region where each piece of data sits. That information is missing and we are not going to invent it here.",
+        "The new law requires a transfer out of Chile to rest on a country with an adequate level of protection, or on contractual clauses with the provider, or on equivalent guarantees. Today there is no Chilean adequacy determination at all, because the authority that must issue one is not yet operating.",
+        "Checking, contract by contract, that every provider has signed what the law will require is an open task. It is part of what is missing before this policy stops being a draft, and that is why we do not claim it is already settled."
+      ],
+      "rows": []
+    },
+    {
+      "id": "video",
+      "title": "The walkthrough video of the unit",
+      "plain": "After you leave, the cleaning team films a short walkthrough. It is for the inventory and for spotting damage.",
+      "body": [
+        "The video is filmed with the unit empty, after check-out. It shows the interior: the rooms, the furniture and the objects. If you left something behind, it may appear.",
+        "The team's phone browser records it, capped at two minutes and at a deliberately low quality. When it is uploaded it goes straight from that phone to the Cloudflare service that stores it, without passing through the web application. Afterwards, each time we send it to the model, our server downloads the whole file in order to forward it: at that moment the file does pass through the application, in memory, and is not stored there. Until it is uploaded, the recording waits up to 24 hours on the phone that filmed it.",
+        "The video serves two purposes: letting the team confirm the unit's inventory, and letting us compare that inventory against the previous cleaning's to spot something broken or missing.",
+        "We send the file to Google so that a model writes a draft inventory, and a second time to compare the unit against the previous inventory. We ask that it not be retained for their own use, and we delete the uploaded file at the end of each run. The Google account we use must be a paid one, because on the free tier Google may review and reuse submitted content. Confirming that the production key meets that condition is an open task and we do not treat it as done.",
+        "The model is instructed not to describe people and not to copy documents, screens, passwords or codes. That is an instruction written to the model, not a technical filter, and it should be understood that way.",
+        "The host never sees this video. Neither does the guest. There is no public page that shows it and no way to list the stored videos. Only a Luxel person opens it, from the internal panel, and to do that the system mints a link that works for one file and expires in ten minutes.",
+        "The video is deleted 30 days after it is filmed. A nightly task deletes it and, as a backstop, a rule on the storage itself. After that a record remains with the size, the duration, who filmed it and when; the file is gone.",
+        "If you are on the team or you are the host and you want to object to this filming, write to us. The basis is our legitimate interest, and an objection can always be raised against a legitimate interest."
+      ],
+      "rows": []
+    },
+    {
+      "id": "mensajes",
+      "title": "Guest messages",
+      "plain": "An artificial intelligence reads them, and so does a person at Luxel. The host never does.",
+      "body": [
+        "We mirror the messages from your booking's Airbnb chat into our database so that we can answer you at any hour.",
+        "An OpenAI model drafts a reply. To do that it receives the conversation and the unit's details: the internal name, the comuna, the street address, the capacity, the times, the amenities, the rules, the access method, the wifi network name and the free text the host wrote, which may include the wifi password.",
+        "The door code is not given to the model at all: it is not among the details the model receives, so it cannot repeat it. Separately, before earlier conversations are used as reference, the system strips the code out of them. The wifi password may appear, because that is what you need in order to connect, and the host may write it into their unit's free-text field.",
+        "By default nothing the model writes reaches you directly: a person at Luxel reads the draft and approves it before it is sent, and if they change it, the message is recorded as written by a person and not by the artificial intelligence. A Luxel operator can switch that review off for a unit; while it is off, the model's reply reaches you without a person reading it. Either way we record whether the model or a person wrote it.",
+        "When a unit has no history of its own yet, the model receives, as a generic reference, recent questions and answers from other units we manage. That block first goes through a filter that strips email addresses and phone numbers and trims the text. It is still a crossover between units, and we say so because it is true.",
+        "Today we do not delete messages by age. They stay as long as the property does.",
+        "The public site chat is a different thing: there you talk to an assistant about our service, we store the conversation, and if you ask for a person your message and your name reach a Luxel person's WhatsApp."
+      ],
+      "rows": []
+    },
+    {
+      "id": "automatizado",
+      "title": "Automated decisions and models",
+      "plain": "Three automated systems touch your stay. None of them decides anything about you on its own in a way that finally affects you.",
+      "body": [
+        "None of these systems assesses you as a person, classifies you, or decides whether we accept or refuse you. None of them sets a different price for you either: the nightly price is the same for anyone looking at the listing.",
+        "If you believe an automated output affected you, you have the right to have us explain how it works, to have a person review it, to state your point of view and to ask for the decision to be reviewed. Write to us and we will do it.",
+        "The findings from a cleaning review reach a Luxel person on WhatsApp, once at most. They never reach the host."
+      ],
+      "rows": [
+        {
+          "name": "Lux, the reply assistant",
+          "detail": "An OpenAI model drafts the reply to the guest. A person at Luxel reviews and approves it before it is sent."
+        },
+        {
+          "name": "Reading the video",
+          "detail": "A Google model writes a draft inventory and a list of differences. The team confirms or corrects it, and only that confirmation becomes the record."
+        },
+        {
+          "name": "The nightly price",
+          "detail": "PriceLabs adjusts the listing's price according to demand. It affects the published price, not anyone's rights."
+        }
+      ]
+    },
+    {
+      "id": "retencion",
+      "title": "How long we keep each thing",
+      "plain": "Some deadlines are short and automatic. Others do not exist yet, and we say that too.",
+      "body": [
+        "Deleting the ID documents at 90 days does not run on a clock of its own: it happens when we sync the host's account with Hospitable. If that connection is cut, that deletion stops running. It is a real limitation of how this is built today.",
+        "The 90 days count from the booking's departure date, not from the day you filled in the form.",
+        "Monthly invoicing happens outside this application. If a tax obligation or the defence of a claim requires a document to be kept, that obligation outweighs a deletion request, and we will tell you if it happens."
+      ],
+      "rows": [
+        {
+          "name": "Guest's identity document number",
+          "detail": "Deleted 90 days after the departure date. The type, the encrypted number and the last four characters all go."
+        },
+        {
+          "name": "Guest's name, arrival and departure times, vehicle plate",
+          "detail": "No deletion deadline today. They stay on the record of the stay."
+        },
+        {
+          "name": "Walkthrough video",
+          "detail": "30 days from filming. After that a record remains, without the file."
+        },
+        {
+          "name": "Draft inventory written by the model",
+          "detail": "The text is emptied at 30 days."
+        },
+        {
+          "name": "Findings from a cleaning review",
+          "detail": "The written detail is deleted at 30 days. The type, the room and the object's name remain."
+        },
+        {
+          "name": "Inventory confirmed by the team",
+          "detail": "Kept with no deadline, on purpose: it is the baseline the next cleaning is compared against."
+        },
+        {
+          "name": "Guest messages, reply drafts and site chat conversations",
+          "detail": "No deletion deadline today."
+        },
+        {
+          "name": "Navigation events and contact forms",
+          "detail": "No deletion deadline today."
+        },
+        {
+          "name": "Log of notices sent to the front desk and the team",
+          "detail": "No deletion deadline today. It includes the phone number and the email address we notified."
+        },
+        {
+          "name": "Host record and their properties",
+          "detail": "Deleted when the host deletes their account, and with them the stays, the registered people, the messages and the attached cleanings."
+        },
+        {
+          "name": "A team member's record",
+          "detail": "On deactivation it is marked inactive. Today the record is not deleted on its own."
+        }
+      ]
+    },
+    {
+      "id": "seguridad",
+      "title": "How we protect this",
+      "plain": "We encrypt the most delicate parts and separate who can see what. We also tell you where the protection stops.",
+      "body": [
+        "There is one point we would rather say to your face. So that the building's front desk lets you in, we send them your name and your document number over WhatsApp and, if we cannot reach them there, by email. On that leg the data travels readable inside the provider's platform. Encryption protects our database, not that message.",
+        "No measure is perfect. If a security breach happens with a risk to your rights, the new law obliges us to inform the Agencia without undue delay. Chilean law sets no deadline in hours, and we are not going to invent one."
+      ],
+      "rows": [
+        {
+          "name": "Document encryption",
+          "detail": "The document number is stored encrypted with AES-256-GCM and the key lives outside the database. Alongside it we keep the document type and the last four characters, so that something can still be shown if decryption fails."
+        },
+        {
+          "name": "Row-level separation",
+          "detail": "The database applies row-level security. A host reaches only their own rows. The video, inventory and review tables have no read policy at all: only the service opens them, never a user session."
+        },
+        {
+          "name": "The video, kept apart",
+          "detail": "It never passes through the web application. The browser hands it straight to the service that stores it, and that service chooses the file's name. Upload and read permissions are sealed authorisations that name one file and one operation, and expire in fifteen and in ten minutes."
+        },
+        {
+          "name": "Secrets that are never written",
+          "detail": "Door codes appear in no text addressed to a guest and sit on the list the model is forbidden to repeat. The wifi password may appear, because that is what it is for."
+        },
+        {
+          "name": "Technical logs",
+          "detail": "We do not log the video file's name, the authorisations, the video's addresses or the door codes."
+        },
+        {
+          "name": "Error monitoring",
+          "detail": "Sensitive parameters are masked. Session recording is off by default and switched off entirely on the guest registration page and on the cleaning team's page."
+        }
+      ]
+    },
+    {
+      "id": "derechos",
+      "title": "Your rights and how to use them",
+      "plain": "You can ask us to show, correct, delete and block your data, and to object to a use. It is free and you need no reason.",
+      "body": [
+        "Today, under Ley N° 19.628, you have the right to know what data of yours we hold, where it came from, who we passed it to and why we store it. You can ask us to modify it if it is wrong, to delete it and to block it. It is free of charge. If we do not resolve your request within two business days, or if we refuse it without one of the grounds the law allows, you may go to the civil court of first instance for the controller's domicile.",
+        "When the new law enters into force the list grows to six: access, rectification, erasure, objection, portability and blocking. They will be personal, non-transferable and non-waivable rights, and no contract will be able to limit them.",
+        "Portability reaches less far than people usually assume: it covers only data processed by automated means and on the basis of your consent. Almost everything we process rests on the contract, so portability does not reach it. We would rather tell you that than promise something the law does not give.",
+        "To ask for any of this, write to [CONTACT EMAIL TO BE DEFINED], or in writing to [REGISTERED ADDRESS TO BE DEFINED]. If you are a guest and your stay is still running, the Airbnb chat of your booking reaches us just as fast.",
+        "Before we hand over data we will ask for something that lets us confirm it is you. That is not bureaucracy: it is so that nobody else can ask for your data by pretending to be you."
+      ],
+      "rows": [
+        {
+          "name": "Access, rectification, erasure, objection and portability",
+          "detail": "From 1 December 2026: We answer within 30 calendar days. We may extend that once, by up to 30 more calendar days, telling you before the deadline runs out."
+        },
+        {
+          "name": "Temporary blocking",
+          "detail": "Two business days. While we resolve it we do not process the data covered by your request."
+        },
+        {
+          "name": "What it costs",
+          "detail": "Rectification, erasure and objection are always free. Access is free at least once every three months."
+        },
+        {
+          "name": "Withdrawing a consent",
+          "detail": "Whenever you like, without giving a reason, by the same means you gave it. It has no retroactive effect."
+        }
+      ]
+    },
+    {
+      "id": "reclamo",
+      "title": "If we do not answer you",
+      "plain": "There is a complaint route. We also tell you which one works today and which one does not yet.",
+      "body": [
+        "Under the new law you will be able to complain to the Agencia de Protección de Datos Personales within 30 business days, counted from our refusal or from the deadline passing without an answer. When we refuse you something we have to explain why and remind you of that deadline.",
+        "That authority is not operating yet: its governing board has not been appointed. Until it works, the real route is the judicial one described by the current law, and our contact address, which we read.",
+        "Before you reach either of those doors, tell us. Almost everything gets sorted by writing to us."
+      ],
+      "rows": []
+    },
+    {
+      "id": "ninos",
+      "title": "Children's and young people's data",
+      "plain": "If you travel with children, their names and documents go into the registration. We do nothing else with them.",
+      "body": [
+        "The stay registration asks for the name and document of every person staying, whatever their age. The adult who fills in the registration enters them, for the same purpose as the rest: so the front desk knows who comes in.",
+        "We do not ask for age, so our database does not tell a minor apart from an adult. We profile nobody, we target advertising at nobody, and least of all at a child.",
+        "Our site, the chat and the rest of our services are not directed at minors and we do not ask them for data directly.",
+        "If you believe we hold a child's data that we should not, write to us and we will delete it."
+      ],
+      "rows": []
+    },
+    {
+      "id": "cambios",
+      "title": "Changes to this policy",
+      "plain": "Every version carries a number and a date. If a change really affects you, we tell you.",
+      "body": [
+        "This policy carries its date and version number at the top. When we change it we raise the number and change the date, and the version in force is always the one published on this page.",
+        "If a change significantly affects how we process your data, we tell you through the channel we already use with you: a host, at their account email; a team member, on WhatsApp; a guest with a stay under way, through the Airbnb chat.",
+        "Reading this page is free and needs no account and no session."
+      ],
+      "rows": []
+    },
+    {
+      "id": "contacto",
+      "title": "How to reach us",
+      "plain": "An email address, a postal address, and a person reading on the other side.",
+      "body": [
+        "Write to [CONTACT EMAIL TO BE DEFINED], or in writing to [REGISTERED ADDRESS TO BE DEFINED], addressed to [LEGAL NAME TO BE DEFINED].",
+        "Tell us who you are and what you need: the name you registered your stay under, or your host account email, or the phone number we coordinate with you on if you are on the team. That is enough to start."
+      ],
+      "rows": []
+    }
+  ]
+}

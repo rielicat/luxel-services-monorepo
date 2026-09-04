@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const PUBLIC_ROUTES = ['/', '/about', '/calculator'];
+const PUBLIC_ROUTES = ['/', '/about', '/calculator', '/privacy'];
 
 for (const route of PUBLIC_ROUTES) {
   test(`renders ${route}`, async ({ page }) => {
@@ -33,4 +33,21 @@ test('the home page states the single fee', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('12% de tus reservas').first()).toBeVisible();
   await expect(page.getByText('por propiedad, IVA incluido').first()).toBeVisible();
+});
+
+test('the privacy policy shows it is an unreviewed draft with placeholders', async ({ page }) => {
+  await page.goto('/privacy?lang=es');
+  await expect(page.getByRole('heading', { name: 'Política de privacidad' })).toBeVisible();
+  await expect(page.getByText('todavía no lo revisa un abogado')).toBeVisible();
+  await expect(page.getByText('[RAZÓN SOCIAL POR DEFINIR]').first()).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'El video del recorrido de la unidad' }),
+  ).toBeVisible();
+});
+
+test('the privacy policy renders for a guest who reads English or Portuguese', async ({ page }) => {
+  await page.goto('/privacy?lang=en');
+  await expect(page.getByRole('heading', { name: 'Privacy policy' })).toBeVisible();
+  await page.goto('/privacy?lang=pt');
+  await expect(page.getByRole('heading', { name: 'Política de privacidade' })).toBeVisible();
 });

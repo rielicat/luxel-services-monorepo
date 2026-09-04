@@ -89,6 +89,21 @@ const maskDoc = (n: string): string => n.replace(/\s+/g, '').slice(-4);
 const guestReady = (g: GuestDraft): boolean =>
   g.fullName.trim().length > 0 && g.docNumber.trim().length >= MIN_DOC;
 
+function PrivacyLink({ className }: { className?: string }) {
+  const t = useTranslations('checkin');
+  const locale = useLocale();
+  return (
+    <a
+      href={`/privacy?lang=${locale}`}
+      target="_blank"
+      rel="noreferrer"
+      className={cn('underline underline-offset-2', className)}
+    >
+      {t('privacy_link')}
+    </a>
+  );
+}
+
 function useStayLine(stay: Stay): string | null {
   const t = useTranslations('checkin');
   const locale = useLocale();
@@ -360,6 +375,9 @@ function DoneView({
       )}
 
       <p className="text-muted-foreground text-center text-sm">{t('missing_someone')}</p>
+      <p className="text-muted-foreground text-center text-sm">
+        <PrivacyLink />
+      </p>
     </div>
   );
 }
@@ -595,7 +613,11 @@ export function CheckinForm({
               {message}
             </p>
           )}
-          {onDetails && <p className="text-muted-foreground text-xs">{t('disclaimer')}</p>}
+          {onDetails && (
+            <p className="text-muted-foreground text-xs">
+              {t('disclaimer')} <PrivacyLink className="text-foreground" />
+            </p>
+          )}
           {!stepReady && <p className="text-muted-foreground text-xs">{t('incomplete_hint')}</p>}
           <div className="flex gap-2">
             {step > 0 && (

@@ -47,6 +47,14 @@ export default async function CleaningConfirmPage({
           <h1 className="font-display text-xl font-semibold">{t('closedTitle')}</h1>
         </div>
         <p className="text-muted-foreground text-sm">{t('closedBody')}</p>
+        <a
+          href="/privacy?lang=es"
+          target="_blank"
+          rel="noreferrer"
+          className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-2 transition-colors"
+        >
+          {t('privacy_link')}
+        </a>
       </main>
     );
   }
@@ -102,6 +110,15 @@ export default async function CleaningConfirmPage({
           <ConfirmButton token={token} />
         </>
       )}
+
+      <a
+        href="/privacy?lang=es"
+        target="_blank"
+        rel="noreferrer"
+        className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-2 transition-colors"
+      >
+        {t('privacy_link')}
+      </a>
     </main>
   );
 }

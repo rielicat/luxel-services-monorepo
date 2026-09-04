@@ -21,6 +21,7 @@ const skipAuth = process.env.E2E_SKIP_AUTH === '1';
 const GATE_COOKIE = 'luxel_gate';
 const gateActive = process.env.NODE_ENV === 'production';
 const isPublicTokenRoute = (pathname: string) => /^\/(checkin|cleaning\/confirm)\//.test(pathname);
+const isPublicLegalRoute = (pathname: string) => /^(\/(es|en|pt))?\/privacy(\/|$)/.test(pathname);
 
 const withStealthGate =
   (handler: (req: NextRequest, event: NextFetchEvent) => unknown) =>
@@ -30,6 +31,7 @@ const withStealthGate =
       gateActive &&
       isPageRoute(pathname) &&
       !isPublicTokenRoute(pathname) &&
+      !isPublicLegalRoute(pathname) &&
       req.cookies.get(GATE_COOKIE)?.value !== '1'
     ) {
       return NextResponse.rewrite(new URL('/es/gate', req.url));

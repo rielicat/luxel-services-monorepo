@@ -22,6 +22,9 @@ export function Footer() {
           <Link href="/about" className="hover:text-foreground transition-colors">
             {tNav('about')}
           </Link>
+          <Link href="/privacy" className="hover:text-foreground transition-colors">
+            {tNav('privacy')}
+          </Link>
         </nav>
       </div>
       <div className="border-border/60 border-t">

@@ -8,7 +8,8 @@
     "services": "Servicio",
     "menu": "Menú",
     "close": "Cerrar",
-    "precios": "Precios"
+    "precios": "Precios",
+    "privacy": "Privacidad"
   },
   "landing": {
     "hero": {
@@ -283,7 +284,8 @@
     "rules_title": "Reglas de la casa",
     "rule_no_smoking": "No se permite fumar",
     "rule_no_pets": "No se permiten mascotas",
-    "rule_no_events": "No se permiten fiestas ni eventos"
+    "rule_no_events": "No se permiten fiestas ni eventos",
+    "privacy_link": "Cómo cuidamos tus datos"
   },
   "properties": {
     "title": "Mis propiedades",
@@ -529,7 +531,8 @@
       "items": "{count, plural, one {# cosa en el inventario} other {# cosas en el inventario}}"
     },
     "closedTitle": "Este link ya se cerró",
-    "closedBody": "Pasaron los días de este aseo. Escríbenos y te mandamos uno nuevo."
+    "closedBody": "Pasaron los días de este aseo. Escríbenos y te mandamos uno nuevo.",
+    "privacy_link": "Qué hacemos con el video y con tus datos"
   },
   "plans": {
     "commission_name": "Plan Luxel",

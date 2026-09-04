@@ -1,0 +1,567 @@
+{
+  "meta_title": "Política de privacidade",
+  "meta_description": "Quais dados pessoais a Servicios Luxel trata, por quê, com quem compartilha, por quanto tempo guarda e quais são os seus direitos.",
+  "title": "Política de privacidade",
+  "lead": "Esta página conta, sem rodeios, quais dados pessoais tratamos, por quê, com quem os compartilhamos, por quanto tempo os guardamos e o que você pode exigir de nós. Foi escrita para ser lida, não para ser assinada sem leitura.",
+  "updated_label": "Atualizada em",
+  "updated_value": "3 de setembro de 2026",
+  "version_label": "Versão",
+  "version_value": "1.0",
+  "lang_label": "Ler em",
+  "lang_es": "Español",
+  "lang_en": "English",
+  "lang_pt": "Português",
+  "draft_title": "Este documento é um rascunho e ainda não foi revisado por um advogado",
+  "draft_body": [
+    "Escrevemos esta política a partir do que os nossos sistemas realmente fazem, lendo o código linha por linha, e a partir da lei chilena de proteção de dados pessoais. Ninguém na Luxel é advogado.",
+    "Enquanto um advogado ou advogada no Chile não revisar e aprovar este texto, não afirmamos que esta política cumpre a lei. Afirmamos algo menor e mais honesto: que ela descreve com exatidão o que fazemos hoje com os seus dados.",
+    "Se algo aqui não corresponder à sua experiência, escreva para a gente. Corrigir isto rápido importa mais do que parecer pronto."
+  ],
+  "placeholders_title": "Faltam dados obrigatórios de identificação",
+  "placeholders_body": "A lei exige que uma política de privacidade identifique a empresa responsável e informe um endereço para receber solicitações. Esses dados ainda não foram publicados. Nós os marcamos assim, entre colchetes e em maiúsculas, para que ninguém os confunda com informação real:",
+  "placeholders_items": [
+    "[RAZÃO SOCIAL A DEFINIR] — o nome legal da empresa que responde por estes dados",
+    "[RUT A DEFINIR] — o número de identificação tributária chileno",
+    "[REPRESENTANTE LEGAL A DEFINIR] — a pessoa que a representa",
+    "[ENDEREÇO A DEFINIR] — o endereço postal registrado",
+    "[E-MAIL DE CONTATO A DEFINIR] — o e-mail onde recebemos solicitações sobre os seus dados"
+  ],
+  "toc_title": "O que você vai encontrar aqui",
+  "sections": [
+    {
+      "id": "responsable",
+      "title": "Quem responde pelos seus dados",
+      "plain": "Somos nós. Falta publicar a identidade legal da empresa, e não vamos inventá-la.",
+      "body": [
+        "A Servicios Luxel administra aluguéis de curta temporada no Chile. Um anfitrião nos entrega o anúncio dele no Airbnb e nós cuidamos de toda a operação: o preço, as respostas aos hóspedes, a limpeza, a lavanderia, o inventário e os pequenos reparos.",
+        "O controlador dos dados — el responsable del tratamiento na lei chilena — descritos aqui é [RAZÃO SOCIAL A DEFINIR], RUT [RUT A DEFINIR], com endereço em [ENDEREÇO A DEFINIR]. O representante legal é [REPRESENTANTE LEGAL A DEFINIR].",
+        "Enquanto esses dados não estiverem publicados, estes canais funcionam: se você é hóspede, o chat do Airbnb da sua reserva; se é anfitrião, o e-mail com o qual entra na sua conta; se é da equipe de campo, o WhatsApp pelo qual já combinamos tudo com você."
+      ],
+      "rows": []
+    },
+    {
+      "id": "alcance",
+      "title": "Quem esta política abrange",
+      "plain": "Quatro grupos de pessoas, e cada um aparece aqui por um motivo diferente.",
+      "body": [
+        "Esta política cobre o que nós fazemos. Não cobre o que o Airbnb faz com os seus dados antes de a reserva chegar até nós, nem o que o anfitrião faz por conta própria, nem o que outros sites fazem quando você segue um link nosso."
+      ],
+      "rows": [
+        {
+          "name": "Anfitriões",
+          "detail": "A pessoa dona do apartamento que nos entrega a administração do anúncio."
+        },
+        {
+          "name": "Hóspedes",
+          "detail": "Cada pessoa que se hospeda em uma unidade que administramos, incluindo quem viaja com quem fez a reserva."
+        },
+        {
+          "name": "Equipe de campo",
+          "detail": "As pessoas de limpeza, lavanderia e portaria que atendem a unidade, sejam da Luxel ou do prédio."
+        },
+        {
+          "name": "Visitantes do site",
+          "detail": "Quem abre serviciosluxel.cl, escreve no chat ou deixa os seus dados, mesmo que nunca contrate nada."
+        }
+      ]
+    },
+    {
+      "id": "ley",
+      "title": "Qual lei se aplica, e desde quando",
+      "plain": "Hoje vale uma lei; em breve entra outra, mais exigente. Escrevemos esta política pensando na mais exigente.",
+      "body": [
+        "A Constituição do Chile, no artigo 19 número 4, garante a proteção dos dados pessoais e deixa para a lei definir como essa proteção funciona.",
+        "Hoje essa lei é a Ley N° 19.628, sobre proteção da vida privada. É uma lei curta: reconhece o acesso, a modificação, a eliminação e o bloqueio, exige que informemos por que guardamos os seus dados, e não cria nenhuma autoridade de controle.",
+        "A Ley N° 21.719 reescreve a Ley N° 19.628 de ponta a ponta e cria a Agencia de Protección de Datos Personales, a autoridade chilena de proteção de dados. A entrada em vigor está marcada para 1º de dezembro de 2026. Em agosto de 2026 o Executivo apresentou um projeto de lei para mover essa data para 1º de dezembro de 2027. Esse projeto ainda não é lei: enquanto não for publicado, vale a primeira data. Vamos atualizar esta linha no dia em que isso mudar.",
+        "Escrevemos esta política no padrão do regime novo, que é o mais exigente, e já reconhecemos os direitos que esse regime concede. Onde um direito ainda não é exigível por lei, dizemos isso.",
+        "Se você mora na União Europeia, pode ter direitos adicionais sob o Regulamento Geral sobre a Proteção de Dados. Não oferecemos nem divulgamos o nosso serviço na União Europeia: você chega até nós depois de reservar no Airbnb. Mesmo assim, se você acredita que esses direitos se aplicam a você, escreva para o mesmo e-mail e tratamos a sua solicitação do mesmo jeito."
+      ],
+      "rows": []
+    },
+    {
+      "id": "datos-huesped",
+      "title": "O que guardamos de um hóspede",
+      "plain": "O nome e o documento de cada pessoa que se hospeda, o horário em que você chega e se vem de carro.",
+      "body": [
+        "Tratamos estes dados porque são necessários para executar a sua estadia, e porque a administração do prédio precisa saber quem entra. Estas são as duas bases legais: a execução do contrato e o nosso interesse legítimo junto com o do prédio.",
+        "O formulário de registro exige o documento para ser concluído e não oferece alternativa. Não pedimos um consentimento separado, porque não é o consentimento que sustenta este tratamento.",
+        "Não perguntamos a sua idade, a sua nacionalidade, o seu e-mail nem o seu telefone no formulário de registro.",
+        "Uma coisa que você deve saber: a página de registro da sua estadia abre com um link privado ou com o código de confirmação do Airbnb. Todas as pessoas da sua reserva têm esse código. Quem tiver o código pode abrir a página e ver os nomes registrados e os quatro últimos caracteres de cada documento. A página não aparece em buscadores."
+      ],
+      "rows": [
+        {
+          "name": "Nome completo de cada pessoa do grupo",
+          "detail": "Você escreve na página de registro. A portaria do prédio precisa dele para deixar você entrar."
+        },
+        {
+          "name": "Tipo e número do documento de identidade",
+          "detail": "RUT, passaporte, RG, DNI ou outro. O número fica criptografado. Ao lado dele guardamos o tipo e os quatro últimos caracteres sem criptografia."
+        },
+        {
+          "name": "Horário de chegada, horário de saída, se você chega de carro e a placa",
+          "detail": "Serve para organizar a portaria e a limpeza entre uma estadia e a seguinte."
+        },
+        {
+          "name": "Idioma da reserva e número de pessoas esperado",
+          "detail": "Vem do Airbnb através do Hospitable. Usamos isso para mostrar a página de registro no seu idioma."
+        },
+        {
+          "name": "Código de confirmação do Airbnb e identificador da reserva",
+          "detail": "Permitem reconhecer a sua reserva e não duplicá-la. O código também abre a página de registro da sua estadia."
+        },
+        {
+          "name": "Mensagens que você escreve no chat do Airbnb",
+          "detail": "Espelhamos na nossa base para poder responder. Elas têm a própria seção mais abaixo."
+        }
+      ]
+    },
+    {
+      "id": "datos-anfitrion",
+      "title": "O que guardamos de um anfitrião",
+      "plain": "A sua conta, as suas propriedades exatamente como vêm do Hospitable, e o que cada reserva rende.",
+      "body": [
+        "A base legal é a execução do contrato de administração. Sem estes dados não conseguimos administrar o anúncio.",
+        "As propriedades são um espelho do Hospitable. Não existe forma de criar nem de editar uma propriedade à mão no nosso aplicativo: o que você vê é o que está lá.",
+        "Se você apagar a sua conta, apagamos o seu cadastro, e com ele vão as suas propriedades, as estadias, as pessoas registradas nessas estadias, as mensagens e as limpezas associadas."
+      ],
+      "rows": [
+        {
+          "name": "Conta",
+          "detail": "E-mail, nome, telefone e o identificador da sua sessão. A identidade é administrada pela Clerk, a nossa provedora de login."
+        },
+        {
+          "name": "Propriedades",
+          "detail": "Nome interno, endereço, comuna, quartos, banheiros, capacidade, comodidades, regras da casa e horários. Tudo espelhado do Hospitable."
+        },
+        {
+          "name": "Texto de contexto da propriedade",
+          "detail": "O que você escreve no formulário de contexto, incluindo a rede e a senha do wi-fi se você decidir colocá-las ali. Esse texto é entregue ao modelo que redige as respostas aos hóspedes."
+        },
+        {
+          "name": "Acesso à unidade",
+          "detail": "O código da porta, se você cadastrar um. Ele nunca aparece em uma mensagem escrita pelo nosso código e está na lista de segredos que o modelo está proibido de repetir."
+        },
+        {
+          "name": "Receita por reserva",
+          "detail": "O que o Airbnb paga a você, o total pago pelo hóspede, a taxa de limpeza e as noites. Com isso calculamos os 12% e montamos o seu resumo mensal."
+        },
+        {
+          "name": "Conexão com o canal",
+          "detail": "O token do Hospitable com o qual lemos o seu anúncio, guardado criptografado."
+        }
+      ]
+    },
+    {
+      "id": "datos-equipo",
+      "title": "O que guardamos da equipe de limpeza e de portaria",
+      "plain": "Como falar com você, a quais unidades você está designado e o que fez em cada limpeza.",
+      "body": [
+        "A base legal é a execução da relação de trabalho ou de serviço, e o nosso interesse legítimo em coordenar uma operação que acontece dentro da casa de outra pessoa.",
+        "Quando alguém deixa de trabalhar conosco, marcamos essa pessoa como inativa. Hoje o cadastro dela não é apagado sozinho, e preferimos dizer isso a prometer o contrário.",
+        "O seu link de confirmação de limpeza é a sua única credencial: não há usuário nem senha. Esse link fecha três dias depois da data da limpeza."
+      ],
+      "rows": [
+        {
+          "name": "Cadastro da pessoa",
+          "detail": "Nome, WhatsApp, e-mail e uma nota interna. Somos nós que cadastramos; não vem de nenhum sistema externo."
+        },
+        {
+          "name": "Pessoas da equipe espelhadas do Hospitable",
+          "detail": "Nome, e-mail e WhatsApp de porteiros e pessoal de limpeza cadastrados pelo anfitrião no Hospitable. São reescritos a cada sincronização."
+        },
+        {
+          "name": "Quem gravou e quem confirmou",
+          "detail": "O nome que você escreve ao enviar o vídeo do percurso e ao confirmar o inventário fica guardado junto àquela limpeza."
+        },
+        {
+          "name": "Registro dos avisos enviados",
+          "detail": "Para cada estadia guardamos para qual telefone e para qual e-mail tentamos avisar, e se o aviso chegou. Hoje esse registro não tem prazo de exclusão."
+        }
+      ]
+    },
+    {
+      "id": "datos-visitante",
+      "title": "O que acontece quando você visita o site",
+      "plain": "Medimos quais páginas são usadas. Hoje não pedimos a sua permissão antes, e isso precisa mudar.",
+      "body": [
+        "Não guardamos o seu endereço IP na nossa base de dados. A Vercel e a Cloudflare veem esse endereço ao receber a solicitação, porque sem ele não existe internet.",
+        "Hoje o site não mostra aviso de cookies e não pede a sua permissão antes de ligar a análise de uso. É uma diferença real em relação ao que a lei nova vai exigir, e está na lista do que temos de corrigir antes de esta política deixar de ser um rascunho.",
+        "Você pode apagar o identificador anônimo quando quiser: ele fica no armazenamento local do seu navegador e some quando você limpa os dados do site."
+      ],
+      "rows": [
+        {
+          "name": "Identificadores anônimo e de sessão",
+          "detail": "Um número aleatório guardado no seu navegador para não contar você duas vezes. Não carrega o seu nome."
+        },
+        {
+          "name": "Evento de navegação",
+          "detail": "Qual página você viu, de onde veio, a campanha que trouxe você, o seu navegador cortado em 300 caracteres e o país que a rede informa."
+        },
+        {
+          "name": "O seu identificador de conta",
+          "detail": "Se você entrou na conta, o evento fica ligado à sua conta de anfitrião."
+        },
+        {
+          "name": "Formulário de contato",
+          "detail": "Nome, e-mail, telefone, comuna e a mensagem que você escrever. Tratamos isso para responder a você."
+        },
+        {
+          "name": "Chat do site",
+          "detail": "A conversa inteira com você e com o assistente. Se você pedir para falar com uma pessoa, a sua mensagem e o seu nome chegam ao WhatsApp de alguém da Luxel."
+        },
+        {
+          "name": "Erros técnicos",
+          "detail": "Se algo falhar, enviamos o erro à nossa ferramenta de monitoramento com os parâmetros sensíveis mascarados."
+        }
+      ]
+    },
+    {
+      "id": "bases",
+      "title": "Por que podemos tratar os seus dados",
+      "plain": "Cada uso se apoia em um motivo concreto. Aqui está qual é cada um.",
+      "body": [
+        "Um esclarecimento de fundo, porque muda com a data. A lei em vigor hoje, a N° 19.628, admite apenas dois caminhos: que outra lei autorize o tratamento, ou que você o autorize expressamente e por escrito. As bases listadas abaixo — execução do contrato, interesse legítimo, obrigação legal — são as da lei nova e passam a se aplicar diretamente quando ela entrar em vigor. Escrevemos desde já porque descrevem honestamente por que tratamos cada dado e porque queremos que esta política continue verdadeira depois dessa data. Até lá, onde a lei atual exigir a sua autorização, nós a pedimos.",
+        "Quando o motivo é o nosso interesse legítimo, você pode se opor a qualquer momento. Se você fizer isso, paramos de tratar esses dados, a menos que tenhamos motivos imperiosos que pesem mais do que os seus direitos, e explicaremos quais são.",
+        "O consentimento sustenta pouco do que fazemos, porque a maior parte é necessária para cumprir um contrato. Onde pedimos consentimento, você pode retirá-lo quando quiser e sem dar explicações. Retirar não torna ilícito o que fizemos antes."
+      ],
+      "rows": [
+        {
+          "name": "Registrar e organizar a sua estadia",
+          "detail": "Execução do contrato de hospedagem e medidas prévias a ele."
+        },
+        {
+          "name": "Avisar à portaria do prédio quem vai chegar",
+          "detail": "Interesse legítimo nosso e do prédio: saber quem entra em uma unidade."
+        },
+        {
+          "name": "Administrar o anúncio do anfitrião",
+          "detail": "Execução do contrato de administração."
+        },
+        {
+          "name": "Coordenar a limpeza, a lavanderia e a portaria",
+          "detail": "Execução do contrato e o nosso interesse legítimo em operar a unidade."
+        },
+        {
+          "name": "Gravar o percurso e manter o inventário",
+          "detail": "Interesse legítimo: cuidar da unidade do anfitrião e registrar o estado dela entre uma estadia e a seguinte."
+        },
+        {
+          "name": "Responder às mensagens dos hóspedes",
+          "detail": "Execução do contrato de hospedagem."
+        },
+        {
+          "name": "Medir o uso do site e responder a quem nos escreve",
+          "detail": "Interesse legítimo em entender quais páginas funcionam, e a sua própria solicitação quando você deixa os seus dados. Com a lei nova, parte disso vai exigir o seu consentimento."
+        },
+        {
+          "name": "Defender-nos de uma reclamação ou cumprir uma obrigação legal",
+          "detail": "Cumprimento de obrigação legal, e o exercício ou a defesa de um direito."
+        }
+      ]
+    },
+    {
+      "id": "terceros",
+      "title": "Com quem compartilhamos os seus dados",
+      "plain": "Com fornecedores que trabalham sob as nossas instruções. Nomeamos um por um.",
+      "body": [
+        "Todos os fornecedores desta lista tratam dados por nossa conta e seguindo as nossas instruções. O Airbnb e o Hospitable são diferentes: além de receber dados de nós, eles coletam dados por conta própria antes de a reserva chegar até nós, e respondem por isso com as políticas deles.",
+        "Não vendemos dados pessoais. Não os entregamos a redes de publicidade e não montamos perfis comerciais com eles.",
+        "Um anfitrião nunca vê as mensagens dos hóspedes, nem o vídeo do percurso, nem o inventário, nem os achados da revisão, nem os contatos da equipe. Isso é operação da Luxel."
+      ],
+      "rows": [
+        {
+          "name": "Hospitable",
+          "detail": "O nosso sistema de gestão de anúncios. Ele nos envia reservas, mensagens, o calendário e a lista de pessoas da equipe, e recebe de volta os bloqueios de calendário."
+        },
+        {
+          "name": "Airbnb",
+          "detail": "Onde a reserva acontece. As mensagens com o hóspede passam pelo chat dele. Nós chegamos a esses dados através do Hospitable."
+        },
+        {
+          "name": "Clerk",
+          "detail": "Administra o login dos anfitriões: e-mail, nome, telefone, credenciais e sessões."
+        },
+        {
+          "name": "Supabase",
+          "detail": "A base de dados onde vive tudo o que está descrito nesta política."
+        },
+        {
+          "name": "Vercel",
+          "detail": "Hospeda o aplicativo web e o painel interno. Vê cada solicitação que chega, inclusive a que envia o seu registro."
+        },
+        {
+          "name": "Cloudflare",
+          "detail": "O domínio, o e-mail do domínio, o serviço que recebe as mensagens de WhatsApp e o armazenamento onde fica o vídeo do percurso."
+        },
+        {
+          "name": "Meta, pela WhatsApp Cloud API",
+          "detail": "Por ali enviamos à portaria o aviso de chegada, que inclui os nomes e os números de documento do grupo, o endereço e a placa. Os avisos à equipe de limpeza vão pelo mesmo caminho."
+        },
+        {
+          "name": "Resend",
+          "detail": "Envia os nossos e-mails. Se não alcançarmos a portaria pelo WhatsApp, o mesmo aviso com nomes e documentos sai por e-mail."
+        },
+        {
+          "name": "OpenAI",
+          "detail": "O modelo que redige as respostas aos hóspedes. Recebe a conversa, os dados da propriedade e o texto de contexto escrito pelo anfitrião."
+        },
+        {
+          "name": "Google",
+          "detail": "O modelo que lê o vídeo do percurso e escreve o rascunho de inventário. Recebe o arquivo de vídeo e o inventário anterior daquela unidade. Além disso, o e-mail do nosso domínio é encaminhado para uma caixa do Google, então o que você nos escrever nesse endereço — inclusive um pedido sobre os seus dados — é processado pelo Google."
+        },
+        {
+          "name": "PostHog",
+          "detail": "Recebe os eventos de navegação do site com o identificador anônimo ou, se você entrou na conta, com o da sua conta."
+        },
+        {
+          "name": "Sentry",
+          "detail": "Recebe os erros técnicos com os parâmetros sensíveis mascarados."
+        },
+        {
+          "name": "PriceLabs",
+          "detail": "Define o preço por noite do anúncio. O nosso código não envia nenhum dado pessoal a ela: apenas consulta anúncios e preços."
+        },
+        {
+          "name": "A equipe de campo e a portaria do prédio",
+          "detail": "Recebem o necessário para deixar você entrar e para atender a unidade: os nomes e documentos do grupo, o endereço, a placa e os horários."
+        },
+        {
+          "name": "O anfitrião da unidade",
+          "detail": "Pode alcançar a lista de pessoas registradas na propriedade dele: o nome, o tipo de documento e os quatro últimos caracteres. O número completo viaja criptografado e a chave não está na base de dados."
+        }
+      ]
+    },
+    {
+      "id": "transferencias",
+      "title": "Os seus dados saem do Chile",
+      "plain": "Saem, sim. Quase toda a nossa infraestrutura está nos Estados Unidos, e não escondemos isso.",
+      "body": [
+        "O vídeo do percurso fica em um armazenamento da Cloudflare configurado no oeste da América do Norte. Os eventos de navegação chegam à instância da PostHog nos Estados Unidos. OpenAI, Google, Meta, Clerk e Resend são empresas norte-americanas e os serviços delas respondem de lá.",
+        "Da Vercel, da Supabase e da Sentry ainda não temos confirmada a região exata onde cada dado fica. É uma informação que nos falta e não vamos inventá-la aqui.",
+        "A lei nova exige que uma transferência para fora do Chile se apoie em um país com nível adequado de proteção, ou em cláusulas contratuais com o fornecedor, ou em garantias equivalentes. Hoje não existe nenhuma declaração chilena de adequação, porque a autoridade que deve emiti-la ainda não está em funcionamento.",
+        "Verificar, contrato por contrato, que cada fornecedor assinou o que a lei vai exigir é uma tarefa em aberto. Faz parte do que falta antes de esta política deixar de ser um rascunho, e por isso não afirmamos que já esteja resolvido."
+      ],
+      "rows": []
+    },
+    {
+      "id": "video",
+      "title": "O vídeo do percurso da unidade",
+      "plain": "Depois que você sai, a equipe de limpeza grava um percurso curto. É para o inventário e para detectar danos.",
+      "body": [
+        "O vídeo é gravado com a unidade vazia, depois do check-out. Mostra o interior: os ambientes, os móveis e os objetos. Se você esqueceu algo lá dentro, pode aparecer.",
+        "Quem grava é o navegador do celular da equipe, com no máximo dois minutos e uma qualidade deliberadamente baixa. Ao ser enviado, o arquivo vai direto desse celular para o serviço da Cloudflare que o guarda, sem passar pelo aplicativo web. Depois, cada vez que o enviamos ao modelo, o nosso servidor baixa o arquivo inteiro para reencaminhá-lo: nesse momento ele passa pelo aplicativo, em memória, e não fica guardado ali. Enquanto não é enviada, a gravação espera até 24 horas no celular que gravou.",
+        "O vídeo serve para duas coisas: para a equipe confirmar o inventário da unidade, e para depois compararmos esse inventário com o da limpeza anterior e detectar algo quebrado ou algo que falta.",
+        "Enviamos o arquivo ao Google para que um modelo escreva um rascunho de inventário, e uma segunda vez para comparar a unidade com o inventário anterior. Pedimos que ele não seja conservado para uso próprio e apagamos o arquivo enviado ao fim de cada execução. A conta do Google que usamos precisa ser uma conta paga, porque na camada gratuita o Google pode revisar e reutilizar o conteúdo enviado. Confirmar que a chave em produção cumpre essa condição é uma tarefa pendente e não damos isso como feito.",
+        "O modelo tem a instrução de não descrever pessoas e de não copiar documentos, telas, senhas nem códigos. É uma instrução escrita ao modelo, não um filtro técnico, e é assim que ela deve ser entendida.",
+        "O anfitrião nunca vê este vídeo. O hóspede também não. Não existe página pública que o mostre nem forma de listar os vídeos guardados. Só uma pessoa da Luxel o abre, pelo painel interno, e para isso o sistema cria um link que serve para um único arquivo e expira em dez minutos.",
+        "O vídeo é apagado 30 dias depois de gravado. Uma tarefa noturna apaga o arquivo e, como reforço, uma regra do próprio armazenamento. Depois disso resta o registro com o tamanho, a duração, quem gravou e quando; o arquivo já não existe.",
+        "Se você é da equipe ou é o anfitrião e quer se opor a essa gravação, escreva para a gente. A base é o nosso interesse legítimo, e contra um interesse legítimo a oposição sempre pode ser apresentada."
+      ],
+      "rows": []
+    },
+    {
+      "id": "mensajes",
+      "title": "As mensagens com os hóspedes",
+      "plain": "Uma inteligência artificial as lê, e uma pessoa da Luxel também. O anfitrião nunca.",
+      "body": [
+        "Espelhamos na nossa base as mensagens do chat do Airbnb da sua reserva, para poder responder a qualquer hora.",
+        "Um modelo da OpenAI redige um rascunho de resposta. Para isso ele recebe a conversa e os dados da unidade: o nome interno, a comuna, o endereço, a capacidade, os horários, as comodidades, as regras, a forma de acesso, o nome da rede de wi-fi e o texto livre escrito pelo anfitrião, que pode incluir a senha do wi-fi.",
+        "O código da porta não é entregue ao modelo: ele não está entre os dados que o modelo recebe, então não tem como repeti-lo. Além disso, antes de usar conversas anteriores como referência, o sistema apaga o código delas. A senha do wi-fi pode aparecer, porque é dela que você precisa para se conectar, e o anfitrião pode escrevê-la no texto livre da unidade.",
+        "Por padrão, nada do que o modelo escreve chega direto a você: uma pessoa da Luxel lê o rascunho e o aprova antes do envio, e se ela mudar o texto, a mensagem fica registrada como escrita por uma pessoa e não pela inteligência artificial. Um operador da Luxel pode desativar essa revisão para uma unidade; enquanto estiver desativada, a resposta do modelo chega a você sem que uma pessoa a leia. Nos dois casos fica registrado se quem escreveu foi o modelo ou uma pessoa.",
+        "Quando uma unidade ainda não tem histórico próprio, o modelo recebe, como referência genérica, perguntas e respostas recentes de outras unidades que administramos. Esse bloco passa antes por um filtro que apaga e-mails e telefones e corta o texto. Ainda assim é um cruzamento entre unidades, e dizemos isso porque é verdade.",
+        "Hoje não apagamos as mensagens por antiguidade. Elas ficam enquanto a propriedade existir.",
+        "O chat do site público é outra coisa: ali você conversa com um assistente sobre o nosso serviço, guardamos a conversa e, se você pedir para falar com uma pessoa, a sua mensagem e o seu nome chegam ao WhatsApp de alguém da Luxel."
+      ],
+      "rows": []
+    },
+    {
+      "id": "automatizado",
+      "title": "Decisões automáticas e modelos",
+      "plain": "Três sistemas automáticos tocam a sua estadia. Nenhum decide sozinho algo que afete você de forma definitiva.",
+      "body": [
+        "Nenhum desses sistemas avalia você como pessoa, nem classifica você, nem decide se aceitamos ou recusamos você. Nenhum define um preço diferente para você: o preço da noite é o mesmo para quem olhar o anúncio.",
+        "Se você acha que um resultado automático afetou você, tem o direito de pedir que expliquemos como ele funciona, que uma pessoa o revise, de dar o seu ponto de vista e de pedir a revisão da decisão. Escreva para a gente e fazemos isso.",
+        "Os achados da revisão de uma limpeza chegam a uma pessoa da Luxel por WhatsApp, uma única vez. Nunca chegam ao anfitrião."
+      ],
+      "rows": [
+        {
+          "name": "Lux, o assistente de respostas",
+          "detail": "Um modelo da OpenAI redige a resposta ao hóspede. Uma pessoa da Luxel revisa e aprova antes do envio."
+        },
+        {
+          "name": "A leitura do vídeo",
+          "detail": "Um modelo do Google escreve um rascunho de inventário e uma lista de diferenças. A equipe confirma ou corrige, e só essa confirmação vira registro."
+        },
+        {
+          "name": "O preço por noite",
+          "detail": "A PriceLabs ajusta o preço do anúncio conforme a demanda. Afeta o preço publicado, não os direitos de ninguém."
+        }
+      ]
+    },
+    {
+      "id": "retencion",
+      "title": "Por quanto tempo guardamos cada coisa",
+      "plain": "Alguns prazos são curtos e automáticos. Outros ainda não existem, e dizemos isso também.",
+      "body": [
+        "A exclusão dos documentos aos 90 dias não corre por relógio próprio: ela acontece quando sincronizamos a conta do anfitrião com o Hospitable. Se essa conexão for cortada, essa exclusão deixa de rodar. É uma limitação real de como isto está construído hoje.",
+        "Os 90 dias contam a partir da data de saída da reserva, não do dia em que você preencheu o formulário.",
+        "O faturamento mensal acontece fora deste aplicativo. Se uma obrigação tributária ou a defesa de uma reclamação exigir a guarda de um documento, essa obrigação pesa mais do que um pedido de exclusão, e avisaremos você se isso acontecer."
+      ],
+      "rows": [
+        {
+          "name": "Número do documento de identidade do hóspede",
+          "detail": "Apagado 90 dias depois da data de saída. Vão o tipo, o número criptografado e os quatro últimos caracteres."
+        },
+        {
+          "name": "Nome do hóspede, horários de chegada e saída, placa",
+          "detail": "Hoje não têm prazo de exclusão. Ficam no registro da estadia."
+        },
+        {
+          "name": "Vídeo do percurso",
+          "detail": "30 dias a partir da gravação. Depois resta o registro, sem o arquivo."
+        },
+        {
+          "name": "Rascunho de inventário escrito pelo modelo",
+          "detail": "O texto é esvaziado aos 30 dias."
+        },
+        {
+          "name": "Achados da revisão de uma limpeza",
+          "detail": "O detalhe escrito é apagado aos 30 dias. Ficam o tipo, o cômodo e o nome do objeto."
+        },
+        {
+          "name": "Inventário confirmado pela equipe",
+          "detail": "Guardado sem prazo, de propósito: é a base de comparação da limpeza seguinte."
+        },
+        {
+          "name": "Mensagens com hóspedes, rascunhos de resposta e conversas do chat do site",
+          "detail": "Hoje não têm prazo de exclusão."
+        },
+        {
+          "name": "Eventos de navegação e formulários de contato",
+          "detail": "Hoje não têm prazo de exclusão."
+        },
+        {
+          "name": "Registro dos avisos enviados à portaria e à equipe",
+          "detail": "Hoje não tem prazo de exclusão. Inclui o telefone e o e-mail avisados."
+        },
+        {
+          "name": "Cadastro do anfitrião e das propriedades dele",
+          "detail": "São apagados quando o anfitrião exclui a conta, e com eles as estadias, as pessoas registradas, as mensagens e as limpezas associadas."
+        },
+        {
+          "name": "Cadastro de uma pessoa da equipe",
+          "detail": "Ao ser desativada, fica marcada como inativa. Hoje o cadastro não é apagado sozinho."
+        }
+      ]
+    },
+    {
+      "id": "seguridad",
+      "title": "Como protegemos isto",
+      "plain": "Criptografamos o mais delicado e separamos quem pode ver o quê. Também contamos onde a proteção termina.",
+      "body": [
+        "Há um ponto que preferimos dizer na sua cara. Para que a portaria do prédio deixe você entrar, enviamos a ela o seu nome e o número do seu documento por WhatsApp e, se não conseguirmos por ali, por e-mail. Nesse trecho o dado viaja legível dentro da plataforma do fornecedor. A criptografia protege a nossa base de dados, não essa mensagem.",
+        "Nenhuma medida é perfeita. Se ocorrer uma violação de segurança com risco para os seus direitos, a lei nova nos obriga a informar a Agencia sem demora indevida. A lei chilena não fixa prazo em horas, e não vamos inventar um."
+      ],
+      "rows": [
+        {
+          "name": "Criptografia do documento",
+          "detail": "O número do documento é guardado criptografado com AES-256-GCM e a chave fica fora da base de dados. Ao lado dele ficam o tipo de documento e os quatro últimos caracteres, para que algo possa ser mostrado se a descriptografia falhar."
+        },
+        {
+          "name": "Separação por linha",
+          "detail": "A base de dados aplica segurança em nível de linha. Um anfitrião alcança apenas o que é dele. As tabelas do vídeo, do inventário e da revisão não têm nenhuma política de leitura: só o serviço as abre, nunca uma sessão de usuário."
+        },
+        {
+          "name": "O vídeo, à parte",
+          "detail": "Ele não passa pelo aplicativo web. O navegador entrega direto ao serviço que o guarda, e esse serviço escolhe o nome do arquivo. As permissões de envio e de leitura são autorizações seladas que nomeiam um único arquivo e uma única operação, e expiram em quinze e em dez minutos."
+        },
+        {
+          "name": "Segredos que nunca são escritos",
+          "detail": "Os códigos de porta não aparecem em nenhum texto dirigido a um hóspede e estão na lista que o modelo está proibido de repetir. A senha do wi-fi pode aparecer, porque é para isso que ela existe."
+        },
+        {
+          "name": "Registros técnicos",
+          "detail": "Não registramos o nome do arquivo do vídeo, nem as autorizações, nem os endereços do vídeo, nem os códigos de porta."
+        },
+        {
+          "name": "Monitoramento de erros",
+          "detail": "Os parâmetros sensíveis são mascarados. A gravação de sessão está desligada por padrão e totalmente desativada na página de registro do hóspede e na página da equipe de limpeza."
+        }
+      ]
+    },
+    {
+      "id": "derechos",
+      "title": "Os seus direitos e como exercê-los",
+      "plain": "Você pode pedir para ver, corrigir, apagar e bloquear os seus dados, e se opor a um uso. É grátis e sem precisar justificar.",
+      "body": [
+        "Hoje, sob a Ley N° 19.628, você tem o direito de saber quais dados seus temos, de onde vieram, a quem os entregamos e por que os guardamos. Pode pedir que os modifiquemos se estiverem errados, que os eliminemos e que os bloqueemos. É gratuito. Se não resolvermos a sua solicitação dentro de dois dias úteis, ou se a recusarmos sem um dos motivos que a lei permite, você pode recorrer ao juiz civil de primeira instância do domicílio do responsável.",
+        "Quando a lei nova entrar em vigor, a lista cresce para seis: acesso, retificação, eliminação, oposição, portabilidade e bloqueio. Serão direitos pessoais, intransferíveis e irrenunciáveis, e nenhum contrato poderá limitá-los.",
+        "A portabilidade alcança menos do que se costuma imaginar: cobre apenas dados tratados de forma automatizada e com base no seu consentimento. Quase tudo o que tratamos se apoia no contrato, então ali a portabilidade não chega. Preferimos dizer isso a prometer algo que a lei não dá.",
+        "Para pedir qualquer uma dessas coisas, escreva para [E-MAIL DE CONTATO A DEFINIR], ou por escrito para [ENDEREÇO A DEFINIR]. Se você é hóspede e a estadia ainda está em curso, o chat do Airbnb da sua reserva chega igualmente rápido.",
+        "Antes de entregar dados vamos pedir algo que nos permita confirmar que é você. Não é burocracia: é para que ninguém possa pedir os seus dados se passando por você."
+      ],
+      "rows": [
+        {
+          "name": "Acesso, retificação, eliminação, oposição e portabilidade",
+          "detail": "A partir de 1 de dezembro de 2026: Respondemos dentro de 30 dias corridos. Podemos prorrogar uma única vez, por até mais 30 dias corridos, avisando você antes do prazo vencer."
+        },
+        {
+          "name": "Bloqueio temporário",
+          "detail": "Dois dias úteis. Enquanto resolvemos, não tratamos os dados que estão na sua solicitação."
+        },
+        {
+          "name": "Quanto custa",
+          "detail": "A retificação, a eliminação e a oposição são sempre gratuitas. O acesso é gratuito pelo menos uma vez a cada três meses."
+        },
+        {
+          "name": "Retirar um consentimento",
+          "detail": "Quando quiser, sem explicar por quê, pelo mesmo meio em que o deu. Não tem efeito retroativo."
+        }
+      ]
+    },
+    {
+      "id": "reclamo",
+      "title": "Se não respondermos a você",
+      "plain": "Existe um caminho de reclamação. Contamos também qual funciona hoje e qual ainda não.",
+      "body": [
+        "Com a lei nova você poderá reclamar à Agencia de Protección de Datos Personales dentro de 30 dias úteis, contados da nossa recusa ou do vencimento do prazo sem resposta. Quando recusarmos algo, temos de explicar por quê e lembrar você desse prazo.",
+        "Essa autoridade ainda não está em funcionamento: o conselho diretivo dela não foi nomeado. Enquanto não funcionar, o caminho real é o judicial descrito pela lei atual, e o nosso e-mail de contato, que lemos.",
+        "Antes de chegar a qualquer uma dessas duas portas, avise a gente. Quase tudo se resolve escrevendo para nós."
+      ],
+      "rows": []
+    },
+    {
+      "id": "ninos",
+      "title": "Dados de crianças e adolescentes",
+      "plain": "Se você viaja com filhos, os nomes e documentos deles entram no registro da estadia. Não fazemos mais nada com eles.",
+      "body": [
+        "O registro da estadia pede o nome e o documento de cada pessoa que se hospeda, qualquer que seja a idade. Quem os cadastra é a pessoa adulta que faz o registro, com a mesma finalidade do resto: que a portaria saiba quem entra.",
+        "Não perguntamos a idade, então a nossa base não distingue um menor de um adulto. Não traçamos perfil de ninguém, não dirigimos publicidade a ninguém, e muito menos a uma criança.",
+        "O nosso site, o chat e o resto dos nossos serviços não são dirigidos a menores de idade e não pedimos dados a eles diretamente.",
+        "Se você acha que temos dados de uma criança que não deveríamos ter, escreva para a gente e apagamos."
+      ],
+      "rows": []
+    },
+    {
+      "id": "cambios",
+      "title": "Mudanças nesta política",
+      "plain": "Cada versão tem número e data. Se a mudança realmente afetar você, avisamos.",
+      "body": [
+        "Esta política traz no alto a data e o número da versão. Quando a mudarmos, subimos o número e trocamos a data, e a versão em vigor é sempre a publicada nesta página.",
+        "Se a mudança afetar de forma significativa como tratamos os seus dados, avisamos pelo canal que já usamos com você: a um anfitrião, no e-mail da conta; a uma pessoa da equipe, por WhatsApp; a um hóspede com estadia em curso, pelo chat do Airbnb.",
+        "Consultar esta página é gratuito e não exige conta nem sessão."
+      ],
+      "rows": []
+    },
+    {
+      "id": "contacto",
+      "title": "Como falar com a gente",
+      "plain": "Um e-mail, um endereço, e uma pessoa lendo do outro lado.",
+      "body": [
+        "Escreva para [E-MAIL DE CONTATO A DEFINIR], ou por escrito para [ENDEREÇO A DEFINIR], aos cuidados de [RAZÃO SOCIAL A DEFINIR].",
+        "Conte quem você é e do que precisa: o nome com que registrou a sua estadia, ou o e-mail da sua conta de anfitrião, ou o telefone pelo qual combinamos as coisas, se você é da equipe. Com isso já começamos."
+      ],
+      "rows": []
+    }
+  ]
+}
