@@ -296,9 +296,21 @@ supabase/        migrations + local config
   cosine. A property with no history falls back to the global digests and never
   cites another property as its own. The conversation tier is eve's own durable
   session, keyed to `guest_threads.agent_session_id`. Hosts never see any of it.
-- The **nightly distillation** is what writes the global tier. It runs from the
-  Cloudflare Worker's existing cron, which POSTs `/api/agent/distill` with
-  `INTERNAL_SEND_TOKEN`, exactly as the cleaning review already does. It is
+- The global tier is built from the **real threads**, not only from what Lux
+  said. `ingestThreads` reads `guest_messages` and digests each thread, labelling
+  an operator's reply as the Luxel voice and the AI's as Lux. That covers the
+  history from before the agent, the properties with `ai_replies` off, and the
+  handoffs. A digest is keyed `thread:<thread id>:<newest message id>`, so a
+  thread is digested once and again only when it gains a message. Because
+  `sendReplyDraft` writes the text actually sent into `guest_messages`, an
+  operator's edit teaches the playbook and the unapproved draft never does.
+  Pricing notes are the exception to the property tier: they live under
+  `pricing:<property id>`, which no recall path reads, because a guest must never
+  be told the owner's rate or occupancy.
+- The **nightly distillation** is what writes the global tier from those digests.
+  It runs from the Cloudflare Worker's existing cron, which POSTs
+  `/api/agent/distill` with `INTERNAL_SEND_TOKEN`, exactly as the cleaning review
+  already does. It is
   never a Vercel cron: `withEve` writes no `crons` key into the Build Output
   config, so an eve schedule never registers, and Hobby rejects sub-daily crons
   regardless. The worker deploys from `.github/workflows/worker-deploy.yml` on

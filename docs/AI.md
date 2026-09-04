@@ -132,11 +132,38 @@ event with the messages alone, so a slot's capture handler never fires. The
 digest is written from `agent/hooks/persist.ts`, which already runs on every
 settled turn and already knows the surface, the property and the thread.
 
+### Ingesting the real Airbnb threads
+
+Capture on a live turn only records what Lux itself said. That leaves out most
+of the corpus: the threads that pre-date the agent, the threads on properties
+with `ai_replies` off, the turns that ended in a handoff, and above all the
+replies a Luxel operator wrote by hand.
+
+`ingestThreads` reads `guest_messages` directly, so it sees the conversation as
+it actually happened. The transcript labels three voices: `Huesped`, `Luxel` for
+an operator, and `Lux` for the AI. The prompt names the operator's replies as
+the reference for how Lux should sound, which is the point of the whole tier.
+
+It is idempotent and resumable. Each digest is keyed
+`thread:<thread id>:<newest message id>`, and `operation_id` is unique, so a
+thread is digested once and again only when it gains a message. A run takes the
+twenty least-recently-updated threads that have no digest for their current
+head, so a first pass backfills the history a batch a night and a timeout costs
+nothing.
+
+An approved draft feeds back for free. `sendReplyDraft` writes the text that was
+actually sent into `guest_messages`, as `host` when the operator edited it and
+`ai` when they approved it unchanged. The next ingest reads that row, so a
+correction teaches the playbook and the unapproved draft never does.
+
 ### The nightly pass
 
 The Cloudflare Worker's cron (04:23 UTC) calls
-`POST /api/agent/distill` with `INTERNAL_SEND_TOKEN`. It does two things in
+`POST /api/agent/distill` with `INTERNAL_SEND_TOKEN`. It does three things in
 order.
+
+`ingestThreads` runs first, so the digests it writes are distilled the same
+night.
 
 `distillPending` reads the digests that are not distilled yet, across every
 property, and writes global playbook rules and property notes. It never invents

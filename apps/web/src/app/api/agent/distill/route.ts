@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { distillPending } from '@luxel/core/agent/distill';
+import { ingestThreads } from '@luxel/core/agent/ingest';
 import { runPricingPass } from '@luxel/core/ai/pricing-pass';
 
 export const runtime = 'nodejs';
@@ -18,11 +19,12 @@ function authorised(req: Request): boolean {
 export async function POST(req: Request) {
   if (!authorised(req)) return new Response('Unauthorized', { status: 401 });
 
+  const ingested = await ingestThreads();
   const distilled = await distillPending();
   const pricing = await runPricingPass();
-  const ok = distilled.ok && pricing.ok;
+  const ok = ingested.ok && distilled.ok && pricing.ok;
   return Response.json(
-    { ok, distilled, pricing },
+    { ok, ingested, distilled, pricing },
     { status: ok ? 200 : 500, headers: { 'cache-control': 'no-store' } },
   );
 }
