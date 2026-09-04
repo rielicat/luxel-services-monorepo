@@ -44,7 +44,7 @@ function findCssComments(text) {
   return hits;
 }
 
-function findHashComments(text) {
+function findHashComments(text, anyHash) {
   const hits = [];
   text.split('\n').forEach((raw, index) => {
     let quote = null;
@@ -59,7 +59,8 @@ function findHashComments(text) {
         quote = char;
         continue;
       }
-      if (char === '#' && (i === 0 || raw[i - 1] === ' ' || raw[i - 1] === '\t')) {
+      if (char !== '#') continue;
+      if (anyHash || i === 0 || raw[i - 1] === ' ' || raw[i - 1] === '\t') {
         hits.push({ line: index + 1 });
         return;
       }
@@ -162,7 +163,7 @@ function scanFile(path, text) {
   }
 
   if (HASH_EXTENSIONS.includes(extension)) {
-    for (const hit of findHashComments(text)) {
+    for (const hit of findHashComments(text, extension === '.toml')) {
       problems.push(`${path}:${hit.line}  comment is not allowed; document it in docs/`);
     }
   }
@@ -264,6 +265,12 @@ const SELF_TEST_CASES = [
     path: 'workers/whatsapp/wrangler.toml',
     text: 'name = "a # b"\n',
     expected: 0,
+  },
+  {
+    name: 'toml comment with no space before the hash is reported',
+    path: 'workers/whatsapp/wrangler.toml',
+    text: 'name = "w"#pinned\n',
+    expected: 1,
   },
   {
     name: 'a hash with no leading space is a value, not a comment',

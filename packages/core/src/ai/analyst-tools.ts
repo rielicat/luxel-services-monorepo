@@ -54,6 +54,11 @@ export async function propertyCalendar(propertyId: string): Promise<{ content: s
   ]);
   if (!property) return { content: 'No encontramos la propiedad.' };
 
+  const window = new Set<string>();
+  for (let i = 0; i < 90; i += 1) {
+    window.add(new Date(today.getTime() + i * DAY).toISOString().slice(0, 10));
+  }
+
   const booked = new Set<string>();
   const weekendNights = { total: 0, booked: 0 };
   for (const block of blocks ?? []) {
@@ -63,7 +68,8 @@ export async function propertyCalendar(propertyId: string): Promise<{ content: s
       d < new Date(`${block.ends_on}T00:00:00Z`);
       d = new Date(d.getTime() + DAY)
     ) {
-      booked.add(d.toISOString().slice(0, 10));
+      const iso = d.toISOString().slice(0, 10);
+      if (window.has(iso)) booked.add(iso);
     }
   }
   for (let i = 0; i < 90; i += 1) {
