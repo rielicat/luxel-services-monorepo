@@ -49,6 +49,8 @@ export interface CheckinFormProps {
   alreadyDone: boolean;
   stay: Stay;
   expectedGuests: number;
+  maxGuests: number;
+  askCount?: boolean;
   rules: Rules;
   registered?: RegisteredGuest[];
   arrivalTime?: string | null;
@@ -387,6 +389,8 @@ export function CheckinForm({
   alreadyDone,
   stay,
   expectedGuests,
+  maxGuests,
+  askCount = false,
   rules,
   registered: initialRegistered = [],
   arrivalTime: initialArrival = null,
@@ -396,7 +400,7 @@ export function CheckinForm({
   const [done, setDone] = useState(alreadyDone);
   const [registered, setRegistered] = useState<RegisteredGuest[]>(initialRegistered);
   const [guests, setGuests] = useState<GuestDraft[]>(() =>
-    Array.from({ length: expectedGuests }, newGuest),
+    Array.from({ length: askCount ? 0 : expectedGuests }, newGuest),
   );
   const [step, setStep] = useState(0);
   const [arrival, setArrival] = useState('');
@@ -423,6 +427,13 @@ export function CheckinForm({
   const checkoutAt = clock(stay.checkoutTime);
   const times =
     checkinAt && checkoutAt ? t('times', { checkin: checkinAt, checkout: checkoutAt }) : null;
+
+  const chooseCount = (n: number) => {
+    setGuests(Array.from({ length: n }, newGuest));
+    setStep(0);
+    setMessage(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const steps = guests.length + 1;
   const onDetails = step === guests.length;
@@ -516,133 +527,158 @@ export function CheckinForm({
         </div>
       )}
 
-      <div className="grid gap-2">
-        <p className="text-muted-foreground text-sm font-medium">
-          {t('step_of', { i: step + 1, n: steps })}
-        </p>
-        <div className="bg-muted h-1.5 overflow-hidden rounded-full">
-          <div
-            className="bg-primary h-full rounded-full transition-all duration-300"
-            style={{ width: `${((step + 1) / steps) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {onDetails ? (
-        <div className="grid gap-6">
-          <h2 className="font-display text-lg font-semibold">{t('details_title')}</h2>
-
-          <section className="grid gap-2">
-            <GroupLabel id="arrival-label">{t('arrival')}</GroupLabel>
-            <Chips
-              id="arrival"
-              labelId="arrival-label"
-              options={arrivalSlots(stay.checkinTime).map((v) => ({ value: v, label: v }))}
-              value={arrival}
-              onChange={setArrival}
-              className="grid-cols-3"
-            />
-          </section>
-
-          <section className="grid gap-2">
-            <GroupLabel id="departure-label">{t('departure')}</GroupLabel>
-            <Chips
-              id="departure"
-              labelId="departure-label"
-              options={departureSlots(stay.checkoutTime).map((v) => ({ value: v, label: v }))}
-              value={departure}
-              onChange={setDeparture}
-              className="grid-cols-4"
-            />
-          </section>
-
-          <section className="grid gap-3">
-            <GroupLabel id="parking-label">{t('parking')}</GroupLabel>
-            <Chips
-              id="parking"
-              labelId="parking-label"
-              options={[
-                { value: 'yes' as const, label: t('parking_yes') },
-                { value: 'no' as const, label: t('parking_no') },
-              ]}
-              value={parking}
-              onChange={setParking}
-              className="grid-cols-2"
-            />
-            {parking === 'yes' && (
-              <Field id="plate" label={t('plate')} optional>
-                <Input
-                  id="plate"
-                  autoCapitalize="characters"
-                  autoComplete="off"
-                  maxLength={12}
-                  placeholder={t('plate_ph')}
-                  value={plate}
-                  onChange={(e) => setPlate(e.target.value)}
-                  className="h-12 text-base uppercase"
-                />
-              </Field>
-            )}
-          </section>
-        </div>
-      ) : (
-        <section aria-labelledby="guests-title" className="grid gap-3">
+      {!guests.length ? (
+        <section className="grid gap-4">
           <div className="grid gap-1">
-            <h2 id="guests-title" className="font-display text-lg font-semibold">
-              {t('guests_title')}
-            </h2>
-            {guests.length > 1 && (
-              <p className="text-muted-foreground text-sm">
-                {t('guests_expected', { n: guests.length })}
-              </p>
-            )}
+            <h2 className="font-display text-lg font-semibold">{t('count_title')}</h2>
+            <p className="text-muted-foreground text-sm">{t('count_help')}</p>
           </div>
-          <GuestStep
-            key={step}
-            index={step}
-            guest={guests[step]!}
-            onChange={(patch) => updateGuest(step, patch)}
-          />
-        </section>
-      )}
-
-      <div className="bg-background/90 border-border fixed inset-x-0 bottom-0 z-10 border-t pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-md gap-2 px-4">
-          {message && (
-            <p role="alert" className="text-destructive text-sm font-medium">
-              {message}
-            </p>
-          )}
-          {onDetails && (
-            <p className="text-muted-foreground text-xs">
-              {t('disclaimer')} <PrivacyLink className="text-foreground" />
-            </p>
-          )}
-          {!stepReady && <p className="text-muted-foreground text-xs">{t('incomplete_hint')}</p>}
-          <div className="flex gap-2">
-            {step > 0 && (
-              <Button
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: Math.max(maxGuests, 1) }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
                 type="button"
-                variant="outline"
-                size="lg"
-                className="h-12 px-4 text-base"
-                onClick={() => goTo(step - 1)}
+                onClick={() => chooseCount(n)}
+                className="border-input hover:border-primary/50 focus-visible:ring-ring/25 min-w-24 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-[3px]"
               >
-                <ChevronLeft className="h-4 w-4" />
-                {t('back')}
-              </Button>
-            )}
-            <Button
-              type="submit"
-              size="lg"
-              className="h-12 flex-1 text-base"
-              disabled={pending || (onDetails ? !allReady : !stepReady)}
-            >
-              {onDetails ? (pending ? t('sending') : t('submit')) : t('next')}
-            </Button>
+                {n === 1 ? t('count_one') : t('count_many', { n })}
+              </button>
+            ))}
           </div>
-        </div>
-      </div>
+        </section>
+      ) : (
+        <>
+          <div className="grid gap-2">
+            <p className="text-muted-foreground text-sm font-medium">
+              {t('step_of', { i: step + 1, n: steps })}
+            </p>
+            <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+              <div
+                className="bg-primary h-full rounded-full transition-all duration-300"
+                style={{ width: `${((step + 1) / steps) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {onDetails ? (
+            <div className="grid gap-6">
+              <h2 className="font-display text-lg font-semibold">{t('details_title')}</h2>
+
+              <section className="grid gap-2">
+                <GroupLabel id="arrival-label">{t('arrival')}</GroupLabel>
+                <Chips
+                  id="arrival"
+                  labelId="arrival-label"
+                  options={arrivalSlots(stay.checkinTime).map((v) => ({ value: v, label: v }))}
+                  value={arrival}
+                  onChange={setArrival}
+                  className="grid-cols-3"
+                />
+              </section>
+
+              <section className="grid gap-2">
+                <GroupLabel id="departure-label">{t('departure')}</GroupLabel>
+                <Chips
+                  id="departure"
+                  labelId="departure-label"
+                  options={departureSlots(stay.checkoutTime).map((v) => ({ value: v, label: v }))}
+                  value={departure}
+                  onChange={setDeparture}
+                  className="grid-cols-4"
+                />
+              </section>
+
+              <section className="grid gap-3">
+                <GroupLabel id="parking-label">{t('parking')}</GroupLabel>
+                <Chips
+                  id="parking"
+                  labelId="parking-label"
+                  options={[
+                    { value: 'yes' as const, label: t('parking_yes') },
+                    { value: 'no' as const, label: t('parking_no') },
+                  ]}
+                  value={parking}
+                  onChange={setParking}
+                  className="grid-cols-2"
+                />
+                {parking === 'yes' && (
+                  <Field id="plate" label={t('plate')} optional>
+                    <Input
+                      id="plate"
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      maxLength={12}
+                      placeholder={t('plate_ph')}
+                      value={plate}
+                      onChange={(e) => setPlate(e.target.value)}
+                      className="h-12 text-base uppercase"
+                    />
+                  </Field>
+                )}
+              </section>
+            </div>
+          ) : (
+            <section aria-labelledby="guests-title" className="grid gap-3">
+              <div className="grid gap-1">
+                <h2 id="guests-title" className="font-display text-lg font-semibold">
+                  {t('guests_title')}
+                </h2>
+                {guests.length > 1 && (
+                  <p className="text-muted-foreground text-sm">
+                    {t('guests_expected', { n: guests.length })}
+                  </p>
+                )}
+              </div>
+              <GuestStep
+                key={step}
+                index={step}
+                guest={guests[step]!}
+                onChange={(patch) => updateGuest(step, patch)}
+              />
+            </section>
+          )}
+
+          <div className="bg-background/90 border-border fixed inset-x-0 bottom-0 z-10 border-t pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+            <div className="mx-auto grid w-full max-w-md gap-2 px-4">
+              {message && (
+                <p role="alert" className="text-destructive text-sm font-medium">
+                  {message}
+                </p>
+              )}
+              {onDetails && (
+                <p className="text-muted-foreground text-xs">
+                  {t('disclaimer')} <PrivacyLink className="text-foreground" />
+                </p>
+              )}
+              {!stepReady && (
+                <p className="text-muted-foreground text-xs">{t('incomplete_hint')}</p>
+              )}
+              <div className="flex gap-2">
+                {step > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="h-12 px-4 text-base"
+                    onClick={() => goTo(step - 1)}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    {t('back')}
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="h-12 flex-1 text-base"
+                  disabled={pending || (onDetails ? !allReady : !stepReady)}
+                >
+                  {onDetails ? (pending ? t('sending') : t('submit')) : t('next')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </form>
   );
 }

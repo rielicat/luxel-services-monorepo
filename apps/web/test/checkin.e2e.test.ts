@@ -350,6 +350,39 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(workerSends.filter((w) => w.to === '56970001000')).toHaveLength(1);
   });
 
+  it('lets a direct reservation declare its own party when the booking did not', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Sin Cupo' });
+    const propertyId = prop.id!;
+    const link = await mintCheckinLink(propertyId);
+    await admin
+      .from('checkins')
+      .update({ arrival_date: plusDays(3), departure_date: plusDays(6), expected_guests: null })
+      .eq('token', link.token!);
+
+    const res = await submitCheckin({
+      id: link.token,
+      guests: [
+        { fullName: 'Uno Directo', docType: 'rut', docNumber: '11.111.111-1' },
+        { fullName: 'Dos Directo', docType: 'rut', docNumber: '22.222.222-2' },
+        { fullName: 'Tres Directo', docType: 'passport', docNumber: 'X9999999' },
+      ],
+      arrivalTime: '16:00',
+    });
+    expect(res.ok).toBe(true);
+
+    const { data: checkin } = await admin
+      .from('checkins')
+      .select('id, party_size')
+      .eq('token', link.token!)
+      .maybeSingle();
+    expect(checkin!.party_size).toBe(3);
+    const { data: guests } = await admin
+      .from('checkin_guests')
+      .select('id')
+      .eq('checkin_id', checkin!.id as string);
+    expect(guests).toHaveLength(3);
+  });
+
   it('claims the link once: two simultaneous submits store one party and notify once', async () => {
     const prop = await seedImportedProperty({ nickname: 'Depto Doble' });
     const propertyId = prop.id!;

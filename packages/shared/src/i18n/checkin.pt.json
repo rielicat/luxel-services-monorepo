@@ -1,7 +1,7 @@
 {
   "title": "Registre sua chegada",
   "notice_title": "Registro obrigatório",
-  "notice_body": "Precisamos do nome e do documento de todas as pessoas que vão se hospedar. É por segurança e, se o prédio tiver portaria, avisamos quem vai chegar.",
+  "notice_body": "Precisamos do nome e do documento de todas as pessoas que vão se hospedar.",
   "step_of": "Passo {i} de {n}",
   "next": "Continuar",
   "back": "Voltar",
@@ -48,5 +48,9 @@
   "rule_no_smoking": "Não é permitido fumar",
   "rule_no_pets": "Não são permitidos animais",
   "rule_no_events": "Não são permitidas festas nem eventos",
-  "privacy_link": "Como cuidamos dos seus dados"
+  "privacy_link": "Como cuidamos dos seus dados",
+  "count_title": "Quantas pessoas vão se hospedar?",
+  "count_help": "Conte todas, incluindo você. Depois pedimos o nome e o documento de cada uma.",
+  "count_one": "1 pessoa",
+  "count_many": "{n} pessoas"
 }

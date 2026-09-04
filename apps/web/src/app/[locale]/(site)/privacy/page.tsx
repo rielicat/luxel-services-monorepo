@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
-import { FileWarning, Info, ShieldQuestion } from 'lucide-react';
+import { FileWarning, Info } from 'lucide-react';
 import { privacyDoc, type PrivacyDoc } from '@luxel/shared/privacy';
 import { GUEST_LOCALES, type GuestLocale } from '@luxel/shared/i18n';
 import { guestLang, resolveGuestLang } from '@luxel/core/checkin/lang';

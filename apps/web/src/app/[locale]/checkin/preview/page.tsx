@@ -42,6 +42,7 @@ export default async function CheckinPreviewPage({
             checkoutTime: '11:00',
           }}
           expectedGuests={4}
+          maxGuests={6}
           rules={{ noSmoking: false, noPets: false, noEvents: true }}
           registered={done ? REGISTERED : []}
           arrivalTime={done ? '18:00' : null}

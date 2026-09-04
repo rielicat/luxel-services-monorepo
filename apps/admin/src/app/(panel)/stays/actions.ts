@@ -14,7 +14,6 @@ import {
   DATE_RE,
   MANUAL_ORIGIN,
   MAX_NIGHTS,
-  MAX_PARTY,
   TIME_RE,
   manualRef,
   santiagoToday,
@@ -40,7 +39,6 @@ const CreateSchema = z.object({
   departure: z.string().regex(DATE_RE),
   arrivalTime: z.string().trim().regex(TIME_RE).or(z.literal('')),
   departureTime: z.string().trim().regex(TIME_RE).or(z.literal('')),
-  partySize: z.number().int().min(1).max(MAX_PARTY),
 });
 
 const CancelSchema = z.object({
@@ -125,7 +123,6 @@ export async function createManualStay(input: {
   departure: string;
   arrivalTime: string;
   departureTime: string;
-  partySize: number;
 }): Promise<StayActionResult> {
   const admin = await requireAdmin();
   if (!admin) {
@@ -135,7 +132,7 @@ export async function createManualStay(input: {
 
   const parsed = CreateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'invalid' };
-  const { propertyId, guestName, arrival, departure, partySize } = parsed.data;
+  const { propertyId, guestName, arrival, departure } = parsed.data;
   if (departure <= arrival) return { ok: false, error: 'bad_range' };
   if (arrival < santiagoToday()) return { ok: false, error: 'past' };
   const nights = stayNights(arrival, departure);
@@ -218,7 +215,6 @@ export async function createManualStay(input: {
     departure_date: departure,
     arrival_time: parsed.data.arrivalTime || null,
     departure_time: parsed.data.departureTime || null,
-    expected_guests: partySize,
   });
   if (checkinError) {
     await supabase
@@ -353,7 +349,6 @@ export async function submitCreateManualStay(formData: FormData): Promise<void> 
     departure: String(formData.get('departure') ?? ''),
     arrivalTime: String(formData.get('arrivalTime') ?? ''),
     departureTime: String(formData.get('departureTime') ?? ''),
-    partySize: Number(formData.get('partySize') ?? 0),
   });
   redirect(feedbackUrl(result, { id: propertyId }, `#p-${propertyId}`));
 }

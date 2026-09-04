@@ -3,7 +3,6 @@ import { createServiceClient } from '@/lib/supabase';
 import {
   MANUAL_ORIGIN,
   MANUAL_REF_PREFIX,
-  MAX_PARTY,
   checkinUrl,
   santiagoToday,
   stayNights,
@@ -413,16 +412,6 @@ function PropertyCard({
             </Field>
             <Field label="Hora de salida">
               <input className={inputClass} type="time" name="departureTime" defaultValue="11:00" />
-            </Field>
-            <Field label="Personas">
-              <input
-                className={inputClass}
-                type="number"
-                name="partySize"
-                min={1}
-                max={MAX_PARTY}
-                defaultValue={2}
-              />
             </Field>
           </div>
           <div>

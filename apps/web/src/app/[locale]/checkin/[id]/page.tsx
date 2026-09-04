@@ -81,6 +81,8 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
             checkoutTime: (property?.checkout_time as string | null) ?? null,
           }}
           expectedGuests={guestSlots(checkin.expected_guests as number | null, maxGuests)}
+          maxGuests={maxGuests}
+          askCount={checkin.expected_guests == null}
           rules={{
             noSmoking: rules?.smoking_allowed === false,
             noPets: rules?.pets_allowed === false,

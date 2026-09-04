@@ -238,7 +238,7 @@
   "checkin": {
     "title": "Registra tu llegada",
     "notice_title": "Registro obligatorio",
-    "notice_body": "Necesitamos el nombre y el documento de todas las personas que se alojan. Es por seguridad y, si el edificio tiene conserjería, le avisamos quién llega.",
+    "notice_body": "Necesitamos el nombre y el documento de todas las personas que se alojan.",
     "step_of": "Paso {i} de {n}",
     "next": "Continuar",
     "back": "Atrás",
@@ -285,7 +285,11 @@
     "rule_no_smoking": "No se permite fumar",
     "rule_no_pets": "No se permiten mascotas",
     "rule_no_events": "No se permiten fiestas ni eventos",
-    "privacy_link": "Cómo cuidamos tus datos"
+    "privacy_link": "Cómo cuidamos tus datos",
+    "count_title": "¿Cuántas personas se alojan?",
+    "count_help": "Cuéntalas a todas, incluyéndote. Después te pedimos el nombre y el documento de cada una.",
+    "count_one": "1 persona",
+    "count_many": "{n} personas"
   },
   "properties": {
     "title": "Mis propiedades",
