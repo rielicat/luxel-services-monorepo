@@ -18,13 +18,11 @@
     "If anything here does not match your experience, write to us. Fixing this quickly matters more to us than looking finished."
   ],
   "placeholders_title": "Mandatory identification details are missing",
-  "placeholders_body": "The law requires a privacy policy to identify the company that answers for the data and to give an address where you can make a request. Those details are not published yet. We mark them like this, in brackets and capitals, so nobody mistakes them for real information:",
+  "placeholders_body": "The law requires a privacy policy to identify the company responsible and give an address for complaints. That legal identity is not published yet. We mark it like this, in brackets and capitals, so that nobody mistakes it for real information:",
   "placeholders_items": [
     "[LEGAL NAME TO BE DEFINED] — the legal name of the company that answers for this data",
     "[RUT TO BE DEFINED] — its Chilean tax identification number",
-    "[LEGAL REPRESENTATIVE TO BE DEFINED] — the person who represents it",
-    "[REGISTERED ADDRESS TO BE DEFINED] — its registered postal address",
-    "[CONTACT EMAIL TO BE DEFINED] — the address where we receive requests about your data"
+    "[REGISTERED ADDRESS TO BE DEFINED] — its registered postal address"
   ],
   "toc_title": "What you will find here",
   "sections": [
@@ -34,8 +32,8 @@
       "plain": "We do. The company's legal identity is not published yet, and we are not going to invent it.",
       "body": [
         "Servicios Luxel manages short-term rentals in Chile. A host hands us their Airbnb listing and we run the whole operation: pricing, guest replies, cleaning, laundry, inventory and small repairs.",
-        "The data controller — el responsable del tratamiento under Chilean law — for the data described here is [LEGAL NAME TO BE DEFINED], tax number [RUT TO BE DEFINED], with its registered address at [REGISTERED ADDRESS TO BE DEFINED]. Its legal representative is [LEGAL REPRESENTATIVE TO BE DEFINED].",
-        "While those details are unpublished, these channels do work: if you are a guest, the Airbnb chat of your booking; if you are a host, the email address you sign in with; if you work on the ground, the WhatsApp number we already coordinate with you on."
+        "The data controller — el responsable del tratamiento under Chilean law — for the data described here is [LEGAL NAME TO BE DEFINED], tax number [RUT TO BE DEFINED], with its registered address at [REGISTERED ADDRESS TO BE DEFINED].",
+        "For any request about your data, write to info@serviciosluxel.cl. That channel is open to everyone, including if you only visited the site or if your stay has already ended. If you prefer, these also reach us: your booking's Airbnb chat if you are a guest, your account email if you are a host, and the WhatsApp we already coordinate on if you are part of the field team."
       ],
       "rows": []
     },
@@ -497,7 +495,7 @@
         "Today, under Ley N° 19.628, you have the right to know what data of yours we hold, where it came from, who we passed it to and why we store it. You can ask us to modify it if it is wrong, to delete it and to block it. It is free of charge. If we do not resolve your request within two business days, or if we refuse it without one of the grounds the law allows, you may go to the civil court of first instance for the controller's domicile.",
         "When the new law enters into force the list grows to six: access, rectification, erasure, objection, portability and blocking. They will be personal, non-transferable and non-waivable rights, and no contract will be able to limit them.",
         "Portability reaches less far than people usually assume: it covers only data processed by automated means and on the basis of your consent. Almost everything we process rests on the contract, so portability does not reach it. We would rather tell you that than promise something the law does not give.",
-        "To ask for any of this, write to [CONTACT EMAIL TO BE DEFINED], or in writing to [REGISTERED ADDRESS TO BE DEFINED]. If you are a guest and your stay is still running, the Airbnb chat of your booking reaches us just as fast.",
+        "To ask for any of this, write to info@serviciosluxel.cl, or in writing to [REGISTERED ADDRESS TO BE DEFINED]. If you are a guest and your stay is still running, the Airbnb chat of your booking reaches us just as fast.",
         "Before we hand over data we will ask for something that lets us confirm it is you. That is not bureaucracy: it is so that nobody else can ask for your data by pretending to be you."
       ],
       "rows": [
@@ -558,7 +556,7 @@
       "title": "How to reach us",
       "plain": "An email address, a postal address, and a person reading on the other side.",
       "body": [
-        "Write to [CONTACT EMAIL TO BE DEFINED], or in writing to [REGISTERED ADDRESS TO BE DEFINED], addressed to [LEGAL NAME TO BE DEFINED].",
+        "Write to info@serviciosluxel.cl, or in writing to [REGISTERED ADDRESS TO BE DEFINED], addressed to [LEGAL NAME TO BE DEFINED].",
         "Tell us who you are and what you need: the name you registered your stay under, or your host account email, or the phone number we coordinate with you on if you are on the team. That is enough to start."
       ],
       "rows": []

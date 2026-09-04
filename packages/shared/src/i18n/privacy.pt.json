@@ -18,13 +18,11 @@
     "Se algo aqui não corresponder à sua experiência, escreva para a gente. Corrigir isto rápido importa mais do que parecer pronto."
   ],
   "placeholders_title": "Faltam dados obrigatórios de identificação",
-  "placeholders_body": "A lei exige que uma política de privacidade identifique a empresa responsável e informe um endereço para receber solicitações. Esses dados ainda não foram publicados. Nós os marcamos assim, entre colchetes e em maiúsculas, para que ninguém os confunda com informação real:",
+  "placeholders_body": "A lei exige que uma política de privacidade identifique a empresa responsável e forneça um endereço para reclamações. Essa identidade legal ainda não está publicada. Marcamos assim, entre colchetes e em maiúsculas, para que ninguém a confunda com informação real:",
   "placeholders_items": [
     "[RAZÃO SOCIAL A DEFINIR] — o nome legal da empresa que responde por estes dados",
     "[RUT A DEFINIR] — o número de identificação tributária chileno",
-    "[REPRESENTANTE LEGAL A DEFINIR] — a pessoa que a representa",
-    "[ENDEREÇO A DEFINIR] — o endereço postal registrado",
-    "[E-MAIL DE CONTATO A DEFINIR] — o e-mail onde recebemos solicitações sobre os seus dados"
+    "[ENDEREÇO A DEFINIR] — o endereço postal registrado"
   ],
   "toc_title": "O que você vai encontrar aqui",
   "sections": [
@@ -34,8 +32,8 @@
       "plain": "Somos nós. Falta publicar a identidade legal da empresa, e não vamos inventá-la.",
       "body": [
         "A Servicios Luxel administra aluguéis de curta temporada no Chile. Um anfitrião nos entrega o anúncio dele no Airbnb e nós cuidamos de toda a operação: o preço, as respostas aos hóspedes, a limpeza, a lavanderia, o inventário e os pequenos reparos.",
-        "O controlador dos dados — el responsable del tratamiento na lei chilena — descritos aqui é [RAZÃO SOCIAL A DEFINIR], RUT [RUT A DEFINIR], com endereço em [ENDEREÇO A DEFINIR]. O representante legal é [REPRESENTANTE LEGAL A DEFINIR].",
-        "Enquanto esses dados não estiverem publicados, estes canais funcionam: se você é hóspede, o chat do Airbnb da sua reserva; se é anfitrião, o e-mail com o qual entra na sua conta; se é da equipe de campo, o WhatsApp pelo qual já combinamos tudo com você."
+        "O controlador dos dados — el responsable del tratamiento na lei chilena — descritos aqui é [RAZÃO SOCIAL A DEFINIR], RUT [RUT A DEFINIR], com endereço em [ENDEREÇO A DEFINIR].",
+        "Para qualquer solicitação sobre os seus dados, escreva para info@serviciosluxel.cl. Esse canal está aberto a todos, inclusive se você apenas visitou o site ou se a sua estadia já terminou. Se preferir, também chegam até nós: o chat do Airbnb da sua reserva se você é hóspede, o e-mail da sua conta se você é anfitrião, e o WhatsApp pelo qual já coordenamos se você é da equipe de campo."
       ],
       "rows": []
     },
@@ -497,7 +495,7 @@
         "Hoje, sob a Ley N° 19.628, você tem o direito de saber quais dados seus temos, de onde vieram, a quem os entregamos e por que os guardamos. Pode pedir que os modifiquemos se estiverem errados, que os eliminemos e que os bloqueemos. É gratuito. Se não resolvermos a sua solicitação dentro de dois dias úteis, ou se a recusarmos sem um dos motivos que a lei permite, você pode recorrer ao juiz civil de primeira instância do domicílio do responsável.",
         "Quando a lei nova entrar em vigor, a lista cresce para seis: acesso, retificação, eliminação, oposição, portabilidade e bloqueio. Serão direitos pessoais, intransferíveis e irrenunciáveis, e nenhum contrato poderá limitá-los.",
         "A portabilidade alcança menos do que se costuma imaginar: cobre apenas dados tratados de forma automatizada e com base no seu consentimento. Quase tudo o que tratamos se apoia no contrato, então ali a portabilidade não chega. Preferimos dizer isso a prometer algo que a lei não dá.",
-        "Para pedir qualquer uma dessas coisas, escreva para [E-MAIL DE CONTATO A DEFINIR], ou por escrito para [ENDEREÇO A DEFINIR]. Se você é hóspede e a estadia ainda está em curso, o chat do Airbnb da sua reserva chega igualmente rápido.",
+        "Para pedir qualquer uma dessas coisas, escreva para info@serviciosluxel.cl, ou por escrito para [ENDEREÇO A DEFINIR]. Se você é hóspede e a estadia ainda está em curso, o chat do Airbnb da sua reserva chega igualmente rápido.",
         "Antes de entregar dados vamos pedir algo que nos permita confirmar que é você. Não é burocracia: é para que ninguém possa pedir os seus dados se passando por você."
       ],
       "rows": [
@@ -558,7 +556,7 @@
       "title": "Como falar com a gente",
       "plain": "Um e-mail, um endereço, e uma pessoa lendo do outro lado.",
       "body": [
-        "Escreva para [E-MAIL DE CONTATO A DEFINIR], ou por escrito para [ENDEREÇO A DEFINIR], aos cuidados de [RAZÃO SOCIAL A DEFINIR].",
+        "Escreva para info@serviciosluxel.cl, ou por escrito para [ENDEREÇO A DEFINIR], aos cuidados de [RAZÃO SOCIAL A DEFINIR].",
         "Conte quem você é e do que precisa: o nome com que registrou a sua estadia, ou o e-mail da sua conta de anfitrião, ou o telefone pelo qual combinamos as coisas, se você é da equipe. Com isso já começamos."
       ],
       "rows": []

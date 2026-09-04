@@ -18,13 +18,11 @@
     "Si encuentras algo que no calza con tu experiencia, escríbenos. Corregir esto rápido nos importa más que verlo terminado."
   ],
   "placeholders_title": "Faltan datos obligatorios de identificación",
-  "placeholders_body": "La ley exige que una política de privacidad identifique a la empresa responsable y entregue una dirección donde reclamar. Esos datos todavía no están publicados. Los marcamos así, entre corchetes y en mayúsculas, para que nadie los confunda con información real:",
+  "placeholders_body": "La ley exige que una política de privacidad identifique a la empresa responsable y entregue una dirección donde reclamar. Esa identidad legal todavía no está publicada. La marcamos así, entre corchetes y en mayúsculas, para que nadie la confunda con información real:",
   "placeholders_items": [
     "[RAZÓN SOCIAL POR DEFINIR] — el nombre legal de la empresa que responde por estos datos",
     "[RUT POR DEFINIR] — su rol único tributario",
-    "[REPRESENTANTE LEGAL POR DEFINIR] — la persona que la representa",
-    "[DOMICILIO POR DEFINIR] — la dirección postal registrada",
-    "[CORREO DE CONTACTO POR DEFINIR] — el correo donde recibimos solicitudes sobre tus datos"
+    "[DOMICILIO POR DEFINIR] — la dirección postal registrada"
   ],
   "toc_title": "Lo que vas a encontrar",
   "sections": [
@@ -34,8 +32,8 @@
       "plain": "Somos nosotros. Falta publicar la identidad legal de la empresa, y no vamos a inventarla.",
       "body": [
         "Servicios Luxel administra arriendos de corto plazo en Chile. Un anfitrión nos entrega su anuncio de Airbnb y nosotros nos hacemos cargo de la operación completa: el precio, las respuestas a los huéspedes, el aseo, la lavandería, el inventario y las reparaciones menores.",
-        "El responsable del tratamiento de los datos descritos aquí es [RAZÓN SOCIAL POR DEFINIR], RUT [RUT POR DEFINIR], con domicilio en [DOMICILIO POR DEFINIR]. Su representante legal es [REPRESENTANTE LEGAL POR DEFINIR].",
-        "Mientras esos datos no estén publicados, los canales que sí funcionan son estos: si eres huésped, el chat de Airbnb de tu reserva; si eres anfitrión, el correo con el que entras a tu cuenta; si eres parte del equipo de terreno, el WhatsApp por el que ya coordinamos contigo."
+        "El responsable del tratamiento de los datos descritos aquí es [RAZÓN SOCIAL POR DEFINIR], RUT [RUT POR DEFINIR], con domicilio en [DOMICILIO POR DEFINIR].",
+        "Para cualquier solicitud sobre tus datos, escríbenos a info@serviciosluxel.cl. Ese canal está abierto para todos, incluso si sólo visitaste el sitio o si tu estadía ya terminó. Si prefieres, también llegan: el chat de Airbnb de tu reserva si eres huésped, el correo de tu cuenta si eres anfitrión, y el WhatsApp por el que ya coordinamos contigo si eres del equipo de terreno."
       ],
       "rows": []
     },
@@ -497,7 +495,7 @@
         "Hoy, con la Ley N° 19.628, tienes derecho a saber qué datos tuyos tenemos, de dónde salieron, a quién se los entregamos y para qué los guardamos. Puedes pedir que los modifiquemos si están errados, que los eliminemos y que los bloqueemos. Es gratuito. Si no resolvemos tu solicitud dentro de dos días hábiles, o si te la negamos sin una de las razones que la ley permite, puedes recurrir al juez de letras en lo civil del domicilio del responsable.",
         "Cuando entre en vigencia la ley nueva, la lista se amplía a seis: acceso, rectificación, supresión, oposición, portabilidad y bloqueo. Serán derechos personales, intransferibles e irrenunciables, y ningún contrato podrá limitarlos.",
         "La portabilidad tiene un alcance más chico de lo que suele creerse: solo alcanza a datos tratados de forma automatizada y con tu consentimiento. Casi todo lo que tratamos se apoya en el contrato, así que ahí la portabilidad no corre. Preferimos decírtelo a prometer algo que la ley no da.",
-        "Para pedir cualquiera de estas cosas escríbenos a [CORREO DE CONTACTO POR DEFINIR], o por escrito a [DOMICILIO POR DEFINIR]. Si eres huésped y todavía estás en la estadía, el chat de Airbnb de tu reserva llega igual de rápido.",
+        "Para pedir cualquiera de estas cosas escríbenos a info@serviciosluxel.cl, o por escrito a [DOMICILIO POR DEFINIR]. Si eres huésped y todavía estás en la estadía, el chat de Airbnb de tu reserva llega igual de rápido.",
         "Antes de entregarte datos vamos a pedirte algo que nos permita confirmar que eres tú. No es burocracia: es que nadie más pueda pedir tus datos haciéndose pasar por ti."
       ],
       "rows": [
@@ -558,7 +556,7 @@
       "title": "Cómo llegar a nosotros",
       "plain": "Un correo, una dirección, y una persona leyendo del otro lado.",
       "body": [
-        "Escríbenos a [CORREO DE CONTACTO POR DEFINIR] o por escrito a [DOMICILIO POR DEFINIR], a nombre de [RAZÓN SOCIAL POR DEFINIR].",
+        "Escríbenos a info@serviciosluxel.cl o por escrito a [DOMICILIO POR DEFINIR], a nombre de [RAZÓN SOCIAL POR DEFINIR].",
         "Cuéntanos quién eres y qué necesitas: el nombre con el que registraste tu estadía, o el correo de tu cuenta de anfitrión, o el teléfono con el que coordinamos si eres del equipo. Con eso partimos."
       ],
       "rows": []
