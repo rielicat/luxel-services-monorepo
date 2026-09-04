@@ -23,6 +23,7 @@ import {
 import { suggestCleaningsFromCheckouts } from '../cleaning/schedule';
 import { autoConfirmSuggested } from '../cleaning/notify';
 import { checkinToken } from '../checkin/tokens';
+import { clearCheckinDrafts } from '../checkin/draft';
 import { RETENTION_DAYS, santiagoToday, shiftDate } from '../checkin/window';
 import { toE164Digits } from '../phone';
 import { allowedListingIds, claimListing, type ChannelScope } from './scope';
@@ -840,7 +841,7 @@ async function syncConversations(
   return { imported, replies, drafts };
 }
 
-async function purgeExpiredGuestDocuments(supabase: Supabase, today: string): Promise<void> {
+export async function purgeExpiredGuestDocuments(supabase: Supabase, today: string): Promise<void> {
   const { data: expired } = await supabase
     .from('checkins')
     .select('id')
@@ -852,6 +853,7 @@ async function purgeExpiredGuestDocuments(supabase: Supabase, today: string): Pr
     .update({ doc_type: null, doc_number_enc: null, doc_last4: null })
     .in('checkin_id', ids)
     .not('doc_number_enc', 'is', null);
+  await clearCheckinDrafts(supabase, ids);
 }
 
 export async function syncHospitableAccount(

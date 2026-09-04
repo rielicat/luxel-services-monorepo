@@ -33,14 +33,11 @@ export default async function CheckinPreviewPage({
       timeZone="America/Santiago"
     >
       <div className="relative isolate">
-        <div
-          aria-hidden
-          className="bg-aurora pointer-events-none absolute inset-x-0 top-0 -z-10 h-56 sm:h-72"
-        />
+        <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0 -z-10" />
         <main
           lang={lang}
           data-checkin
-          className="mx-auto w-full max-w-md px-4 pb-28 pt-6 sm:max-w-lg sm:pb-16 sm:pt-12"
+          className="mx-auto w-full max-w-md px-4 pb-36 pt-6 sm:max-w-lg sm:pb-16 sm:pt-12"
         >
           <CheckinForm
             id="preview"

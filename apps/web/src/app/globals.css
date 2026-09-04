@@ -90,7 +90,7 @@
 
   @media (max-width: 639px) {
     html:has([data-checkin]) {
-      scroll-padding-bottom: 7rem;
+      scroll-padding-bottom: 9rem;
     }
   }
 
