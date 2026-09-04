@@ -100,12 +100,12 @@
       ]
     },
     {
-      "id": "hospitable",
+      "id": "conexion",
       "title": "Access to your listing",
       "plain": "We connect to your listing with access you grant and can withdraw whenever you want.",
       "body": [
-        "To run your listing we need to see it. The connection goes through Hospitable, the system we use to read your listings, your calendar, your reservations and the guest conversations.",
-        "You grant that access and you can withdraw it, in Airbnb or in Hospitable. There is no disconnect button inside our app, and we are not hiding that: the key stays yours, where you can turn it.",
+        "To run your listing we need to see it. The connection goes through the system we use to read your listings, your calendar, your reservations and the guest conversations.",
+        "You grant that access and you can withdraw it, in Airbnb. There is no disconnect button inside our app, and we are not hiding that: the key stays yours, where you can turn it.",
         "When you cut the access we stop seeing your account and no new data reaches us. The copy we already held — your properties, your reservations, your calendar, your revenue and the guest conversations — does not delete itself. If you want it deleted, write to info@serviciosluxel.cl and we delete it, except what the law requires us to keep.",
         "With the access cut we cannot operate: we cannot answer a guest or coordinate a clean. If that happens during a stay in progress we tell you at once, so nobody is left without an answer."
       ],
@@ -206,7 +206,7 @@
         },
         {
           "name": "That the access stays open",
-          "detail": "That while the plan is active the connection of your listing in Airbnb and in Hospitable stays in place. If you cut it, we stop being able to operate."
+          "detail": "That while the plan is active the connection of your listing in Airbnb stays in place. If you cut it, we stop being able to operate."
         },
         {
           "name": "Your own obligations",
@@ -220,7 +220,7 @@
       "plain": "We put in the work and we answer for it. What depends on third parties we cannot promise.",
       "body": [
         "We commit to running your listing carefully and on time: answering guests, keeping the price alive, leaving the unit ready between stays and telling you when something falls outside the normal.",
-        "Part of this runs through other people's services: Airbnb, Hospitable, the dynamic pricing tool, WhatsApp. If one of them goes down, changes its rules or closes an account, that is not in our hands. We tell you as soon as we know and we do what is in our hands, by hand if we have to.",
+        "Part of this runs through other people's services: Airbnb, the system we read your listing with, the dynamic pricing tool, WhatsApp. If one of them goes down, changes its rules or closes an account, that is not in our hands. We tell you as soon as we know and we do what is in our hands, by hand if we have to.",
         "Nobody can guarantee that an apartment gets booked, or at what price. We do not promise occupancy or income, not here and not in the calculator on the site: that calculator converts the number you type, it does not predict your month. The same goes for an estimate from the chat: it is a calculation, not an offer.",
         "What is ours, we answer for. If something went wrong because of how we worked or because of someone we sent, we do not hide behind a clause: we talk about it and we fix it."
       ],

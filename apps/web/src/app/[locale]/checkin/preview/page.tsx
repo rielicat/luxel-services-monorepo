@@ -16,14 +16,17 @@ const REGISTERED: RegisteredGuest[] = [
 ];
 
 const RULE_LINES = [
-  'IMPORTANTE:',
-  '⚠️ Es obligatorio pasar primero por conserjería para registrar tus datos por seguridad del edificio.',
-  '⚠️ Las visitas no registradas al llegar también deberán inscribirse en conserjería.',
-  '♻️ Por favor, deja la basura reciclable en la puerta ecológica (junto al ascensor).',
-  '✨ Se entregan sábanas y toallas de cuerpo para tu comodidad.',
-  '❌ Las toallas no deben usarse para desmaquillarse.',
-  '🎉 No se permiten fiestas ni eventos.',
-  '🚭 No se permite fumar dentro del departamento.',
+  '🏠 Reglas de la Casa',
+  'Queremos que te sientas cómodo/a y disfrutes tu estadía. Solo te pedimos considerar estas reglas para una buena convivencia 💛',
+  '👥 Por favor, solo ingresan las personas registradas en la reserva y en conserjería. No se permiten visitas.',
+  '🐾 Aceptamos 1 mascota, debe traer sus propias sábanas o mantas para cuidar camas y sillones.',
+  '🚭 No fumar dentro del departamento ni habitaciones. Puedes hacerlo en balcón o terraza, siempre con la puerta cerrada.',
+  '👟 Preferir, deja tus zapatos en el mueble de la entrada para mantener el espacio más limpio.',
+  '🎶 Los instrumentos musicales están disponibles para su uso. Les pedimos tratarlos con el amor y respeto que merecen.',
+  'Te pedimos respetar el horario de silencio',
+  'Por favor, evita ruidos molestos.',
+  'Usa el departamento, espacios comunes e insumos con cuidado y responsabilidad.',
+  '🎉 No se permiten fiestas ni eventos',
 ];
 
 const DRAFT: CheckinDraft = {
@@ -79,7 +82,7 @@ export default async function CheckinPreviewPage({
             expectedGuests={4}
             maxGuests={6}
             askCount={sp.state === 'count'}
-            rules={{ noSmoking: true, noPets: true, noEvents: true, lines: RULE_LINES }}
+            rules={{ lines: RULE_LINES }}
             draft={sp.state === 'resume' ? DRAFT : null}
             registered={done ? REGISTERED : []}
             arrivalTime={done ? '18:00' : null}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -12,19 +12,16 @@ import {
   LifeBuoy,
   Loader2,
   MessageCircle,
-  Pencil,
   Plug,
   RefreshCw,
   Settings2,
   ShieldCheck,
-  TriangleAlert,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { checkConnection, submitAirbnbEmail, type ConnectError } from './connect-actions';
+import { checkConnection, type ConnectError } from './connect-actions';
 
 export type ConnectStage =
   | 'not_started'
@@ -40,20 +37,19 @@ export type ConnectState = {
   inviteUrl: string | null;
 };
 
-type ConnectView = 'form' | 'pending' | 'invite' | 'waiting' | 'no_listings' | 'operator';
+type ConnectView = 'pending' | 'invite' | 'waiting' | 'no_listings' | 'operator';
 
 function whatsappHref(text: string): string {
   const number = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, '');
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }
 
-function viewFor(state: ConnectState, editing: boolean): ConnectView {
+function viewFor(state: ConnectState): ConnectView {
   if (state.stage === 'needs_operator') return 'operator';
   if (state.stage === 'connecting' || state.stage === 'connected') return 'waiting';
   if (state.stage === 'no_listings') return 'no_listings';
-  if (editing) return 'form';
   if (state.stage === 'invite_sent' && state.inviteUrl) return 'invite';
-  return state.airbnbEmail ? 'pending' : 'form';
+  return 'pending';
 }
 
 function StageHead({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
@@ -154,13 +150,11 @@ export function ConnectPanel({
   const t = useTranslations('connect');
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [editing, setEditing] = useState(false);
-  const [email, setEmail] = useState(state.airbnbEmail ?? '');
   const [error, setError] = useState<ConnectError | null>(null);
   const [notYet, setNotYet] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const view = viewFor(state, editing);
+  const view = viewFor(state);
 
   const errorText =
     error === 'validation'
@@ -172,21 +166,6 @@ export function ConnectPanel({
           : error
             ? t('error_generic')
             : null;
-
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const value = email.trim();
-    setError(null);
-    start(async () => {
-      const r = await submitAirbnbEmail({ email: value });
-      if (!r.ok) {
-        setError(r.error ?? 'store');
-        return;
-      }
-      setEditing(false);
-      router.refresh();
-    });
-  };
 
   const onVerify = () => {
     setNotYet(false);
@@ -207,41 +186,6 @@ export function ConnectPanel({
       .then(() => setCopied(true))
       .catch(() => setCopied(false));
   };
-
-  const emailForm = (
-    <form onSubmit={onSubmit} className="grid gap-3">
-      <div className="grid gap-1.5">
-        <Label htmlFor="airbnb-email">{t('email_label')}</Label>
-        <Input
-          id="airbnb-email"
-          name="airbnb-email"
-          type="email"
-          required
-          autoComplete="email"
-          inputMode="email"
-          placeholder={t('email_placeholder')}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="sm:max-w-sm"
-        />
-      </div>
-      <Button
-        type="submit"
-        size="lg"
-        disabled={pending || !email.trim()}
-        className="justify-self-start"
-      >
-        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
-        {pending ? t('email_sending') : t('email_submit')}
-      </Button>
-      {errorText && (
-        <p role="alert" className="text-destructive text-sm">
-          {errorText}
-        </p>
-      )}
-      <p className="text-muted-foreground text-xs">{t('email_note')}</p>
-    </form>
-  );
 
   const verifyBlock = (label: string) => (
     <div className="grid gap-2">
@@ -267,7 +211,7 @@ export function ConnectPanel({
     <div className="grid gap-4">
       <Card>
         <CardContent className="grid gap-5 p-6 sm:p-8">
-          {view === 'form' && (
+          {view === 'pending' && (
             <>
               <StageHead icon={Plug} title={t('title')} />
               <div className="grid gap-1.5 text-sm">
@@ -275,36 +219,19 @@ export function ConnectPanel({
                 <p className="text-muted-foreground">{t('intro_2')}</p>
               </div>
               <HowItWorks />
-              <div className="border-warning/30 bg-warning/10 grid gap-1.5 rounded-xl border p-4">
-                <p className="text-warning flex items-center gap-2 text-sm font-semibold">
-                  <TriangleAlert className="h-4 w-4 shrink-0" />
-                  {t('email_warn_title')}
+              <div className="border-border grid gap-1.5 rounded-xl border p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <Clock className="h-4 w-4 shrink-0" />
+                  {t('pending_title')}
                 </p>
-                <p className="text-sm">{t('email_warn_body')}</p>
-                {signupEmail && (
-                  <p className="text-muted-foreground text-xs">
-                    {t('email_signup', { email: signupEmail })}
-                  </p>
-                )}
+                <p className="text-sm">{t('pending_body', { email: signupEmail ?? '' })}</p>
               </div>
-              {emailForm}
-            </>
-          )}
-
-          {view === 'pending' && (
-            <>
-              <StageHead icon={Clock} title={t('pending_title')} />
-              <p className="text-sm">
-                {t('pending_body', { email: state.airbnbEmail ?? signupEmail ?? '' })}
-              </p>
-              <p className="text-muted-foreground text-sm">{t('pending_change')}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditing(true)}>
-                  <Pencil className="h-4 w-4" />
-                  {t('pending_edit')}
-                </Button>
-                <WhatsAppButton variant="outline" />
-              </div>
+              <WhatsAppButton variant="outline" />
+              {errorText && (
+                <p role="alert" className="text-destructive text-sm">
+                  {errorText}
+                </p>
+              )}
             </>
           )}
 
@@ -312,9 +239,7 @@ export function ConnectPanel({
             <>
               <StageHead icon={ExternalLink} title={t('invite_title')} />
               <p className="text-sm">
-                {state.airbnbEmail
-                  ? t('invite_body', { email: state.airbnbEmail })
-                  : t('invite_body_generic')}
+                {signupEmail ? t('invite_body', { email: signupEmail }) : t('invite_body_generic')}
               </p>
               <Button asChild size="lg" className="justify-self-start">
                 <a href={state.inviteUrl} target="_blank" rel="noreferrer">

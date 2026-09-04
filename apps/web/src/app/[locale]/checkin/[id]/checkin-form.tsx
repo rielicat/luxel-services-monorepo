@@ -26,9 +26,6 @@ export interface Stay {
 }
 
 export interface Rules {
-  noSmoking: boolean;
-  noPets: boolean;
-  noEvents: boolean;
   lines?: string[];
 }
 
@@ -459,16 +456,23 @@ function GuestRow({
 
 type RuleItem = { mark: string; text: string };
 
-const RULE_MARK =
-  /^(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*)\s*/u;
+const EMOJI = '\\p{Extended_Pictographic}(?:️|‍\\p{Extended_Pictographic}|[\\u{1F3FB}-\\u{1F3FF}])*';
+const RULE_MARK = new RegExp(`^(${EMOJI})\\s*`, 'u');
+const RULE_TAIL = new RegExp(`\\s*(${EMOJI})[\\s.]*$`, 'u');
 const RULE_BULLET = /^[-*•]\s*/;
 const RULE_HEADING = /^[^\p{Ll}]*:$/u;
+const RULE_FALLBACK = '📌';
 
-function splitRule(line: string): RuleItem {
+function splitRule(line: string, title: string): RuleItem {
   const clean = line.replace(RULE_BULLET, '').trim();
-  const found = RULE_MARK.exec(clean);
-  if (!found) return { mark: '•', text: RULE_HEADING.test(clean) ? '' : clean };
-  return { mark: found[1]!, text: clean.slice(found[0].length).trim() };
+  const lead = RULE_MARK.exec(clean);
+  const body = lead ? clean.slice(lead[0].length).trim() : clean;
+  if (!lead && RULE_HEADING.test(clean)) return { mark: RULE_FALLBACK, text: '' };
+  if (body.toLowerCase() === title.toLowerCase()) return { mark: RULE_FALLBACK, text: '' };
+  if (lead) return { mark: lead[1]!, text: body };
+  const tail = RULE_TAIL.exec(body);
+  if (tail) return { mark: tail[1]!, text: body.slice(0, tail.index).trim() };
+  return { mark: RULE_FALLBACK, text: body };
 }
 
 function DoneView({
@@ -492,23 +496,10 @@ function DoneView({
   if (arrivalTime) rows.push([t('summary_arrival'), arrivalTime]);
   if (departureTime) rows.push([t('summary_departure'), departureTime]);
 
-  const written = (rules.lines ?? []).map(splitRule).filter((r) => r.text);
-  const stated = written
-    .map((r) => r.text)
-    .join(' ')
-    .toLowerCase();
-  const ruleItems: RuleItem[] = [];
-  const says = (re: RegExp) => re.test(stated);
-  if (rules.noSmoking && !says(/\bfuma/)) {
-    ruleItems.push({ mark: '🚭', text: t('rule_no_smoking') });
-  }
-  if (rules.noPets && !says(/\b(mascotas?|perros?|gatos?)\b/)) {
-    ruleItems.push({ mark: '🐾', text: t('rule_no_pets') });
-  }
-  if (rules.noEvents && !says(/\b(fiestas?|eventos?)\b/)) {
-    ruleItems.push({ mark: '🎉', text: t('rule_no_events') });
-  }
-  const allRules = [...written, ...ruleItems];
+  const rulesTitle = t('rules_title');
+  const allRules = (rules.lines ?? [])
+    .map((line) => splitRule(line, rulesTitle))
+    .filter((r) => r.text);
 
   return (
     <div className="grid gap-4">
@@ -560,7 +551,7 @@ function DoneView({
 
       {allRules.length > 0 && (
         <Card className="p-4">
-          <h2 className={cn(SECTION_TITLE, 'mb-2')}>{t('rules_title')}</h2>
+          <h2 className={cn(SECTION_TITLE, 'mb-2')}>{rulesTitle}</h2>
           <ul className="grid gap-2.5">
             {allRules.map(({ mark, text }) => (
               <li key={text} className="flex items-start gap-2.5 text-sm leading-snug">

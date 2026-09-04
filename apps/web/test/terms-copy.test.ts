@@ -55,13 +55,17 @@ describe('terms catalogs', () => {
       expect(prose(doc), locale).toContain('info@serviciosluxel.cl');
   });
 
+  it('names no vendor the host does not deal with', () => {
+    for (const [locale, doc] of DOCS) expect(prose(doc), locale).not.toMatch(/hospitable/i);
+  });
+
   it('carries a section for each obligation the page has to cover', () => {
     const ids = es.sections.map((s) => s.id);
     for (const id of [
       'quienes-somos',
       'alcance',
       'servicio',
-      'hospitable',
+      'conexion',
       'plan',
       'base-comision',
       'cobro',

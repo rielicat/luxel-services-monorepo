@@ -45,12 +45,6 @@ export async function generateMetadata({
   return { title: t('meta_title'), robots: { index: false, follow: false } };
 }
 
-type HouseRules = {
-  pets_allowed?: boolean | null;
-  smoking_allowed?: boolean | null;
-  events_allowed?: boolean | null;
-} | null;
-
 export default async function CheckinPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = createSupabaseServiceRoleClient();
@@ -65,9 +59,7 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
   const [{ data: property }, guestsRes, draft] = await Promise.all([
     supabase
       .from('properties')
-      .select(
-        'nickname, address, comuna, checkin_time, checkout_time, house_rules, listing_details, max_guests',
-      )
+      .select('nickname, address, comuna, checkin_time, checkout_time, listing_details, max_guests')
       .eq('id', checkin.property_id as string)
       .maybeSingle(),
     done
@@ -83,7 +75,6 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
 
   const lang = await guestLang(checkin);
 
-  const rules = (property?.house_rules ?? null) as HouseRules;
   const listing = (property?.listing_details ?? null) as {
     additional_rules?: string | null;
   } | null;
@@ -126,12 +117,7 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
             expectedGuests={guestSlots(checkin.expected_guests as number | null, maxGuests)}
             maxGuests={maxGuests}
             askCount={checkin.expected_guests == null}
-            rules={{
-              noSmoking: rules?.smoking_allowed === false,
-              noPets: rules?.pets_allowed === false,
-              noEvents: rules?.events_allowed === false,
-              lines: houseRuleLines,
-            }}
+            rules={{ lines: houseRuleLines }}
             registered={registered}
             draft={draft}
             arrivalTime={(checkin.arrival_time as string | null) ?? null}

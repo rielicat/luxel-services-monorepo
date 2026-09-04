@@ -100,12 +100,12 @@
       ]
     },
     {
-      "id": "hospitable",
+      "id": "conexion",
       "title": "El acceso a tu anuncio",
       "plain": "Nos conectamos a tu anuncio con un acceso que das tú y que puedes quitar cuando quieras.",
       "body": [
-        "Para operar tu anuncio necesitamos verlo. La conexión pasa por Hospitable, el sistema con el que leemos tus anuncios, tu calendario, tus reservas y las conversaciones con los huéspedes.",
-        "El acceso lo das tú y lo puedes quitar tú, en Airbnb o en Hospitable. No hay un botón para desconectarte dentro de nuestra app, y no lo escondemos: la llave sigue siendo tuya y está donde tú puedes girarla.",
+        "Para operar tu anuncio necesitamos verlo. La conexión pasa por el sistema con el que leemos tus anuncios, tu calendario, tus reservas y las conversaciones con los huéspedes.",
+        "El acceso lo das tú y lo puedes quitar tú, desde Airbnb. No hay un botón para desconectarte dentro de nuestra app, y no lo escondemos: la llave sigue siendo tuya y está donde tú puedes girarla.",
         "Cuando cortas el acceso dejamos de ver tu cuenta y no nos llegan datos nuevos. La copia que ya teníamos —tus propiedades, tus reservas, tu calendario, tus ingresos y las conversaciones con huéspedes— no se borra sola. Si quieres que la borremos, escríbenos a info@serviciosluxel.cl y la borramos, salvo lo que la ley nos obligue a conservar.",
         "Con el acceso cortado no podemos operar: no podemos responderle a un huésped ni coordinar un aseo. Si eso pasa con una estadía en curso, te avisamos de inmediato para que nadie quede sin respuesta."
       ],
@@ -206,7 +206,7 @@
         },
         {
           "name": "Que el acceso siga abierto",
-          "detail": "Que mientras el plan esté activo la conexión de tu anuncio en Airbnb y en Hospitable siga en pie. Si la cortas, dejamos de poder operar."
+          "detail": "Que mientras el plan esté activo la conexión de tu anuncio en Airbnb siga en pie. Si la cortas, dejamos de poder operar."
         },
         {
           "name": "Tus propias obligaciones",
@@ -220,7 +220,7 @@
       "plain": "Ponemos el trabajo y respondemos por él. Lo que depende de terceros no lo podemos prometer.",
       "body": [
         "Nos comprometemos a operar tu anuncio con cuidado y a tiempo: contestarle a los huéspedes, mantener el precio vivo, dejar la unidad lista entre estadías y avisarte cuando algo se salga de lo normal.",
-        "Parte de esto pasa por servicios de otros: Airbnb, Hospitable, la herramienta de precio dinámico, WhatsApp. Si uno se cae, cambia sus reglas o cierra una cuenta, eso no está en nuestras manos. Te lo decimos apenas lo sabemos y hacemos lo que sí está en nuestras manos, a mano si hace falta.",
+        "Parte de esto pasa por servicios de otros: Airbnb, el sistema con el que leemos tu anuncio, la herramienta de precio dinámico, WhatsApp. Si uno se cae, cambia sus reglas o cierra una cuenta, eso no está en nuestras manos. Te lo decimos apenas lo sabemos y hacemos lo que sí está en nuestras manos, a mano si hace falta.",
         "Nadie puede garantizar que un departamento se arriende, ni a qué precio. No prometemos ocupación ni ingresos, ni aquí ni en la calculadora del sitio: esa calculadora convierte el número que tú escribes, no adivina tu mes. Lo mismo vale para una estimación del chat: es una cuenta, no una oferta.",
         "Lo que sí es nuestro, lo respondemos. Si algo salió mal por cómo trabajamos nosotros o por alguien que mandamos nosotros, no nos escondemos detrás de una cláusula: lo conversamos y lo arreglamos."
       ],
