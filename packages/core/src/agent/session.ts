@@ -61,3 +61,20 @@ export async function setThreadSession(threadId: string, sessionId: string): Pro
     .update({ agent_session_id: sessionId })
     .eq('id', threadId);
 }
+
+export const MAX_SESSIONS_PER_WINDOW = 12;
+
+export const SESSION_WINDOW_SECONDS = 600;
+
+export async function claimSessionSlot(principalId: string): Promise<boolean> {
+  const { data, error } = await createSupabaseServiceRoleClient().rpc('claim_agent_session_slot', {
+    p_principal_id: principalId,
+    p_max: MAX_SESSIONS_PER_WINDOW,
+    p_window_seconds: SESSION_WINDOW_SECONDS,
+  });
+  if (error) {
+    console.error('agent.slot_check_failed', { message: error.message });
+    return false;
+  }
+  return data !== false;
+}

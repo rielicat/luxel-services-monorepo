@@ -129,6 +129,27 @@ describe.runIf(LIVE)('agent memory', () => {
     expect(messages[0]?.content).toContain('dos frases');
   });
 
+  it('refuses more than the allowed sessions per principal in the window', async () => {
+    const session = await import('@luxel/core/agent/session');
+    const principal = `visitor:${nodeCrypto.randomUUID()}`;
+    let refusedAt = -1;
+
+    for (let i = 0; i < session.MAX_SESSIONS_PER_WINDOW + 1; i += 1) {
+      if (!(await session.claimSessionSlot(principal))) {
+        refusedAt = i;
+        break;
+      }
+      await session.claimSession({
+        sessionId: `rl-${principal}-${i}`,
+        principalId: principal,
+        surface: 'web',
+      });
+    }
+
+    expect(refusedAt).toBe(session.MAX_SESSIONS_PER_WINDOW);
+    expect(await session.claimSessionSlot(`visitor:${nodeCrypto.randomUUID()}`)).toBe(true);
+  });
+
   it('caps a stored note and normalises whitespace', () => {
     const long = 'dato '.repeat(400);
     expect(sanitize.sanitizeForMemory(long, []).length).toBeLessThanOrEqual(600);

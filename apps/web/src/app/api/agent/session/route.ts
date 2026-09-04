@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
 import { mintAgentToken, AGENT_TOKEN_TTL_SECONDS } from '@luxel/core/agent/token';
 import { createAgentSession } from '@luxel/core/agent/dispatch';
+import { claimSessionSlot } from '@luxel/core/agent/session';
 import { appUrl } from '@luxel/core/urls';
 
 export const runtime = 'nodejs';
@@ -84,6 +85,10 @@ export async function POST(req: Request) {
       },
       { headers: { 'cache-control': 'no-store' } },
     );
+  }
+
+  if (!(await claimSessionSlot(principalId))) {
+    return Response.json({ ok: false, error: 'rate_limited' }, { status: 429 });
   }
 
   const created = await createAgentSession({

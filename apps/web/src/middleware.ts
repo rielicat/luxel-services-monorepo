@@ -8,8 +8,10 @@ const intlMiddleware = createIntlMiddleware(routing);
 const isProtectedRoute = createRouteMatcher(['/account(.*)', '/properties(.*)']);
 
 const isApiRoute = (pathname: string) => pathname.startsWith('/api/');
+const isAgentRoute = (pathname: string) => pathname === '/eve' || pathname.startsWith('/eve/');
 const isFileRoute = (pathname: string) => pathname.includes('.');
-const isPageRoute = (pathname: string) => !isApiRoute(pathname) && !isFileRoute(pathname);
+const isPageRoute = (pathname: string) =>
+  !isApiRoute(pathname) && !isAgentRoute(pathname) && !isFileRoute(pathname);
 
 const intlOnly = (req: NextRequest) => {
   if (!isPageRoute(req.nextUrl.pathname)) return;
@@ -62,5 +64,5 @@ const inner = skipAuth
 export default withStealthGate(inner);
 
 export const config = {
-  matcher: ['/((?!api/webhooks|_next|_vercel|monitoring).*)'],
+  matcher: ['/((?!api/webhooks|eve|_next|_vercel|monitoring).*)'],
 };
