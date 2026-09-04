@@ -34,6 +34,11 @@ config:
     rules:
       - address: catriel@serviciosluxel.cl
         forwardTo: catrielguillen@gmail.com
+      # Published in the privacy policy as the channel for data-subject
+      # requests, so mail here can carry identity documents. Moving it off a
+      # personal mailbox is an open task.
+      - address: info@serviciosluxel.cl
+        forwardTo: catrielguillen@gmail.com
     # What happens to every other address at the domain.
     catchAll:
       enabled: true
