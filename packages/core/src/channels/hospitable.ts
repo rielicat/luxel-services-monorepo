@@ -382,8 +382,8 @@ export async function listHospitableCalendar(
   }
 }
 
-interface HospitableMessage {
-  id: string;
+export interface HospitableMessage {
+  id: string | number;
   body: string | null;
   sender_type: string | null;
   created_at: string;
@@ -406,6 +406,89 @@ export async function listHospitableMessages(
     url = r.nextUrl ?? null;
   }
   return out;
+}
+
+export interface HospitableInquiry {
+  id: string;
+  platform?: string | null;
+  inquiry_date?: string | null;
+  arrival_date?: string | null;
+  departure_date?: string | null;
+  conversation_language?: string | null;
+  guest?: { first_name?: string | null; last_name?: string | null } | null;
+}
+
+export async function listHospitableInquiries(
+  token: string,
+  propertyId: string,
+): Promise<HospitableInquiry[] | null> {
+  const out: HospitableInquiry[] = [];
+  const base = `/inquiries?properties%5B%5D=${encodeURIComponent(propertyId)}&per_page=100&include=guest`;
+  for (let page = 1; page <= 10; page++) {
+    const r: Awaited<ReturnType<typeof hospGet<HospitableInquiry>>> = await hospGet(
+      token,
+      `${base}&page=${page}`,
+    );
+    if (!r.ok) return page === 1 ? null : out;
+    const rows = r.data ?? [];
+    out.push(...rows);
+    if (rows.length < 100) break;
+  }
+  return out;
+}
+
+export async function getHospitableInquiry(
+  token: string,
+  inquiryId: string,
+): Promise<{ guestName: string | null; messages: HospitableMessage[] } | null> {
+  try {
+    const res = await fetch(
+      `${BASE}/inquiries/${encodeURIComponent(inquiryId)}?include=messages,guest`,
+      { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      data?: {
+        guest?: { first_name?: string | null } | null;
+        messages?: HospitableMessage[] | null;
+      } | null;
+    };
+    const data = json.data;
+    if (!data) return null;
+    return {
+      guestName: data.guest?.first_name ?? null,
+      messages: Array.isArray(data.messages) ? data.messages : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function sendHospitableInquiryMessage(
+  token: string,
+  inquiryId: string,
+  body: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(`${BASE}/inquiries/${encodeURIComponent(inquiryId)}/messages`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({ body }),
+    });
+    if (!res.ok) {
+      console.error('hospitable.inquiry_send_failed', { status: res.status });
+      return null;
+    }
+    const json = (await res.json().catch(() => ({}))) as { data?: { id?: string | number } };
+    const id = json.data?.id;
+    return id === undefined || id === null ? `hosp_${Date.now()}` : String(id);
+  } catch {
+    return null;
+  }
 }
 
 export async function sendHospitableMessage(

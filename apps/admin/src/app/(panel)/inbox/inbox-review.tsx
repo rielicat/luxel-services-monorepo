@@ -37,6 +37,7 @@ const fmt = (iso: string) =>
   }).format(new Date(iso));
 
 const CATEGORY_TONE: Record<string, string> = {
+  inquiry: 'bg-primary/15 text-primary',
   request: 'bg-warning/15 text-warning',
   checkpoint: 'bg-warning/15 text-warning',
   accepted: 'bg-success/15 text-success',
@@ -125,6 +126,8 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
 
   const categoryLabel = (category: string | null) => {
     switch (category) {
+      case 'inquiry':
+        return t('category_inquiry');
       case 'request':
         return t('category_request');
       case 'checkpoint':
@@ -182,14 +185,16 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
           type="button"
           onClick={() => toggle(thread.id)}
           aria-expanded={expanded}
-          className="hover:bg-muted/40 flex w-full items-start gap-3 rounded-xl p-4 text-left sm:p-5"
+          className="hover:bg-muted/40 flex w-full max-w-full items-start gap-3 overflow-hidden rounded-xl p-3 text-left sm:p-4"
         >
           <span className="text-muted-foreground mt-0.5 shrink-0">
             {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </span>
-          <span className="min-w-0 flex-1">
+          <span className="min-w-0 flex-1 overflow-hidden">
             <span className="flex flex-wrap items-center gap-1.5">
-              <span className="truncate text-sm font-semibold">{thread.propertyName}</span>
+              <span className="min-w-0 max-w-full truncate text-sm font-semibold">
+                {thread.propertyName}
+              </span>
               <span
                 className={cn(
                   'rounded-full px-2 py-0.5 text-[11px] font-semibold',
@@ -216,21 +221,20 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
                 {statusLabel(thread.status)}
               </span>
             </span>
-            <span className="text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-              <UserRound className="h-3.5 w-3.5" />
-              {thread.guestName ?? t('guest_unknown')} · {fmt(thread.updatedAt)} ·{' '}
-              {t('messages_count', { count: thread.messages.length })}
-            </span>
-            {!expanded && (
-              <span className="text-muted-foreground mt-1 block truncate text-sm">
-                {last ? `${sourceLabel(last.source)}: ${last.body}` : t('no_messages')}
+            <span className="text-muted-foreground mt-1 flex min-w-0 items-center gap-1.5 text-xs">
+              <UserRound className="h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 truncate">
+                {thread.guestName ?? t('guest_unknown')} · {fmt(thread.updatedAt)} ·{' '}
+                {t('messages_count', { count: thread.messages.length })}
+                {!expanded && last ? ` · ${sourceLabel(last.source)}: ${last.body}` : ''}
+                {!expanded && !last ? ` · ${t('no_messages')}` : ''}
               </span>
-            )}
+            </span>
           </span>
         </button>
 
         {expanded && (
-          <CardContent className="grid gap-3 p-4 pt-0 sm:p-5 sm:pt-0">
+          <CardContent className="grid gap-3 overflow-hidden p-3 pt-0 sm:p-4 sm:pt-0">
             <div className="flex flex-wrap items-center gap-1.5">
               {!thread.aiReplies && (
                 <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[11px] font-semibold">
@@ -253,27 +257,27 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
               <span className="text-muted-foreground text-xs">· {thread.channel}</span>
             </div>
 
-            <div className="border-border grid gap-2 rounded-lg border p-3">
+            <div className="border-border grid max-h-96 gap-2 overflow-y-auto rounded-lg border p-3">
               {thread.messages.length === 0 && (
                 <p className="text-muted-foreground text-sm">{t('no_messages')}</p>
               )}
               {thread.messages.map((message) => (
-                <div key={message.id} className="grid gap-0.5">
+                <div key={message.id} className="grid min-w-0 gap-0.5">
                   <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
                     {sourceLabel(message.source)} · {fmt(message.createdAt)}
                   </p>
-                  <p className="whitespace-pre-wrap text-sm">{message.body}</p>
+                  <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
                 </div>
               ))}
             </div>
 
             {draft ? (
-              <div className="border-primary/30 bg-primary/5 grid gap-2 rounded-lg border p-3">
+              <div className="border-primary/30 bg-primary/5 grid min-w-0 gap-2 rounded-lg border p-3">
                 <p className="flex items-center gap-1.5 text-sm font-semibold">
                   <Sparkles className="text-primary h-4 w-4" />
                   {t('draft_title')}
                 </p>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground break-words text-xs">
                   {draft.origin === 'simulation' ? t('origin_simulation') : t('origin_inbound')}
                   {draft.model ? ` · ${t('model', { model: draft.model })}` : ''}
                 </p>

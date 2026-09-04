@@ -56,6 +56,9 @@ const PROPERTIES_PAYLOAD = {
 };
 
 const MESSAGE_IDS = new Set<string>();
+const INQUIRY_SENDS: Array<{ inquiryId: string; body: string }> = [];
+let INQUIRIES: Array<Record<string, unknown>> = [];
+let INQUIRY_MESSAGES: Array<Record<string, unknown>> = [];
 
 const RESERVATIONS_PAYLOAD = {
   data: [
@@ -309,6 +312,23 @@ beforeAll(async () => {
       HOSP_URLS.push(url);
       const auth = new Headers(init?.headers).get('authorization') ?? '';
       if (auth !== `Bearer ${FAKE_TOKEN}`) return new Response('Unauthorized', { status: 401 });
+      const inqMsgMatch = url.match(/\/inquiries\/([^/]+)\/messages/);
+      if (inqMsgMatch && (init?.method ?? 'GET').toUpperCase() === 'POST') {
+        const body = JSON.parse((init?.body as string) ?? '{}') as { body?: string };
+        INQUIRY_SENDS.push({ inquiryId: inqMsgMatch[1]!, body: body.body ?? '' });
+        return Response.json({ data: { id: 987654321 } });
+      }
+      const inqOneMatch = url.match(/\/inquiries\/([^/?]+)(?:\?|$)/);
+      if (inqOneMatch) {
+        const found = INQUIRIES.find((i) => i.id === inqOneMatch[1]);
+        if (!found) return new Response('Not found', { status: 404 });
+        return Response.json({
+          data: { ...found, guest: { first_name: 'Laura' }, messages: INQUIRY_MESSAGES },
+        });
+      }
+      if (url.includes('/inquiries')) {
+        return Response.json({ data: INQUIRIES, links: { next: null } });
+      }
       const msgMatch = url.match(/\/reservations\/([^/]+)\/messages/);
       if (msgMatch) {
         if ((init?.method ?? 'GET').toUpperCase() === 'POST') {
@@ -443,6 +463,9 @@ afterEach(async () => {
   await admin.from('listing_assignments').delete().eq('external_listing_id', HOSP_PROPERTY_ID);
   await admin.from('listing_assignments').delete().eq('customer_id', customerId);
   MESSAGES = [];
+  INQUIRIES = [];
+  INQUIRY_MESSAGES = [];
+  INQUIRY_SENDS.length = 0;
   RESERVATIONS_FILTER = null;
   RESERVATIONS_CANCELLED = new Set<string>();
   RESERVATIONS_UNPRICED = new Set<string>();
@@ -927,6 +950,77 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       MESSAGE_IDS.delete(`res-req${RES_ID_SUFFIX}`);
       MESSAGES = priorMessages;
     }
+  });
+
+  it('threads an Airbnb inquiry, which holds no nights and answers on its own route', async () => {
+    INQUIRIES = [
+      {
+        id: 'inq-1',
+        platform: 'airbnb',
+        inquiry_date: '2026-09-04T12:55:05+00:00',
+        arrival_date: '2026-09-05',
+        departure_date: '2026-09-06',
+        conversation_language: 'Spanish',
+      },
+    ];
+    INQUIRY_MESSAGES = [
+      {
+        id: 1272850537,
+        body: '¿Es posible un check-out más tarde el domingo?',
+        sender_type: 'guest',
+        created_at: '2026-09-04T12:55:05Z',
+        sender: { first_name: 'Laura' },
+      },
+      {
+        id: 1272850999,
+        body: '¿A qué hora tiene estimado el check out?',
+        sender_type: 'host',
+        created_at: '2026-09-04T12:59:19Z',
+      },
+    ];
+
+    await connectHospitable({ token: FAKE_TOKEN });
+    expect((await syncHospitable()).ok).toBe(true);
+
+    const { data: thread } = await admin
+      .from('guest_threads')
+      .select('id, guest_name, reservation_category')
+      .eq('channel', 'hospitable')
+      .eq('external_thread_id', 'inq-1')
+      .maybeSingle();
+    expect(thread).not.toBeNull();
+    expect(thread!.reservation_category).toBe('inquiry');
+    expect(thread!.guest_name).toBe('Laura');
+
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('external_id, source')
+      .eq('thread_id', thread!.id)
+      .order('created_at', { ascending: true });
+    expect(msgs!.map((m) => m.external_id)).toEqual(['1272850537', '1272850999']);
+
+    const { data: blocks } = await admin
+      .from('calendar_blocks')
+      .select('external_uid')
+      .like('external_uid', '%inq-1%');
+    expect(blocks ?? []).toHaveLength(0);
+
+    const { data: draftRow } = await admin
+      .from('guest_reply_drafts')
+      .insert({
+        thread_id: thread!.id,
+        guest_message: '¿Es posible un check-out más tarde?',
+        body: 'Podría ser a las 13:00.',
+        status: 'pending',
+        origin: 'simulation',
+      })
+      .select('id')
+      .single();
+    const { sendReplyDraft } = await import('@luxel/core/messaging/drafts');
+    const sent = await sendReplyDraft(draftRow!.id as string, 'Podría ser a las 13:00.', 'op');
+    expect(sent.ok).toBe(true);
+    expect(INQUIRY_SENDS).toEqual([{ inquiryId: 'inq-1', body: 'Podría ser a las 13:00.' }]);
+    expect(SENT.some((x) => x.reservationId === 'inq-1')).toBe(false);
   });
 
   it('never speaks for a guest — a forged payload body is not delivered', async () => {

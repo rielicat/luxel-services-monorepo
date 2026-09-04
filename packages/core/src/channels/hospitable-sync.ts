@@ -16,6 +16,9 @@ import {
   type HospitableTeammate,
   reservationCategory,
   type ReservationCategory,
+  listHospitableInquiries,
+  getHospitableInquiry,
+  type HospitableMessage,
 } from './hospitable';
 import { suggestCleaningsFromCheckouts } from '../cleaning/schedule';
 import { autoConfirmSuggested } from '../cleaning/notify';
@@ -682,13 +685,48 @@ export async function ingestThread(
   watermark: string | null,
   category: ReservationCategory | null = null,
 ): Promise<{ imported: number; replies: number; drafts: number }> {
+  const messages = await listHospitableMessages(token, reservationId);
+  if (!messages?.length) return { imported: 0, replies: 0, drafts: 0 };
+  return ingestMessages(supabase, propertyId, reservationId, messages, watermark, category, null);
+}
+
+export async function ingestInquiry(
+  supabase: Supabase,
+  token: string,
+  propertyId: string,
+  inquiryId: string,
+  watermark: string | null,
+): Promise<{ imported: number; replies: number; drafts: number }> {
+  const detail = await getHospitableInquiry(token, inquiryId);
+  if (!detail?.messages.length) return { imported: 0, replies: 0, drafts: 0 };
+  return ingestMessages(
+    supabase,
+    propertyId,
+    inquiryId,
+    detail.messages,
+    watermark,
+    'inquiry',
+    detail.guestName,
+  );
+}
+
+async function ingestMessages(
+  supabase: Supabase,
+  propertyId: string,
+  threadKey: string,
+  messages: HospitableMessage[],
+  watermark: string | null,
+  category: ReservationCategory | 'inquiry' | null,
+  guestNameOverride: string | null,
+): Promise<{ imported: number; replies: number; drafts: number }> {
   let imported = 0;
   let replies = 0;
   let drafts = 0;
 
-  const messages = await listHospitableMessages(token, reservationId);
-  if (!messages?.length) return { imported, replies, drafts };
-  const guestName = messages.find((m) => m.sender_type === 'guest')?.sender?.first_name ?? null;
+  const guestName =
+    guestNameOverride ??
+    messages.find((m) => m.sender_type === 'guest')?.sender?.first_name ??
+    null;
 
   const { data: thread } = await supabase
     .from('guest_threads')
@@ -696,7 +734,7 @@ export async function ingestThread(
       {
         property_id: propertyId,
         channel: 'hospitable',
-        external_thread_id: reservationId,
+        external_thread_id: threadKey,
         guest_name: guestName,
         ...(category ? { reservation_category: category } : {}),
         updated_at: new Date().toISOString(),
@@ -716,7 +754,8 @@ export async function ingestThread(
 
   const ordered = [...messages].sort((a, b) => a.created_at.localeCompare(b.created_at));
   for (const m of ordered) {
-    if (!m.body || seen.has(m.id)) continue;
+    const externalId = String(m.id);
+    if (!m.body || seen.has(externalId)) continue;
     const isGuest = m.sender_type === 'guest';
     const isNew = watermark !== null && m.created_at > watermark;
 
@@ -724,10 +763,10 @@ export async function ingestThread(
       const res = await handleInboundMessage({
         propertyId,
         channel: 'hospitable',
-        externalThreadId: reservationId,
+        externalThreadId: threadKey,
         guestName,
         body: m.body,
-        externalMessageId: m.id,
+        externalMessageId: externalId,
       });
       if (res.action === 'sent') replies++;
       if (res.action === 'drafted') drafts++;
@@ -739,15 +778,36 @@ export async function ingestThread(
           direction: isGuest ? 'in' : 'out',
           source: isGuest ? 'guest' : 'host',
           body: m.body,
-          external_id: m.id,
+          external_id: externalId,
         },
         { onConflict: 'thread_id,external_id', ignoreDuplicates: true },
       );
       imported++;
     }
-    seen.add(m.id);
+    seen.add(externalId);
   }
   return { imported, replies, drafts };
+}
+
+async function syncInquiries(
+  supabase: Supabase,
+  token: string,
+  propertyId: string,
+  listingId: string,
+  watermark: string | null,
+): Promise<{ imported: number; replies: number; drafts: number; ids: string[] }> {
+  const inquiries = await listHospitableInquiries(token, listingId);
+  const totals = { imported: 0, replies: 0, drafts: 0, ids: [] as string[] };
+  if (!inquiries?.length) return totals;
+
+  for (const inquiry of inquiries) {
+    totals.ids.push(inquiry.id);
+    const one = await ingestInquiry(supabase, token, propertyId, inquiry.id, watermark);
+    totals.imported += one.imported;
+    totals.replies += one.replies;
+    totals.drafts += one.drafts;
+  }
+  return totals;
 }
 
 async function syncConversations(
@@ -890,11 +950,15 @@ export async function syncHospitableAccount(
     cleaningCount += c.suggested;
     await autoConfirmSuggested(propertyId, today);
 
+    const inquiries = await syncInquiries(supabase, token, propertyId, rp.id, watermark);
+    messagesImported += inquiries.imported;
+    aiReplies += inquiries.replies;
+
     if (reservations?.length) {
       const merged = await mergeOrphanThreads(
         supabase,
         propertyId,
-        new Set(reservations.map((r) => r.id)),
+        new Set([...reservations.map((r) => r.id), ...inquiries.ids]),
       );
       if (merged) console.warn('sync.threads_merged', { propertyId, merged });
       const conv = await syncConversations(

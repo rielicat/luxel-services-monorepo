@@ -1,9 +1,12 @@
 import 'server-only';
-import { sendHospitableMessage } from './hospitable';
+import { sendHospitableInquiryMessage, sendHospitableMessage } from './hospitable';
 import { providerApiKey } from './credentials';
+
+export type ThreadKind = 'reservation' | 'inquiry';
 
 interface SendOpts {
   token?: string | null;
+  kind?: ThreadKind;
 }
 
 interface MessageSender {
@@ -16,7 +19,9 @@ const hospitable: MessageSender = {
   async send(externalThreadId, body, opts) {
     const token = opts?.token ?? providerApiKey();
     if (!token || !externalThreadId) return null;
-    return sendHospitableMessage(token, externalThreadId, body);
+    return opts?.kind === 'inquiry'
+      ? sendHospitableInquiryMessage(token, externalThreadId, body)
+      : sendHospitableMessage(token, externalThreadId, body);
   },
 };
 

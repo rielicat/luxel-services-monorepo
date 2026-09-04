@@ -30,7 +30,7 @@ const NAV = [
   { href: '/cleanings', label: 'Aseos', Icon: Sparkles },
   { href: '/stays', label: 'Estadías', Icon: CalendarPlus },
   { href: '/ai', label: 'Lux', Icon: Bot },
-  { href: '/inbox', label: 'Huéspedes', Icon: MessagesSquare },
+  { href: '/inbox', label: 'Inbox', Icon: MessagesSquare },
   { href: '/listings', label: 'Propiedades', Icon: Building2 },
   { href: '/sessions', label: 'Sesiones', Icon: Users2 },
   { href: '/telemetry', label: 'Telemetría', Icon: Activity },

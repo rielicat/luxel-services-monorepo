@@ -80,7 +80,7 @@
     "syncing": "Sincronizando…",
     "synced_ok": "Listo: {accounts} cuenta(s) sincronizadas.",
     "synced_partial": "Sincronizamos {accounts} cuenta(s); {failed} fallaron. Revisa los registros.",
-    "sync_hint": "Las solicitudes y consultas llegan por acá. Hospitable nos avisa de los mensajes nuevos; esto trae lo que ya existía.",
+    "sync_hint": "Las consultas y solicitudes llegan por acá. Hospitable nos avisa de los mensajes nuevos; esto trae lo que ya existía.",
     "category_request": "Solicitud",
     "category_checkpoint": "Verificación",
     "category_accepted": "Reserva",
@@ -91,6 +91,7 @@
     "collapse": "Ocultar",
     "draft_badge": "Borrador listo",
     "no_messages": "Sin mensajes todavía.",
-    "messages_count": "{count} mensaje(s)"
+    "messages_count": "{count} mensaje(s)",
+    "category_inquiry": "Consulta"
   }
 }
