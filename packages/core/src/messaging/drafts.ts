@@ -34,6 +34,7 @@ export interface InboxThread {
   channel: string;
   externalThreadId: string | null;
   guestName: string | null;
+  reservationCategory: string | null;
   status: string;
   aiReplies: boolean;
   aiReviews: boolean;
@@ -266,7 +267,9 @@ export async function listInboxThreads(limit = 30): Promise<InboxThread[]> {
   const supabase = createSupabaseServiceRoleClient();
   const { data: threads } = await supabase
     .from('guest_threads')
-    .select('id, property_id, channel, external_thread_id, guest_name, status, updated_at')
+    .select(
+      'id, property_id, channel, external_thread_id, guest_name, reservation_category, status, updated_at',
+    )
     .order('updated_at', { ascending: false })
     .limit(limit);
   const rows = (threads ?? []) as Record<string, unknown>[];
@@ -317,6 +320,7 @@ export async function listInboxThreads(limit = 30): Promise<InboxThread[]> {
       channel: (t.channel as string) ?? 'local',
       externalThreadId: (t.external_thread_id as string | null) ?? null,
       guestName: (t.guest_name as string | null) ?? null,
+      reservationCategory: (t.reservation_category as string | null) ?? null,
       status: (t.status as string) ?? 'open',
       aiReplies: property?.ai_replies !== false,
       aiReviews: property?.ai_reviews !== false,

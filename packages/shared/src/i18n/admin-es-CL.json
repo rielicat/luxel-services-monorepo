@@ -75,6 +75,22 @@
     "review_managed": "El modo de cada propiedad se cambia en el panel de operación.",
     "error_unknown_thread": "Esa conversación o su propiedad ya no existe. Recarga la página.",
     "error_write_failed": "No pudimos guardar el borrador. Revisa los registros del servidor.",
-    "error_ai_failed": "Lux no pudo redactar: el modelo rechazó la solicitud. El detalle quedó en los registros del servidor (ai.draft_failed)."
+    "error_ai_failed": "Lux no pudo redactar: el modelo rechazó la solicitud. El detalle quedó en los registros del servidor (ai.draft_failed).",
+    "sync_now": "Traer conversaciones de Hospitable",
+    "syncing": "Sincronizando…",
+    "synced_ok": "Listo: {accounts} cuenta(s) sincronizadas.",
+    "synced_partial": "Sincronizamos {accounts} cuenta(s); {failed} fallaron. Revisa los registros.",
+    "sync_hint": "Las solicitudes y consultas llegan por acá. Hospitable nos avisa de los mensajes nuevos; esto trae lo que ya existía.",
+    "category_request": "Solicitud",
+    "category_checkpoint": "Verificación",
+    "category_accepted": "Reserva",
+    "category_cancelled": "Cancelada",
+    "category_not_accepted": "No aceptada",
+    "category_unknown": "Conversación",
+    "expand": "Ver conversación",
+    "collapse": "Ocultar",
+    "draft_badge": "Borrador listo",
+    "no_messages": "Sin mensajes todavía.",
+    "messages_count": "{count} mensaje(s)"
   }
 }
