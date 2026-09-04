@@ -1,24 +1,25 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
 import {
+  getHospitableInquiry,
   hospitableAmountToClp,
   hospitableCleaningFeeClp,
-  listHospitableProperties,
-  listHospitablePricedReservations,
-  listHospitableReservations,
+  isPlaceholderMessageId,
+  listHospitableInquiries,
   listHospitableMessages,
+  listHospitablePricedReservations,
+  listHospitableProperties,
+  listHospitableReservations,
   listHospitableTeammates,
+  reservationCategory,
   toChannelListing,
   toChannelReservation,
-  type HospitableProperty,
+  type HospitableMessage,
   type HospitablePricedReservation,
+  type HospitableProperty,
   type HospitableReservation,
   type HospitableTeammate,
-  reservationCategory,
   type ReservationCategory,
-  listHospitableInquiries,
-  getHospitableInquiry,
-  type HospitableMessage,
 } from './hospitable';
 import { suggestCleaningsFromCheckouts } from '../cleaning/schedule';
 import { autoConfirmSuggested } from '../cleaning/notify';
@@ -748,10 +749,21 @@ async function ingestMessages(
 
   const { data: existing } = await supabase
     .from('guest_messages')
-    .select('external_id')
+    .select('id, body, external_id, direction')
     .eq('thread_id', thread.id)
-    .not('external_id', 'is', null);
-  const seen = new Set((existing ?? []).map((m) => m.external_id as string));
+    .not('external_id', 'is', null)
+    .order('created_at', { ascending: true });
+  const seen = new Set(
+    ((existing ?? []) as Record<string, unknown>[]).map((m) => m.external_id as string),
+  );
+
+  const ours = new Map<string, string>();
+  for (const row of (existing ?? []) as Record<string, unknown>[]) {
+    if (row.direction !== 'out') continue;
+    if (!isPlaceholderMessageId(row.external_id as string | null)) continue;
+    const key = ((row.body as string) ?? '').trim();
+    if (key && !ours.has(key)) ours.set(key, row.id as string);
+  }
 
   const ordered = [...messages].sort((a, b) => a.created_at.localeCompare(b.created_at));
   for (const m of ordered) {
@@ -773,16 +785,23 @@ async function ingestMessages(
       if (res.action === 'drafted') drafts++;
       imported++;
     } else {
-      await supabase.from('guest_messages').upsert(
-        {
-          thread_id: thread.id,
-          direction: isGuest ? 'in' : 'out',
-          source: isGuest ? 'guest' : 'host',
-          body: m.body,
-          external_id: externalId,
-        },
-        { onConflict: 'thread_id,external_id', ignoreDuplicates: true },
-      );
+      const key = m.body.trim();
+      const mine = isGuest ? undefined : ours.get(key);
+      if (mine) {
+        await supabase.from('guest_messages').update({ external_id: externalId }).eq('id', mine);
+        ours.delete(key);
+      } else {
+        await supabase.from('guest_messages').upsert(
+          {
+            thread_id: thread.id,
+            direction: isGuest ? 'in' : 'out',
+            source: isGuest ? 'guest' : 'host',
+            body: m.body,
+            external_id: externalId,
+          },
+          { onConflict: 'thread_id,external_id', ignoreDuplicates: true },
+        );
+      }
       imported++;
     }
     seen.add(externalId);

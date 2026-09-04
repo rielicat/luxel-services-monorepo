@@ -471,6 +471,16 @@ export async function getHospitableInquiry(
   }
 }
 
+const PLACEHOLDER_MESSAGE_PREFIX = 'hosp_';
+
+export function placeholderMessageId(): string {
+  return `${PLACEHOLDER_MESSAGE_PREFIX}${Date.now()}`;
+}
+
+export function isPlaceholderMessageId(id: string | null | undefined): boolean {
+  return typeof id === 'string' && id.startsWith(PLACEHOLDER_MESSAGE_PREFIX);
+}
+
 export async function sendHospitableInquiryMessage(
   token: string,
   inquiryId: string,
@@ -492,7 +502,7 @@ export async function sendHospitableInquiryMessage(
     }
     const json = (await res.json().catch(() => ({}))) as { data?: { id?: string | number } };
     const id = json.data?.id;
-    return id === undefined || id === null ? `hosp_${Date.now()}` : String(id);
+    return id === undefined || id === null ? placeholderMessageId() : String(id);
   } catch {
     return null;
   }
@@ -515,7 +525,7 @@ export async function sendHospitableMessage(
     });
     if (!res.ok) return null;
     const json = (await res.json().catch(() => ({}))) as { data?: { id?: string } };
-    return json.data?.id ?? `hosp_${Date.now()}`;
+    return json.data?.id ?? placeholderMessageId();
   } catch {
     return null;
   }
