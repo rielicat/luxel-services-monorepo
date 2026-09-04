@@ -36,6 +36,7 @@ interface PlansView {
   rows: PlanRow[];
   listings: Record<string, HostListings>;
   revenue: Record<string, number>;
+  unknownCleaning: Record<string, number>;
   failed: boolean;
   statsFailed: boolean;
 }
@@ -68,13 +69,27 @@ async function getPlans(now: Date = new Date()): Promise<PlansView> {
 
   if (error) {
     console.error('admin.plans_query_failed', { message: error.message });
-    return { rows: [], listings: {}, revenue: {}, failed: true, statsFailed: true };
+    return {
+      rows: [],
+      listings: {},
+      revenue: {},
+      unknownCleaning: {},
+      failed: true,
+      statsFailed: true,
+    };
   }
 
   const rows = (data ?? []) as unknown as PlanRow[];
   const customerIds = [...new Set(rows.map((r) => r.customer_id))];
   if (!customerIds.length) {
-    return { rows, listings: {}, revenue: {}, failed: false, statsFailed: false };
+    return {
+      rows,
+      listings: {},
+      revenue: {},
+      unknownCleaning: {},
+      failed: false,
+      statsFailed: false,
+    };
   }
 
   const { data: propertyData, error: propertyError } = await supabase
@@ -84,7 +99,14 @@ async function getPlans(now: Date = new Date()): Promise<PlansView> {
 
   if (propertyError) {
     console.error('admin.plans_properties_failed', { message: propertyError.message });
-    return { rows, listings: {}, revenue: {}, failed: false, statsFailed: true };
+    return {
+      rows,
+      listings: {},
+      revenue: {},
+      unknownCleaning: {},
+      failed: false,
+      statsFailed: true,
+    };
   }
 
   const properties = (propertyData ?? []) as unknown as {
@@ -104,13 +126,17 @@ async function getPlans(now: Date = new Date()): Promise<PlansView> {
   }
 
   const revenue: Record<string, number> = {};
-  for (const id of customerIds) revenue[id] = 0;
+  const unknownCleaning: Record<string, number> = {};
+  for (const id of customerIds) {
+    revenue[id] = 0;
+    unknownCleaning[id] = 0;
+  }
 
   const today = santiagoToday(now);
   const { from, to } = monthBounds(today);
   const until = to < today ? to : today;
   if (!properties.length || until <= from) {
-    return { rows, listings, revenue, failed: false, statsFailed: false };
+    return { rows, listings, revenue, unknownCleaning, failed: false, statsFailed: false };
   }
 
   const { data: revenueData, error: revenueError } = await supabase
@@ -125,7 +151,7 @@ async function getPlans(now: Date = new Date()): Promise<PlansView> {
 
   if (revenueError) {
     console.error('admin.plans_revenue_failed', { message: revenueError.message });
-    return { rows, listings, revenue: {}, failed: false, statsFailed: true };
+    return { rows, listings, revenue: {}, unknownCleaning: {}, failed: false, statsFailed: true };
   }
 
   for (const row of (revenueData ?? []) as unknown as {
@@ -137,9 +163,10 @@ async function getPlans(now: Date = new Date()): Promise<PlansView> {
     if (!owner) continue;
     const base = Math.max(0, (row.host_revenue_clp ?? 0) - (row.cleaning_fee_clp ?? 0));
     revenue[owner] = (revenue[owner] ?? 0) + base;
+    if (row.cleaning_fee_clp == null) unknownCleaning[owner] = (unknownCleaning[owner] ?? 0) + 1;
   }
 
-  return { rows, listings, revenue, failed: false, statsFailed: false };
+  return { rows, listings, revenue, unknownCleaning, failed: false, statsFailed: false };
 }
 
 export default async function PlansPage({
@@ -148,7 +175,7 @@ export default async function PlansPage({
   searchParams: Promise<{ failed?: string }>;
 }) {
   const { failed: failedId } = await searchParams;
-  const { rows, listings, revenue, failed, statsFailed } = await getPlans();
+  const { rows, listings, revenue, unknownCleaning, failed, statsFailed } = await getPlans();
   const counts = rows.reduce<Record<string, number>>((acc, r) => {
     acc[r.status] = (acc[r.status] ?? 0) + 1;
     return acc;
@@ -218,6 +245,7 @@ export default async function PlansPage({
               {rows.map((r) => {
                 const hostListings = listings[r.customer_id];
                 const commissionBase = revenue[r.customer_id];
+                const unknown = unknownCleaning[r.customer_id] ?? 0;
                 return (
                   <tr key={r.id} className="border-border/60 hover:bg-muted/40 border-b">
                     <td className="px-4 py-3">
@@ -242,6 +270,13 @@ export default async function PlansPage({
                     </td>
                     <td className="text-muted-foreground px-4 py-3 tabular-nums">
                       {commissionBase === undefined ? '—' : formatCLP(commissionBase)}
+                      {unknown > 0 && (
+                        <div className="text-warning text-xs font-medium">
+                          {unknown === 1
+                            ? '1 estadía sin tarifa de limpieza reconocida — revísala antes de cobrar'
+                            : `${unknown} estadías sin tarifa de limpieza reconocida — revísalas antes de cobrar`}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 font-medium tabular-nums">
                       {commissionBase === undefined

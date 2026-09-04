@@ -98,7 +98,7 @@ describe('clerk auth status on every matched request', () => {
     expect(servedPath(api, '/api/cleaning/inventory')).toBe('/api/cleaning/inventory');
   });
 
-  it('keeps the privacy policy reachable through the production stealth gate', async () => {
+  it('keeps the legal pages reachable through the production stealth gate', async () => {
     vi.resetModules();
     vi.stubEnv('NODE_ENV', 'production');
     try {
@@ -106,7 +106,14 @@ describe('clerk auth status on every matched request', () => {
       const call = async (pathname: string) =>
         (await gated(new NextRequest(`http://localhost:3000${pathname}`), event)) as Response;
 
-      for (const path of ['/privacy', '/es/privacy', '/privacy/']) {
+      for (const path of [
+        '/privacy',
+        '/es/privacy',
+        '/privacy/',
+        '/terms',
+        '/es/terms',
+        '/terms/',
+      ]) {
         expect(servedPath(await call(path), path)).not.toContain('/gate');
       }
       expect(servedPath(await call('/calculator'), '/calculator')).toContain('/gate');
@@ -116,10 +123,12 @@ describe('clerk auth status on every matched request', () => {
     }
   });
 
-  it('leaves the privacy policy public, with no sign-in bounce', async () => {
-    const res = await run('/privacy');
-    expect(res.status).not.toBe(307);
-    expect(servedPath(res, '/privacy')).toBe('/es/privacy');
+  it('leaves the legal pages public, with no sign-in bounce', async () => {
+    for (const path of ['/privacy', '/terms']) {
+      const res = await run(path);
+      expect(res.status).not.toBe(307);
+      expect(servedPath(res, path)).toBe(`/es${path}`);
+    }
   });
 
   it('leaves the review callback on its own token, with no sign-in bounce', async () => {

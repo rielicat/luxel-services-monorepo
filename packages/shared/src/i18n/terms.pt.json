@@ -1,0 +1,366 @@
+{
+  "meta_title": "Termos do serviço",
+  "meta_description": "Como funciona administrar o seu Airbnb com a Servicios Luxel: o que fazemos, quanto cobramos, sobre o que esse valor é calculado, como você entra e como você sai.",
+  "title": "Termos do serviço",
+  "lead": "Aqui está, sem letras miúdas, como funciona administrar o seu Airbnb conosco: o que fazemos, o que não fazemos, quanto cobramos, sobre o que esse valor é calculado e como você sai no dia em que quiser sair.",
+  "updated_label": "Atualizados em",
+  "updated_value": "4 de setembro de 2026",
+  "version_label": "Versão",
+  "version_value": "1.0",
+  "lang_label": "Ler em",
+  "lang_es": "Español",
+  "lang_en": "English",
+  "lang_pt": "Português",
+  "draft_title": "Este documento é um rascunho e ainda não passou por um advogado",
+  "draft_body": [
+    "Escrevemos estes termos a partir do que os nossos sistemas realmente fazem, lendo o código linha por linha, e a partir da lei chilena do consumidor. Ninguém na Luxel é advogado.",
+    "Até que um advogado ou advogada no Chile os revise, não afirmamos que esta página cumpra a lei nem que seja um contrato completo. Afirmamos algo menor e mais honesto: que ela descreve com exatidão como trabalhamos hoje e quanto cobramos por isso.",
+    "O contrato escrito que você assina quando ativamos o seu plano é o que identifica a empresa, e é ele que vale se algo não coincidir com esta página. Se encontrar aqui algo que não bate com a sua experiência, escreva para nós: corrigir rápido nos importa mais do que parecer pronto."
+  ],
+  "toc_title": "O que você vai encontrar",
+  "sibling_label": "Leia também",
+  "sibling_title": "Política de privacidade",
+  "sections": [
+    {
+      "id": "quienes-somos",
+      "title": "Quem somos",
+      "plain": "A Servicios Luxel administra aluguéis de curta temporada no Chile, e este é o e-mail por onde você chega até nós.",
+      "body": [
+        "A Servicios Luxel administra anúncios de Airbnb no Chile. Um anfitrião nos entrega o anúncio e nós assumimos a operação inteira: o preço, as respostas aos hóspedes, a limpeza, a lavanderia, o inventário, os pequenos reparos e a preparação da unidade.",
+        "O canal para qualquer assunto destes termos é info@serviciosluxel.cl. É ali que chegam os pedidos de plano, os cancelamentos, as reclamações e as dúvidas, e quem lê é uma pessoa.",
+        "Esta página não substitui o contrato escrito. Quando uma pessoa da Luxel ativa o seu plano, é esse contrato que identifica a empresa com a sua razão social e o seu RUT, e é ele que você assina. Se algo desta página e algo desse contrato não baterem, vale o que deixar você em melhor situação."
+      ],
+      "rows": []
+    },
+    {
+      "id": "alcance",
+      "title": "Para quem é esta página",
+      "plain": "Sobretudo para o anfitrião. Visitar o site não compromete você a nada.",
+      "body": [
+        "Estes termos descrevem o serviço que prestamos a um anfitrião: a pessoa dona do apartamento que nos entrega a administração do anúncio.",
+        "Visitar serviciosluxel.cl, mexer na calculadora ou conversar com o chat não compromete você a nada e não cobra nada. A relação começa quando você pede o plano e uma pessoa da Luxel o ativa.",
+        "Hóspedes e equipe de campo não contratam conosco por esta página. Mais abaixo há uma seção para cada um, para que saibam o que fazemos com eles e o que não fazemos."
+      ],
+      "rows": [
+        {
+          "name": "Anfitriões",
+          "detail": "Sim. Tudo o que vem a seguir descreve a sua relação conosco."
+        },
+        {
+          "name": "Hóspedes",
+          "detail": "Em parte. A seção de hóspedes conta o que significa usar a página de check-in. Não cobramos nada de você e você não precisa aceitar isto para se hospedar."
+        },
+        {
+          "name": "Equipe de limpeza e portaria",
+          "detail": "Não. O que combinamos com cada pessoa está no contrato ou no recibo dela, à parte desta página."
+        },
+        {
+          "name": "Visitantes do site",
+          "detail": "Não. Olhar o site, usar a calculadora ou escrever no chat não cria obrigação alguma para você."
+        }
+      ]
+    },
+    {
+      "id": "servicio",
+      "title": "O que fazemos por você",
+      "plain": "A operação inteira do anúncio. Você não coordena ninguém.",
+      "body": [
+        "Com o seu plano ativo, operamos o anúncio de ponta a ponta. Você não responde hóspedes, não coordena a equipe de limpeza e não corre atrás de um técnico.",
+        "Esta lista é o que efetivamente fazemos hoje."
+      ],
+      "rows": [
+        {
+          "name": "Preço por noite",
+          "detail": "Cuidamos disso nós. Trabalhamos com recomendações de preço dinâmico e as aplicamos nas ferramentas conectadas ao seu anúncio."
+        },
+        {
+          "name": "Respostas aos hóspedes",
+          "detail": "A qualquer hora, todos os dias. O rascunho é escrito pela Lux, a nossa assistente com inteligência artificial. Por regra uma pessoa da Luxel o revisa antes do envio, e numa unidade em que desativemos essa revisão a resposta sai sem que uma pessoa a leia."
+        },
+        {
+          "name": "Limpeza e lavanderia",
+          "detail": "Entre uma estadia e a seguinte. Coordenamos a equipe, conferimos se a unidade ficou pronta e registramos como ela ficou."
+        },
+        {
+          "name": "Inventário",
+          "detail": "Mantemos o registro do que existe na unidade e o revisamos depois de cada limpeza."
+        },
+        {
+          "name": "Pequenos reparos",
+          "detail": "Coordenamos nós. O que custarem combinamos com você antes, como conta a seção de gastos."
+        },
+        {
+          "name": "Resolução de conflitos",
+          "detail": "Se uma estadia complicar, cuidamos nós, com o hóspede e com o Airbnb."
+        },
+        {
+          "name": "Preparação da unidade",
+          "detail": "Se faltar equipamento para a unidade alugar bem, vemos isso com você antes de começar."
+        }
+      ]
+    },
+    {
+      "id": "hospitable",
+      "title": "O acesso ao seu anúncio",
+      "plain": "Conectamos ao seu anúncio com um acesso que você dá e pode tirar quando quiser.",
+      "body": [
+        "Para operar o seu anúncio precisamos vê-lo. A conexão passa pelo Hospitable, o sistema com que lemos os seus anúncios, o seu calendário, as suas reservas e as conversas com os hóspedes.",
+        "Esse acesso é você que dá e é você que pode tirar, no Airbnb ou no Hospitable. Não existe um botão de desconectar dentro do nosso aplicativo, e não escondemos isso: a chave continua sendo sua e está onde você pode girá-la.",
+        "Quando você corta o acesso, deixamos de ver a sua conta e nenhum dado novo chega até nós. A cópia que já tínhamos — as suas propriedades, as suas reservas, o seu calendário, a sua receita e as conversas com hóspedes — não se apaga sozinha. Se quiser que a apaguemos, escreva para info@serviciosluxel.cl e apagamos, exceto o que a lei nos obrigue a guardar.",
+        "Com o acesso cortado não conseguimos operar: não conseguimos responder a um hóspede nem coordenar uma limpeza. Se isso acontecer com uma estadia em curso, avisamos na hora, para que ninguém fique sem resposta."
+      ],
+      "rows": []
+    },
+    {
+      "id": "plan",
+      "title": "O plano: só um",
+      "plain": "12% do que as suas reservas geram, imposto incluído, por propriedade e por mês.",
+      "body": [
+        "Existe um único plano e ele não tem versões. Cobramos 12% do que as suas reservas geram, imposto incluído, por propriedade e por mês.",
+        "Não há taxa fixa, não há custo de entrada, não há custo de saída e não há período de teste. Também não existe um plano mais caro com mais coisas: o que está na seção anterior é tudo, para todos.",
+        "Os 12% são o preço total e já trazem o imposto dentro. Não acrescentamos sobretaxas nem cobranças acessórias em cima desse percentual. Se algum dia surgisse uma cobrança diferente, teria de ser um acordo à parte com você, caso a caso, e você sempre pode dizer não."
+      ],
+      "rows": []
+    },
+    {
+      "id": "base-comision",
+      "title": "Sobre o que os 12% são calculados",
+      "plain": "Sobre a reserva, e nunca sobre a taxa de limpeza que o hóspede paga.",
+      "body": [
+        "A base é o que o Airbnb paga a você pela reserva, menos a taxa de limpeza que o hóspede pagou nessa mesma reserva.",
+        "Essa taxa de limpeza vai inteira para a equipe de limpeza. Não ficamos com nada dela e não cobramos comissão sobre ela. Pagamos a equipe contra um documento — um contrato ou um recibo de honorários — para que se veja onde esse dinheiro termina.",
+        "Uma reserva conta no mês em que o hóspede vai embora. Uma estadia em curso ainda não entra: entra no mês em que termina. Um mês sem saídas não tem cobrança, e não há mínimo por baixo.",
+        "Reconhecemos essa taxa pela forma como o Airbnb a etiqueta. Se uma reserva chegar em outra moeda, ou com a taxa de limpeza etiquetada de um jeito que não reconhecemos, revisamos com você à mão antes de cobrar. Se ainda assim cobrarmos a mais, devolvemos."
+      ],
+      "rows": [
+        {
+          "name": "Entra na base",
+          "detail": "O que o Airbnb paga a você pela reserva."
+        },
+        {
+          "name": "Não entra na base",
+          "detail": "A taxa de limpeza que o hóspede paga. Vai inteira para a equipe de limpeza e não leva comissão."
+        },
+        {
+          "name": "Quando conta",
+          "detail": "No mês em que o hóspede vai embora, não no mês em que reservou nem no mês em que chegou."
+        },
+        {
+          "name": "Mês sem saídas",
+          "detail": "Cobrança zero. Não há mínimo mensal nem cobrança por manter o plano aberto."
+        }
+      ]
+    },
+    {
+      "id": "cobro",
+      "title": "Como cobramos de você",
+      "plain": "O Airbnb paga a você. Nós cobramos no fim do mês, fora do aplicativo.",
+      "body": [
+        "O Airbnb paga a você, direto na sua conta. Nós não tocamos nesse pagamento: ele não é depositado para nós, não é dividido e nada sai dele para o nosso lado.",
+        "No fim do mês cobramos os 12% da base descrita acima e você recebe o documento fiscal correspondente. A cobrança é paga fora do aplicativo: não há cartão salvo, não há carrinho e não há débito automático.",
+        "A conta vem com o detalhe das reservas que a compõem, para que você mesmo possa conferir. Se um número não fechar, diga: revisamos com o que cada um tiver. A conta se corrige, não se defende.",
+        "Os impostos do seu próprio aluguel são seus e não opinamos sobre eles. O que dizemos é que os 12% que cobramos já trazem o imposto dentro."
+      ],
+      "rows": []
+    },
+    {
+      "id": "alta-y-baja",
+      "title": "Como você entra e como você sai",
+      "plain": "Você entra pedindo o plano e uma pessoa o ativa. Você sai quando quiser, sem multa.",
+      "body": [
+        "Você entra assim: cria a sua conta, conecta o seu anúncio e pede o plano pela sua conta. Uma pessoa da Luxel ativa à mão, nunca um sistema sozinho, e antes disso conversamos com você. Ninguém fica contratado por um clique.",
+        "Você sai quando quiser. Pode cancelar pela sua conta com um clique ou escrevendo para info@serviciosluxel.cl. Sair nunca vai custar mais passos do que entrar, e não vamos pedir que você esteja em dia com uma cobrança para deixá-lo sair.",
+        "Não há fidelidade nem multa por sair. Para que nenhuma estadia fique no ar, combinamos a saída com 30 dias de aviso: nesses dias seguimos atendendo o que já está reservado e devolvemos a operação organizada, com o que você precisa para seguir. Se preferir cortar antes, conversamos; não vamos segurar você.",
+        "As reservas que um hóspede já tem aceitas são respeitadas. Atendemos até que terminem ou até que você assuma a operação, o que vier primeiro, e sobre elas os 12% se aplicam como sempre.",
+        "Nós também podemos encerrar, se a unidade não estiver em condições de receber hóspedes ou se não conseguirmos acesso ao anúncio. Se isso acontecer avisamos com a mesma antecedência e não deixamos você com estadias em curso sem cobertura."
+      ],
+      "rows": []
+    },
+    {
+      "id": "retracto",
+      "title": "O seu direito de arrependimento",
+      "plain": "Você tem dez dias para mudar de ideia, sem explicar por quê e sem custo.",
+      "body": [
+        "Se você contratar e se arrepender, tem dez dias corridos para dizer, contados a partir de quando uma pessoa da Luxel ativa o seu plano. Não precisa dar motivos.",
+        "Não excluímos esse direito de arrependimento e não pedimos que você renuncie a ele. Basta um e-mail para info@serviciosluxel.cl dizendo que se arrependeu.",
+        "Arrepender-se não tem custo nem multa. A única coisa cobrada é os 12% de uma reserva que já tenha terminado nesses dias, porque esse trabalho já está feito. Se nenhuma terminou, não há o que cobrar."
+      ],
+      "rows": []
+    },
+    {
+      "id": "compromisos-anfitrion",
+      "title": "O que precisamos de você",
+      "plain": "Três coisas: que o anúncio seja seu, que a unidade esteja em condições e que o acesso siga aberto.",
+      "body": [
+        "Para fazer bem o nosso trabalho precisamos de três coisas do seu lado. Nenhuma delas é burocracia: sem elas simplesmente não conseguimos operar.",
+        "Também precisamos que o que você nos conta esteja atualizado: a senha do wifi, como se entra, o que a unidade tem, para quem ligar no prédio. Essa informação chega à nossa equipe e chega à Lux, então um dado velho viaja tão rápido quanto um bom."
+      ],
+      "rows": [
+        {
+          "name": "Que o anúncio seja seu",
+          "detail": "Que você tenha o direito de alugar essa unidade e de nos entregar a administração dela. Se o anúncio é de outra pessoa, precisamos do acordo dela."
+        },
+        {
+          "name": "Que a unidade esteja em condições",
+          "detail": "Habitável, segura, com o que o anúncio promete, e com a locação de curta temporada permitida pelo regulamento do condomínio e pelas regras municipais que se apliquem. Isso você sabe melhor do que nós."
+        },
+        {
+          "name": "Que o acesso siga aberto",
+          "detail": "Que, enquanto o plano estiver ativo, a conexão do seu anúncio no Airbnb e no Hospitable continue de pé. Se você cortar, deixamos de conseguir operar."
+        },
+        {
+          "name": "As suas próprias obrigações",
+          "detail": "As licenças, os seguros e os impostos do seu aluguel são seus. Avisamos se virmos algo, mas não cuidamos deles por você."
+        }
+      ]
+    },
+    {
+      "id": "compromisos-luxel",
+      "title": "Com o que nos comprometemos, e até onde isso vai",
+      "plain": "Colocamos o trabalho e respondemos por ele. O que depende de terceiros não podemos prometer.",
+      "body": [
+        "Comprometemo-nos a operar o seu anúncio com cuidado e no tempo certo: responder aos hóspedes, manter o preço vivo, deixar a unidade pronta entre estadias e avisar quando algo sair do normal.",
+        "Parte disso passa por serviços de outros: Airbnb, Hospitable, a ferramenta de preço dinâmico, WhatsApp. Se um deles cair, mudar as regras ou fechar uma conta, isso não está nas nossas mãos. Contamos assim que soubermos e fazemos o que está nas nossas mãos, à mão se for preciso.",
+        "Ninguém pode garantir que um apartamento seja alugado, nem a que preço. Não prometemos ocupação nem receita, nem aqui nem na calculadora do site: essa calculadora converte o número que você digita, ela não adivinha o seu mês. O mesmo vale para uma estimativa do chat: é uma conta, não uma oferta.",
+        "O que é nosso, respondemos. Se algo deu errado por causa de como trabalhamos ou de alguém que enviamos, não nos escondemos atrás de uma cláusula: conversamos e resolvemos."
+      ],
+      "rows": []
+    },
+    {
+      "id": "precio",
+      "title": "O preço por noite",
+      "plain": "Cuidamos disso nós, com preço dinâmico, e você sempre pode opinar.",
+      "body": [
+        "Movemos o preço por noite conforme a demanda, a temporada e o que acontece em volta da sua unidade. Uma ferramenta de preço dinâmico nos dá recomendações e uma pessoa da Luxel decide o que aplicar.",
+        "Na sua conta você vê o calendário com o preço publicado de cada noite. Se um preço não fizer sentido para você, diga: o apartamento é seu e a conversa está aberta. Se quiser um piso abaixo do qual não baixemos, definimos com você.",
+        "Bloquear datas para o seu próprio uso você faz no seu Airbnb, e nós ajustamos o resto em volta. Essa alavanca não está no nosso aplicativo, e preferimos dizer isso a deixar você procurando."
+      ],
+      "rows": []
+    },
+    {
+      "id": "mensajes-y-ia",
+      "title": "As mensagens com os hóspedes, e a Lux",
+      "plain": "Responde uma inteligência artificial, e por regra uma pessoa da Luxel revisa antes do envio.",
+      "body": [
+        "Aos hóspedes respondemos nós, a qualquer hora. O primeiro rascunho é escrito pela Lux, a nossa assistente com inteligência artificial, e por regra uma pessoa da Luxel revisa e aprova antes de sair.",
+        "Essas conversas fazem parte da operação e não chegam à sua caixa de entrada: não queremos devolver o trabalho que você veio largar. Se algo de uma conversa toca você — um dano, uma reclamação, uma data que muda — quem conta somos nós.",
+        "A Lux nunca entrega a senha da porta. O hóspede recebe isso pelo canal do Airbnb, pouco antes de chegar."
+      ],
+      "rows": []
+    },
+    {
+      "id": "aseo",
+      "title": "A limpeza entre estadias",
+      "plain": "Coordenamos nós, e a taxa de limpeza do anúncio vai inteira para a equipe.",
+      "body": [
+        "Entre uma estadia e a seguinte coordenamos a limpeza e a lavanderia. A equipe confirma que vai, faz a ronda, registra como a unidade ficou e anota o inventário.",
+        "Esse registro é uma ferramenta de trabalho nossa: serve para sabermos o que aconteceu, para pedir um reparo a quem é devido e para reclamar quando é o caso. Nós o revisamos e não o publicamos em lugar nenhum. Não mandamos ele para você: se houver algo a contar, contamos.",
+        "A taxa de limpeza que o hóspede paga vai inteira para a equipe de limpeza, e não cobramos comissão sobre ela."
+      ],
+      "rows": []
+    },
+    {
+      "id": "gastos",
+      "title": "O que se gasta na unidade",
+      "plain": "Nada se gasta sem que você saiba. Os 12% pagam o nosso trabalho, não as coisas do seu apartamento.",
+      "body": [
+        "Os 12% pagam o que fazemos nós: coordenar, responder, conferir, resolver, reclamar. Não pagam as coisas que se compram para o seu apartamento.",
+        "Essas coisas são suas e ficam na sua unidade: os móveis e o equipamento da preparação, os lençóis e as toalhas, a reposição do que acaba, as peças de um reparo. Isso você coloca.",
+        "Nunca gastamos o seu dinheiro sem perguntar. Cada compra e cada reparo combinamos com você antes, com o valor, e quem decide é você. A única exceção é uma emergência que coloque em risco uma pessoa ou a unidade: aí agimos primeiro, avisamos na hora e mostramos o gasto.",
+        "Coordenar essa compra ou esse reparo não é cobrado à parte: já está dentro dos 12%."
+      ],
+      "rows": []
+    },
+    {
+      "id": "danos",
+      "title": "Se um hóspede danificar algo",
+      "plain": "Documentamos, reclamamos e coordenamos o conserto. Não somos o seu seguro.",
+      "body": [
+        "Quando a equipe encontra algo danificado ou algo que falta, isso fica registrado. Com esse registro apresentamos a reclamação pelo canal do Airbnb e coordenamos o conserto ou a reposição.",
+        "Quem decide uma reclamação é o Airbnb, não nós. Podemos apresentá-la bem e no prazo; não podemos prometer o resultado nem o valor.",
+        "Não somos uma seguradora e os 12% não são um prêmio de seguro. A cobertura que a sua propriedade tiver é você que contrata, e vale a pena ter.",
+        "Se o dano foi causado por nós ou por alguém que enviamos, isso não é problema seu: respondemos nós e devolvemos como estava."
+      ],
+      "rows": []
+    },
+    {
+      "id": "huespedes",
+      "title": "Se você é hóspede",
+      "plain": "A página de check-in existe para você conseguir entrar no prédio. Você não está nos contratando.",
+      "body": [
+        "Se você chegou pelo link da sua reserva: olá. A sua hospedagem foi contratada com o Airbnb e com o anfitrião. Você não nos paga nada e não precisa aceitar esta página para se hospedar.",
+        "A página de check-in pede o nome e o documento de cada pessoa que vai se hospedar. Não é burocracia nossa: é o que a portaria do prédio precisa para deixar você entrar e para saber quem está dentro. Entregamos isso a eles por um canal aprovado, e a mais ninguém.",
+        "Esses documentos ficam guardados com criptografia e são apagados 90 dias depois da sua saída. O que guardamos, por quê, e quais direitos você tem está na política de privacidade, em /privacy.",
+        "Quando você escreve pelo chat da sua reserva, quem responde somos nós, a qualquer hora. O primeiro rascunho pode ser escrito por uma inteligência artificial. Por regra uma pessoa o revisa antes do envio; em algumas unidades a resposta sai direta.",
+        "O fato de sermos nós que administramos a unidade não nos tira do quadro: se algo da sua estadia der errado por causa de algo que fizemos, escreva para nós e respondemos nós. Os seus direitos como consumidor seguem inteiros, e esta página não pede que você abra mão de nenhum."
+      ],
+      "rows": []
+    },
+    {
+      "id": "equipo",
+      "title": "A equipe de limpeza e a portaria",
+      "plain": "Não estão cobertas por esta página. O lado delas é combinado à parte.",
+      "body": [
+        "As pessoas que fazem a limpeza, a lavanderia e a portaria não fazem parte destes termos. O que combinamos com cada uma está no contrato ou no recibo dela: o que faz, quando, e quanto recebe.",
+        "A equipe de limpeza é paga contra um documento. É por isso que podemos dizer com tranquilidade que a taxa de limpeza do hóspede vai inteira para ela.",
+        "Como anfitrião, você não coordena a equipe e não conversa com ela. Esse é o nosso trabalho, não o seu, e é exatamente o que você veio deixar de fazer."
+      ],
+      "rows": []
+    },
+    {
+      "id": "datos",
+      "title": "Os seus dados e os dos hóspedes",
+      "plain": "Tudo sobre dados está na política de privacidade, que é um documento à parte.",
+      "body": [
+        "Que dados tratamos, com que base, com quem os compartilhamos, quanto tempo os guardamos e como você exerce os seus direitos está na política de privacidade, em /privacy. Não repetimos aqui para não haver duas versões da mesma coisa.",
+        "Duas coisas dessa política importam para estes termos. A primeira: tratamos os dados dos hóspedes para operar o seu anúncio, e no check-in quem os pede somos nós, por você.",
+        "A segunda: quando você corta o acesso, deixamos de receber dados novos, mas a cópia que já temos continua ali até que você peça para apagá-la. Escreva para info@serviciosluxel.cl e apagamos, exceto o que a lei nos obrigue a guardar."
+      ],
+      "rows": []
+    },
+    {
+      "id": "responsabilidad",
+      "title": "Por que respondemos",
+      "plain": "Pelo nosso trabalho. Não pedimos que você abra mão de nada.",
+      "body": [
+        "Respondemos pelo que fazemos e pelo que faz quem enviamos. Se errarmos, consertamos: essa é a primeira resposta, antes de qualquer discussão.",
+        "Não pedimos que você renuncie a nenhum direito, não colocamos teto no que você pode nos cobrar e não jogamos um erro administrativo nosso na sua conta. Também não dizemos que os nossos registros são prova suficiente: se você discutir um número, revisamos com o que cada um tiver.",
+        "Há coisas que não dependem de nós e não prometemos: o que o Airbnb decidir sobre a sua conta ou sobre uma reclamação, o que um hóspede fizer dentro do seu apartamento, a queda de um serviço de terceiros ou um caso fortuito. Quando acontece, seguimos ao seu lado do mesmo jeito."
+      ],
+      "rows": []
+    },
+    {
+      "id": "cambios",
+      "title": "Mudanças nestes termos",
+      "plain": "Cada versão leva número e data. Uma mudança que afete você precisa do seu acordo, não do seu silêncio.",
+      "body": [
+        "Esta página leva no alto a sua data e o seu número de versão. Quando a mudarmos, subimos o número e trocamos a data.",
+        "Se a mudança mexer no que você paga ou no que fazemos por você, publicar não basta: propomos ao e-mail da sua conta e precisamos da sua concordância. Enquanto não a der, seguimos operando como até agora.",
+        "Correções de redação e exemplos publicamos sem mais trâmite, porque não mudam o acordo.",
+        "Ler esta página é gratuito e não exige conta nem sessão. Você pode imprimi-la ou salvá-la pelo navegador quando quiser."
+      ],
+      "rows": []
+    },
+    {
+      "id": "ley",
+      "title": "Que lei se aplica e onde você reclama",
+      "plain": "A lei chilena. E não fixamos um tribunal por antecipação.",
+      "body": [
+        "Estes termos se regem pela lei chilena, e a versão em espanhol é a que vale. O inglês e o português estão aqui para serem entendidos, não para mudar o que está escrito.",
+        "Não obrigamos você a uma arbitragem nem fixamos um tribunal por antecipação. Onde a lei do consumidor se aplica, esse tipo de cláusula é proibido; e mesmo que não se aplicasse, também não a usaríamos. O tribunal que lhe corresponde é você quem escolhe, conforme as regras gerais.",
+        "Antes de qualquer tribunal, escreva para nós. Quase tudo se resolve em um e-mail para info@serviciosluxel.cl, e preferimos resolver ali."
+      ],
+      "rows": []
+    },
+    {
+      "id": "contacto",
+      "title": "Como chegar até nós",
+      "plain": "Um e-mail, e uma pessoa lendo do outro lado.",
+      "body": [
+        "Escreva para info@serviciosluxel.cl.",
+        "Conte quem você é e do que precisa: o e-mail da sua conta se você é anfitrião, ou o nome com que registrou a sua estadia se você é hóspede. Com isso já começamos."
+      ],
+      "rows": []
+    }
+  ]
+}

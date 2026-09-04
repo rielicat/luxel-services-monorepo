@@ -9,6 +9,8 @@
     ".": "./src/index.ts",
     "./i18n": "./src/i18n/index.ts",
     "./privacy": "./src/i18n/privacy.ts",
+    "./terms": "./src/i18n/terms.ts",
+    "./legal": "./src/i18n/legal.ts",
     "./whatsapp": "./src/whatsapp.ts",
     "./cleaning-media": "./src/cleaning-media.ts",
     "./cleaning-inventory": "./src/cleaning-inventory.ts",

@@ -298,11 +298,19 @@ export function hospitableCleaningFeeClp(
   const fees = financials?.host?.guest_fees;
   if (!Array.isArray(fees)) return null;
   let total = 0;
+  let matched = 0;
   for (const fee of fees) {
     if (!CLEANING_LABEL.test(fee?.label ?? '')) continue;
     const clp = hospitableAmountToClp(fee, currency);
     if (clp === null) return null;
+    matched += 1;
     total += clp;
+  }
+  if (!matched && fees.length) {
+    console.warn('hospitable.cleaning_fee_unrecognised', {
+      labels: fees.map((fee) => fee?.label ?? '').filter(Boolean),
+    });
+    return null;
   }
   return total;
 }

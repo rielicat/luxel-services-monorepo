@@ -46,7 +46,8 @@ the `luxel_gate` cookie exists. Typing `0612` unlocks it. To lift it, delete
 `apps/web/src/app/[locale]/gate/` and the `withStealthGate` block in
 `apps/web/src/middleware.ts`. Remove before public launch.
 
-`/privacy` is exempt from the gate (`isPublicLegalRoute`), because the check-in
-page collects identity documents and must link to it. The page is `noindex`
-while the gate is up. Make it indexable in the same commit that deletes the
-gate.
+`/privacy` and `/terms` are exempt from the gate (`isPublicLegalRoute`). The
+check-in page collects identity documents and must link to the privacy policy,
+and the terms must be readable before a host requests the plan. Both pages are
+`noindex` while the gate is up. Make both indexable in the same commit that
+deletes the gate.

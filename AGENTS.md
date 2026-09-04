@@ -104,13 +104,19 @@ supabase/        migrations + local config
 - **i18n.** No hardcoded user-facing strings. Site copy lives in
   `packages/shared/src/i18n/es-CL.json`; the guest check-in page also has
   `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix is
-  `never`. One surface deviates on purpose: the privacy policy is a long legal
-  document, so its copy lives in `privacy.{es,en,pt}.json` behind
-  `@luxel/shared/privacy`, as a typed object rather than `t()` keys. That keeps
-  it out of the `NextIntlClientProvider` payload of every other page.
-  `apps/web/test/privacy-copy.test.ts` holds the three files in step.
+  `never`. Two surfaces deviate on purpose: the privacy policy and the terms of
+  service are long legal documents, so their copy lives in
+  `privacy.{es,en,pt}.json` and `terms.{es,en,pt}.json` behind
+  `@luxel/shared/privacy` and `@luxel/shared/terms`, as typed objects rather
+  than `t()` keys. Both use the one `LegalDoc` shape in
+  `@luxel/shared/legal`, and both render through
+  `apps/web/src/components/legal/legal-page.tsx`. That keeps them out of the
+  `NextIntlClientProvider` payload of every other page.
+  `apps/web/test/privacy-copy.test.ts` and `terms-copy.test.ts` hold each trio
+  in step.
 - **Routes are English.** `/calculator`, `/account`, `/properties`, `/privacy`,
-  `/checkin/[id]`, `/cleaning/confirm/[token]`. Never a Spanish path segment.
+  `/terms`, `/checkin/[id]`, `/cleaning/confirm/[token]`. Never a Spanish path
+  segment.
 - **TypeScript strict.** Extend `@luxel/config/tsconfig/{next,library,base}.json`.
   `infra/cloudflare` is standalone CommonJS for Pulumi.
 - **Commits.** Conventional Commits. End the message with
@@ -285,11 +291,12 @@ Stealth gate: in production the middleware rewrites every page to
 To lift it, delete `apps/web/src/app/[locale]/gate/` and the `withStealthGate`
 block in `apps/web/src/middleware.ts`.
 
-`/privacy` is exempt from the gate (`isPublicLegalRoute`), because the check-in
-page collects identity documents and must link to it. For that reason the page
-is `noindex` while the gate is up: it is the only publicly fetchable URL of a
-site the operator hid. Make it indexable in the same commit that deletes the
-gate.
+`/privacy` and `/terms` are exempt from the gate (`isPublicLegalRoute`). The
+check-in page collects identity documents and must link to the privacy policy,
+and the terms must be readable before a host requests the plan. For that reason
+both pages are `noindex` while the gate is up: they are the only publicly
+fetchable URLs of a site the operator hid. Make both indexable in the same
+commit that deletes the gate.
 
 ## Product constraints (user-set)
 

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { privacyDoc } from '@luxel/shared/privacy';
+import { termsDoc } from '@luxel/shared/terms';
 import {
   LegalPage,
   legalLanguageAlternates,
@@ -9,15 +9,15 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-const BASE_PATH = '/privacy';
-const SIBLING_PATH = '/terms';
+const BASE_PATH = '/terms';
+const SIBLING_PATH = '/privacy';
 
 export async function generateMetadata({
   searchParams,
 }: {
   searchParams: LegalSearchParams;
 }): Promise<Metadata> {
-  const doc = privacyDoc(await pickLegalLang(searchParams));
+  const doc = termsDoc(await pickLegalLang(searchParams));
   return {
     title: doc.meta_title,
     description: doc.meta_description,
@@ -26,9 +26,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function PrivacyPage({ searchParams }: { searchParams: LegalSearchParams }) {
+export default async function TermsPage({ searchParams }: { searchParams: LegalSearchParams }) {
   const lang = await pickLegalLang(searchParams);
   return (
-    <LegalPage doc={privacyDoc(lang)} lang={lang} basePath={BASE_PATH} siblingPath={SIBLING_PATH} />
+    <LegalPage doc={termsDoc(lang)} lang={lang} basePath={BASE_PATH} siblingPath={SIBLING_PATH} />
   );
 }
