@@ -4,9 +4,9 @@
   "title": "Privacy policy",
   "lead": "This page says plainly what personal data we process, why, who we share it with, how long we keep it and what you can demand from us. It is written to be read, not to be signed unread.",
   "updated_label": "Last updated",
-  "updated_value": "4 September 2026",
+  "updated_value": "5 September 2026",
   "version_label": "Version",
-  "version_value": "1.1",
+  "version_value": "1.2",
   "lang_label": "Read in",
   "lang_es": "Español",
   "lang_en": "English",
@@ -325,7 +325,7 @@
         },
         {
           "name": "The host of the unit",
-          "detail": "Can reach the list of people registered at their property: the name, the document type and the last four characters. The full number travels encrypted and the key is not in the database. When someone completes the registration, we notify them by email and, if their account has a phone number saved, by WhatsApp: the stay, the property, the parking, who booked, how many people are arriving and at what time. The documents are not in that notice."
+          "detail": "Can reach the list of people registered at their property: the name, the document type and the last four characters. The full number travels encrypted and the key is not in the database. When someone completes the registration, we notify them by email and, if their account has a phone number saved, by WhatsApp. They receive the same notice the front desk does, with the stay, the property, the parking and the list of people staying, including each person's document number."
         }
       ]
     },

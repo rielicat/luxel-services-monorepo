@@ -4,9 +4,9 @@
   "title": "Política de privacidade",
   "lead": "Esta página conta, sem rodeios, quais dados pessoais tratamos, por quê, com quem os compartilhamos, por quanto tempo os guardamos e o que você pode exigir de nós. Foi escrita para ser lida, não para ser assinada sem leitura.",
   "updated_label": "Atualizada em",
-  "updated_value": "4 de setembro de 2026",
+  "updated_value": "5 de setembro de 2026",
   "version_label": "Versão",
-  "version_value": "1.1",
+  "version_value": "1.2",
   "lang_label": "Ler em",
   "lang_es": "Español",
   "lang_en": "English",
@@ -325,7 +325,7 @@
         },
         {
           "name": "O anfitrião da unidade",
-          "detail": "Pode alcançar a lista de pessoas registradas na propriedade dele: o nome, o tipo de documento e os quatro últimos caracteres. O número completo viaja criptografado e a chave não está na base de dados. Quando alguém completa o registro, avisamos por e-mail e, se houver um telefone salvo na conta, por WhatsApp: a estadia, a propriedade, o estacionamento, quem reserva, quantas pessoas chegam e a que horas. Os documentos não vão nesse aviso."
+          "detail": "Pode alcançar a lista de pessoas registradas na propriedade dele: o nome, o tipo de documento e os quatro últimos caracteres. O número completo viaja criptografado e a chave não está na base de dados. Quando alguém completa o registro, avisamos por e-mail e, se houver um telefone salvo na conta, por WhatsApp. Recebe o mesmo aviso que a portaria, com a estadia, a propriedade, o estacionamento e a lista de quem se hospeda, incluindo o número do documento de cada pessoa."
         }
       ]
     },

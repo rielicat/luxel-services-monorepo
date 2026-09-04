@@ -4,9 +4,9 @@
   "title": "Política de privacidad",
   "lead": "Aquí contamos, sin adornos, qué datos personales tratamos, por qué, con quién los compartimos, cuánto tiempo los guardamos y qué puedes exigirnos. Está escrita para que la entiendas, no para que la firmes sin leerla.",
   "updated_label": "Actualizada el",
-  "updated_value": "4 de septiembre de 2026",
+  "updated_value": "5 de septiembre de 2026",
   "version_label": "Versión",
-  "version_value": "1.1",
+  "version_value": "1.2",
   "lang_label": "Leer en",
   "lang_es": "Español",
   "lang_en": "English",
@@ -325,7 +325,7 @@
         },
         {
           "name": "El anfitrión de la unidad",
-          "detail": "Puede alcanzar la lista de personas registradas en su propiedad: el nombre, el tipo de documento y los últimos cuatro caracteres. El número completo viaja cifrado y la llave no está en la base de datos. Cuando alguien completa el registro, le avisamos por correo y, si tiene un teléfono guardado en su cuenta, por WhatsApp: la estadía, la propiedad, el estacionamiento, quién reserva, cuántas personas llegan y a qué hora. Los documentos no van en ese aviso."
+          "detail": "Puede alcanzar la lista de personas registradas en su propiedad: el nombre, el tipo de documento y los últimos cuatro caracteres. El número completo viaja cifrado y la llave no está en la base de datos. Cuando alguien completa el registro, le avisamos por correo y, si tiene un teléfono guardado en su cuenta, por WhatsApp. Recibe el mismo aviso que la conserjería, con la estadía, la propiedad, el estacionamiento y la lista de quienes se alojan, incluido el número de documento de cada persona."
         }
       ]
     },

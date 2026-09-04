@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import {
   Check,
   ChevronLeft,
+  ChevronRight,
   CigaretteOff,
   House,
   PartyPopper,
@@ -493,20 +494,36 @@ function DoneView({
               const last = g.docLast4 ? `···${g.docLast4}` : null;
               const detail = [docLabel, last].filter(Boolean).join(' ');
               return (
-                <li key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <span className="text-muted-foreground w-5 shrink-0 text-xs tabular-nums">
-                    {i + 1}
-                  </span>
-                  <span className="truncate text-sm font-medium">{g.fullName}</span>
-                  {g.isLead && (
-                    <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
-                      {t('lead_badge')}
-                    </span>
-                  )}
-                  {detail && (
-                    <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">
-                      {detail}
-                    </span>
+                <li key={i} className="py-3 first:pt-0 last:pb-0">
+                  {detail ? (
+                    <details className="group">
+                      <summary
+                        className={cn(
+                          'flex cursor-pointer list-none items-center gap-3 rounded-sm',
+                          FOCUS,
+                        )}
+                      >
+                        <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-open:rotate-90" />
+                        <span className="truncate text-sm font-medium">{g.fullName}</span>
+                        {g.isLead && (
+                          <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+                            {t('lead_badge')}
+                          </span>
+                        )}
+                      </summary>
+                      <p className="text-muted-foreground mt-1 pl-7 text-xs tabular-nums">
+                        {detail}
+                      </p>
+                    </details>
+                  ) : (
+                    <div className="flex items-center gap-3 pl-7">
+                      <span className="truncate text-sm font-medium">{g.fullName}</span>
+                      {g.isLead && (
+                        <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+                          {t('lead_badge')}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </li>
               );
