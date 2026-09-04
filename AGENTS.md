@@ -334,6 +334,37 @@ supabase/        migrations + local config
 - Guest documents are encrypted with `LUXEL_PII_KEY`, nulled 90 days after
   departure by the sync pass, and reach conserjes only through the approved
   WhatsApp template.
+- The guest check-in form is **one screen**. It lists every guest as an editable
+  row. The guest fixes any row in place. There are no per-guest steps. A party
+  size screen comes first only when the reservation carried no headcount. The
+  **party must match**: when `checkins.expected_guests` is set, the number of
+  rows equals it, and the guest cannot add or remove a row. When it is null, the
+  count the guest chose is the target, and add and remove move the target with
+  the list. `submitCheckin` enforces the same rule and answers `party_size`. The
+  target for a direct booking is read back from the draft, so a resumed session
+  keeps it.
+- The check-in form remembers progress on the server. `checkin_draft` holds one
+  row per check-in, keyed by `checkin_id`, with a `rev` counter and a jsonb
+  payload. RLS is on with no policy, so the table is service-role only.
+  `saveCheckinDraft` takes the check-in token and derives the check-in itself. It
+  never trusts a client id. The browser saves on blur, on a chip choice, and on
+  an add or a remove. It never saves on a keystroke. Every write states the `rev`
+  it read, and `writeCheckinDraft` refuses a write that does not match the stored
+  `rev`. A stale tab is refused, never applied, so it cannot wipe newer work. The
+  page then stops saving, says so, and offers a reload. A refused save is always
+  visible; it is never silent. A document number in the draft is encrypted with
+  the same `encryptPII` the submitted rows use. The draft never holds a raw
+  number. Each guest row carries a client `uid`, so a remembered document follows
+  its own row through an add or a remove. A masked value never replaces stored
+  ciphertext; it keeps it. On resume the page returns the document masked to its
+  last four characters, as `···1234`. That keeps the link a write credential, not a
+  document viewer. The guest must type the number again before the form can be
+  submitted. `docNeedsRetype` refuses the mask and the bare last four on the
+  client. `submitCheckin` refuses a masked string, and any value equal to a
+  remembered last four. A successful submit deletes the draft. The draft dies
+  with the check-in row by cascade. The page stops reading the draft after the
+  departure date, the same window `saveCheckinDraft` applies to the write.
+  `purgeExpiredGuestDocuments` clears it 90 days after departure.
 - Secrets never enter the repo. `.env*` files stay untracked. Operators set
   Vercel vars and `wrangler secret put`.
 
@@ -397,9 +428,10 @@ test → build. `db-migrate.yml` applies migrations to prod Supabase.
 `apps/admin` from their roots; the worker deploys with `wrangler deploy`.
 Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/ENV.md).
 
-Open follow-ups that need operator credentials: Clerk production instance (prod
-runs the dev instance), Meta WhatsApp go-live (portfolio, number, templates),
-`PROVIDER_API_KEY` on the `luxel-admin` Vercel project (`/stays` needs it).
+Open follow-ups that need operator credentials: Meta WhatsApp go-live
+(portfolio, number, templates), `PROVIDER_API_KEY` on the `luxel-admin` Vercel
+project (`/stays` needs it), and moving `luxel-admin` onto the Clerk production
+instance (`apps/web` runs `pk_live_*`, `apps/admin` still runs `pk_test_*`).
 Open follow-ups in code: plan activation. Operator steps still open for the
 cleaning review: `GOOGLE_API_KEY` from a billing-enabled project, a
 `wrangler deploy` to provision the `cleaning-review` Workflow, and
@@ -421,6 +453,17 @@ cleaning review: `GOOGLE_API_KEY` from a billing-enabled project, a
   stays on localhost. Test user: `you+clerk_test@example.com`, OTP `424242`.
 - Keep Clerk **Organizations optional** on the instance. Admin gating is
   app-level.
+- A Clerk **production instance serves its own frontend API** from
+  `clerk.<domain>`, not from `clerk.accounts.dev`. Nothing loads until the five
+  CNAMEs resolve, and the browser failure is a bare `ERR_NAME_NOT_RESOLVED` with
+  a page that still renders, because only the client bundle needs them. The
+  records are Pulumi's (`clerkMailHash` in
+  `infra/cloudflare/Pulumi.prod.yaml`); never add them from Clerk's
+  "Configure automatically" flow, which writes records Pulumi does not know
+  about. A production instance also starts with an **empty user pool** and an
+  empty organization list: dev-instance accounts do not migrate, so
+  `LUXEL_ADMIN_ORG_ID`/`SLUG` must be recreated there before `apps/admin` can
+  move over.
 - Hospitable's calendar endpoint clamps `start_date` to the first day of the
   running month. A request for an earlier date silently returns the same
   window, so the previous month can only come from the mirrored

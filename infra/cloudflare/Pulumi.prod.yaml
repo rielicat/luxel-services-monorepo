@@ -17,6 +17,14 @@ config:
 
   # CNAME target for admin.serviciosluxel.cl (operator panel on Vercel).
   luxel-cloudflare:adminTarget: cname.vercel-dns.com
+  # Clerk production instance hash, from Clerk Dashboard -> Domains -> the
+  # primary domain -> Manual DNS setup. It is the label inside the clkmail and
+  # DKIM CNAME targets (mail.<hash>.clerk.services). Setting it creates all five
+  # Clerk records; clearing it removes them. Not a credential: every value ends
+  # up published in public DNS. The frontend-api and accounts targets carry no
+  # hash, so dns.ts holds them literally. Clerk documents neither as a constant,
+  # so re-read all five from the dashboard if the instance is ever recreated.
+  luxel-cloudflare:clerkMailHash: dw7l996s5zgh
   # DMARC policy for _dmarc TXT. Start at "none" (monitor only — never rejects
   # mail); tighten to "quarantine"/"reject" once you've confirmed alignment.
   luxel-cloudflare:dmarcPolicy: none

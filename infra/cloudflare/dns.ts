@@ -1,5 +1,13 @@
 import * as cloudflare from '@pulumi/cloudflare';
-import { zoneId, zoneName, vercelTarget, adminTarget, dmarcPolicy } from './config';
+import {
+  zoneId,
+  zoneName,
+  vercelTarget,
+  adminTarget,
+  dmarcPolicy,
+  clerkMailHash,
+  slug,
+} from './config';
 import { importId } from './adopt';
 
 export const apexRecord = new cloudflare.DnsRecord(
@@ -58,3 +66,30 @@ export const adminRecord = adminTarget
       { import: importId('admin') },
     )
   : undefined;
+
+const clerkTargets: Record<string, string> = clerkMailHash
+  ? {
+      clerk: 'frontend-api.clerk.services',
+      accounts: 'accounts.clerk.services',
+      clkmail: `mail.${clerkMailHash}.clerk.services`,
+      'clk._domainkey': `dkim1.${clerkMailHash}.clerk.services`,
+      'clk2._domainkey': `dkim2.${clerkMailHash}.clerk.services`,
+    }
+  : {};
+
+export const clerkRecords = Object.entries(clerkTargets).map(
+  ([host, content]) =>
+    new cloudflare.DnsRecord(
+      `clerk-${slug(host)}`,
+      {
+        zoneId,
+        name: `${host}.${zoneName}`,
+        type: 'CNAME',
+        content,
+        ttl: 1,
+        proxied: false,
+        comment: 'Clerk production instance — managed by Pulumi',
+      },
+      { import: importId(`clerk-${slug(host)}`) },
+    ),
+);

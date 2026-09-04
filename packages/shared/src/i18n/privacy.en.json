@@ -4,9 +4,9 @@
   "title": "Privacy policy",
   "lead": "This page says plainly what personal data we process, why, who we share it with, how long we keep it and what you can demand from us. It is written to be read, not to be signed unread.",
   "updated_label": "Last updated",
-  "updated_value": "3 September 2026",
+  "updated_value": "5 September 2026",
   "version_label": "Version",
-  "version_value": "1.0",
+  "version_value": "1.2",
   "lang_label": "Read in",
   "lang_es": "Español",
   "lang_en": "English",
@@ -79,7 +79,8 @@
         "We process this because it is necessary to perform your stay, and because the building's management needs to know who comes in. Those are the two lawful bases: performance of the contract, and our legitimate interest together with the building's.",
         "The registration form requires the ID document in order to be completed, and offers no alternative. We do not ask for separate consent, because consent is not what this processing rests on.",
         "We do not ask for your age, your nationality, your email address or your phone number on the registration form.",
-        "One thing you should know: the registration page for your stay opens with a private link or with your Airbnb confirmation code. Everyone on your booking has that code. Anyone holding it can open the page and see the registered names and the last four characters of each document. The page is not listed in search engines."
+        "One thing you should know: the registration page for your stay opens with a private link or with your Airbnb confirmation code. Everyone on your booking has that code. Anyone holding it can open the page and see the registered names and the last four characters of each document. The page is not listed in search engines.",
+        "We keep what you type before you submit the form, so you can finish it later or from another phone. The draft opens with the same link, so anyone who has the link sees the half-filled form. The document number is encrypted in that draft too. When you come back you see its last four characters, and you have to type it again before you can submit the form. The draft is deleted when you submit the form."
       ],
       "rows": [
         {
@@ -105,6 +106,10 @@
         {
           "name": "Messages you write in the Airbnb chat",
           "detail": "We mirror them into our database so we can reply. They have their own section further down."
+        },
+        {
+          "name": "The form draft, before you submit it",
+          "detail": "We keep what you have typed so far, with the document number encrypted. It is deleted when you submit the form."
         }
       ]
     },
@@ -320,7 +325,7 @@
         },
         {
           "name": "The host of the unit",
-          "detail": "Can reach the list of people registered at their property: the name, the document type and the last four characters. The full number travels encrypted and the key is not in the database. When someone completes the registration, we notify them by email and, if their account has a phone number saved, by WhatsApp: the stay, the property, the parking, who booked, how many people are arriving and at what time. The documents are not in that notice."
+          "detail": "Can reach the list of people registered at their property: the name, the document type and the last four characters. The full number travels encrypted and the key is not in the database. When someone completes the registration, we notify them by email and, if their account has a phone number saved, by WhatsApp. They receive the same notice the front desk does, with the stay, the property, the parking and the list of people staying, including each person's document number."
         }
       ]
     },
@@ -404,6 +409,10 @@
         {
           "name": "Guest's identity document number",
           "detail": "Deleted 90 days after the departure date. The type, the encrypted number and the last four characters all go."
+        },
+        {
+          "name": "Registration form draft",
+          "detail": "Deleted when the form is submitted. If it is never submitted, it is deleted 90 days after the departure date."
         },
         {
           "name": "Guest's name, arrival and departure times, vehicle plate",

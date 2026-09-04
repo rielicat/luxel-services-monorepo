@@ -4,9 +4,9 @@
   "title": "Política de privacidade",
   "lead": "Esta página conta, sem rodeios, quais dados pessoais tratamos, por quê, com quem os compartilhamos, por quanto tempo os guardamos e o que você pode exigir de nós. Foi escrita para ser lida, não para ser assinada sem leitura.",
   "updated_label": "Atualizada em",
-  "updated_value": "3 de setembro de 2026",
+  "updated_value": "5 de setembro de 2026",
   "version_label": "Versão",
-  "version_value": "1.0",
+  "version_value": "1.2",
   "lang_label": "Ler em",
   "lang_es": "Español",
   "lang_en": "English",
@@ -79,7 +79,8 @@
         "Tratamos estes dados porque são necessários para executar a sua estadia, e porque a administração do prédio precisa saber quem entra. Estas são as duas bases legais: a execução do contrato e o nosso interesse legítimo junto com o do prédio.",
         "O formulário de registro exige o documento para ser concluído e não oferece alternativa. Não pedimos um consentimento separado, porque não é o consentimento que sustenta este tratamento.",
         "Não perguntamos a sua idade, a sua nacionalidade, o seu e-mail nem o seu telefone no formulário de registro.",
-        "Uma coisa que você deve saber: a página de registro da sua estadia abre com um link privado ou com o código de confirmação do Airbnb. Todas as pessoas da sua reserva têm esse código. Quem tiver o código pode abrir a página e ver os nomes registrados e os quatro últimos caracteres de cada documento. A página não aparece em buscadores."
+        "Uma coisa que você deve saber: a página de registro da sua estadia abre com um link privado ou com o código de confirmação do Airbnb. Todas as pessoas da sua reserva têm esse código. Quem tiver o código pode abrir a página e ver os nomes registrados e os quatro últimos caracteres de cada documento. A página não aparece em buscadores.",
+        "Guardamos o que você escreve antes de enviar o formulário, para você poder terminar depois ou de outro celular. O rascunho abre com o mesmo link, então quem tiver o link vê o formulário pela metade. O número do documento também fica criptografado nesse rascunho. Ao voltar você vê os quatro últimos caracteres e precisa escrevê-lo de novo para poder enviar o formulário. O rascunho é apagado quando você envia o formulário."
       ],
       "rows": [
         {
@@ -105,6 +106,10 @@
         {
           "name": "Mensagens que você escreve no chat do Airbnb",
           "detail": "Espelhamos na nossa base para poder responder. Elas têm a própria seção mais abaixo."
+        },
+        {
+          "name": "Rascunho do formulário, antes do envio",
+          "detail": "Guardamos o que você já escreveu, com o número do documento criptografado. É apagado quando você envia o formulário."
         }
       ]
     },
@@ -320,7 +325,7 @@
         },
         {
           "name": "O anfitrião da unidade",
-          "detail": "Pode alcançar a lista de pessoas registradas na propriedade dele: o nome, o tipo de documento e os quatro últimos caracteres. O número completo viaja criptografado e a chave não está na base de dados. Quando alguém completa o registro, avisamos por e-mail e, se houver um telefone salvo na conta, por WhatsApp: a estadia, a propriedade, o estacionamento, quem reserva, quantas pessoas chegam e a que horas. Os documentos não vão nesse aviso."
+          "detail": "Pode alcançar a lista de pessoas registradas na propriedade dele: o nome, o tipo de documento e os quatro últimos caracteres. O número completo viaja criptografado e a chave não está na base de dados. Quando alguém completa o registro, avisamos por e-mail e, se houver um telefone salvo na conta, por WhatsApp. Recebe o mesmo aviso que a portaria, com a estadia, a propriedade, o estacionamento e a lista de quem se hospeda, incluindo o número do documento de cada pessoa."
         }
       ]
     },
@@ -404,6 +409,10 @@
         {
           "name": "Número do documento de identidade do hóspede",
           "detail": "Apagado 90 dias depois da data de saída. Vão o tipo, o número criptografado e os quatro últimos caracteres."
+        },
+        {
+          "name": "Rascunho do formulário de registro",
+          "detail": "Apagado ao enviar o formulário. Se nunca for enviado, é apagado 90 dias depois da data de saída."
         },
         {
           "name": "Nome do hóspede, horários de chegada e saída, placa",

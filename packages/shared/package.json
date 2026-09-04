@@ -16,6 +16,7 @@
     "./cleaning-inventory": "./src/cleaning-inventory.ts",
     "./cleaning-review": "./src/cleaning-review.ts",
     "./constants": "./src/constants.ts",
+    "./document": "./src/document.ts",
     "./plan-pricing": "./src/plan-pricing.ts",
     "./hospitable-calendar": "./src/hospitable-calendar.ts"
   },

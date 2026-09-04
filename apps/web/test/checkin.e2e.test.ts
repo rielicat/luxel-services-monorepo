@@ -193,8 +193,7 @@ describe.skipIf(!LIVE)('guest check-in + access (end to end)', () => {
     expect(result.some((r) => r.role === 'host' && r.channel === 'whatsapp' && r.ok)).toBe(true);
     const hostSend = workerSends.find((w) => w.to === '56970001000')!;
     expect(hostSend.template!.kind).toBe('concierge_arrival');
-    expect(JSON.stringify(hostSend.template!.params)).not.toContain('12.345.678');
-    expect(hostSend.template!.params[3]).toContain('María Pérez');
+    expect(hostSend.template!.params).toEqual(conserjeSend.template!.params);
     expect(JSON.stringify(result)).not.toContain('12.345.678');
 
     const { data: guests } = await admin

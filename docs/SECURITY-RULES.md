@@ -172,5 +172,36 @@ rules. Do not add code paths that break them.
 - Guest documents are encrypted with `LUXEL_PII_KEY`, nulled 90 days after
   departure by the sync pass, and reach conserjes only through the approved
   WhatsApp template.
+- The guest check-in form is **one screen**. It lists every guest as an editable
+  row. The guest fixes any row in place. There are no per-guest steps. A party
+  size screen comes first only when the reservation carried no headcount. The
+  **party must match**: when `checkins.expected_guests` is set, the number of
+  rows equals it, and the guest cannot add or remove a row. When it is null, the
+  count the guest chose is the target, and add and remove move the target with
+  the list. `submitCheckin` enforces the same rule and answers `party_size`. The
+  target for a direct booking is read back from the draft, so a resumed session
+  keeps it.
+- The check-in form remembers progress on the server. `checkin_draft` holds one
+  row per check-in, keyed by `checkin_id`, with a `rev` counter and a jsonb
+  payload. RLS is on with no policy, so the table is service-role only.
+  `saveCheckinDraft` takes the check-in token and derives the check-in itself. It
+  never trusts a client id. The browser saves on blur, on a chip choice, and on
+  an add or a remove. It never saves on a keystroke. Every write states the `rev`
+  it read, and `writeCheckinDraft` refuses a write that does not match the stored
+  `rev`. A stale tab is refused, never applied, so it cannot wipe newer work. The
+  page then stops saving, says so, and offers a reload. A refused save is always
+  visible; it is never silent. A document number in the draft is encrypted with
+  the same `encryptPII` the submitted rows use. The draft never holds a raw
+  number. Each guest row carries a client `uid`, so a remembered document follows
+  its own row through an add or a remove. A masked value never replaces stored
+  ciphertext; it keeps it. On resume the page returns the document masked to its
+  last four characters, as `···1234`. That keeps the link a write credential, not a
+  document viewer. The guest must type the number again before the form can be
+  submitted. `docNeedsRetype` refuses the mask and the bare last four on the
+  client. `submitCheckin` refuses a masked string, and any value equal to a
+  remembered last four. A successful submit deletes the draft. The draft dies
+  with the check-in row by cascade. The page stops reading the draft after the
+  departure date, the same window `saveCheckinDraft` applies to the write.
+  `purgeExpiredGuestDocuments` clears it 90 days after departure.
 - Secrets never enter the repo. `.env*` files stay untracked. Operators set
   Vercel vars and `wrangler secret put`.

@@ -4,9 +4,9 @@
   "title": "Política de privacidad",
   "lead": "Aquí contamos, sin adornos, qué datos personales tratamos, por qué, con quién los compartimos, cuánto tiempo los guardamos y qué puedes exigirnos. Está escrita para que la entiendas, no para que la firmes sin leerla.",
   "updated_label": "Actualizada el",
-  "updated_value": "3 de septiembre de 2026",
+  "updated_value": "5 de septiembre de 2026",
   "version_label": "Versión",
-  "version_value": "1.0",
+  "version_value": "1.2",
   "lang_label": "Leer en",
   "lang_es": "Español",
   "lang_en": "English",
@@ -79,7 +79,8 @@
         "Tratamos estos datos porque son necesarios para ejecutar tu estadía, y porque la administración del edificio necesita saber quién entra. Esas son las dos bases: la ejecución del contrato y nuestro interés legítimo junto con el del edificio.",
         "El formulario de registro exige el documento para completarse y no ofrece una alternativa. No te pedimos consentimiento por separado, porque no es el consentimiento lo que sostiene este tratamiento.",
         "No te preguntamos la edad, la nacionalidad, el correo ni el teléfono en el formulario de registro.",
-        "Hay algo que prefieres saber: la página de registro de tu estadía se abre con un enlace privado o con el código de confirmación de Airbnb. Ese código lo tienen todas las personas de tu reserva. Quien lo tenga puede abrir la página y ver los nombres registrados y los últimos cuatro caracteres de cada documento. La página no aparece en buscadores."
+        "Hay algo que prefieres saber: la página de registro de tu estadía se abre con un enlace privado o con el código de confirmación de Airbnb. Ese código lo tienen todas las personas de tu reserva. Quien lo tenga puede abrir la página y ver los nombres registrados y los últimos cuatro caracteres de cada documento. La página no aparece en buscadores.",
+        "Guardamos lo que escribes antes de enviar el formulario, para que puedas terminarlo después o desde otro teléfono. El borrador se abre con el mismo enlace, así que quien tenga el enlace ve el formulario a medio llenar. El número de documento queda cifrado también en ese borrador. Al volver verás sus últimos cuatro caracteres y tendrás que escribirlo de nuevo para poder enviar el formulario. El borrador se borra cuando envías el formulario."
       ],
       "rows": [
         {
@@ -105,6 +106,10 @@
         {
           "name": "Mensajes que escribes en el chat de Airbnb",
           "detail": "Los espejamos en nuestra base para poder contestarte. Están explicados más abajo, en su propia sección."
+        },
+        {
+          "name": "Borrador del formulario, antes de enviarlo",
+          "detail": "Guardamos lo que llevas escrito, con el número de documento cifrado. Se borra cuando envías el formulario."
         }
       ]
     },
@@ -320,7 +325,7 @@
         },
         {
           "name": "El anfitrión de la unidad",
-          "detail": "Puede alcanzar la lista de personas registradas en su propiedad: el nombre, el tipo de documento y los últimos cuatro caracteres. El número completo viaja cifrado y la llave no está en la base de datos. Cuando alguien completa el registro, le avisamos por correo y, si tiene un teléfono guardado en su cuenta, por WhatsApp: la estadía, la propiedad, el estacionamiento, quién reserva, cuántas personas llegan y a qué hora. Los documentos no van en ese aviso."
+          "detail": "Puede alcanzar la lista de personas registradas en su propiedad: el nombre, el tipo de documento y los últimos cuatro caracteres. El número completo viaja cifrado y la llave no está en la base de datos. Cuando alguien completa el registro, le avisamos por correo y, si tiene un teléfono guardado en su cuenta, por WhatsApp. Recibe el mismo aviso que la conserjería, con la estadía, la propiedad, el estacionamiento y la lista de quienes se alojan, incluido el número de documento de cada persona."
         }
       ]
     },
@@ -404,6 +409,10 @@
         {
           "name": "Número de documento de identidad del huésped",
           "detail": "Se borra 90 días después de la fecha de salida. Se borran el tipo, el número cifrado y los últimos cuatro caracteres."
+        },
+        {
+          "name": "Borrador del formulario de registro",
+          "detail": "Se borra al enviar el formulario. Si nunca se envía, se borra 90 días después de la fecha de salida."
         },
         {
           "name": "Nombre del huésped, horas de llegada y salida, patente",

@@ -38,9 +38,10 @@ Web tests need local Supabase and `apps/web/.env.local` sourced. Scope with
 `apps/admin` from their roots; the worker deploys with `wrangler deploy`.
 Details: [`DEPLOY.md`](DEPLOY.md), [`ENV.md`](ENV.md).
 
-Open follow-ups that need operator credentials: Clerk production instance
-(prod runs the dev instance), Meta WhatsApp go-live (portfolio, number,
-templates), and a billing-enabled `GOOGLE_API_KEY`. The cleaning review also
+Open follow-ups that need operator credentials: Meta WhatsApp go-live
+(portfolio, number, templates), a billing-enabled `GOOGLE_API_KEY`, and moving
+`luxel-admin` onto the Clerk production instance (`apps/web` runs `pk_live_*`,
+`apps/admin` still runs `pk_test_*`). The cleaning review also
 needs a `wrangler deploy` to provision the `cleaning-review` Workflow and
 `LUXEL_APP_URL` pointed at the live web origin. Open follow-ups in code: plan
 activation.
@@ -60,6 +61,12 @@ activation.
 - Clerk keyless mode breaks next-intl routing. Use real dev keys and set
   `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`, `..._SIGN_UP_URL=/sign-up` so auth
   stays on localhost. Test user: `you+clerk_test@example.com`, OTP `424242`.
+- A Clerk production instance serves its own frontend API from `clerk.<domain>`,
+  not `clerk.accounts.dev`. Nothing loads until the five CNAMEs resolve; the
+  failure is a bare `ERR_NAME_NOT_RESOLVED` on a page that still renders. The
+  records are Pulumi's (`clerkMailHash` in `infra/cloudflare/Pulumi.prod.yaml`);
+  never use Clerk's "Configure automatically" flow. A production instance also
+  starts with an empty user pool and no organizations.
 - Keep Clerk Organizations optional on the instance. Admin gating is
   app-level.
 - Hospitable's calendar endpoint clamps `start_date` to the first day of the

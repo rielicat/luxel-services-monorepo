@@ -93,12 +93,6 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
 
   const place = where === '—' ? unit : `${unit} · ${where}`;
   const conserjeParams = [stay, place, parking, `${headcount} · ${guestList}`];
-  const hostParams = [
-    stay,
-    place,
-    parking,
-    `${headcount} · reserva de ${checkin.guest_name ?? 'huésped'} · llegada ${arrival}`,
-  ];
 
   const reached = new Set<string>();
   if (whatsappBridgeConfigured()) {
@@ -113,7 +107,9 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
 
     const ownerPhone = toE164Digits(owner?.phone as string | null | undefined);
     if (ownerPhone && !reached.has(ownerPhone)) {
-      const ok = Boolean(await sendWhatsAppTemplate(ownerPhone, 'concierge_arrival', hostParams));
+      const ok = Boolean(
+        await sendWhatsAppTemplate(ownerPhone, 'concierge_arrival', conserjeParams),
+      );
       results.push({ channel: 'whatsapp', to: `+${ownerPhone}`, role: 'host', ok });
     }
   }
@@ -133,7 +129,7 @@ export async function notifyCheckin(checkinId: string): Promise<void> {
       const r = await sendEmail({
         to: owner.email,
         subject: `${TEMPLATE_HEAD} — ${property.nickname}`,
-        html: registrationHtml(hostParams),
+        html: registrationHtml(conserjeParams),
       });
       results.push({ channel: 'email', to: owner.email, role: 'host', ok: Boolean(r) });
     }

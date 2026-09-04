@@ -9,6 +9,8 @@ import { CheckinForm, type RegisteredGuest } from './checkin-form';
 import { resolveGuestLang } from '@luxel/core/checkin/lang';
 import { findCheckin } from '@luxel/core/checkin/resolve';
 import { MAX_PARTY, guestSlots } from '@luxel/core/checkin/slots';
+import { santiagoToday } from '@luxel/core/checkin/window';
+import { readCheckinDraft } from '@luxel/core/checkin/draft';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,8 +59,10 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
   if (!checkin || checkin.revoked_at) notFound();
 
   const done = checkin.status !== 'pending';
+  const departed =
+    Boolean(checkin.departure_date) && santiagoToday() > (checkin.departure_date as string);
 
-  const [{ data: property }, guestsRes] = await Promise.all([
+  const [{ data: property }, guestsRes, draft] = await Promise.all([
     supabase
       .from('properties')
       .select(
@@ -74,6 +78,7 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
           .order('is_lead', { ascending: false })
           .order('created_at', { ascending: true })
       : null,
+    done || departed ? null : readCheckinDraft(supabase, checkin.id as string),
   ]);
 
   const lang = await guestLang(checkin);
@@ -102,14 +107,11 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
       timeZone="America/Santiago"
     >
       <div className="relative isolate">
-        <div
-          aria-hidden
-          className="bg-aurora pointer-events-none absolute inset-x-0 top-0 -z-10 h-56 sm:h-72"
-        />
+        <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0 -z-10" />
         <main
           lang={lang}
           data-checkin
-          className="mx-auto w-full max-w-md px-4 pb-28 pt-6 sm:max-w-lg sm:pb-16 sm:pt-12"
+          className="mx-auto w-full max-w-md px-4 pb-36 pt-6 sm:max-w-lg sm:pb-16 sm:pt-12"
         >
           <CheckinForm
             id={id}
@@ -132,6 +134,7 @@ export default async function CheckinPage({ params }: { params: Promise<{ id: st
               lines: houseRuleLines,
             }}
             registered={registered}
+            draft={draft}
             arrivalTime={(checkin.arrival_time as string | null) ?? null}
             departureTime={(checkin.departure_time as string | null) ?? null}
           />

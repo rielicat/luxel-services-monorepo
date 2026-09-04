@@ -28,6 +28,7 @@ export const zoneName = c.get('zoneName') ?? 'serviciosluxel.cl';
 export const vercelTarget = c.require('vercelTarget');
 export const adminTarget = c.get('adminTarget') ?? '';
 export const dmarcPolicy = c.get('dmarcPolicy') ?? 'none';
+export const clerkMailHash = c.get('clerkMailHash') ?? '';
 export const emailRouting = c.requireObject<EmailRoutingConfig>('emailRouting');
 export const cleaningMediaBucket = c.get('cleaningMediaBucket') ?? 'luxel-cleaning-media';
 export const cleaningMediaLocation = c.get('cleaningMediaLocation') ?? 'wnam';

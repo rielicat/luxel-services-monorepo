@@ -55,6 +55,13 @@ describe('privacy catalogs', () => {
     for (const [locale, doc] of DOCS) expect(tokensIn(doc), locale).toEqual([]);
   });
 
+  it('moves the version and the date together, in every language', () => {
+    for (const [locale, doc] of DOCS) {
+      expect(doc.version_value, locale).toBe(es.version_value);
+      expect(doc.updated_value.trim().length, locale).toBeGreaterThan(0);
+    }
+  });
+
   it('names the contact address in every language', () => {
     for (const [locale, doc] of DOCS) {
       expect(JSON.stringify(doc), locale).toContain('info@serviciosluxel.cl');

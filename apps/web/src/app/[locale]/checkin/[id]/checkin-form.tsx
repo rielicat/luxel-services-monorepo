@@ -4,13 +4,15 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   Check,
-  ChevronDown,
   ChevronLeft,
   CigaretteOff,
   House,
   PartyPopper,
   PawPrint,
-  Users,
+  Pencil,
+  Plus,
+  TriangleAlert,
+  X,
 } from 'lucide-react';
 import { LuxelLogo, LuxelMark } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
@@ -18,8 +20,10 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { formatDocument } from '@luxel/shared/document';
 import { arrivalSlots, departureSlots, nightsBetween } from '@luxel/core/checkin/slots';
-import { submitCheckin } from './actions';
+import { docNeedsRetype, type CheckinDraft } from '@luxel/core/checkin/draft-shape';
+import { saveCheckinDraft, submitCheckin } from './actions';
 
 export type DocType = 'rut' | 'passport' | 'dni' | 'other';
 
@@ -55,17 +59,31 @@ export interface CheckinFormProps {
   askCount?: boolean;
   rules: Rules;
   registered?: RegisteredGuest[];
+  draft?: CheckinDraft | null;
   arrivalTime?: string | null;
   departureTime?: string | null;
 }
 
 type GuestDraft = {
+  uid: string;
   fullName: string;
   docType: DocType;
   docNumber: string;
+  docMask: string | null;
 };
+
 type Parking = '' | 'yes' | 'no';
 type Errors = Record<string, string>;
+type SaveState = null | 'failed' | 'stale';
+
+type Snapshot = {
+  partySize: number;
+  guests: GuestDraft[];
+  arrival: string;
+  departure: string;
+  parking: Parking;
+  plate: string;
+};
 
 const INTL_LOCALE: Record<string, string> = { es: 'es-CL', en: 'en', pt: 'pt-BR' };
 
@@ -99,13 +117,25 @@ const OPTION_ON = 'border-primary bg-primary text-primary-foreground shadow-soft
 const OPTION_OFF =
   'border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent font-medium';
 
-const TITLE = 'text-balance font-serif text-2xl font-medium tracking-tight';
-const EYEBROW = 'text-primary text-xs font-semibold uppercase tracking-wide tabular-nums';
+const SECTION_TITLE = 'font-display text-base font-semibold';
 
-const newGuest = (docType: DocType): GuestDraft => ({ fullName: '', docType, docNumber: '' });
+const nameKey = (i: number): string => `g${i}-name`;
+const docKey = (i: number): string => `g${i}-doc`;
+
+const newGuest = (uid: string, docType: DocType): GuestDraft => ({
+  uid,
+  fullName: '',
+  docType,
+  docNumber: '',
+  docMask: null,
+});
+
+const freshUid = (): string =>
+  `g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const isParking = (v: string): v is Parking => v === '' || v === 'yes' || v === 'no';
 const clock = (time: string | null): string | null => (time ? time.slice(0, 5) : null);
 const maskDoc = (n: string): string => n.replace(/\s+/g, '').slice(-4);
-const named = (g: GuestDraft): boolean => Boolean(g.fullName.trim());
 
 function PrivacyLink({ className }: { className?: string }) {
   const t = useTranslations('checkin');
@@ -246,22 +276,7 @@ function Chips<V extends string>({
   );
 }
 
-function StayStrip({ stay, line }: { stay: Stay; line: string | null }) {
-  return (
-    <div className="border-border bg-card shadow-soft flex items-center gap-3 rounded-xl border p-3">
-      <span className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-        <House className="h-5 w-5" />
-      </span>
-      <div className="grid min-w-0 gap-0.5">
-        <h1 className="font-display truncate text-sm font-semibold">{stay.propertyName}</h1>
-        {line && <p className="text-muted-foreground truncate text-xs tabular-nums">{line}</p>}
-      </div>
-    </div>
-  );
-}
-
 function Welcome({ stay, line, times }: { stay: Stay; line: string | null; times: string | null }) {
-  const t = useTranslations('checkin');
   return (
     <header className="grid gap-4">
       <LuxelLogo markClassName="h-7 w-7" />
@@ -285,207 +300,171 @@ function Welcome({ stay, line, times }: { stay: Stay; line: string | null; times
           </div>
         )}
       </Card>
-
-      <p className="text-muted-foreground text-sm">{t('notice')}</p>
     </header>
   );
 }
 
-function Roster({
-  guests,
-  step,
-  onJump,
-}: {
-  guests: GuestDraft[];
-  step: number;
-  onJump: (i: number) => void;
-}) {
-  const t = useTranslations('checkin');
-  const [open, setOpen] = useState(false);
-  const onRecord = guests.map((g, i) => i !== step && named(g));
-  const done = onRecord.filter(Boolean).length;
-  if (!done) return null;
-
-  return (
-    <div className="border-border bg-card shadow-soft rounded-xl border">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls="roster-panel"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          'ease-lux flex min-h-12 w-full items-center gap-2.5 rounded-xl px-4 py-2 text-left transition-colors duration-200',
-          FOCUS,
-        )}
-      >
-        <Users className="text-primary h-4 w-4 shrink-0" />
-        <span className="text-sm font-medium">
-          {t('roster_count', { done, total: guests.length })}
-        </span>
-        <ChevronDown
-          aria-hidden
-          className={cn(
-            'text-muted-foreground ease-lux ml-auto h-4 w-4 shrink-0 transition-transform duration-200',
-            open && 'rotate-180',
-          )}
-        />
-      </button>
-      <ul id="roster-panel" hidden={!open} className="border-border border-t p-1.5">
-        {guests.map((g, i) =>
-          onRecord[i] ? (
-            <li key={i}>
-              <button
-                type="button"
-                onClick={() => onJump(i)}
-                className={cn(
-                  'ease-lux hover:bg-accent flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors duration-200',
-                  FOCUS,
-                )}
-              >
-                <Check className="text-primary h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{g.fullName.trim()}</span>
-              </button>
-            </li>
-          ) : null,
-        )}
-      </ul>
-    </div>
-  );
-}
-
-function StepDots({ step, total }: { step: number; total: number }) {
-  return (
-    <div aria-hidden className="flex items-center gap-1.5">
-      {Array.from({ length: total }, (_, i) => (
-        <span
-          key={i}
-          className={cn(
-            'ease-lux h-1.5 rounded-full transition-all duration-200',
-            i === step ? 'bg-primary w-6' : i < step ? 'bg-primary w-1.5' : 'bg-border w-1.5',
-          )}
-        />
-      ))}
-    </div>
-  );
-}
-
-function StepHeading({
-  headingRef,
-  step,
-  total,
-  children,
-}: {
-  headingRef: React.RefObject<HTMLHeadingElement>;
-  step: number;
-  total: number;
-  children: React.ReactNode;
-}) {
-  const t = useTranslations('checkin');
-  return (
-    <div className="grid gap-2">
-      <StepDots step={step} total={total} />
-      <h2 ref={headingRef} tabIndex={-1} className="focus:outline-none">
-        <span className={cn(EYEBROW, 'block')}>{t('step_of', { i: step + 1, n: total })}</span>{' '}
-        <span className={cn(TITLE, 'mt-1 block')}>{children}</span>
-      </h2>
-    </div>
-  );
-}
-
-function GuestStep({
+function GuestRow({
   index,
   guest,
   errors,
-  nameRef,
-  docRef,
+  open,
+  onOpen,
+  onRemove,
+  bindRef,
   onChange,
-  setError,
+  onCommit,
+  onBlurName,
+  onBlurDoc,
 }: {
   index: number;
   guest: GuestDraft;
   errors: Errors;
-  nameRef: React.RefObject<HTMLInputElement>;
-  docRef: React.RefObject<HTMLInputElement>;
+  open: boolean;
+  onOpen: () => void;
+  onRemove: (() => void) | null;
+  bindRef: (key: string, el: HTMLInputElement | null) => void;
   onChange: (patch: Partial<GuestDraft>) => void;
-  setError: (key: string, message: string | null) => void;
+  onCommit: (patch: Partial<GuestDraft>) => void;
+  onBlurName: () => void;
+  onBlurDoc: () => void;
 }) {
   const t = useTranslations('checkin');
-  const nameErr = errors.name;
-  const docErr = errors.doc;
+  const nameId = nameKey(index);
+  const docId = docKey(index);
+  const nameErr = errors[nameId];
+  const docErr = errors[docId];
+
+  const summary = guest.fullName.trim() || t('guest_n', { n: index + 1 });
+  const flagged = Boolean(nameErr || docErr);
+
+  if (!open) {
+    return (
+      <Card>
+        <div className="flex items-center gap-2 p-1">
+          <button
+            type="button"
+            onClick={onOpen}
+            className={cn(
+              'flex min-h-12 flex-1 items-center gap-3 rounded-lg px-3 text-left',
+              'hover:bg-accent transition-colors',
+              FOCUS,
+            )}
+          >
+            <span className="truncate text-sm font-medium">{summary}</span>
+            {flagged && (
+              <span className="text-destructive shrink-0 text-xs font-medium">
+                {t('row_incomplete')}
+              </span>
+            )}
+            <Pencil className="text-muted-foreground ml-auto h-4 w-4 shrink-0" />
+          </button>
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label={t('remove_guest', { n: index + 1 })}
+              className={cn(
+                'text-muted-foreground hover:text-foreground flex h-12 w-12 shrink-0 items-center justify-center rounded-lg',
+                FOCUS,
+              )}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="grid gap-5 p-4 sm:p-5">
-      <Field id="g-name" label={t('name')} error={nameErr}>
-        <Input
-          id="g-name"
-          ref={nameRef}
-          value={guest.fullName}
-          onChange={(e) => {
-            onChange({ fullName: e.target.value });
-            setError('name', null);
-          }}
-          onBlur={() => setError('name', guest.fullName.trim() ? null : t('error_name'))}
-          onKeyDown={(e) => {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            docRef.current?.focus();
-          }}
-          maxLength={120}
-          aria-required
-          aria-invalid={nameErr ? true : undefined}
-          aria-describedby={nameErr ? 'g-name-err' : undefined}
-          autoCapitalize="words"
-          autoComplete={index === 0 ? 'name' : `section-guest-${index} name`}
-          enterKeyHint="next"
-          placeholder={t('name_ph')}
-          className={cn(
-            'h-12 text-base',
-            nameErr && 'border-destructive focus-visible:border-destructive',
+    <Card>
+      <div role="group" aria-labelledby={`g${index}-label`} className="grid gap-5 p-4 sm:p-5">
+        <div className="flex min-h-6 items-center justify-between gap-3">
+          <span
+            id={`g${index}-label`}
+            className="text-muted-foreground text-xs font-semibold uppercase tracking-wide"
+          >
+            {t('guest_n', { n: index + 1 })}
+          </span>
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label={t('remove_guest', { n: index + 1 })}
+              className={cn(
+                'text-muted-foreground hover:text-foreground hover:bg-accent ease-lux -my-2.5 -mr-1.5 flex h-11 w-11 items-center justify-center rounded-lg transition-colors duration-200',
+                FOCUS,
+              )}
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
-        />
-      </Field>
+        </div>
 
-      <div className="grid gap-1.5">
-        <GroupLabel id="g-doctype-label">{t('doc_type')}</GroupLabel>
-        <Chips
-          id="g-doctype"
-          labelId="g-doctype-label"
-          options={DOC_TYPES.map((v) => ({ value: v, label: t(DOC_KEY[v]) }))}
-          value={guest.docType}
-          onChange={(v) => onChange({ docType: v })}
-          className="grid-cols-2"
-        />
+        <Field id={nameId} label={t('name')} error={nameErr}>
+          <Input
+            id={nameId}
+            ref={(el) => bindRef(nameId, el)}
+            value={guest.fullName}
+            onChange={(e) => onChange({ fullName: e.target.value })}
+            onBlur={onBlurName}
+            maxLength={120}
+            aria-required
+            aria-invalid={nameErr ? true : undefined}
+            aria-describedby={nameErr ? `${nameId}-err` : undefined}
+            autoCapitalize="words"
+            autoComplete={index === 0 ? 'name' : `section-guest-${index} name`}
+            enterKeyHint="next"
+            placeholder={t('name_ph')}
+            className={cn(
+              'h-12 text-base',
+              nameErr && 'border-destructive focus-visible:border-destructive',
+            )}
+          />
+        </Field>
+
+        <div className="grid gap-1.5">
+          <GroupLabel id={`${docId}type-label`}>{t('doc_type')}</GroupLabel>
+          <Chips
+            id={`${docId}type`}
+            labelId={`${docId}type-label`}
+            options={DOC_TYPES.map((v) => ({ value: v, label: t(DOC_KEY[v]) }))}
+            value={guest.docType}
+            onChange={(v) => onCommit({ docType: v })}
+            className="grid-cols-2"
+          />
+        </div>
+
+        <Field id={docId} label={t('doc_number')} error={docErr}>
+          <Input
+            id={docId}
+            ref={(el) => bindRef(docId, el)}
+            value={guest.docNumber}
+            onChange={(e) => onChange({ docNumber: e.target.value })}
+            onFocus={(e) => {
+              if (guest.docMask && e.currentTarget.value === guest.docMask)
+                e.currentTarget.select();
+            }}
+            onBlur={onBlurDoc}
+            inputMode="text"
+            maxLength={40}
+            aria-required
+            aria-invalid={docErr ? true : undefined}
+            aria-describedby={docErr ? `${docId}-err` : undefined}
+            autoCapitalize={guest.docType === 'rut' ? 'none' : 'characters'}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="next"
+            placeholder={t(guest.docType === 'rut' ? 'doc_number_ph' : 'doc_number_ph_other')}
+            className={cn(
+              'h-12 text-base tabular-nums tracking-wider',
+              docErr && 'border-destructive focus-visible:border-destructive',
+            )}
+          />
+        </Field>
       </div>
-
-      <Field id="g-doc" label={t('doc_number')} error={docErr}>
-        <Input
-          id="g-doc"
-          ref={docRef}
-          value={guest.docNumber}
-          onChange={(e) => {
-            onChange({ docNumber: e.target.value });
-            setError('doc', null);
-          }}
-          onBlur={() =>
-            setError('doc', guest.docNumber.trim().length >= MIN_DOC ? null : t('error_doc'))
-          }
-          inputMode="text"
-          maxLength={40}
-          aria-required
-          aria-invalid={docErr ? true : undefined}
-          aria-describedby={docErr ? 'g-doc-err' : undefined}
-          autoCapitalize={guest.docType === 'rut' ? 'none' : 'characters'}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          enterKeyHint="go"
-          placeholder={t(guest.docType === 'rut' ? 'doc_number_ph' : 'doc_number_ph_other')}
-          className={cn(
-            'h-12 text-base tabular-nums tracking-wider',
-            docErr && 'border-destructive focus-visible:border-destructive',
-          )}
-        />
-      </Field>
     </Card>
   );
 }
@@ -554,27 +533,24 @@ function DoneView({
 
       {registered.length > 0 && (
         <Card className="p-4">
-          <h2 className="font-display mb-2 text-base font-semibold">{t('registered_title')}</h2>
+          <h2 className={cn(SECTION_TITLE, 'mb-2')}>{t('registered_title')}</h2>
           <ul className="divide-border divide-y">
             {registered.map((g, i) => {
               const docLabel = g.docType && isDocType(g.docType) ? t(DOC_KEY[g.docType]) : null;
               const last = g.docLast4 ? `···${g.docLast4}` : null;
               const detail = [docLabel, last].filter(Boolean).join(' ');
               return (
-                <li key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <span className="text-muted-foreground w-5 shrink-0 text-xs tabular-nums">
-                    {i + 1}
-                  </span>
-                  <span className="truncate text-sm font-medium">{g.fullName}</span>
-                  {g.isLead && (
-                    <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
-                      {t('lead_badge')}
-                    </span>
-                  )}
+                <li key={i} className="py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-baseline gap-3">
+                    <span className="truncate text-sm font-medium">{g.fullName}</span>
+                    {g.isLead && (
+                      <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+                        {t('lead_badge')}
+                      </span>
+                    )}
+                  </div>
                   {detail && (
-                    <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">
-                      {detail}
-                    </span>
+                    <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">{detail}</p>
                   )}
                 </li>
               );
@@ -585,7 +561,7 @@ function DoneView({
 
       {(written.length > 0 || ruleItems.length > 0) && (
         <Card className="p-4">
-          <h2 className="font-display mb-2 text-base font-semibold">{t('rules_title')}</h2>
+          <h2 className={cn(SECTION_TITLE, 'mb-2')}>{t('rules_title')}</h2>
           <ul className="grid gap-2">
             {written.map((line) => (
               <li key={line} className="text-sm leading-relaxed">
@@ -619,41 +595,73 @@ export function CheckinForm({
   askCount = false,
   rules,
   registered: initialRegistered = [],
+  draft = null,
   arrivalTime: initialArrival = null,
   departureTime: initialDeparture = null,
 }: CheckinFormProps) {
   const t = useTranslations('checkin');
   const locale = useLocale();
   const defaultDocType: DocType = locale === 'es' ? 'rut' : 'passport';
+  const ceiling = Math.max(maxGuests, draft?.guests.length ?? 0, 1);
+
+  const resumed = (draft?.guests ?? []).slice(0, ceiling).map<GuestDraft>((g, i) => ({
+    uid: g.uid || `g${i + 1}`,
+    fullName: g.fullName,
+    docType: isDocType(g.docType) ? g.docType : defaultDocType,
+    docNumber: g.docMask ?? '',
+    docMask: g.docMask,
+  }));
 
   const [done, setDone] = useState(alreadyDone);
   const [registered, setRegistered] = useState<RegisteredGuest[]>(initialRegistered);
-  const [counted, setCounted] = useState(!askCount);
+  const [partySize, setPartySize] = useState(() => {
+    if (!askCount) return expectedGuests;
+    return resumed.length ? draft?.partySize || resumed.length : 0;
+  });
   const [guests, setGuests] = useState<GuestDraft[]>(() =>
-    Array.from({ length: askCount ? 0 : expectedGuests }, () => newGuest(defaultDocType)),
+    askCount
+      ? resumed
+      : Array.from(
+          { length: expectedGuests },
+          (_, i) => resumed[i] ?? newGuest(`g${i + 1}`, defaultDocType),
+        ),
   );
-  const [step, setStep] = useState(0);
-  const [arrival, setArrival] = useState('');
-  const [departure, setDeparture] = useState('');
-  const [parking, setParking] = useState<Parking>('');
-  const [plate, setPlate] = useState('');
+  const [arrival, setArrival] = useState(draft?.arrivalTime ?? '');
+  const [departure, setDeparture] = useState(draft?.departureTime ?? '');
+  const [parking, setParking] = useState<Parking>(
+    isParking(draft?.parking ?? '') ? ((draft?.parking ?? '') as Parking) : '',
+  );
+  const [plate, setPlate] = useState(draft?.vehiclePlate ?? '');
   const [errors, setErrors] = useState<Errors>({});
   const [message, setMessage] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>(null);
   const [nav, setNav] = useState(0);
   const [pending, startTransition] = useTransition();
 
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
-  const docRef = useRef<HTMLInputElement>(null);
-  const navigating = useRef(false);
+  const countRef = useRef<HTMLHeadingElement>(null);
+  const guestsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const [openUid, setOpenUid] = useState<string | null>(null);
+  useEffect(() => {
+    if (!openUid) return;
+    const i = guests.findIndex((g) => g.uid === openUid);
+    if (i < 0) return;
+    fields.current[errors[docKey(i)] ? docKey(i) : nameKey(i)]?.focus({ preventScroll: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openUid]);
+
+  const fields = useRef<Record<string, HTMLInputElement | null>>({});
+  const revision = useRef(draft?.rev ?? 0);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const blocked = useRef(false);
+
+  const counted = partySize > 0;
 
   useEffect(() => {
     if (!nav) return;
-    navigating.current = true;
     window.scrollTo({ top: 0, behavior: 'instant' });
-    headingRef.current?.focus({ preventScroll: true });
-    navigating.current = false;
-  }, [nav]);
+    if (counted) guestsHeadingRef.current?.focus({ preventScroll: true });
+    else countRef.current?.focus({ preventScroll: true });
+  }, [nav, counted]);
 
   const stayLine = useStayLine(stay);
 
@@ -674,12 +682,11 @@ export function CheckinForm({
   const times =
     checkinAt && checkoutAt ? t('times', { checkin: checkinAt, checkout: checkoutAt }) : null;
 
-  const steps = guests.length + 1;
-  const onDetails = counted && step === guests.length;
-  const welcome = !counted || (!askCount && step === 0);
+  const bindRef = (key: string, el: HTMLInputElement | null) => {
+    fields.current[key] = el;
+  };
 
-  const setError = (key: string, msg: string | null) => {
-    if (navigating.current) return;
+  const setError = (key: string, msg: string | null) =>
     setErrors((prev) => {
       if (msg) return { ...prev, [key]: msg };
       if (!prev[key]) return prev;
@@ -687,16 +694,85 @@ export function CheckinForm({
       delete next[key];
       return next;
     });
+
+  const runSave = async (s: Snapshot) => {
+    if (blocked.current) return;
+    try {
+      const r = await saveCheckinDraft({
+        id,
+        rev: revision.current,
+        partySize: s.partySize,
+        guests: s.guests.map((g) => ({
+          uid: g.uid,
+          fullName: g.fullName,
+          docType: g.docType,
+          docNumber: g.docNumber,
+        })),
+        arrivalTime: s.arrival,
+        departureTime: s.departure,
+        parking: s.parking,
+        vehiclePlate: s.plate,
+      });
+      if (r.ok) {
+        revision.current = r.rev;
+        setSaveState(null);
+        return;
+      }
+      if (r.reason === 'stale') {
+        blocked.current = true;
+        setSaveState('stale');
+        return;
+      }
+      setSaveState('failed');
+    } catch {
+      setSaveState('failed');
+    }
   };
 
-  const focusInvalid = (found: Errors) => {
-    if (found.name && nameRef.current) {
-      nameRef.current.focus();
-      return;
-    }
-    if (found.doc && docRef.current) {
-      docRef.current.focus();
-      return;
+  const save = (patch: Partial<Snapshot> = {}) => {
+    const s: Snapshot = { partySize, guests, arrival, departure, parking, plate, ...patch };
+    queue.current = queue.current.then(() => runSave(s));
+  };
+
+  const docErrorFor = (g: GuestDraft): string | null => {
+    const doc = g.docNumber.trim();
+    if (docNeedsRetype(doc, g.docMask)) return t('error_doc_again');
+    return doc.length >= MIN_DOC ? null : t('error_doc');
+  };
+
+  const guestErrors = (list: GuestDraft[]): Errors => {
+    const found: Errors = {};
+    list.forEach((g, i) => {
+      if (!g.fullName.trim()) found[nameKey(i)] = t('error_name');
+      const doc = docErrorFor(g);
+      if (doc) found[docKey(i)] = doc;
+    });
+    return found;
+  };
+
+  const allErrors = (): Errors => {
+    const found = guestErrors(guests);
+    if (guests.length !== partySize) found.party = t('error_party', { n: partySize });
+    if (!arrival) found.arrival = t('error_time');
+    if (!departure) found.departure = t('error_time');
+    if (!parking) found.parking = t('error_parking');
+    return found;
+  };
+
+  const focusFirst = (found: Errors) => {
+    for (let i = 0; i < guests.length; i += 1) {
+      for (const key of [nameKey(i), docKey(i)]) {
+        if (!found[key]) continue;
+        const uid = guests[i]!.uid;
+        if (openUid !== uid) {
+          setOpenUid(uid);
+          return;
+        }
+        if (fields.current[key]) {
+          fields.current[key]!.focus();
+          return;
+        }
+      }
     }
     const group = found.arrival
       ? 'arrival'
@@ -708,65 +784,72 @@ export function CheckinForm({
     if (group) document.getElementById(group)?.querySelector('button')?.focus();
   };
 
-  const guestErrors = (g: GuestDraft): Errors => {
-    const found: Errors = {};
-    if (!g.fullName.trim()) found.name = t('error_name');
-    if (g.docNumber.trim().length < MIN_DOC) found.doc = t('error_doc');
-    return found;
+  const changeGuest = (i: number, patch: Partial<GuestDraft>) =>
+    setGuests((list) => list.map((g, j) => (j === i ? { ...g, ...patch } : g)));
+
+  const commitGuest = (i: number, patch: Partial<GuestDraft>) => {
+    const list = guests.map((g, j) => (j === i ? { ...g, ...patch } : g));
+    setGuests(list);
+    save({ guests: list });
+    return list;
   };
 
-  const detailErrors = (): Errors => {
-    const found: Errors = {};
-    if (!arrival) found.arrival = t('error_time');
-    if (!departure) found.departure = t('error_time');
-    if (!parking) found.parking = t('error_parking');
-    return found;
+  const blurName = (i: number) => {
+    setError(nameKey(i), guests[i]!.fullName.trim() ? null : t('error_name'));
+    save();
   };
 
-  const goTo = (next: number) => {
-    setGuests((list) => {
-      const from = list[step];
-      const to = list[next];
-      if (!from || !to || to.fullName || to.docNumber || to.docType === from.docType) return list;
-      return list.map((g, j) => (j === next ? { ...g, docType: from.docType } : g));
-    });
-    setStep(next);
-    setErrors({});
-    setMessage(null);
-    setNav((n) => n + 1);
+  const blurDoc = (i: number) => {
+    const g = guests[i]!;
+    const raw = g.docNumber;
+    const typed = raw.trim();
+    const fresh = Boolean(typed) && !docNeedsRetype(typed, g.docMask);
+    const next = fresh && g.docType === 'rut' ? formatDocument('rut', typed) : raw;
+    const patch: Partial<GuestDraft> = fresh
+      ? { docNumber: next, docMask: null }
+      : { docNumber: next };
+    const list = commitGuest(i, patch);
+    setError(docKey(i), docErrorFor(list[i]!));
   };
 
   const chooseCount = (n: number) => {
-    setGuests((list) =>
-      n <= list.length
-        ? list.slice(0, n)
-        : [
-            ...list,
-            ...Array.from({ length: n - list.length }, () =>
-              newGuest(list[list.length - 1]?.docType ?? defaultDocType),
-            ),
-          ],
-    );
-    setCounted(true);
-    setStep(0);
+    const last = guests[guests.length - 1]?.docType ?? defaultDocType;
+    const list = Array.from({ length: n }, (_, i) => guests[i] ?? newGuest(freshUid(), last));
+    setGuests(list);
+    setPartySize(n);
     setErrors({});
     setMessage(null);
-    setNav((n) => n + 1);
+    setNav((c) => c + 1);
+    save({ guests: list, partySize: n });
+  };
+
+  const addGuest = () => {
+    const list = [
+      ...guests,
+      newGuest(freshUid(), guests[guests.length - 1]?.docType ?? defaultDocType),
+    ];
+    setGuests(list);
+    setPartySize(list.length);
+    setErrors({});
+    setOpenUid(list[list.length - 1]!.uid);
+    save({ guests: list, partySize: list.length });
+  };
+
+  const removeGuest = (i: number) => {
+    const list = guests.filter((_, j) => j !== i);
+    setGuests(list);
+    setPartySize(list.length);
+    setErrors({});
+    save({ guests: list, partySize: list.length });
   };
 
   const onBack = () => {
-    if (step > 0) {
-      goTo(step - 1);
-      return;
-    }
-    setCounted(false);
+    setPartySize(0);
     setErrors({});
     setMessage(null);
     setNav((n) => n + 1);
+    save({ partySize: 0 });
   };
-
-  const updateGuest = (i: number, patch: Partial<GuestDraft>) =>
-    setGuests((list) => list.map((g, j) => (j === i ? { ...g, ...patch } : g)));
 
   const send = () => {
     setMessage(null);
@@ -782,7 +865,7 @@ export function CheckinForm({
         departureTime: departure,
         parking: parking === 'yes',
         vehiclePlate: parking === 'yes' && plate.trim() ? plate.trim() : undefined,
-      }).catch(() => ({ ok: false, error: 'generic' }));
+      }).catch(() => ({ ok: false, error: 'generic', expected: undefined }));
       if (r.ok) {
         setRegistered(
           guests.map((g, i) => ({
@@ -796,6 +879,8 @@ export function CheckinForm({
         window.scrollTo({ top: 0, behavior: 'instant' });
       } else if (r.error === 'already_submitted') {
         window.location.reload();
+      } else if (r.error === 'party_size') {
+        setMessage(t('error_party', { n: r.expected ?? partySize }));
       } else {
         setMessage(
           r.error === 'expired' || r.error === 'not_found'
@@ -808,44 +893,32 @@ export function CheckinForm({
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!counted) return;
-
-    if (!onDetails) {
-      const found = guestErrors(guests[step]!);
-      if (Object.keys(found).length) {
-        setErrors(found);
-        focusInvalid(found);
-        return;
-      }
-      goTo(step + 1);
-      return;
-    }
-
-    const found = detailErrors();
+    if (!counted || blocked.current) return;
+    const found = allErrors();
     if (Object.keys(found).length) {
       setErrors(found);
-      focusInvalid(found);
+      setMessage(found.party ?? null);
+      focusFirst(found);
       return;
     }
-
     send();
   };
 
+  const fixedTarget = askCount ? 0 : expectedGuests;
+  const addLimit = fixedTarget > 0 ? fixedTarget : Math.max(maxGuests, 1);
+  const minGuests = fixedTarget > 0 ? fixedTarget : 1;
+
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-6">
-      {welcome ? (
-        <Welcome stay={stay} line={stayLine} times={times} />
-      ) : (
-        <StayStrip stay={stay} line={stayLine} />
-      )}
+      <Welcome stay={stay} line={stayLine} times={times} />
 
       {!counted ? (
         <section className="grid gap-4">
           <h2
             id="count-title"
-            ref={headingRef}
+            ref={countRef}
             tabIndex={-1}
-            className="font-display text-base font-semibold focus:outline-none"
+            className={cn(SECTION_TITLE, 'focus:outline-none')}
           >
             {t('count_title')}
           </h2>
@@ -868,140 +941,189 @@ export function CheckinForm({
         </section>
       ) : (
         <>
-          <Roster guests={guests} step={step} onJump={goTo} />
-
-          {onDetails ? (
-            <section className="grid gap-3">
-              <StepHeading headingRef={headingRef} step={step} total={steps}>
-                {t('details_title')}
-              </StepHeading>
-              <Card className="divide-border divide-y">
-                <div className="grid gap-3 p-4">
-                  <GroupLabel id="arrival-label">{t('arrival')}</GroupLabel>
-                  <GroupError id="arrival-err" message={errors.arrival} />
-                  <Chips
-                    id="arrival"
-                    labelId="arrival-label"
-                    options={arrivalSlots(stay.checkinTime).map((v) => ({ value: v, label: v }))}
-                    value={arrival}
-                    onChange={(v) => {
-                      setArrival(v);
-                      setError('arrival', null);
-                    }}
-                    className="grid-cols-3 tabular-nums"
-                    invalid={Boolean(errors.arrival)}
-                    describedById={errors.arrival ? 'arrival-err' : undefined}
-                  />
-                </div>
-
-                <div className="grid gap-3 p-4">
-                  <GroupLabel id="departure-label">{t('departure')}</GroupLabel>
-                  <GroupError id="departure-err" message={errors.departure} />
-                  <Chips
-                    id="departure"
-                    labelId="departure-label"
-                    options={departureSlots(stay.checkoutTime).map((v) => ({
-                      value: v,
-                      label: v,
-                    }))}
-                    value={departure}
-                    onChange={(v) => {
-                      setDeparture(v);
-                      setError('departure', null);
-                    }}
-                    className="grid-cols-2 tabular-nums"
-                    invalid={Boolean(errors.departure)}
-                    describedById={errors.departure ? 'departure-err' : undefined}
-                  />
-                </div>
-
-                <div className="grid gap-3 p-4">
-                  <GroupLabel id="parking-label">{t('parking')}</GroupLabel>
-                  <GroupError id="parking-err" message={errors.parking} />
-                  <Chips
-                    id="parking"
-                    labelId="parking-label"
-                    options={[
-                      { value: 'yes' as const, label: t('parking_yes') },
-                      { value: 'no' as const, label: t('parking_no') },
-                    ]}
-                    value={parking}
-                    onChange={(v) => {
-                      setParking(v);
-                      setError('parking', null);
-                    }}
-                    className="grid-cols-2"
-                    invalid={Boolean(errors.parking)}
-                    describedById={errors.parking ? 'parking-err' : undefined}
-                  />
-                  {parking === 'yes' && (
-                    <div className="animate-fade-in">
-                      <Field id="plate" label={t('plate')} optional>
-                        <Input
-                          id="plate"
-                          autoCapitalize="characters"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          maxLength={12}
-                          enterKeyHint="done"
-                          placeholder={t('plate_ph')}
-                          value={plate}
-                          onChange={(e) => setPlate(e.target.value)}
-                          className="h-12 text-base uppercase tracking-wider"
-                        />
-                      </Field>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </section>
-          ) : (
-            <section className="grid gap-3">
-              <StepHeading headingRef={headingRef} step={step} total={steps}>
-                {t('guest_title')}
-              </StepHeading>
-              <GuestStep
-                index={step}
-                guest={guests[step]!}
+          <section className="grid gap-3" aria-labelledby="guests-heading">
+            <h2 id="guests-heading" ref={guestsHeadingRef} tabIndex={-1} className="sr-only">
+              {t('guests_sr', { n: guests.length })}
+            </h2>
+            <p className="border-warning/40 bg-warning/10 text-warning-foreground dark:text-foreground flex items-start gap-2.5 rounded-xl border p-3 text-sm font-medium">
+              <TriangleAlert aria-hidden className="dark:text-warning mt-0.5 h-4 w-4 shrink-0" />
+              {t('notice')}
+            </p>
+            {guests.map((g, i) => (
+              <GuestRow
+                key={g.uid}
+                index={i}
+                guest={g}
                 errors={errors}
-                nameRef={nameRef}
-                docRef={docRef}
-                onChange={(patch) => updateGuest(step, patch)}
-                setError={setError}
+                open={openUid === g.uid}
+                onOpen={() => setOpenUid(g.uid)}
+                onRemove={i > 0 && guests.length > minGuests ? () => removeGuest(i) : null}
+                bindRef={bindRef}
+                onChange={(patch) => {
+                  changeGuest(i, patch);
+                  if (patch.fullName !== undefined) setError(nameKey(i), null);
+                  if (patch.docNumber !== undefined) setError(docKey(i), null);
+                }}
+                onCommit={(patch) => commitGuest(i, patch)}
+                onBlurName={() => blurName(i)}
+                onBlurDoc={() => blurDoc(i)}
               />
-            </section>
-          )}
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="xl"
+              onClick={addGuest}
+              disabled={guests.length >= addLimit}
+              aria-describedby={guests.length >= addLimit ? 'add-guest-limit' : undefined}
+            >
+              <Plus className="h-4 w-4" />
+              {t('add_guest')}
+            </Button>
+            {guests.length >= addLimit && (
+              <p id="add-guest-limit" className="text-muted-foreground text-xs">
+                {t('add_guest_limit', { n: addLimit })}
+              </p>
+            )}
+          </section>
+
+          <section className="grid gap-3">
+            <h2 className={SECTION_TITLE}>{t('details_title')}</h2>
+            <Card className="divide-border divide-y">
+              <div className="grid gap-3 p-4">
+                <GroupLabel id="arrival-label">{t('arrival')}</GroupLabel>
+                <GroupError id="arrival-err" message={errors.arrival} />
+                <Chips
+                  id="arrival"
+                  labelId="arrival-label"
+                  options={arrivalSlots(stay.checkinTime).map((v) => ({ value: v, label: v }))}
+                  value={arrival}
+                  onChange={(v) => {
+                    setArrival(v);
+                    setError('arrival', null);
+                    save({ arrival: v });
+                  }}
+                  className="grid-cols-3 tabular-nums"
+                  invalid={Boolean(errors.arrival)}
+                  describedById={errors.arrival ? 'arrival-err' : undefined}
+                />
+              </div>
+
+              <div className="grid gap-3 p-4">
+                <GroupLabel id="departure-label">{t('departure')}</GroupLabel>
+                <GroupError id="departure-err" message={errors.departure} />
+                <Chips
+                  id="departure"
+                  labelId="departure-label"
+                  options={departureSlots(stay.checkoutTime).map((v) => ({
+                    value: v,
+                    label: v,
+                  }))}
+                  value={departure}
+                  onChange={(v) => {
+                    setDeparture(v);
+                    setError('departure', null);
+                    save({ departure: v });
+                  }}
+                  className="grid-cols-2 tabular-nums"
+                  invalid={Boolean(errors.departure)}
+                  describedById={errors.departure ? 'departure-err' : undefined}
+                />
+              </div>
+
+              <div className="grid gap-3 p-4">
+                <GroupLabel id="parking-label">{t('parking')}</GroupLabel>
+                <GroupError id="parking-err" message={errors.parking} />
+                <Chips
+                  id="parking"
+                  labelId="parking-label"
+                  options={[
+                    { value: 'yes' as const, label: t('parking_yes') },
+                    { value: 'no' as const, label: t('parking_no') },
+                  ]}
+                  value={parking}
+                  onChange={(v) => {
+                    setParking(v);
+                    setError('parking', null);
+                    save({ parking: v });
+                  }}
+                  className="grid-cols-2"
+                  invalid={Boolean(errors.parking)}
+                  describedById={errors.parking ? 'parking-err' : undefined}
+                />
+                {parking === 'yes' && (
+                  <div className="animate-fade-in">
+                    <Field id="plate" label={t('plate')} optional>
+                      <Input
+                        id="plate"
+                        autoCapitalize="characters"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        maxLength={12}
+                        enterKeyHint="done"
+                        placeholder={t('plate_ph')}
+                        value={plate}
+                        onChange={(e) => setPlate(e.target.value)}
+                        onBlur={() => save()}
+                        className="h-12 text-base uppercase tracking-wider"
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </section>
+
+          <p className="text-muted-foreground text-xs">
+            <PrivacyLink />
+          </p>
+
+          <div className="grid gap-2">
+            {saveState && (
+              <p
+                role="status"
+                className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"
+              >
+                {t(saveState === 'stale' ? 'save_conflict' : 'save_failed')}
+                {saveState === 'stale' && (
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className={cn(
+                      'text-foreground rounded-sm font-semibold underline underline-offset-2',
+                      FOCUS,
+                    )}
+                  >
+                    {t('reload')}
+                  </button>
+                )}
+              </p>
+            )}
+            {message && (
+              <p role="alert" className="text-destructive text-sm font-medium">
+                {message}
+              </p>
+            )}
+          </div>
 
           <div className="bg-background/90 border-border fixed inset-x-0 bottom-0 z-10 border-t pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:pb-0 sm:pt-8 sm:backdrop-blur-none">
             <div className="mx-auto grid w-full max-w-md gap-2 px-4 sm:max-w-lg sm:px-0">
-              {message && (
-                <p role="alert" className="text-destructive text-sm font-medium">
-                  {message}
-                </p>
-              )}
-              <div className="flex gap-2 sm:justify-end">
-                {(step > 0 || askCount) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xl"
-                    className="shrink-0 px-3 sm:px-5"
-                    onClick={onBack}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    {t('back')}
-                  </Button>
-                )}
-                <Button
-                  type="submit"
-                  size="xl"
-                  className="min-w-0 flex-1 px-4 sm:flex-none sm:px-10"
-                  disabled={pending}
-                >
-                  {onDetails ? (pending ? t('sending') : t('submit')) : t('next')}
+              <Button
+                type="submit"
+                size="xl"
+                className="w-full px-4"
+                disabled={pending || saveState === 'stale'}
+              >
+                {pending ? t('sending') : t('submit')}
+              </Button>
+              {askCount && (
+                <Button type="button" variant="ghost" size="lg" className="w-full" onClick={onBack}>
+                  <ChevronLeft className="h-4 w-4" />
+                  {t('back')}
                 </Button>
-              </div>
+              )}
             </div>
           </div>
         </>
