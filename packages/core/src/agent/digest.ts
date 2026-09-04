@@ -1,5 +1,5 @@
-import OpenAI from 'openai';
 import { AI_MODEL } from '../ai/model';
+import { getAgentModelClient, modelId } from './gateway';
 import { accessSecrets, writeDigest } from './store';
 import type { Surface } from './types';
 
@@ -16,14 +16,6 @@ Devuelve JSON con esta forma exacta:
 - outcome: una de "resuelto", "derivado", "pendiente".
 Nunca incluyas códigos de acceso, contraseñas, correos, teléfonos ni documentos.
 Escribe en español, frases cortas.`;
-
-let client: OpenAI | null = null;
-
-function getClient(): OpenAI | null {
-  if (!process.env.OPENAI_API_KEY) return null;
-  if (!client) client = new OpenAI();
-  return client;
-}
 
 function transcript(messages: readonly TurnMessage[]): string {
   return messages
@@ -52,11 +44,11 @@ export async function summarizeTurn(
   messages: readonly TurnMessage[],
 ): Promise<{ summary: string; facts: string[]; outcome: string }> {
   if (!messages.length) return { summary: '', facts: [], outcome: 'pendiente' };
-  const openai = getClient();
+  const openai = getAgentModelClient();
   if (!openai) return extractive(messages);
   try {
     const res = await openai.chat.completions.create({
-      model: AI_MODEL,
+      model: modelId(AI_MODEL),
       reasoning_effort: 'none',
       response_format: { type: 'json_object' },
       max_completion_tokens: 500,
@@ -76,7 +68,7 @@ export async function summarizeTurn(
     };
   } catch (err) {
     console.error('agent.digest_failed', {
-      model: AI_MODEL,
+      model: modelId(AI_MODEL),
       message: err instanceof Error ? err.message : String(err),
     });
     return extractive(messages);

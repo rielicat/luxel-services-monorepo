@@ -1,0 +1,31 @@
+{
+  "routes": [
+    {
+      "destination": {
+        "service": "eve",
+        "type": "service"
+      },
+      "src": "^/eve/v1/(.*)$"
+    }
+  ],
+  "services": {
+    "eve": {
+      "buildCommand": "cd '../../..' && export EVE_INTERNAL_BUILD_OUTPUT_DIRECTORY='.eve/vercel-services/eve/.vercel/output' && export EVE_INTERNAL_HOST_BUILD_OUTPUT_DIRECTORY='.vercel/output' && node '../../node_modules/.pnpm/eve@0.51.1_@opentelemetry+api@1.9.1_ai@7.0.92_zod@3.25.76__dotenv@16.6.1_jiti@1.21.7_lr_d3550d7ab1c5cda5abcbd660b37a73bf/node_modules/eve/bin/eve.js' build",
+      "framework": "eve",
+      "root": ".eve/vercel-services/eve",
+      "routes": [
+        {
+          "src": "^/eve/v1/(.*)$",
+          "transforms": [
+            {
+              "args": "/eve/v1/$1",
+              "op": "set",
+              "type": "request.path"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "version": 3
+}

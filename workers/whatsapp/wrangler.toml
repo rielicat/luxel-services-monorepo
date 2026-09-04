@@ -69,6 +69,11 @@ class_name = "CleaningReviewWorkflow"
 # queued, so a review is never lost when the start call failed. This repo has no
 # Vercel cron (Hobby blocks them), so all of it lives here and the R2 lifecycle
 # rule backstops retention.
+# The nightly cron does three things: purge expired walkthrough media, sweep
+# queued cleaning reviews, and POST <LUXEL_APP_URL>/api/agent/distill so the
+# agent's global playbook is rebuilt from the day's conversations. It lives
+# here and not on Vercel: withEve writes no crons key into the Build Output
+# config, and Vercel Hobby rejects sub-daily crons anyway.
 [triggers]
 crons = ["23 4 * * *"]
 

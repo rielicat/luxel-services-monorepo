@@ -9,7 +9,8 @@ Vercel project has one root directory.
 | Operator panel (`@luxel/admin`) | `apps/admin`   | `admin.serviciosluxel.cl` (internal)         |
 
 The Cloudflare Worker (`workers/whatsapp`, named `luxel-whatsapp-webhook`)
-deploys separately with `wrangler deploy`. It also owns the cleaning walkthrough
+deploys from `worker-deploy.yml` on a push to `main` touching `workers/**`, and
+by hand with `wrangler deploy`. It also owns the cleaning walkthrough
 media routes, the R2 binding, the `cleaning-review` Workflow and the nightly
 cron that purges old videos and re-drives queued reviews.
 
@@ -51,11 +52,13 @@ These are external accounts. The code cannot provision them:
    route authorises by source IP. See [`ENV.md`](./ENV.md) § Inbound webhook
    access. Author the time-based guest messages as message rules. See
    [`ENV.md`](./ENV.md) § Scheduled guest messages.
-4. **OpenAI** — an API key for the conversation digests and the memory
-   embeddings (`OPENAI_API_KEY`). The models are pinned in code
-   (`lib/ai/model.ts`, `lib/agent/embed.ts`). There is no env override. Without
-   the key the agent still answers; digests fall back to an extractive summary
-   and retrieval runs on Spanish full-text alone.
+4. **Model access** — one credential covers everything. On Vercel the project's
+   OIDC authenticates the AI Gateway, so nothing to set. Off Vercel, set
+   `AI_GATEWAY_API_KEY`. Every model call goes through the Gateway: the agent's
+   own turn, the conversation digests, the nightly distillation and the
+   embeddings. `OPENAI_API_KEY` is only a local-development fallback. The models
+   are pinned in code (`lib/ai/model.ts`, `lib/agent/embed.ts`); there is no env
+   override.
 5. **The eve agent** — the agent lives at `apps/web/agent/` and deploys with
    `apps/web` as one Vercel project, because `next.config.mjs` wraps its config
    with `withEve()`. Three operator steps:

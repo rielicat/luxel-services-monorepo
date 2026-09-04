@@ -21,6 +21,7 @@ import {
   type MediaEnv,
 } from './media';
 import { driveQueuedReviews, handleReviewStart, type ReviewEnv } from './review';
+import { runNightlyDistill } from './distill';
 
 interface Env extends MediaEnv, ReviewEnv {
   WHATSAPP_VERIFY_TOKEN: string;
@@ -452,6 +453,13 @@ export default {
           if (driven) console.warn('cleaning.review_swept', { driven });
         })
         .catch((err) => console.error('cleaning.review_sweep_failed', err)),
+    );
+    ctx.waitUntil(
+      runNightlyDistill(env)
+        .then((result) => {
+          if (result) console.warn('agent.distilled', result);
+        })
+        .catch((err) => console.error('agent.distill_failed', err)),
     );
   },
 } satisfies ExportedHandler<Env>;
