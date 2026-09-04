@@ -24,7 +24,7 @@ export default defineHook({
       if (caller.surface !== 'web') return;
       await emit({
         kind: 'web_message',
-        sessionId: ctx.session.id,
+        sessionId: caller.webSessionId ?? ctx.session.id,
         customerId: caller.customerId,
         distinctId: caller.customerId ?? caller.principalId,
         direction: 'in',
@@ -54,7 +54,7 @@ export default defineHook({
       if (state.reply) {
         await emit({
           kind: 'web_message',
-          sessionId: ctx.session.id,
+          sessionId: caller.webSessionId ?? ctx.session.id,
           customerId: caller.customerId,
           distinctId: caller.customerId ?? caller.principalId,
           direction: 'out',
@@ -65,7 +65,7 @@ export default defineHook({
       if (state.handoff) {
         await emit({
           kind: 'lead',
-          sessionId: ctx.session.id,
+          sessionId: caller.webSessionId ?? ctx.session.id,
           customerId: caller.customerId,
           message: state.lastGuestMessage || null,
         });

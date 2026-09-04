@@ -9,6 +9,7 @@ export interface Caller {
   customerId: string | null;
   propertyId: string | null;
   threadId: string | null;
+  webSessionId: string | null;
 }
 
 interface PrincipalLike {
@@ -32,5 +33,6 @@ export function readCaller(principal: PrincipalLike | null | undefined): Caller 
     customerId: text(attributes.customerId),
     propertyId: text(attributes.propertyId),
     threadId: text(attributes.threadId),
+    webSessionId: text(attributes.webSessionId),
   };
 }

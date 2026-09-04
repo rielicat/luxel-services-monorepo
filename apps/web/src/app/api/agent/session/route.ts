@@ -13,7 +13,10 @@ export const maxDuration = 30;
 
 const VISITOR_COOKIE = 'luxel_visitor';
 
-const Body = z.object({ message: z.string().min(1).max(4000).optional() });
+const Body = z.object({
+  message: z.string().min(1).max(4000).optional(),
+  webSessionId: z.string().min(1).max(64).optional(),
+});
 
 async function warmAgent(): Promise<boolean> {
   try {
@@ -29,6 +32,7 @@ export async function POST(req: Request) {
   const { userId } = await auth();
   const payload = Body.safeParse(await req.json().catch(() => ({})));
   const message = payload.success ? (payload.data.message ?? null) : null;
+  const webSessionId = payload.success ? (payload.data.webSessionId ?? null) : null;
 
   let customerId: string | null = null;
   if (userId) {
@@ -60,6 +64,7 @@ export async function POST(req: Request) {
     customerId,
     propertyId: null,
     threadId: null,
+    webSessionId,
   });
 
   if (!token) {
@@ -87,6 +92,7 @@ export async function POST(req: Request) {
     signedIn: Boolean(userId),
     customerId,
     message,
+    webSessionId,
   });
   if (!created.ok || !created.sessionId) {
     return Response.json({ ok: false, error: created.reason ?? 'create_failed' }, { status: 502 });

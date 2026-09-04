@@ -30,7 +30,7 @@ export async function callTool(
         surface: caller.surface,
         customerId: caller.customerId,
         signedIn: caller.signedIn,
-        sessionId: caller.principalId,
+        sessionId: caller.webSessionId ?? caller.principalId,
         propertyId: caller.propertyId,
         threadId: caller.threadId,
       }),

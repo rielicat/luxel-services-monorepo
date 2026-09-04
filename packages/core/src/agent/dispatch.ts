@@ -41,6 +41,7 @@ interface DispatchInput {
   threadId?: string | null;
   customerId?: string | null;
   signedIn?: boolean;
+  webSessionId?: string | null;
 }
 
 function base(): string {
@@ -55,6 +56,7 @@ function tokenFor(input: DispatchInput): string | null {
     customerId: input.customerId ?? null,
     propertyId: input.propertyId ?? null,
     threadId: input.threadId ?? null,
+    webSessionId: input.webSessionId ?? null,
   });
 }
 

@@ -12,6 +12,7 @@ const ANALYST = {
   customerId: null,
   propertyId: null,
   threadId: null,
+  webSessionId: null,
 };
 
 export default defineDynamic({

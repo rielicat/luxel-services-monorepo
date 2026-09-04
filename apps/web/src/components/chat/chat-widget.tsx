@@ -134,10 +134,10 @@ export function ChatWidget() {
 
   useEffect(() => {
     if (!open || humanMode || credentialsRef.current) return;
-    void openAgent().then((credentials) => {
+    void openAgent(sessionId).then((credentials) => {
       if (credentials) credentialsRef.current = credentials;
     });
-  }, [open, humanMode]);
+  }, [open, humanMode, sessionId]);
 
   useEffect(() => {
     const text = isSignedIn ? t('bot_greeting_host') : t('bot_greeting');
@@ -291,7 +291,7 @@ export function ChatWidget() {
       let agentSession = agentSessionRef.current;
 
       if (!agentSession) {
-        const started = await startAgentSession(clean);
+        const started = await startAgentSession(clean, sessionId);
         if (!started) throw new Error('no session');
         agentSession = started.sessionId;
         agentSessionRef.current = started.sessionId;
@@ -303,7 +303,7 @@ export function ChatWidget() {
         await followAgentTurn(agentSession, token, 0, handlers);
       } else {
         if (!token) {
-          const opened = await openAgent();
+          const opened = await openAgent(sessionId);
           if (!opened) throw new Error('no token');
           credentialsRef.current = opened;
           token = opened.token;

@@ -14,11 +14,11 @@ export interface TurnHandlers {
 
 const HANDOFF_TOOLS = new Set(['escalate_to_human', 'escalate_to_luxel']);
 
-export async function openAgent(): Promise<AgentCredentials | null> {
+export async function openAgent(webSessionId: string): Promise<AgentCredentials | null> {
   const res = await fetch('/api/agent/session', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: '{}',
+    body: JSON.stringify({ webSessionId }),
   });
   if (!res.ok) return null;
   const data = (await res.json()) as { ok?: boolean } & Partial<AgentCredentials>;
@@ -28,11 +28,12 @@ export async function openAgent(): Promise<AgentCredentials | null> {
 
 export async function startAgentSession(
   message: string,
+  webSessionId: string,
 ): Promise<{ sessionId: string; token: string } | null> {
   const res = await fetch('/api/agent/session', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, webSessionId }),
   });
   if (!res.ok) return null;
   const data = (await res.json()) as { ok?: boolean; sessionId?: string; token?: string };

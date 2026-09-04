@@ -8,6 +8,7 @@ export interface AgentClaims {
   customerId: string | null;
   propertyId: string | null;
   threadId: string | null;
+  webSessionId: string | null;
   exp: number;
 }
 

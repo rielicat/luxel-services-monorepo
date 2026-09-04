@@ -146,11 +146,29 @@ describe('agent token', () => {
       customerId: null,
       propertyId: null,
       threadId: null,
+      webSessionId: null,
     };
     const minted = mintAgentToken(claims, 1_000)!;
     expect(verifyAgentToken(minted, 1_000)?.principalId).toBe('visitor:abc');
     expect(verifyAgentToken(`${minted}x`, 1_000)).toBeNull();
     expect(verifyAgentToken(minted, 1_000 + AGENT_TOKEN_TTL_SECONDS + 1)).toBeNull();
+  });
+
+  it('carries the browser session id, so the human handoff stays one conversation', () => {
+    process.env.LUXEL_AGENT_TOKEN_SECRET = 'test-secret';
+    const minted = mintAgentToken(
+      {
+        surface: 'web',
+        principalId: 'visitor:abc',
+        signedIn: false,
+        customerId: null,
+        propertyId: null,
+        threadId: null,
+        webSessionId: 'browser-session-1',
+      },
+      1_000,
+    )!;
+    expect(verifyAgentToken(minted, 1_000)?.webSessionId).toBe('browser-session-1');
   });
 
   it('mints nothing without a secret', () => {
@@ -163,6 +181,7 @@ describe('agent token', () => {
         customerId: null,
         propertyId: null,
         threadId: null,
+        webSessionId: null,
       }),
     ).toBeNull();
   });
