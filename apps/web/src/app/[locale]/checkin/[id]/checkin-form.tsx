@@ -5,11 +5,11 @@ import { useLocale, useTranslations } from 'next-intl';
 import {
   Check,
   ChevronLeft,
-  ChevronRight,
   CigaretteOff,
   House,
   PartyPopper,
   PawPrint,
+  Pencil,
   Plus,
   TriangleAlert,
   X,
@@ -308,6 +308,8 @@ function GuestRow({
   index,
   guest,
   errors,
+  open,
+  onOpen,
   onRemove,
   bindRef,
   onChange,
@@ -318,6 +320,8 @@ function GuestRow({
   index: number;
   guest: GuestDraft;
   errors: Errors;
+  open: boolean;
+  onOpen: () => void;
   onRemove: (() => void) | null;
   bindRef: (key: string, el: HTMLInputElement | null) => void;
   onChange: (patch: Partial<GuestDraft>) => void;
@@ -330,6 +334,48 @@ function GuestRow({
   const docId = docKey(index);
   const nameErr = errors[nameId];
   const docErr = errors[docId];
+
+  const summary = guest.fullName.trim() || t('guest_n', { n: index + 1 });
+  const flagged = Boolean(nameErr || docErr);
+
+  if (!open) {
+    return (
+      <Card>
+        <div className="flex items-center gap-2 p-1">
+          <button
+            type="button"
+            onClick={onOpen}
+            className={cn(
+              'flex min-h-12 flex-1 items-center gap-3 rounded-lg px-3 text-left',
+              'hover:bg-accent transition-colors',
+              FOCUS,
+            )}
+          >
+            <span className="truncate text-sm font-medium">{summary}</span>
+            {flagged && (
+              <span className="text-destructive shrink-0 text-xs font-medium">
+                {t('row_incomplete')}
+              </span>
+            )}
+            <Pencil className="text-muted-foreground ml-auto h-4 w-4 shrink-0" />
+          </button>
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label={t('remove_guest', { n: index + 1 })}
+              className={cn(
+                'text-muted-foreground hover:text-foreground flex h-12 w-12 shrink-0 items-center justify-center rounded-lg',
+                FOCUS,
+              )}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -495,35 +541,16 @@ function DoneView({
               const detail = [docLabel, last].filter(Boolean).join(' ');
               return (
                 <li key={i} className="py-3 first:pt-0 last:pb-0">
-                  {detail ? (
-                    <details className="group">
-                      <summary
-                        className={cn(
-                          'flex cursor-pointer list-none items-center gap-3 rounded-sm',
-                          FOCUS,
-                        )}
-                      >
-                        <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-open:rotate-90" />
-                        <span className="truncate text-sm font-medium">{g.fullName}</span>
-                        {g.isLead && (
-                          <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
-                            {t('lead_badge')}
-                          </span>
-                        )}
-                      </summary>
-                      <p className="text-muted-foreground mt-1 pl-7 text-xs tabular-nums">
-                        {detail}
-                      </p>
-                    </details>
-                  ) : (
-                    <div className="flex items-center gap-3 pl-7">
-                      <span className="truncate text-sm font-medium">{g.fullName}</span>
-                      {g.isLead && (
-                        <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
-                          {t('lead_badge')}
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="truncate text-sm font-medium">{g.fullName}</span>
+                    {g.isLead && (
+                      <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+                        {t('lead_badge')}
+                      </span>
+                    )}
+                  </div>
+                  {detail && (
+                    <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">{detail}</p>
                   )}
                 </li>
               );
@@ -613,6 +640,15 @@ export function CheckinForm({
 
   const countRef = useRef<HTMLHeadingElement>(null);
   const guestsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const [openUid, setOpenUid] = useState<string | null>(null);
+  useEffect(() => {
+    if (!openUid) return;
+    const i = guests.findIndex((g) => g.uid === openUid);
+    if (i < 0) return;
+    fields.current[errors[docKey(i)] ? docKey(i) : nameKey(i)]?.focus({ preventScroll: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openUid]);
+
   const fields = useRef<Record<string, HTMLInputElement | null>>({});
   const revision = useRef(draft?.rev ?? 0);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -726,7 +762,13 @@ export function CheckinForm({
   const focusFirst = (found: Errors) => {
     for (let i = 0; i < guests.length; i += 1) {
       for (const key of [nameKey(i), docKey(i)]) {
-        if (found[key] && fields.current[key]) {
+        if (!found[key]) continue;
+        const uid = guests[i]!.uid;
+        if (openUid !== uid) {
+          setOpenUid(uid);
+          return;
+        }
+        if (fields.current[key]) {
           fields.current[key]!.focus();
           return;
         }
@@ -789,8 +831,8 @@ export function CheckinForm({
     setGuests(list);
     setPartySize(list.length);
     setErrors({});
+    setOpenUid(list[list.length - 1]!.uid);
     save({ guests: list, partySize: list.length });
-    requestAnimationFrame(() => fields.current[nameKey(list.length - 1)]?.focus());
   };
 
   const removeGuest = (i: number) => {
@@ -913,6 +955,8 @@ export function CheckinForm({
                 index={i}
                 guest={g}
                 errors={errors}
+                open={openUid === g.uid}
+                onOpen={() => setOpenUid(g.uid)}
                 onRemove={i > 0 && guests.length > minGuests ? () => removeGuest(i) : null}
                 bindRef={bindRef}
                 onChange={(patch) => {

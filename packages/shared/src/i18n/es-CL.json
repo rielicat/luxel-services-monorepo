@@ -295,7 +295,8 @@
     "doc_number_ph": "12.345.678-9",
     "doc_number_ph_other": "X1234567",
     "add_guest_limit": "La reserva es para {n} personas.",
-    "guests_sr": "Huéspedes: {n}"
+    "guests_sr": "Huéspedes: {n}",
+    "row_incomplete": "Falta completar"
   },
   "properties": {
     "title": "Mis propiedades",

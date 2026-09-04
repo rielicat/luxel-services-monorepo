@@ -57,5 +57,6 @@
   "doc_number_ph": "12.345.678-9",
   "doc_number_ph_other": "X1234567",
   "add_guest_limit": "A reserva é para {n} pessoas.",
-  "guests_sr": "Hóspedes: {n}"
+  "guests_sr": "Hóspedes: {n}",
+  "row_incomplete": "Falta completar"
 }
