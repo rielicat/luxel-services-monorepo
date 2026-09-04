@@ -63,7 +63,10 @@ export async function createAgentSession(
   input: Omit<DispatchInput, 'message'> & { message: string },
 ): Promise<{ ok: boolean; sessionId?: string; reason?: TurnResult['reason'] }> {
   const token = tokenFor(input);
-  if (!token) return { ok: false, reason: 'no_token' };
+  if (!token) {
+    console.error('agent.no_token', { surface: input.surface });
+    return { ok: false, reason: 'no_token' };
+  }
 
   const res = await fetch(`${base()}/eve/v1/session`, {
     method: 'POST',
@@ -75,7 +78,10 @@ export async function createAgentSession(
     return { ok: false, reason: 'create_failed' };
   }
   const json = (await res.json()) as { sessionId?: string };
-  if (!json.sessionId) return { ok: false, reason: 'create_failed' };
+  if (!json.sessionId) {
+    console.error('agent.session_create_no_id', { surface: input.surface, status: res.status });
+    return { ok: false, reason: 'create_failed' };
+  }
 
   await claimSession({
     sessionId: json.sessionId,
@@ -90,14 +96,19 @@ export async function createAgentSession(
 export async function runAgentTurn(input: DispatchInput): Promise<TurnResult> {
   if (devMock()) return mockTurn(input);
   const token = tokenFor(input);
-  if (!token) return { ok: false, reason: 'no_token' };
+  if (!token) {
+    console.error('agent.no_token', { surface: input.surface });
+    return { ok: false, reason: 'no_token' };
+  }
   const origin = base();
 
   let sessionId = input.sessionId ?? null;
   let startIndex = 0;
 
   if (sessionId) {
-    startIndex = (await tailIndex(origin, token, sessionId)) + 1;
+    const tail = await tailIndex(origin, token, sessionId);
+    if (tail === null) return { ok: false, reason: 'stream_failed', sessionId };
+    startIndex = tail + 1;
 
     const sent = await fetch(`${origin}/eve/v1/session/${sessionId}`, {
       method: 'POST',
@@ -123,7 +134,7 @@ export async function runAgentTurn(input: DispatchInput): Promise<TurnResult> {
   return followTurn(origin, token, sessionId, startIndex);
 }
 
-async function tailIndex(origin: string, token: string, sessionId: string): Promise<number> {
+async function tailIndex(origin: string, token: string, sessionId: string): Promise<number | null> {
   try {
     const res = await fetch(
       `${origin}/eve/v1/session/${sessionId}/stream?startIndex=0&includeTailIndex=1`,
@@ -131,10 +142,26 @@ async function tailIndex(origin: string, token: string, sessionId: string): Prom
     );
     const header = res.headers.get('x-eve-stream-tail-index');
     await res.body?.cancel();
+    if (!res.ok) {
+      console.error('agent.tail_index_failed', { sessionId, status: res.status });
+      return null;
+    }
+    if (header === null || header.trim() === '') {
+      console.error('agent.tail_index_missing', { sessionId });
+      return null;
+    }
     const parsed = Number(header);
-    return Number.isFinite(parsed) ? parsed : -1;
-  } catch {
-    return -1;
+    if (!Number.isInteger(parsed)) {
+      console.error('agent.tail_index_invalid', { sessionId });
+      return null;
+    }
+    return parsed;
+  } catch (err) {
+    console.error('agent.tail_index_error', {
+      sessionId,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return null;
   }
 }
 
@@ -154,7 +181,10 @@ async function followTurn(
         signal: controller.signal,
       },
     );
-    if (!res.ok || !res.body) return { ok: false, reason: 'stream_failed', sessionId };
+    if (!res.ok || !res.body) {
+      console.error('agent.stream_rejected', { sessionId, status: res.status });
+      return { ok: false, reason: 'stream_failed', sessionId };
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
