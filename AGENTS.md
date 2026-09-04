@@ -439,12 +439,14 @@ Details and env vars: [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/ENV.md`](docs/E
 
 Open follow-ups that need operator credentials: Meta WhatsApp go-live
 (portfolio, number, templates), `PROVIDER_API_KEY` on the `luxel-admin` Vercel
-project (`/stays` needs it), and moving `luxel-admin` onto the Clerk production
-instance (`apps/web` runs `pk_live_*`, `apps/admin` still runs `pk_test_*`).
-Open follow-ups in code: plan activation. Operator steps still open for the
-cleaning review: `GOOGLE_API_KEY` from a billing-enabled project, a
-`wrangler deploy` to provision the `cleaning-review` Workflow, and
-`LUXEL_APP_URL` in `wrangler.toml` pointed at the live web origin.
+project (`/stays` needs it), moving `luxel-admin` onto the Clerk production
+instance (`apps/web` runs `pk_live_*` against `clerk.serviciosluxel.cl`;
+`apps/admin` still runs `pk_test_*` against `clerk.accounts.dev`), and
+`GOOGLE_API_KEY` from a billing-enabled project for the walkthrough inventory.
+The worker deploys from CI on a push to `main` touching `workers/**`, so the
+`cleaning-review` Workflow and `LUXEL_APP_URL` no longer need a hand-run
+`wrangler deploy`. Plan activation is done: an operator moves a subscription to
+`active` at `/plans` in `apps/admin`.
 
 ## Gotchas
 
