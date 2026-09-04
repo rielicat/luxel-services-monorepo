@@ -88,6 +88,12 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  @media (max-width: 639px) {
+    html:has([data-checkin]) {
+      scroll-padding-bottom: 7rem;
+    }
+  }
+
   body {
     @apply bg-background text-foreground;
     text-rendering: optimizeLegibility;

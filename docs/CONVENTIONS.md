@@ -6,8 +6,22 @@ Compacted from `AGENTS.md` sections Prose, Conventions.
 
 Write plans, docs, and PR descriptions in ASD-STE100 Simplified Technical
 English: one idea per sentence, active voice, present tense, one term per
-concept, sentences under 20 words. Product copy stays `es-CL` and follows
-[`BRAND.md`](BRAND.md).
+concept, sentences under 20 words. That rule covers what a maintainer reads. It
+does not cover what a customer or a guest reads.
+
+Product copy stays `es-CL`, follows [`BRAND.md`](BRAND.md) and is written in
+**simplified Spanish**: short sentences, common words, one idea per sentence.
+Use a full stop where a subordinate clause would go. Delete a sentence that only
+reassures.
+
+Two registers apply that rule differently:
+
+- **Marketing surfaces** — the landing page, `/about`, `/calculator` and the
+  legal pages — may persuade and reassure.
+- **Product surfaces** — anything behind a login, the guest check-in page and
+  the crew page — carry only what the user needs to act: labels, values, errors
+  and the notices the law requires. No greeting. No reassurance. No sentence
+  that repeats what a label already says. No benefit framing.
 
 ## Code
 

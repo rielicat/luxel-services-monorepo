@@ -310,7 +310,6 @@ export function hospitableCleaningFeeClp(
     console.warn('hospitable.cleaning_fee_unrecognised', {
       labels: fees.map((fee) => fee?.label ?? '').filter(Boolean),
     });
-    return null;
   }
   return total;
 }
