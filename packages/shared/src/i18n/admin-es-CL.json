@@ -61,6 +61,8 @@
     "discarded_ok": "Borrador descartado.",
     "simulated_ok": "Listo: revisa el borrador.",
     "no_draft": "Sin borrador pendiente.",
+    "compose_placeholder": "Escribe la respuesta al huésped.",
+    "compose_send": "Enviar al huésped",
     "msg_guest": "Huésped",
     "msg_ai": "Lux",
     "msg_host": "Luxel",

@@ -112,6 +112,11 @@ session. Do not point both at one instance.
   `gh api repos/<owner>/<repo>/commits/<sha>/status` answers
   `Deployment rate limited - retry in 24 hours`. Waiting or Pro clears it; a
   manual redeploy is capped too.
+- A `message.created` webhook once left the message unimported, and a manual
+  sync three minutes later picked it up. The cause is not proven, because the
+  route swallowed the error. It now logs `webhook.ingest_failed`, and it retries
+  `ingestThread` at 0, 5 and 20 seconds. A pass that imports nothing logs
+  `webhook.ingest_empty`. Never restore a bare `catch {}` there.
 - Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
   `E2E_SKIP_AUTH`.
 - Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then

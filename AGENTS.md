@@ -366,6 +366,18 @@ id>`, so a thread is digested once and again only when it gains a message.
   every property at once. There is no host-facing switch. The web inbox only
   shows the mode. Only one pending draft per thread: a newer guest message
   supersedes the older draft.
+- A **handoff notifies a Luxel operator**. `markNeedsHost` in
+  `lib/channels/pipeline.ts` sets `needs_host` and calls `notifyGuestHandoff`.
+  The notice goes over the existing `sendWhatsAppViaWorker` path, at most once
+  per episode: `guest_threads.handoff_notified_at` is a compare-and-swap, and a
+  failed send clears it so the next message retries. The text names the property
+  and the guest. It never carries the guest's message. Any outbound reply clears
+  the flag, so the next handoff notifies again. An operator answers a thread
+  that holds no draft straight from `/inbox`: `sendThreadReply` delivers the
+  text, stores it as `host` and discards a pending draft. `/inbox` always lists
+  every thread that holds a pending draft or waits on a human, above the most
+  recent ones. The sync bumps `guest_threads.updated_at` only when the thread
+  gains a message, so one pass no longer reorders the whole panel.
 - Plans live in `plan_subscriptions`: `plan` is always `commission`, the only
   plan, `status` ∈ `requested | active | cancelled`. The host requests the plan
   (`requestPlan`); a Luxel operator activates it. There is no billing code and
@@ -591,6 +603,11 @@ by pointing both at one instance.
   `gh api repos/<owner>/<repo>/commits/<sha>/status` answers
   `Deployment rate limited - retry in 24 hours`. Waiting or Pro clears it; a
   manual redeploy is capped too.
+- A `message.created` webhook once left the message unimported, and a manual
+  sync three minutes later picked it up. The cause is not proven, because the
+  route swallowed the error. It now logs `webhook.ingest_failed`, and it retries
+  `ingestThread` at 0, 5 and 20 seconds. A pass that imports nothing logs
+  `webhook.ingest_empty`. Never restore a bare `catch {}` there.
 - Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
   `E2E_SKIP_AUTH`.
 - Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then

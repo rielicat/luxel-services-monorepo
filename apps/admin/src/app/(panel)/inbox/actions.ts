@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/admin';
 import {
   discardReplyDraft,
   sendReplyDraft,
+  sendThreadReply,
   simulateThreadReply,
   type InboxThread,
   type ReplyDraft,
@@ -24,6 +25,10 @@ export interface InboxActionResult {
 const IdSchema = z.string().uuid();
 const SendSchema = z.object({
   draftId: z.string().uuid(),
+  body: z.string().trim().min(1).max(4000),
+});
+const ReplySchema = z.object({
+  threadId: z.string().uuid(),
   body: z.string().trim().min(1).max(4000),
 });
 
@@ -55,6 +60,21 @@ export async function approveDraft(input: {
   if (!parsed.success) return { ok: false, reason: 'invalid' };
 
   const result = await sendReplyDraft(parsed.data.draftId, parsed.data.body, admin.email);
+  if (result.ok) revalidatePath('/inbox');
+  return result;
+}
+
+export async function sendReply(input: {
+  threadId: string;
+  body: string;
+}): Promise<InboxActionResult> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, reason: 'denied' };
+
+  const parsed = ReplySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: 'invalid' };
+
+  const result = await sendThreadReply(parsed.data.threadId, parsed.data.body, admin.email);
   if (result.ok) revalidatePath('/inbox');
   return result;
 }

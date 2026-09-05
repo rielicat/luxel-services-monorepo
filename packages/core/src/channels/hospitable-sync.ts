@@ -739,7 +739,6 @@ async function ingestMessages(
         external_thread_id: threadKey,
         guest_name: guestName,
         ...(category ? { reservation_category: category } : {}),
-        updated_at: new Date().toISOString(),
       },
       { onConflict: 'property_id,channel,external_thread_id' },
     )
@@ -805,6 +804,13 @@ async function ingestMessages(
       imported++;
     }
     seen.add(externalId);
+  }
+
+  if (imported > 0) {
+    await supabase
+      .from('guest_threads')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', thread.id as string);
   }
   return { imported, replies, drafts };
 }

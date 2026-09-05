@@ -32,6 +32,11 @@ let sendReplyDraft: (
   body: string,
   actor: string,
 ) => Promise<{ ok: boolean; reason?: string }>;
+let sendThreadReply: (
+  threadId: string,
+  body: string,
+  actor: string,
+) => Promise<{ ok: boolean; reason?: string }>;
 let simulateThreadReply: (
   threadId: string,
 ) => Promise<{ ok: boolean; reason?: string; pending?: boolean }>;
@@ -44,6 +49,7 @@ beforeAll(async () => {
   handleInboundMessage = (await import('@luxel/core/channels/pipeline')).handleInboundMessage;
   const drafts = await import('@luxel/core/messaging/drafts');
   sendReplyDraft = drafts.sendReplyDraft;
+  sendThreadReply = drafts.sendThreadReply;
   simulateThreadReply = drafts.simulateThreadReply;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   updatePropertyContext = (await import('../src/app/[locale]/(site)/properties/copilot-actions'))
@@ -236,5 +242,59 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
       .eq('thread_id', r.threadId!);
     expect(msgs).toHaveLength(1);
     expect(msgs![0].source).toBe('guest');
+  });
+
+  it('leaves the handoff notice unclaimed when the WhatsApp bridge cannot send', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Sin Puente' });
+    await admin.from('properties').update({ ai_replies: false }).eq('id', prop.id!);
+
+    const r = await handleInboundMessage({
+      propertyId: prop.id!,
+      externalThreadId: 't-notify',
+      body: '¿A qué hora puedo llegar?',
+    });
+    expect(r.action).toBe('handoff');
+
+    const { data: thread } = await admin
+      .from('guest_threads')
+      .select('handoff_notified_at')
+      .eq('id', r.threadId!)
+      .single();
+    expect(thread!.handoff_notified_at).toBeNull();
+  });
+
+  it('sends an operator reply on a thread that holds no draft', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto A Mano' });
+    await admin.from('properties').update({ ai_replies: false }).eq('id', prop.id!);
+
+    const r = await handleInboundMessage({
+      propertyId: prop.id!,
+      externalThreadId: 't-manual',
+      body: '¿Puedo dejar las maletas antes?',
+    });
+    expect(r.action).toBe('handoff');
+
+    const sent = await sendThreadReply(
+      r.threadId!,
+      'Sí, puedes dejarlas desde las 11:00.',
+      'op@luxel.cl',
+    );
+    expect(sent.ok).toBe(true);
+
+    const { data: thread } = await admin
+      .from('guest_threads')
+      .select('status')
+      .eq('id', r.threadId!)
+      .single();
+    expect(thread!.status).toBe('open');
+
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('source, direction')
+      .eq('thread_id', r.threadId!)
+      .order('created_at', { ascending: true });
+    expect(msgs).toHaveLength(2);
+    expect(msgs![1].source).toBe('host');
+    expect(msgs![1].direction).toBe('out');
   });
 });

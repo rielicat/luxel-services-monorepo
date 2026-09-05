@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import {
   approveDraft,
   rejectDraft,
+  sendReply,
   simulateReply,
   syncInbox,
   type InboxActionResult,
@@ -252,6 +253,7 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
   const renderThread = (thread: InboxThread) => {
     const draft = thread.draft;
     const value = draft ? (edited[draft.id] ?? draft.body) : '';
+    const composed = edited[thread.id] ?? '';
     const simulatingThis = thread.id in simulating;
     const working = (pending && busy === thread.id) || simulatingThis;
     const expanded = open.has(thread.id);
@@ -425,17 +427,51 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid min-w-0 gap-2">
                 <p className="text-muted-foreground text-sm">{t('no_draft')}</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={working}
-                  onClick={() => runSimulate(thread.id)}
-                >
-                  <Sparkles className={cn('h-4 w-4', simulatingThis && 'animate-pulse')} />
-                  {working ? t('simulating') : t('simulate')}
-                </Button>
+                <textarea
+                  value={composed}
+                  onChange={(event) =>
+                    setEdited((prev) => ({ ...prev, [thread.id]: event.target.value }))
+                  }
+                  rows={4}
+                  placeholder={t('compose_placeholder')}
+                  className="border-input bg-background focus-visible:ring-ring w-full rounded-md border p-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    disabled={working || !composed.trim()}
+                    onClick={() =>
+                      run(
+                        thread.id,
+                        async () => {
+                          const result = await sendReply({ threadId: thread.id, body: composed });
+                          if (result.ok)
+                            setEdited((prev) => {
+                              const next = { ...prev };
+                              delete next[thread.id];
+                              return next;
+                            });
+                          return result;
+                        },
+                        t('sent_ok'),
+                      )
+                    }
+                  >
+                    <Send className="h-4 w-4" />
+                    {working ? t('sending') : t('compose_send')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={working}
+                    onClick={() => runSimulate(thread.id)}
+                  >
+                    <Sparkles className={cn('h-4 w-4', simulatingThis && 'animate-pulse')} />
+                    {working ? t('simulating') : t('simulate')}
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

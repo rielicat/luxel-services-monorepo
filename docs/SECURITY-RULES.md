@@ -175,6 +175,18 @@ rules. Do not add code paths that break them.
   or over every property at once. There is no host-facing switch, and the web
   inbox only shows the mode. One pending draft per thread: a newer guest message
   supersedes the older draft.
+- A **handoff notifies a Luxel operator**. `markNeedsHost` in
+  `lib/channels/pipeline.ts` sets `needs_host` and calls `notifyGuestHandoff`.
+  The notice goes over the existing `sendWhatsAppViaWorker` path, at most once
+  per episode: `guest_threads.handoff_notified_at` is a compare-and-swap, and a
+  failed send clears it so the next message retries. The text names the property
+  and the guest. It never carries the guest's message. Any outbound reply clears
+  the flag, so the next handoff notifies again. An operator answers a thread
+  that holds no draft straight from `/inbox`: `sendThreadReply` delivers the
+  text, stores it as `host` and discards a pending draft. `/inbox` always lists
+  every thread that holds a pending draft or waits on a human, above the most
+  recent ones. The sync bumps `guest_threads.updated_at` only when the thread
+  gains a message, so one pass no longer reorders the whole panel.
 - Plans live in `plan_subscriptions`: `plan` is always `commission`, the only
   plan; `status` is `requested`, `active`, or `cancelled`. The host requests the
   plan (`requestPlan`); a Luxel operator activates it. No billing code, no

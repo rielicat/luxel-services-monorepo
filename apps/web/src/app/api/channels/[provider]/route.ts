@@ -29,6 +29,16 @@ const RESERVATION_ACTIONS = new Set(['reservation.created', 'reservation.changed
 
 const RESYNC_DEBOUNCE_MS = 30_000;
 
+const INGEST_BACKOFF_MS = [0, 5_000, 20_000];
+
+function reason(error: unknown): string {
+  return error instanceof Error ? error.message : 'unknown';
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WebhookPayload = any;
 
@@ -150,7 +160,9 @@ async function resyncForEvent(
     await afterResponse(async () => {
       try {
         await verifyConnection(owner);
-      } catch {}
+      } catch (error) {
+        console.error('webhook.verify_failed', { customerId: owner, message: reason(error) });
+      }
     });
   }
 
@@ -176,7 +188,9 @@ async function resyncForEvent(
   await afterResponse(async () => {
     try {
       await plugin.sync(customerId, access, new Date());
-    } catch {}
+    } catch (error) {
+      console.error('webhook.sync_failed', { customerId, action, message: reason(error) });
+    }
   });
   return { ok: true, reason: 'syncing', mirrored };
 }
@@ -256,10 +270,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
     const watermark = (conn?.messages_synced_at as string | null) ?? null;
 
     const reservationId = ev.reservationId;
+    const listingProperty = propertyId;
     await afterResponse(async () => {
-      try {
-        await ingestThread(supabase, access.token, propertyId, reservationId, watermark);
-      } catch {}
+      for (const backoff of INGEST_BACKOFF_MS) {
+        if (backoff) await wait(backoff);
+        try {
+          const run = await ingestThread(
+            supabase,
+            access.token,
+            listingProperty,
+            reservationId,
+            watermark,
+          );
+          if (run.imported > 0) return;
+        } catch (error) {
+          console.error('webhook.ingest_failed', { reservationId, message: reason(error) });
+          return;
+        }
+      }
+      console.warn('webhook.ingest_empty', { reservationId });
     });
     return Response.json({ ok: true, action, ingesting: true });
   }

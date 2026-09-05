@@ -182,27 +182,16 @@ export async function recordSimulationOutcome(input: {
   return draft !== null;
 }
 
-export async function sendReplyDraft(
-  draftId: string,
-  body: string,
-  actor: string,
-): Promise<{ ok: boolean; reason?: string }> {
-  const text = body.trim();
-  if (!text) return { ok: false, reason: 'empty' };
-
-  const supabase = createSupabaseServiceRoleClient();
-  const { data: draft } = await supabase
-    .from(DRAFTS)
-    .select('id, thread_id, status, body')
-    .eq('id', draftId)
-    .maybeSingle();
-  if (!draft) return { ok: false, reason: 'unknown_draft' };
-  if (draft.status !== 'pending') return { ok: false, reason: 'already_decided' };
-
+async function deliverToThread(
+  supabase: Supabase,
+  threadId: string,
+  text: string,
+  source: 'ai' | 'host',
+): Promise<{ ok: boolean; reason?: string; messageId?: string | null }> {
   const { data: thread } = await supabase
     .from('guest_threads')
     .select('id, property_id, channel, external_thread_id, reservation_category')
-    .eq('id', draft.thread_id as string)
+    .eq('id', threadId)
     .maybeSingle();
   if (!thread) return { ok: false, reason: 'unknown_thread' };
 
@@ -231,12 +220,49 @@ export async function sendReplyDraft(
     .insert({
       thread_id: thread.id as string,
       direction: 'out',
-      source: text === ((draft.body as string) ?? '').trim() ? 'ai' : 'host',
+      source,
       body: text,
       external_id: externalId,
     })
     .select('id')
     .maybeSingle();
+
+  await supabase
+    .from('guest_threads')
+    .update({
+      status: 'open',
+      updated_at: new Date().toISOString(),
+      handoff_notified_at: null,
+    })
+    .eq('id', thread.id as string);
+
+  return { ok: true, messageId: (message?.id as string | undefined) ?? null };
+}
+
+export async function sendReplyDraft(
+  draftId: string,
+  body: string,
+  actor: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const text = body.trim();
+  if (!text) return { ok: false, reason: 'empty' };
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { data: draft } = await supabase
+    .from(DRAFTS)
+    .select('id, thread_id, status, body')
+    .eq('id', draftId)
+    .maybeSingle();
+  if (!draft) return { ok: false, reason: 'unknown_draft' };
+  if (draft.status !== 'pending') return { ok: false, reason: 'already_decided' };
+
+  const sent = await deliverToThread(
+    supabase,
+    draft.thread_id as string,
+    text,
+    text === ((draft.body as string) ?? '').trim() ? 'ai' : 'host',
+  );
+  if (!sent.ok) return sent;
 
   await supabase
     .from(DRAFTS)
@@ -245,14 +271,30 @@ export async function sendReplyDraft(
       body: text,
       decided_at: new Date().toISOString(),
       decided_by: actor,
-      sent_message_id: (message?.id as string | undefined) ?? null,
+      sent_message_id: sent.messageId ?? null,
     })
     .eq('id', draftId);
 
+  return { ok: true };
+}
+
+export async function sendThreadReply(
+  threadId: string,
+  body: string,
+  actor: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const text = body.trim();
+  if (!text) return { ok: false, reason: 'empty' };
+
+  const supabase = createSupabaseServiceRoleClient();
+  const sent = await deliverToThread(supabase, threadId, text, 'host');
+  if (!sent.ok) return sent;
+
   await supabase
-    .from('guest_threads')
-    .update({ status: 'open', updated_at: new Date().toISOString() })
-    .eq('id', thread.id as string);
+    .from(DRAFTS)
+    .update({ status: 'discarded', decided_at: new Date().toISOString(), decided_by: actor })
+    .eq('thread_id', threadId)
+    .eq('status', 'pending');
 
   return { ok: true };
 }
@@ -287,13 +329,37 @@ export async function discardReplyDraft(
 
 export async function listInboxThreads(limit = 30): Promise<InboxThread[]> {
   const supabase = createSupabaseServiceRoleClient();
+  const [{ data: pending }, { data: waiting }, { data: latest }] = await Promise.all([
+    supabase.from(DRAFTS).select('thread_id').eq('status', 'pending'),
+    supabase
+      .from('guest_threads')
+      .select('id')
+      .eq('status', 'needs_host')
+      .order('updated_at', { ascending: false })
+      .limit(limit),
+    supabase
+      .from('guest_threads')
+      .select('id')
+      .order('updated_at', { ascending: false })
+      .limit(limit),
+  ]);
+
+  const ids = [
+    ...new Set([
+      ...((pending ?? []) as Record<string, unknown>[]).map((d) => d.thread_id as string),
+      ...((waiting ?? []) as Record<string, unknown>[]).map((t) => t.id as string),
+      ...((latest ?? []) as Record<string, unknown>[]).map((t) => t.id as string),
+    ]),
+  ];
+  if (!ids.length) return [];
+
   const { data: threads } = await supabase
     .from('guest_threads')
     .select(
       'id, property_id, channel, external_thread_id, guest_name, reservation_category, status, updated_at',
     )
-    .order('updated_at', { ascending: false })
-    .limit(limit);
+    .in('id', ids)
+    .order('updated_at', { ascending: false });
   const rows = (threads ?? []) as Record<string, unknown>[];
   if (!rows.length) return [];
 

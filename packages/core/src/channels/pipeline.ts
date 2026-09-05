@@ -3,6 +3,7 @@ import { createSupabaseServiceRoleClient } from '../supabase/server';
 import { runAgentTurn } from '../agent/dispatch';
 import { sessionForThread, setThreadSession } from '../agent/session';
 import { recordReplyDraft } from '../messaging/drafts';
+import { notifyGuestHandoff } from '../messaging/handoff';
 import { getMessageSender } from './provider';
 import { claimThreadTurn, releaseThreadTurn, unansweredGuestMessages } from './turn-lock';
 import { hospitableTokenForCustomer } from './hospitable';
@@ -206,4 +207,12 @@ async function markNeedsHost(
     .from('guest_threads')
     .update({ status: 'needs_host', updated_at: new Date().toISOString() })
     .eq('id', threadId);
+  try {
+    await notifyGuestHandoff(supabase, threadId);
+  } catch (error) {
+    console.error('handoff.notify_failed', {
+      threadId,
+      message: error instanceof Error ? error.message : 'unknown',
+    });
+  }
 }
