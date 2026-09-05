@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect } from 'react';
 import { REPLAY_BLOCKED_PATHS, scrubUrl } from '@/lib/observability/scrub';
+import { posthogKey } from '@/lib/posthog/key';
 
 const URL_PROPERTIES = [
   '$current_url',
@@ -34,8 +35,10 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const blocked = tokenBearing(pathname);
 
   useEffect(() => {
-    const key =
-      process.env.NEXT_PUBLIC_POSTHOG_KEY || process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
+    const key = posthogKey({
+      NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+      NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN,
+    });
     if (!key || blocked || posthog.__loaded) return;
     posthog.init(key, {
       api_host: '/ingest',
