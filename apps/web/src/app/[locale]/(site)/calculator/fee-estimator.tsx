@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { track } from '@/lib/analytics/client';
 import { useTranslations } from 'next-intl';
 import { Check, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
@@ -20,6 +21,13 @@ const MAX_LISTINGS = 50;
 function clampListings(value: number): number {
   if (!Number.isFinite(value)) return MIN_LISTINGS;
   return Math.min(MAX_LISTINGS, Math.max(MIN_LISTINGS, Math.round(value)));
+}
+
+const BUCKET_STEP = 500_000;
+
+function bucket(revenue: number): string {
+  const floor = Math.floor(revenue / BUCKET_STEP) * BUCKET_STEP;
+  return `${floor}-${floor + BUCKET_STEP}`;
 }
 
 export function FeeEstimator() {
@@ -64,6 +72,8 @@ export function FeeEstimator() {
               step={STEP}
               value={revenue}
               onChange={(e) => setRevenue(Number(e.target.value))}
+              onPointerUp={() => track('fee_estimated', { revenue_bucket: bucket(revenue) })}
+              onBlur={() => track('fee_estimated', { revenue_bucket: bucket(revenue) })}
               className="accent-primary h-2 w-full cursor-pointer"
             />
             <div className="text-muted-foreground flex justify-between text-xs tabular-nums">

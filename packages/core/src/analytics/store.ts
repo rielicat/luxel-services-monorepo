@@ -1,5 +1,6 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
+import { mirrorToPostHog } from './posthog';
 
 interface EventInput {
   event: string;
@@ -19,7 +20,7 @@ interface EventInput {
 export async function recordEvent(e: EventInput): Promise<void> {
   try {
     const supabase = createSupabaseServiceRoleClient();
-    await supabase.from('analytics_events').insert({
+    const { error } = await supabase.from('analytics_events').insert({
       event: e.event.slice(0, 80),
       distinct_id: e.distinctId ?? null,
       anon_id: e.anonId ?? null,
@@ -33,5 +34,20 @@ export async function recordEvent(e: EventInput): Promise<void> {
       country: e.country ?? null,
       source: e.source ?? 'web',
     });
-  } catch {}
+    if (error) console.error('analytics.write_failed', { event: e.event, message: error.message });
+  } catch (err) {
+    console.error('analytics.write_threw', {
+      event: e.event,
+      message: err instanceof Error ? err.message : 'unknown',
+    });
+  }
+
+  try {
+    await mirrorToPostHog(e);
+  } catch (err) {
+    console.error('analytics.mirror_failed', {
+      event: e.event,
+      message: err instanceof Error ? err.message : 'unknown',
+    });
+  }
 }

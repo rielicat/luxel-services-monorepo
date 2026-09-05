@@ -1,6 +1,8 @@
 import { Webhook } from 'svix';
 import { NextResponse } from 'next/server';
 import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { recordEvent } from '@luxel/core/analytics/store';
+import { EVENTS } from '@luxel/core/analytics/events';
 
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET;
@@ -42,6 +44,14 @@ export async function POST(req: Request) {
       },
       { onConflict: 'clerk_user_id' },
     );
+
+    if (evt.type === 'user.created') {
+      await recordEvent({
+        event: EVENTS.SIGNUP_COMPLETED,
+        distinctId: u.id,
+        source: 'server',
+      });
+    }
   }
 
   if (evt.type === 'user.deleted' && evt.data.id) {
