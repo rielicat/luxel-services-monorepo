@@ -14,9 +14,11 @@ Compacted per-section copies of this file live in `docs/`:
 
 This file stays the source of truth. Update both when a rule changes.
 
-Repo is indexed in `codebase-memory-mcp` as project
-`luxel-services-monorepo`. Query it (`search_graph`, `get_architecture`,
-`trace_path`) before grepping cold.
+Index this repo in `codebase-memory-mcp` as project
+`luxel-services-monorepo`, then query it (`search_graph`, `get_architecture`,
+`trace_path`) before grepping cold. Confirm the index exists with
+`index_status`. The tool refuses to index while another CBM session holds the
+current generation, so close the other sessions first.
 
 ## Prose
 
