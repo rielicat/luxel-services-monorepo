@@ -89,32 +89,33 @@ These are external accounts. The code cannot provision them:
 
 6. **Walkthrough model** — no key of its own. The inventory pre-fill and the
    later review send the clip inline through the AI Gateway to
-   `google/gemini-3.5-flash-lite`, on the same `AI_GATEWAY_API_KEY` (or Vercel
-   OIDC) the rest of the model calls use. Nothing is uploaded to a provider file
-   store and nothing is left there to delete. Zero Data Retention is a Vercel Pro
-   feature and is not enabled: the Gateway routes to Vertex on the account's own
-   provider credential, so retention follows that account's terms. A walkthrough
-   video shows the inside of a host's home, so this is worth revisiting if the
-   plan changes. Without a Gateway credential the crew still records and writes
-   the inventory by hand, and the review still reports differences from the two
-   confirmed inventories. The model is pinned in `packages/core/src/ai/gemini.ts`.
+   `google/gemini-3.5-flash-lite`. They use the same `AI_GATEWAY_API_KEY`, or
+   Vercel OIDC, as the rest of the model calls. Nothing is uploaded to a
+   provider file store and nothing is left there to delete. Zero Data Retention
+   is a Vercel Pro feature and is not enabled: the Gateway routes to Vertex on
+   the account's own provider credential, so retention follows that account's
+   terms. A walkthrough video shows the inside of a host's home, so this is
+   worth revisiting if the plan changes. Without a Gateway credential the crew
+   still records and writes the inventory by hand, and the review still reports
+   differences from the two confirmed inventories. The model is pinned in
+   `packages/core/src/ai/gemini.ts`.
 7. **Resend** — done. `serviciosluxel.cl` is verified in the `sa-east-1` region
    and `RESEND_FROM` is `info@serviciosluxel.cl`. Verification put DKIM on
-   `resend._domainkey` and the bounce MX plus SPF on the `send.` subdomain, so
-   the apex MX and apex SPF stay with Cloudflare Email Routing and inbound mail
-   is untouched. Those three records were added in the Cloudflare dashboard and
-   are **not** in `infra/cloudflare` — adopt them there before anyone rebuilds
-   the zone. The production API key is send-only, which is why domain changes
-   cannot be made from code.
+   `resend._domainkey`. It put the bounce MX and SPF on the `send.` subdomain.
+   The apex MX and apex SPF therefore stay with Cloudflare Email Routing, and
+   inbound mail is untouched. Those three records were added in the Cloudflare
+   dashboard and are **not** in `infra/cloudflare` — adopt them there before
+   anyone rebuilds the zone. The production API key is send-only, which is why
+   domain changes cannot be made from code.
 8. **WhatsApp Cloud API** — via Meta Business. Deploy the worker and set its
-   secrets with `wrangler secret put`. Use a System User token, never the 24-hour
-   token from the app dashboard. Subscribe the webhook with the Graph API:
-   `POST /{app-id}/subscriptions` (`object=whatsapp_business_account`,
-   `fields=messages`, `callback_url=<worker>/webhook`, the worker's verify token,
-   `access_token=<app-id>|<app-secret>`), then `POST /{waba-id}/subscribed_apps`
-   with the System User token. Get the templates `luxel_conserje_registro` and
-   `luxel_aseo_confirmacion` approved. Set `WHATSAPP_WORKER_SEND_URL` and
-   `INTERNAL_SEND_TOKEN` on the web project.
+   secrets with `wrangler secret put`. Use a System User token, never the
+   24-hour token from the app dashboard. Subscribe the webhook with the Graph
+   API: `POST /{app-id}/subscriptions` (`object=whatsapp_business_account`,
+   `fields=messages`, `callback_url=<worker>/webhook`, the worker's verify
+   token, `access_token=<app-id>|<app-secret>`), then `POST
+/{waba-id}/subscribed_apps` with the System User token. Get the templates
+   `luxel_conserje_registro` and `luxel_aseo_confirmacion` approved. Set
+   `WHATSAPP_WORKER_SEND_URL` and `INTERNAL_SEND_TOKEN` on the web project.
 9. **PriceLabs** — `PRICELABS_API_KEY` for dynamic pricing. Dynamic pricing is
    part of every plan; without the key the pricing panel reports `unavailable`.
 10. **PostHog / Sentry** — optional. In-house analytics works without PostHog.
@@ -122,24 +123,25 @@ These are external accounts. The code cannot provision them:
     Vercel.
 12. **Cloudflare R2** — the bucket `luxel-cleaning-media` holds the cleaning
     walkthrough videos. Set `CLEANING_MEDIA_KEY` as a worker secret and as a
-    Vercel variable on both projects, together — once it is set on one side the
-    other must match or the media routes answer 401. It seals the upload and read
-    tickets. It is optional — the worker falls back to `INTERNAL_SEND_TOKEN`
-    while it is unset — but set it: rotating it is the only way to revoke video
-    access without touching WhatsApp. `infra/cloudflare` creates the bucket and
-    its 30-day lifecycle rule; both were applied on 2026-09-03, and the Pulumi
-    token already carried `Account: Workers R2 Storage: Edit`. Apply that stack
-    before any `wrangler deploy`: the worker binds the bucket, and
-    `wrangler deploy` does not create it.
+    Vercel variable on both projects, together. Once it is set on one side, the
+    other must match. Otherwise the media routes answer 401. It seals the upload
+    and read tickets. It is optional, because the worker falls back to
+    `INTERNAL_SEND_TOKEN` while it is unset. Set it anyway. Rotating it is the
+    only way to revoke video access without touching WhatsApp.
+    `infra/cloudflare` creates the bucket and its 30-day lifecycle rule; both
+    were applied on 2026-09-03, and the Pulumi token already carried `Account:
+Workers R2 Storage: Edit`. Apply that stack before any `wrangler deploy`:
+    the worker binds the bucket, and `wrangler deploy` does not create it.
 13. **Cloudflare Workflows** — the `cleaning-review` Workflow compares a
-    confirmed walkthrough against the previous confirmed inventory. Workflows run
-    on the Workers **Free** plan; there is no plan to buy. `wrangler deploy`
+    confirmed walkthrough against the previous confirmed inventory. Workflows
+    run on the Workers **Free** plan; there is no plan to buy. `wrangler deploy`
     provisions the Workflow from the `[[workflows]]` block, so the only operator
     step is the deploy itself. Two settings must match the live environment
-    before that deploy: `LUXEL_APP_URL` in `wrangler.toml` must be the web app's
-    origin, and `INTERNAL_SEND_TOKEN` must hold the same value on the worker and
-    on the web project — the worker calls the web app back with it. Without the
-    Workflow the reviews still run, one attempt per night, from the cron sweep.
+    before that deploy. `LUXEL_APP_URL` in `wrangler.toml` must be the web app's
+    origin. `INTERNAL_SEND_TOKEN` must hold the same value on the worker and on
+    the web project, because the worker calls the web app back with it. Without
+    the Workflow the reviews still run, one attempt per night, from the cron
+    sweep.
 
 Plan billing has no external account. Luxel invoices the plans off-platform.
 

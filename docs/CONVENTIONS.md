@@ -19,8 +19,8 @@ Two registers apply that rule differently:
 - **Marketing surfaces** — the landing page, `/about`, `/calculator` and the
   legal pages — may persuade and reassure.
 - **Product surfaces** — anything behind a login, the guest check-in page and
-  the crew page — carry only what the user needs to act: labels, values, errors
-  and the notices the law requires. No greeting. No reassurance. No sentence
+  the crew page. They carry only what the user needs to act: labels, values,
+  errors and the notices the law requires. No greeting. No reassurance. No sentence
   that repeats what a label already says. No benefit framing.
 
 ## Code
@@ -36,11 +36,11 @@ Two registers apply that rule differently:
 - No hardcoded user-facing strings. Site copy lives in
   `packages/shared/src/i18n/es-CL.json`. The guest check-in page also has
   `checkin.en.json` and `checkin.pt.json` with the same key set. Locale prefix
-  is `never`. The privacy policy and the terms of service deviate on purpose:
-  they are long legal documents, so their copy lives in
-  `privacy.{es,en,pt}.json` and `terms.{es,en,pt}.json` behind
-  `@luxel/shared/privacy` and `@luxel/shared/terms`, as typed objects rather
-  than `t()` keys. Both use the one `LegalDoc` shape in `@luxel/shared/legal`
+  is `never`. The privacy policy and the terms of service deviate on purpose.
+  They are long legal documents. Their copy lives in
+  `privacy.{es,en,pt}.json` and `terms.{es,en,pt}.json`, behind
+  `@luxel/shared/privacy` and `@luxel/shared/terms`. Both are typed objects,
+  not `t()` keys. Both use the one `LegalDoc` shape in `@luxel/shared/legal`
   and render through `apps/web/src/components/legal/legal-page.tsx`.
   `apps/web/test/privacy-copy.test.ts` and `terms-copy.test.ts` hold each trio
   in step.

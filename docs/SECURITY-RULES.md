@@ -3,35 +3,35 @@
 Compacted from `AGENTS.md` section "Data and security rules". These are hard
 rules. Do not add code paths that break them.
 
-- A Cloud Agent creates the Airbnb connection invitation outside this repository.
-  Hospitable has no API for it. The agent hands the URL back through
+- A Cloud Agent creates the Airbnb connection invitation outside this
+  repository. Hospitable has no API for it. The agent hands the URL back through
   `POST /api/onboarding/invites`. `INTERNAL_SEND_TOKEN` authenticates that call.
   Every delivery writes a `host_invite_delivered` event that names the actor. No
   Hospitable session or password enters this repository, the database or an
   environment variable here. The agent keeps the session. It runs as a dedicated
-  Hospitable user with the narrowest role that can issue an invitation. Never use
-  the owner account.
-- Properties are an import-only mirror of Hospitable. No manual property
-  create or edit path. Do not add one.
+  Hospitable user with the narrowest role that can issue an invitation. Never
+  use the owner account.
+- Properties are an import-only mirror of Hospitable. No manual property create
+  or edit path. Do not add one.
 - `property_contacts` (conserjes, cleaning crew) is an import-only mirror of
   Hospitable Teammates, rewritten on every sync pass (`mirrorTeammates`).
   Service Cleaning or Laundry maps to role `cleaning`. Concierge, Check-in, or
-  Check-out maps to role `concierge`. All services map to both. Owner,
-  Manager, or Maintenance map to no row. No host-facing contacts UI. Luxel
-  operators manage teammates in Hospitable → Operations → Teammates. Do not
-  add a manual contact form.
+  Check-out maps to role `concierge`. All services map to both. Owner, Manager,
+  or Maintenance map to no row. No host-facing contacts UI. Luxel operators
+  manage teammates in Hospitable → Operations → Teammates. Do not add a manual
+  contact form.
 - Crew is **Luxel-owned**, not mirrored. `crew_member` (internal or external)
   and `crew_assignment` (member, property, role) are operator-managed in
   `apps/admin` at `/crew`. The sync never touches them. `recipients()` in
   `packages/core/src/crew/index.ts` decides who is notified: assigned crew
-  first, the Hospitable teammate mirror only when the assignment reaches
-  nobody. Both notifiers call it; neither queries `property_contacts`.
+  first, the Hospitable teammate mirror only when the assignment reaches nobody.
+  Both notifiers call it; neither queries `property_contacts`.
 - Cleanings are a Luxel-run operation. The sync pass creates one per imported
   checkout (`suggestCleaningsFromCheckouts`), schedules it
   (`autoConfirmSuggested`), and sends the `cleaning_confirm` template to the
-  crew (`lib/cleaning/notify.ts`). Hosts have no cleaning controls and no
-  guest inbox. `guest_threads` status `needs_host` means "needs a Luxel
-  human". Do not add host-facing crew or inbox surfaces.
+  crew (`lib/cleaning/notify.ts`). Hosts have no cleaning controls and no guest
+  inbox. `guest_threads` status `needs_host` means "needs a Luxel human". Do not
+  add host-facing crew or inbox surfaces.
 - A cleaning **walkthrough video** is Luxel-owned and short-lived. The crew
   records it in the browser; the browser sends it straight to the Cloudflare
   Worker, which puts it in the R2 bucket `luxel-cleaning-media`. It never passes
@@ -40,27 +40,28 @@ rules. Do not add code paths that break them.
   recorded it, when, the cleaning, and `retention_until`. RLS is on with no
   policy, so the table is service-role only. The worker chooses the object key
   (`walkthrough/<cleaning id>/<32 hex>.<mp4|webm>`); the caller never names it,
-  and there is no list route, so a leaked key reaches one object. The upload and
-  read tickets are sealed with AES-GCM, keyed by `CLEANING_MEDIA_KEY` (falling
-  back to `INTERNAL_SEND_TOKEN` while it is unset), so a ticket is opaque and the
-  object key cannot be read back from a URL, a Workers Log or `wrangler tail`.
-  Each names one key and one operation and expires in 15 and 10 minutes. The
-  upload leg sends the ticket in the `x-luxel-ticket` header; only the read leg
-  keeps it in the URL, because a `<video>` element cannot set a header. The media
-  routes accept the media secret alone once it is set. Never log an object key, a ticket or a media URL: the video
-  shows the inside of a home. Retention is the worker's nightly cron
-  (`purgeExpiredWalkthroughs`), backed by an R2 lifecycle rule in
-  `infra/cloudflare`. It is never a Vercel cron.
+  and there is no list route, so a leaked key reaches one object. AES-GCM seals
+  the upload and read tickets. `CLEANING_MEDIA_KEY` is the key, and
+  `INTERNAL_SEND_TOKEN` stands in while it is unset. A ticket is therefore
+  opaque. No URL, Workers Log or `wrangler tail` gives the object key back. Each
+  names one key and one operation and expires in 15 and 10 minutes. The upload
+  leg sends the ticket in the `x-luxel-ticket` header; only the read leg keeps
+  it in the URL, because a `<video>` element cannot set a header. The media
+  routes accept the media secret alone once it is set. Never log an object key,
+  a ticket or a media URL: the video shows the inside of a home. Retention is
+  the worker's nightly cron (`purgeExpiredWalkthroughs`), backed by an R2
+  lifecycle rule in `infra/cloudflare`. It is never a Vercel cron.
 - The **crew flow** lives on one page, `/cleaning/confirm/[token]`. The confirm
-  token stays the only credential and the only key: every server action takes the
-  token and derives the cleaning itself, so one crew member never reaches another
-  property's stay. After the crew confirms attendance the page shows three steps:
-  the checklist (`cleaning_checklist`), the walkthrough video, and the inventory.
-  Every step is server state, so a reload lands the crew back where they were. A
-  recording that has not been uploaded yet is held in IndexedDB and rehydrated,
-  and the page warns before it goes. The link closes three days after the
-  cleaning date: past that the page renders nothing but a closed notice, and
-  every action and the model route refuse. The page is `noindex`.
+  token stays the only credential and the only key. Every server action takes
+  the token and derives the cleaning itself. One crew member never reaches
+  another property's stay. After the crew confirms attendance the page shows
+  three steps: the checklist (`cleaning_checklist`), the walkthrough video, and
+  the inventory. Every step is server state, so a reload lands the crew back
+  where they were. A recording that has not been uploaded yet is held in
+  IndexedDB and rehydrated, and the page warns before it goes. The link closes
+  three days after the cleaning date: past that the page renders nothing but a
+  closed notice, and every action and the model route refuse. The page is
+  `noindex`.
 - The crew's browser does all the video work. It constrains `getUserMedia` to
   960x540 at 12 fps, caps `MediaRecorder` at 800 kbps and stops at
   `WALKTHROUGH_MAX_SECONDS`, so two minutes lands near 11 MB. Safari defaults to
@@ -75,38 +76,38 @@ rules. Do not add code paths that break them.
   is `ai` only when a `ready` draft exists and the confirmed items match it
   exactly; any correction, and any hand-written list, is `crew`. Confirming is
   what moves `cleanings.status` to `done` — the only writer of that value. The
-  baseline the model compares against is the **previous confirmed inventory** for
-  that property, never the previous video: it survives the video being purged,
-  and the first cleaning of a property simply has no baseline.
+  model compares against the **previous confirmed inventory** for that property,
+  never the previous video. That baseline survives the purge of the video. The
+  first cleaning of a property simply has no baseline.
 - The model is reached from `POST /api/cleaning/inventory`, keyed by the same
   token, claimed with a compare-and-swap on `claimed_at` so two tabs cannot run
   it twice. `store: false` on every call, and the uploaded file is deleted after
   the run. Never log the model's raw description: it describes a home interior.
-  Without a Gateway credential the draft is written `unavailable` and the crew fills
-  the inventory by hand — no crash, no dead end. The key must come from a
+  Without a Gateway credential the draft is written `unavailable` and the crew
+  fills the inventory by hand — no crash, no dead end. The key must come from a
   billing-enabled Google project; see [`DEPLOY.md`](./DEPLOY.md).
 - After the crew confirms, a durable review compares the walkthrough against the
   property's previous confirmed inventory. It is asynchronous and never blocks
   the crew. `cleaning_review` is one row per cleaning (`queued`, `running`,
   `done`, `skipped`, `failed`); the Cloudflare Workflow `cleaning-review` drives
-  it and owns the backoff. One instance per start, with an id unique to that call
-  (`rev-<run id>-<epoch ms>-<random>`), so a retry or the nightly sweep can always
-  start a fresh one; a refused start answers 503 and the sweep then runs the
-  attempt directly. The instance calls
-  `POST /api/cleaning/review` with `INTERNAL_SEND_TOKEN`. Findings merge the exact
+  it and owns the backoff. Each start creates one instance, with an id unique to
+  that call (`rev-<run id>-<epoch ms>-<random>`). A retry or the nightly sweep
+  can therefore always start a fresh one. A refused start answers 503, and the
+  sweep then runs the attempt directly. The instance calls `POST
+/api/cleaning/review` with `INTERNAL_SEND_TOKEN`. Findings merge the exact
   diff of the two confirmed inventories (`compare`) with Gemini re-reading the
-  video (`video`), deduped on kind + room + name. A settled run writes nothing, so
-  a replay adds nothing. The first cleaning of a property is `skipped` with reason
-  `no_baseline` and zero findings; it never invents one. An exhausted run is
-  `failed`, keeps the compare findings and is retryable at `/cleanings`. The
+  video (`video`), deduped on kind + room + name. A settled run writes nothing,
+  so a replay adds nothing. The first cleaning of a property is `skipped` with
+  reason `no_baseline` and zero findings; it never invents one. An exhausted run
+  is `failed`, keeps the compare findings and is retryable at `/cleanings`. The
   nightly cron re-drives queued runs. Findings reach a Luxel operator over
   `sendWhatsAppViaWorker`, at most once, and never reach the host. Never log a
   finding's text.
-- Operators watch all of this at `/cleanings` in `apps/admin`: state per
-  property and per cleaning, the video behind a button that mints a read ticket
-  on demand, the confirmed inventory, the review state and its findings. It is
-  operator-only. The host never sees the crew, the video, the inventory or the
-  findings.
+- Operators watch all of this at `/cleanings` in `apps/admin`. The page shows
+  the state per property and per cleaning. A button mints a read ticket on
+  demand and plays the video. The page also shows the confirmed inventory, the
+  review state and its findings. It is operator-only. The host never sees the
+  crew, the video, the inventory or the findings.
 - A stay outside Airbnb is operator-created, at `/stays` in `apps/admin`. The
   action blocks the nights in Hospitable first with a calendar `PUT`. It records
   nothing locally until that call succeeds. It then writes a `calendar_blocks`
@@ -114,28 +115,29 @@ rules. Do not add code paths that break them.
   `manual`). Both carry the reference `manual:<uuid>` and leave
   `confirmation_code` null. The sync skips them: its revoke pass, its check-in
   delete, its calendar prune and `rekeyCheckinsByConfirmationCode` all filter
-  `origin = 'channel'`. The trigger `tg_manual_block_no_overlap` refuses a manual
-  block that overlaps another block on that property. It never blocks an imported
-  row. Cancelling releases the nights in Hospitable first, then revokes the
-  check-in and deletes the block. Our code sends the guest nothing. The operator
-  hands over the `/checkin/<token>` link. The host cannot create or cancel one,
-  but the stay does show on their calendar as an occupied stay with no revenue.
-  Deleting a property that holds a `manual` row is refused: the foreign keys
-  cascade, so `deletablePropertyIds` in `lib/channels/manual-stays.ts` guards the
-  prune and both listing reassignment paths.
+  `origin = 'channel'`. The trigger `tg_manual_block_no_overlap` refuses a
+  manual block that overlaps another block on that property. It never blocks an
+  imported row. Cancelling releases the nights in Hospitable first, then revokes
+  the check-in and deletes the block. Our code sends the guest nothing. The
+  operator hands over the `/checkin/<token>` link. The host cannot create or
+  cancel one, but the stay does show on their calendar as an occupied stay with
+  no revenue. Deleting a property that holds a `manual` row is refused: the
+  foreign keys cascade, so `deletablePropertyIds` in
+  `lib/channels/manual-stays.ts` guards the prune and both listing reassignment
+  paths.
 - Lux is one eve agent at `apps/web/agent/`, mounted by `withEve()`. Two
   surfaces, told apart by the authenticated principal and never by model input:
   `web` and `guest`. Tools, instructions and memory scope follow that principal,
   so the guest surface never reaches a pricing or lead tool.
 - eve cannot import a module carrying `import 'server-only'`. That marker is the
   agent/domain boundary. Agent-facing code lives in `packages/core/src/agent/`
-  and stays marker-free; marked domain logic is reached over
-  `POST /api/agent/tools` with `INTERNAL_SEND_TOKEN`. Never delete a marker to
-  make a build pass.
+  and stays marker-free; marked domain logic is reached over `POST
+/api/agent/tools` with `INTERNAL_SEND_TOKEN`. Never delete a marker to make a
+  build pass.
 - Route auth also enforces session ownership. `agent/channels/eve.ts` reads the
   session id from the request URL and refuses a caller who does not own the
-  `lux_agent_session` row. The browser never creates a session directly;
-  `POST /api/agent/session` creates it and claims ownership first.
+  `lux_agent_session` row. The browser never creates a session directly; `POST
+/api/agent/session` creates it and claims ownership first.
 - Memory has three tiers, all service-role only (RLS on, no policy), all written
   through `sanitizeForMemory` (redacts known door codes, emails, phones). Global
   playbook, per-property facts by hybrid Spanish full-text plus pgvector rank,
@@ -143,41 +145,41 @@ rules. Do not add code paths that break them.
   falls back to global digests and never cites another property as its own.
   Hosts never see any of it.
 - The global tier is built from the real threads. `ingestThreads` reads
-  `guest_messages`, labels an operator's reply as the Luxel voice and the AI's as
-  Lux, and keys each digest `thread:<thread id>:<newest message id>`, so a thread
-  is digested once and again only when it gains a message. `sendReplyDraft`
-  writes the text actually sent, so an operator's edit teaches the playbook and
-  the unapproved draft never does. Pricing notes are the exception to the
-  property tier: they live under `pricing:<property id>`, which no recall path
-  reads, because a guest must never learn the owner's rate or occupancy.
+  `guest_messages`. It labels an operator's reply as the Luxel voice and the
+  AI's as Lux. It keys each digest `thread:<thread id>:<newest message id>`. A
+  thread is digested once, and again only when it gains a message.
+  `sendReplyDraft` writes the text actually sent, so an operator's edit teaches
+  the playbook and the unapproved draft never does. Pricing notes are the
+  exception to the property tier: they live under `pricing:<property id>`, which
+  no recall path reads, because a guest must never learn the owner's rate or
+  occupancy.
 - The nightly distillation writes the global tier from those digests, from the
   Cloudflare Worker's cron via `/api/agent/distill`. Never a Vercel cron:
   `withEve` writes no `crons` key, so an eve schedule never registers.
-- Lux replies to guests behind a review gate. `properties.ai_reviews` defaults to
-  `true`. The pipeline stores the AI reply in `guest_reply_drafts` with status
-  `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in `apps/admin`,
-  edits it if needed, and approves it. Only then does the message reach the
-  guest. An approved text that differs from the draft is stored as `host`, not
-  `ai`. `simulateThreadReply` drafts a reply for a thread already on record
-  without sending it. `ai_replies` and `ai_reviews` are operator-managed in
-  `apps/admin` at `/ai`, one property at a time, over a checkbox selection, or
-  over every property at once. There is no
-  host-facing switch, and the web inbox only shows the mode. One pending draft
-  per thread: a newer guest message supersedes the older draft.
+- Lux replies to guests behind a review gate. `properties.ai_reviews` defaults
+  to `true`. The pipeline stores the AI reply in `guest_reply_drafts` with
+  status `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in
+  `apps/admin`, edits it if needed, and approves it. Only then does the message
+  reach the guest. An approved text that differs from the draft is stored as
+  `host`, not `ai`. `simulateThreadReply` drafts a reply for a thread already on
+  record without sending it. `ai_replies` and `ai_reviews` are operator-managed
+  in `apps/admin` at `/ai`, one property at a time, over a checkbox selection,
+  or over every property at once. There is no host-facing switch, and the web
+  inbox only shows the mode. One pending draft per thread: a newer guest message
+  supersedes the older draft.
 - Plans live in `plan_subscriptions`: `plan` is always `commission`, the only
   plan; `status` is `requested`, `active`, or `cancelled`. The host requests the
   plan (`requestPlan`); a Luxel operator activates it. No billing code, no
   checkout. Do not add one.
 - Webhook payloads are identifiers only. Every value acted on is fetched back
-  from Hospitable with our credential
-  (`app/api/channels/[provider]/route.ts`). Webhook auth is Hospitable's
-  source-IP range, never a secret in the URL.
+  from Hospitable with our credential (`app/api/channels/[provider]/route.ts`).
+  Webhook auth is Hospitable's source-IP range, never a secret in the URL.
 - No guest messages from our code. Every guest message is a Hospitable rule
-  authored in its dashboard: the booking message with the check-in link on "New
-  reservation", the reminder, the check-in details at T-3, the check-out
-  message and the review request. Our code only mirrors reservations into
-  `checkins` rows, and the `reservation.created` webhook writes the row at once
-  so the link never lands before it. There is no cron either; code handles
+  authored in its dashboard. The rules are the booking message with the check-in
+  link on "New reservation", the reminder, the check-in details at T-3, the
+  check-out message and the review request. Our code only mirrors reservations
+  into `checkins` rows, and the `reservation.created` webhook writes the row at
+  once so the link never lands before it. There is no cron either; code handles
   events only.
 - Door codes are secret; wifi passwords are not. `accessSecrets` in
   `lib/agent/store.ts` feeds only `property_access.keyless_code` to
@@ -201,24 +203,25 @@ rules. Do not add code paths that break them.
 - The check-in form remembers progress on the server. `checkin_draft` holds one
   row per check-in, keyed by `checkin_id`, with a `rev` counter and a jsonb
   payload. RLS is on with no policy, so the table is service-role only.
-  `saveCheckinDraft` takes the check-in token and derives the check-in itself. It
-  never trusts a client id. The browser saves on blur, on a chip choice, and on
-  an add or a remove. It never saves on a keystroke. Every write states the `rev`
-  it read, and `writeCheckinDraft` refuses a write that does not match the stored
-  `rev`. A stale tab is refused, never applied, so it cannot wipe newer work. The
-  page then stops saving, says so, and offers a reload. A refused save is always
-  visible; it is never silent. A document number in the draft is encrypted with
-  the same `encryptPII` the submitted rows use. The draft never holds a raw
-  number. Each guest row carries a client `uid`, so a remembered document follows
-  its own row through an add or a remove. On resume `readCheckinDraft` decrypts
-  and returns the complete number, so the guest finishes the form rather than
-  retyping. That makes the check-in link a reader of the documents in its own
-  unsent draft: the owner asked for it, and the privacy policy says so. A number
-  that cannot be decrypted comes back empty rather than throwing.
-  `submitCheckin` still refuses a masked string, because a tab opened before this
-  change can still post one. A successful submit deletes the draft. The draft dies
-  with the check-in row by cascade. The page stops reading the draft after the
-  departure date, the same window `saveCheckinDraft` applies to the write.
-  `purgeExpiredGuestDocuments` clears it 90 days after departure.
+  `saveCheckinDraft` takes the check-in token and derives the check-in itself.
+  It never trusts a client id. The browser saves on blur, on a chip choice, and
+  on an add or a remove. It never saves on a keystroke. Every write states the
+  `rev` it read, and `writeCheckinDraft` refuses a write that does not match the
+  stored `rev`. A stale tab is refused, never applied, so it cannot wipe newer
+  work. The page then stops saving, says so, and offers a reload. A refused save
+  is always visible; it is never silent. A document number in the draft is
+  encrypted with the same `encryptPII` the submitted rows use. The draft never
+  holds a raw number. Each guest row carries a client `uid`, so a remembered
+  document follows its own row through an add or a remove. On resume
+  `readCheckinDraft` decrypts and returns the complete number, so the guest
+  finishes the form rather than retyping. That makes the check-in link a reader
+  of the documents in its own unsent draft: the owner asked for it, and the
+  privacy policy says so. A number that cannot be decrypted comes back empty
+  rather than throwing. `submitCheckin` still refuses a masked string, because a
+  tab opened before this change can still post one. A successful submit deletes
+  the draft. The draft dies with the check-in row by cascade. The page stops
+  reading the draft after the departure date, the same window `saveCheckinDraft`
+  applies to the write. `purgeExpiredGuestDocuments` clears it 90 days after
+  departure.
 - Secrets never enter the repo. `.env*` files stay untracked. Operators set
   Vercel vars and `wrangler secret put`.

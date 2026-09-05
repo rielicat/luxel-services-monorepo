@@ -154,25 +154,25 @@ is not secret and lives in `wrangler.toml`:
 A rate limiter `namespace_id` must be unique inside the account and the period
 must be 10 or 60. Two bindings that share an id share one counter.
 
-The nightly cron does three things: it purges expired walkthrough media, it
-re-drives every `cleaning_review` row still queued, and it calls
-`POST <LUXEL_APP_URL>/api/agent/distill` so the agent playbook is rebuilt from
-the day's conversations. It lives here and not on Vercel: `withEve` writes no
+The nightly cron does three things. It purges expired walkthrough media. It
+re-drives every `cleaning_review` row still queued. It calls `POST
+<LUXEL_APP_URL>/api/agent/distill`, which rebuilds the agent playbook from the
+day's conversations. It lives here and not on Vercel: `withEve` writes no
 `crons` key into the Build Output config, and Vercel Hobby rejects sub-daily
 crons.
 
 `CLEANING_MEDIA_KEY` seals the upload and read tickets and is the only bearer
 the media routes accept once it is set. It is optional: while it is unset both
 sides fall back to `INTERNAL_SEND_TOKEN`, so nothing breaks before an operator
-provisions it. Set it on the worker and on both Vercel projects together — the
-two sides must agree, so whichever you set first, uploads and playback answer
-401 until the other follows. Set both before the first `wrangler deploy` and
-there is no window at all.
+provisions it. Set it on the worker and on both Vercel projects together. The
+two sides must agree. Uploads and playback answer 401 from the moment you set
+the first side until the other follows. Set both before the first `wrangler
+deploy` and there is no window at all.
 
 Rotating `CLEANING_MEDIA_KEY` is the break-glass for video access. It
-invalidates every ticket still in flight — a ticket lives 15 minutes at most —
-and it changes the seal, so a leaked `INTERNAL_SEND_TOKEN` no longer lets anyone
-forge a ticket offline. WhatsApp keeps working through the rotation.
+invalidates every ticket still in flight, and a ticket lives 15 minutes at most.
+It also changes the seal. A leaked `INTERNAL_SEND_TOKEN` then no longer lets
+anyone forge a ticket offline. WhatsApp keeps working through the rotation.
 
 A ticket is sealed with AES-GCM, so it is opaque: the object key is not readable
 from it, and a request URL that carries one tells a log nothing. The upload leg
@@ -236,8 +236,9 @@ https://<prod-host>/api/channels/hospitable
 ```
 
 There is nowhere to put one. Hospitable's webhook form offers only **Name** and
-**URL** — no custom headers, no signing key — and a query string is written to
-access logs on every delivery, so it is not a place for a credential.
+**URL**. It takes no custom header and no signing key. Every delivery writes the
+query string to the access logs, so a query string is not a place for a
+credential.
 
 Deliveries are authorised by **source IP** against `HOSPITABLE_WEBHOOK_IPS`,
 which defaults to Hospitable's published `38.80.170.0/24`. The variable exists
@@ -249,18 +250,18 @@ With no platform headers at all — local development — the route is open, bec
 there is no address to check against. Anything deployed always has one.
 
 **That check is not what protects the guest threads.** The handler takes no
-content from the payload: an event names a reservation, and the thread is read
-back from Hospitable with our own credential before anything is stored or
-answered. A forged event costs an API call, not a fabricated message in a
+content from the payload. An event names a reservation. The handler reads the
+thread back from Hospitable with our own credential before it stores or answers
+anything. A forged event costs an API call, not a fabricated message in a
 guest's inbox and in the AI's grounding. See `lib/channels/webhook-auth.ts`.
 
 ## Scheduled guest messages
 
-There is no scheduler in this codebase. Everything a guest receives on a
-timer — the registration reminder, the check-in details three days before
-arrival (door code, wifi, parking, building rules), the check-out-day message
-and the review request — is a **message rule in Hospitable's own dashboard**
-(Inbox → Rules), with the property-specific values as Hospitable custom codes.
+There is no scheduler in this codebase. A guest receives four messages on a
+timer: the registration reminder, the check-in details three days before arrival
+(door code, wifi, parking, building rules), the check-out-day message and the
+review request. Each one is a **message rule in Hospitable's own dashboard**
+(Inbox → Rules). The property-specific values are Hospitable custom codes.
 Nothing to deploy: no `CRON_SECRET`, no `vercel.json`, no cron route.
 
 The booking message with the registration link is a rule too: Hospitable's stock
@@ -274,16 +275,20 @@ submitted.
 ## WhatsApp to the crew
 
 Crew messages are **Meta-approved utility templates**. A business-initiated
-WhatsApp to someone who has not written to us in the last 24 hours must be one —
-the Cloud API rejects free text — and that is every conserje and every cleaner,
-every time. The worker maps an intent to a template name (`TEMPLATES` in
-`workers/whatsapp/src/index.ts`); register both in Meta Business Manager,
-category _Utility_, language `es`, with these bodies. Parameters may not
-contain newlines, so the guest list arrives as one line. Meta rejects bodies whose
+WhatsApp to someone who has not written to us in the last 24 hours must be one,
+because the Cloud API rejects free text. That covers every conserje and every
+cleaner, every time. The worker maps an intent to a template name (`TEMPLATES`
+in `workers/whatsapp/src/index.ts`); register both in Meta Business Manager,
+category _Utility_, language `es`, with these bodies. Parameters may not contain
+newlines, so the guest list arrives as one line. Meta rejects bodies whose
 variable count is high for their length and bodies that end with a variable, so
 both templates keep a static first and last line.
 
-`luxel_conserje_registro` — sent when a guest completes registration (language `es`, four parameters: stay, unit + address, parking, headcount + guest list). The same template also carries the notice to the host, with the guest list replaced by who booked and when they arrive — the host has no need of the documents:
+`luxel_conserje_registro` — sent when a guest completes registration (language
+`es`, four parameters: stay, unit + address, parking, headcount + guest list).
+The same template also carries the notice to the host. It replaces the guest
+list with who booked and when they arrive, because the host has no need of the
+documents:
 
 ```
 Registro de huéspedes en conserjería
@@ -294,7 +299,8 @@ Registro de huéspedes en conserjería
 Gracias, equipo Luxel
 ```
 
-`luxel_aseo_confirmacion` — sent when a cleaning is scheduled (language `es`, two parameters: date and time, property; two quick-reply buttons):
+`luxel_aseo_confirmacion` — sent when a cleaning is scheduled (language `es`,
+two parameters: date and time, property; two quick-reply buttons):
 
 ```
 Tienes un aseo asignado el {{1}} en {{2}}. ¿Confirmas tu asistencia?
