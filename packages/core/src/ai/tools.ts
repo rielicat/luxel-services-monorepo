@@ -1,8 +1,7 @@
 import 'server-only';
-import type OpenAI from 'openai';
 import { workingHoursStatus } from '../working-hours';
 import { PLAN_COMMISSION_PCT, planMonthlyCost } from '../plan-pricing';
-import { clp, pct, PLAN_LABEL, PLAN_PRICE_LINE } from './plan-copy';
+import { clp, PLAN_LABEL, PLAN_PRICE_LINE } from './plan-copy';
 import { fetchProperties } from '../host/queries';
 import { hospitableAmountToClp, listHospitableCalendar } from '../channels/hospitable';
 import { hospitableAccess } from '../channels/scope';
@@ -66,136 +65,6 @@ const NO_INVENTED_PRICING =
 
 const PRICING_PROPOSAL_STEP =
   'Explícale que Luxel fija y ajusta el precio por noche todos los días con PriceLabs, incluido en el plan, y ofrécele que Luxel prepare una propuesta de precios para su propiedad. Para eso pídele dirección o comuna, tamaño y dormitorios, y guárdalos con save_property_details.';
-
-export function buildTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
-  return [
-    {
-      type: 'function',
-      function: {
-        name: 'get_airbnb_quote',
-        description: `Calcula cuánto le queda al anfitrión y cuánto cobra Luxel: ${pct(PLAN_COMMISSION_PCT)} de los ingresos por reservas, IVA incluido, por propiedad al mes. Úsala cuando el usuario quiere saber cuánto cuesta que Luxel administre sus propiedades. NUNCA inventes el monto: depende de los ingresos que el usuario declare. Si el usuario da un rango ("entre 900.000 y 1.100.000"), pasa los dos extremos en la misma llamada; NO la llames dos veces para dos escenarios.`,
-        parameters: {
-          type: 'object',
-          properties: {
-            listings: {
-              type: 'integer',
-              description: 'Cantidad de propiedades/listings de Airbnb a administrar (1–50).',
-            },
-            monthly_revenue_clp: {
-              type: 'integer',
-              description:
-                'Ingresos mensuales por reservas de UNA propiedad, en pesos chilenos, sin la tarifa de limpieza. Si el usuario da un rango, este es el extremo bajo. Sin este dato no hay monto que mostrar.',
-            },
-            monthly_revenue_max_clp: {
-              type: 'integer',
-              description:
-                'Extremo alto del rango de ingresos mensuales por reservas de UNA propiedad, si el usuario dio un rango. Omítelo cuando dio una sola cifra.',
-            },
-          },
-          required: ['listings'],
-          additionalProperties: false,
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'get_pricing_reference',
-        description: `Referencia de mercado a partir de datos REALES de las propiedades que Luxel administra: tarifa promedio por noche, ocupación e ingresos por reservas. Úsala siempre que pregunten cuánto puede ganar una propiedad, cuánto cobrar por noche, qué ocupación esperar o cuánto se cobra por el aseo. La herramienta responde con cifras solo si hay una muestra suficiente; si no la hay, te dirá qué responder. ${NO_INVENTED_PRICING}`,
-        parameters: {
-          type: 'object',
-          properties: {
-            comuna: {
-              type: 'string',
-              description: 'Comuna de la propiedad, por ejemplo "Providencia" o "Las Condes".',
-            },
-            bedrooms: {
-              type: 'integer',
-              description: 'Cantidad de dormitorios de la propiedad (0 para estudio).',
-            },
-          },
-          required: [],
-          additionalProperties: false,
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'save_property_details',
-        description:
-          'Guarda los datos de la propiedad que el visitante entrega (dirección, comuna, tamaño, dormitorios, ingresos) para que el equipo Luxel prepare la propuesta de precios y lo contacte. Llámala apenas tengas datos reales de la propiedad. Llámala una sola vez por dato nuevo, no repitas la misma información.',
-        parameters: {
-          type: 'object',
-          properties: {
-            address: { type: 'string', description: 'Dirección tal como la dio el visitante.' },
-            comuna: { type: 'string', description: 'Comuna de la propiedad.' },
-            bedrooms: { type: 'integer', description: 'Dormitorios (0 para estudio).' },
-            size_m2: { type: 'integer', description: 'Superficie en metros cuadrados.' },
-            monthly_revenue_clp: {
-              type: 'integer',
-              description: 'Ingresos mensuales por reservas que declaró el visitante, si los dio.',
-            },
-            notes: {
-              type: 'string',
-              description:
-                'Otros datos útiles en una frase: equipamiento, amenities, si ya está publicada en Airbnb.',
-            },
-          },
-          required: [],
-          additionalProperties: false,
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'get_host_status',
-        description:
-          'Estado REAL de las propiedades del anfitrión con sesión iniciada: propiedades conectadas, próximas estadías, ocupación e ingresos estimados según su calendario de Airbnb. Úsala cuando un anfitrión pregunta por SUS propiedades, reservas, ocupación o ingresos. Nunca inventes estos datos.',
-        parameters: { type: 'object', properties: {}, additionalProperties: false },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'share_links',
-        description:
-          'Muestra 1–3 accesos directos útiles al usuario (páginas del sitio) según lo que necesita. Úsala para ofrecer el siguiente paso: ver el servicio, ver el precio, ir a sus propiedades o a su cuenta. Elige solo los destinos relevantes.',
-        parameters: {
-          type: 'object',
-          properties: {
-            destinations: {
-              type: 'array',
-              description: 'Destinos a mostrar, en orden de relevancia (máximo 3).',
-              items: { type: 'string', enum: Object.keys(LINK_DESTINATIONS) },
-              minItems: 1,
-              maxItems: 3,
-            },
-          },
-          required: ['destinations'],
-          additionalProperties: false,
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'escalate_to_human',
-        description:
-          'Deriva la conversación a una persona de Servicios Luxel por WhatsApp. Úsala cuando el usuario lo pide, cuando el caso excede lo que puedes resolver, o ante un reclamo.',
-        parameters: {
-          type: 'object',
-          properties: {
-            reason: { type: 'string', description: 'Motivo breve de la derivación.' },
-          },
-          required: [],
-          additionalProperties: false,
-        },
-      },
-    },
-  ];
-}
 
 export async function runTool(
   name: string,

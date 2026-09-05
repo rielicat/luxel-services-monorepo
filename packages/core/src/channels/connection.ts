@@ -102,16 +102,6 @@ export async function getHostConnection(customerId: string): Promise<HostConnect
   return data ? toConnection(data as Row) : blank(customerId);
 }
 
-export async function listHostConnections(
-  states?: HostConnectionState[],
-): Promise<HostConnection[] | null> {
-  const supabase = createSupabaseServiceRoleClient();
-  const query = supabase.from(TABLE).select(COLUMNS).order('updated_at', { ascending: false });
-  const { data, error } = await (states?.length ? query.in('state', states) : query);
-  if (error) return null;
-  return ((data ?? []) as Row[]).map(toConnection);
-}
-
 async function write(customerId: string, patch: Row): Promise<boolean> {
   const supabase = createSupabaseServiceRoleClient();
   const { error } = await supabase
@@ -244,6 +234,16 @@ export async function claimAirbnbEmail(customerId: string, email: string): Promi
   return { ok: true, state, conflict };
 }
 
+export async function saveInviteUrl(customerId: string, inviteUrl: string): Promise<boolean> {
+  const url = inviteUrl.trim();
+  if (!/^https:\/\/\S+$/.test(url)) return false;
+  return write(customerId, { invite_url: url });
+}
+
+export async function markInviteSent(customerId: string): Promise<boolean> {
+  return transition(customerId, 'invite_sent');
+}
+
 export async function recordInvite(customerId: string, inviteUrl: string): Promise<boolean> {
   const url = inviteUrl.trim();
   if (!/^https:\/\/\S+$/.test(url)) return false;
@@ -254,12 +254,6 @@ export async function recordInvite(customerId: string, inviteUrl: string): Promi
     invite_url: url,
     invite_sent_at: new Date().toISOString(),
   });
-}
-
-export async function markConnecting(customerId: string): Promise<boolean> {
-  const current = await getHostConnection(customerId);
-  if (current && ['connected', 'no_listings'].includes(current.state)) return true;
-  return transition(customerId, 'connecting');
 }
 
 export async function setOperatorNote(customerId: string, note: string): Promise<boolean> {

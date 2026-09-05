@@ -4,11 +4,11 @@ Servicios Luxel manages Airbnb listings in Chile end to end. The listing pays
 the host; Luxel coordinates the people. A host asks for the plan and grants
 Luxel access to the listing in Hospitable. There is one plan: 12% of the booking
 revenue, IVA included, per listing per month. Luxel runs dynamic pricing, guest
-replies 24/7, cleaning and laundry between stays, inventory and small repairs. The app mirrors the listings and reservations. A
-Hospitable message rule sends the guest the check-in link; the check-in page
-renders in `es`, `en`, or `pt`. **Lux**, the AI concierge (OpenAI
-`gpt-4o-mini`), answers guest messages from the property's own data. It hands off
-to a Luxel human when it cannot answer. Conserjes and the cleaning crew get
+replies 24/7, cleaning and laundry between stays, inventory and small repairs.
+The app mirrors the listings and reservations. A Hospitable message rule sends
+the guest the check-in link. The check-in page renders in `es`, `en`, or `pt`.
+**Lux**, the AI concierge, answers guest messages from the property's own data.
+A Luxel operator reviews each reply before it reaches the guest. Conserjes and the cleaning crew get
 WhatsApp templates from Luxel. Airbnb pays the host, and Luxel invoices the fee
 at the end of the month with a report.
 
@@ -37,6 +37,7 @@ luxel-services-monorepo/
 ├── workers/
 │   └── whatsapp/             # Cloudflare Worker `luxel-whatsapp-webhook` — WhatsApp Cloud API
 ├── packages/
+│   ├── core/                 # server domain: channels, AI, messaging, Supabase, crew
 │   ├── shared/               # i18n catalogs, WhatsApp template kinds, constants
 │   └── config/               # ESLint/TS/Tailwind presets
 ├── infra/
@@ -56,7 +57,7 @@ luxel-services-monorepo/
 | Auth            | Clerk                                                                     |
 | Database        | Supabase (Postgres + RLS); the server uses the secret key                 |
 | Channel (PMS)   | Hospitable — plugin behind `packages/core/src/channels/registry.ts`       |
-| AI concierge    | OpenAI (`gpt-5.6-terra`, pinned in `lib/ai/client.ts`)                    |
+| AI concierge    | **eve** agent, OpenAI `gpt-5.6-terra`, pinned in `lib/ai/model.ts`        |
 | Email           | Resend                                                                    |
 | Dynamic pricing | PriceLabs (part of the plan)                                              |
 | Messaging       | WhatsApp Business Cloud API, through the worker `luxel-whatsapp-webhook`  |
@@ -116,14 +117,19 @@ Unconverted contact intent (chat→human) is stored as `leads`. PostHog is an
 optional external mirror.
 
 The operator app [`apps/admin`](apps/admin) is a distinct Next.js site (port
-3001). It reads that data with the Supabase secret key and Clerk auth. Pages:
-**Panel** (traffic KPIs, daily event chart, event counts, lead counts), **Leads**
-(inbox with status management), **Sesiones** (session records + per-session
-journey; `converted` marks a session that reached `/account`), **Telemetría**
-(raw filterable event explorer). Heavy aggregation runs in SQL (`admin_traffic`
-/ `admin_event_counts` / `admin_daily_events` / `admin_sessions`). Access is gated
-by Clerk organization membership (`LUXEL_ADMIN_ORG_ID` or `LUXEL_ADMIN_ORG_SLUG`,
-set in `infra/vercel/admin.ts`; unset = locked). Run it with
+3001). It reads that data with the Supabase secret key and Clerk auth. It has four
+pages:
+
+- **Panel** — traffic KPIs, daily event chart, event counts, lead counts.
+- **Leads** — inbox with status management.
+- **Sesiones** — session records and the per-session journey. `converted` marks
+  a session that reached `/account`.
+- **Telemetría** — raw filterable event explorer.
+
+Heavy aggregation runs in SQL (`admin_traffic`, `admin_event_counts`,
+`admin_daily_events`, `admin_sessions`). Clerk organization membership gates
+access (`LUXEL_ADMIN_ORG_ID` or `LUXEL_ADMIN_ORG_SLUG`, set in
+`infra/vercel/admin.ts`; unset = locked). Run it with
 `pnpm --filter @luxel/admin dev`.
 
 The customer app has no operator pages. Assigning imported listings to hosts

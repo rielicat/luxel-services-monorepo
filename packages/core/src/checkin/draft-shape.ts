@@ -1,5 +1,3 @@
-export const DOC_MASK = '···';
-
 const MASK_CHARS = /[·•…]/;
 
 export function looksMaskedDoc(value: string): boolean {

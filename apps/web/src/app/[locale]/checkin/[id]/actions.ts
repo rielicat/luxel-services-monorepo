@@ -42,8 +42,6 @@ const DraftSchema = z.object({
   vehiclePlate: z.string().max(12),
 });
 
-export type CheckinDraftPayload = z.input<typeof DraftSchema>;
-
 const Schema = z.object({
   id: z.string().min(4).max(64),
   guests: z.array(GuestSchema).min(1).max(MAX_PARTY),
@@ -52,8 +50,6 @@ const Schema = z.object({
   parking: z.boolean().optional(),
   vehiclePlate: z.string().max(12).optional(),
 });
-
-export type CheckinInput = z.input<typeof Schema>;
 
 type Result = { ok: boolean; error?: string; expected?: number };
 

@@ -12,7 +12,6 @@ as $$
 declare
   v_count int;
 begin
-  -- Serialize concurrent requests for this session for the rest of the txn.
   perform pg_advisory_xact_lock(hashtext('luxel_chat_slot:' || p_session_id));
 
   select count(*)

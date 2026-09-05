@@ -78,6 +78,10 @@ session. Do not point both at one instance.
   window, so the previous month can only come from the mirrored
   `calendar_blocks`, never from the live calendar. `end_date` is honoured
   past 120 days.
+- Turborepo 2 runs tasks in **strict environment mode**. A task sees only the
+  variables its `turbo.json` entry names. The `test` task named none, so vitest
+  saw no Supabase credentials and every live test skipped while the run stayed
+  green. Name a variable in the task before a test can read it.
 - Supabase free tier auto-pauses. A paused project looks deleted and blocks
   prod migrations while CI stays green.
 - Vercel Hobby rejects sub-daily crons in `vercel.json` and silently blocks

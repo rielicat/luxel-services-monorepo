@@ -69,8 +69,6 @@ function findHashComments(text, anyHash) {
   return hits;
 }
 
-const DOLLAR_TAG = /\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/y;
-
 function findSqlComments(text) {
   const hits = [];
   let i = 0;
@@ -90,15 +88,6 @@ function findSqlComments(text) {
         i += 1;
       }
       continue;
-    }
-    if (char === '$') {
-      DOLLAR_TAG.lastIndex = i;
-      const opener = DOLLAR_TAG.exec(text);
-      if (opener) {
-        const close = text.indexOf(opener[0], i + opener[0].length);
-        i = close === -1 ? text.length : close + opener[0].length;
-        continue;
-      }
     }
     if (char === '-' && text[i + 1] === '-') {
       hits.push({ line: lineOf(text, i), kind: 'line' });
@@ -225,16 +214,16 @@ const SELF_TEST_CASES = [
     expected: 0,
   },
   {
-    name: 'dashes inside a dollar-quoted body are not a comment',
+    name: 'a comment inside a plpgsql body is reported',
     path: 'supabase/migrations/0001_init.sql',
     text: 'create function f() returns void as $$\nbegin\n  perform 1; -- kept\nend;\n$$ language plpgsql;\n',
-    expected: 0,
+    expected: 1,
   },
   {
-    name: 'dashes inside a tagged dollar-quoted body are not a comment',
+    name: 'a comment inside a tagged dollar-quoted body is reported',
     path: 'supabase/migrations/0001_init.sql',
     text: 'select $body$ a -- b $body$;\n',
-    expected: 0,
+    expected: 1,
   },
   {
     name: 'sql without comments passes',
