@@ -42,6 +42,7 @@ function luxelToken(): AuthFn<Request> {
         ...(claims.propertyId ? { propertyId: claims.propertyId } : {}),
         ...(claims.threadId ? { threadId: claims.threadId } : {}),
         ...(claims.webSessionId ? { webSessionId: claims.webSessionId } : {}),
+        ...(claims.simulation ? { simulation: '1' } : {}),
       },
     };
   };

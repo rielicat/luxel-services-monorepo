@@ -348,8 +348,15 @@ id>`, so a thread is digested once and again only when it gains a message.
   the message reach the guest. An approved text that differs from the draft is
   stored as `host`, not `ai`. The gate lives in `lib/channels/pipeline.ts`,
   which runs the agent turn and then writes the draft; the agent itself sends
-  the guest nothing. `simulateThreadReply` drafts a reply for a thread already
-  on record without sending it. Operators manage `ai_replies` and `ai_reviews`
+  the guest nothing. `simulateThreadReply` never waits for the
+  turn. It starts one in a throwaway session of its own, seeded with the thread
+  transcript, and returns. The session is never the guest's, so a simulation
+  cannot rewrite the guest's history and two operators can simulate one thread
+  at the same time. The `simulation` claim tells the agent's `turn.completed`
+  hook to post the reply to `/api/agent/events`, which writes the draft. That
+  hook also skips the conversation digest, so a simulation never teaches the
+  playbook. A failed turn writes an empty draft marked handoff. The panel polls
+  until the draft lands. Operators manage `ai_replies` and `ai_reviews`
   in `apps/admin` at `/ai`. They change one property, a checkbox selection, or
   every property at once. There is no host-facing switch. The web inbox only
   shows the mode. Only one pending draft per thread: a newer guest message

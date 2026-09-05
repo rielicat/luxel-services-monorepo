@@ -42,6 +42,8 @@ interface DispatchInput {
   signedIn?: boolean;
   webSessionId?: string | null;
   budgetMs?: number;
+  context?: string | null;
+  simulation?: boolean;
 }
 
 function base(): string {
@@ -57,6 +59,7 @@ function tokenFor(input: DispatchInput): string | null {
     propertyId: input.propertyId ?? null,
     threadId: input.threadId ?? null,
     webSessionId: input.webSessionId ?? null,
+    ...(input.simulation ? { simulation: true } : {}),
   });
 }
 
@@ -75,7 +78,10 @@ export async function createAgentSession(
     res = await fetch(`${base()}/eve/v1/session`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify({ message: input.message }),
+      body: JSON.stringify({
+        message: input.message,
+        ...(input.context ? { clientContext: input.context } : {}),
+      }),
       signal,
     });
   } catch (err) {
@@ -103,6 +109,13 @@ export async function createAgentSession(
     threadId: input.threadId ?? null,
   });
   return { ok: true, sessionId: json.sessionId };
+}
+
+export async function startAgentTurn(
+  input: Omit<DispatchInput, 'sessionId'>,
+): Promise<{ ok: boolean; sessionId?: string; reason?: TurnResult['reason'] }> {
+  if (devMock()) return { ok: true, sessionId: `mock-${Date.now()}` };
+  return createAgentSession(input);
 }
 
 export async function runAgentTurn(input: DispatchInput): Promise<TurnResult> {

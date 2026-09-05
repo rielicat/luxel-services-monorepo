@@ -16,7 +16,14 @@ export type AgentEvent =
       customerId: string | null;
       message: string | null;
     }
-  | { kind: 'tool_called'; distinctId: string; sessionId: string; tool: string };
+  | { kind: 'tool_called'; distinctId: string; sessionId: string; tool: string }
+  | {
+      kind: 'simulated_reply';
+      threadId: string;
+      body: string;
+      handoff: boolean;
+      failed?: boolean;
+    };
 
 export async function emit(event: AgentEvent): Promise<void> {
   const token = process.env.INTERNAL_SEND_TOKEN;

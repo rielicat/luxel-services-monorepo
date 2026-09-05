@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { verifyAgentToken } from '@luxel/core/agent/token';
 import type * as DispatchModule from '@luxel/core/agent/dispatch';
 
 const ORIGIN = 'https://agent.test';
@@ -214,6 +215,58 @@ describe('runAgentTurn on an existing session', () => {
       expect(result.reason).toBe('no_token');
     } finally {
       process.env.LUXEL_AGENT_TOKEN_SECRET = secret;
+    }
+  });
+});
+
+describe('startAgentTurn', () => {
+  it('creates the session and never opens a stream', async () => {
+    const previousUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const previousKey = process.env.SUPABASE_SECRET_KEY;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://supabase.test';
+    process.env.SUPABASE_SECRET_KEY = 'service-role-test-key';
+    try {
+      const urls: string[] = [];
+      let authorization = '';
+      let payload: Record<string, unknown> = {};
+      const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes('/eve/v1/session')) {
+          const headers = (init?.headers ?? {}) as Record<string, string>;
+          authorization = headers.authorization ?? '';
+          payload = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+          return Response.json(
+            { ok: true, sessionId: 'wrun_sim', status: 'accepted' },
+            { status: 202 },
+          );
+        }
+        return Response.json({});
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const started = await dispatch.startAgentTurn({
+        surface: 'guest',
+        principalId: 'sim:11111111-2222-3333-4444-555555555555',
+        message: 'Hola, tengo una duda',
+        propertyId: null,
+        threadId: '99999999-8888-7777-6666-555555555555',
+        context: 'Huesped: Hola\nLux: Hola, en que te ayudo',
+        simulation: true,
+      });
+
+      expect(started.ok).toBe(true);
+      expect(started.sessionId).toBe('wrun_sim');
+      expect(urls.some((url) => url.includes('/stream'))).toBe(false);
+      expect(payload.clientContext).toContain('Huesped: Hola');
+
+      const claims = verifyAgentToken(authorization.replace('Bearer ', ''));
+      expect(claims?.simulation).toBe(true);
+      expect(claims?.surface).toBe('guest');
+      expect(claims?.principalId).toBe('sim:11111111-2222-3333-4444-555555555555');
+    } finally {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = previousUrl;
+      process.env.SUPABASE_SECRET_KEY = previousKey;
     }
   });
 });

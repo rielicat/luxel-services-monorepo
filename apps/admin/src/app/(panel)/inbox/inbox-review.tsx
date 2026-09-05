@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -45,6 +45,14 @@ const CATEGORY_TONE: Record<string, string> = {
   not_accepted: 'bg-muted text-muted-foreground',
 };
 
+const SIMULATION_POLL_MS = 5_000;
+const SIMULATION_GIVE_UP_MS = 5 * 60_000;
+
+interface Simulation {
+  startedAt: number;
+  draftId: string | null;
+}
+
 const ERROR_KEY: Record<string, string> = {
   denied: 'error_denied',
   invalid: 'error_invalid',
@@ -73,6 +81,7 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
   const [edited, setEdited] = useState<Record<string, string>>({});
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [simulating, setSimulating] = useState<Record<string, Simulation>>({});
 
   const errorText = (reason?: string) => t(ERROR_KEY[reason ?? ''] ?? 'error_generic');
 
@@ -96,6 +105,60 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
       }
     });
   };
+
+  const stopSimulating = useCallback((threadId: string) => {
+    setSimulating((prev) => {
+      if (!(threadId in prev)) return prev;
+      const next = { ...prev };
+      delete next[threadId];
+      return next;
+    });
+  }, []);
+
+  const runSimulate = (threadId: string) => {
+    setNote(null);
+    setError(null);
+    setBusy(threadId);
+    start(async () => {
+      try {
+        const result = await simulateReply(threadId);
+        if (!result.ok) {
+          setError(errorText(result.reason));
+          return;
+        }
+        const current = threads.find((item) => item.id === threadId);
+        setSimulating((prev) => ({
+          ...prev,
+          [threadId]: { startedAt: Date.now(), draftId: current?.draft?.id ?? null },
+        }));
+        setNote(t('simulate_started'));
+      } catch {
+        setError(errorText('create_failed'));
+      } finally {
+        setBusy(null);
+      }
+    });
+  };
+
+  useEffect(() => {
+    for (const [threadId, run] of Object.entries(simulating)) {
+      const thread = threads.find((item) => item.id === threadId);
+      const draftId = thread?.draft?.id ?? null;
+      if (draftId && draftId !== run.draftId) {
+        stopSimulating(threadId);
+        setNote(t('simulated_ok'));
+      } else if (Date.now() - run.startedAt > SIMULATION_GIVE_UP_MS) {
+        stopSimulating(threadId);
+        setError(t('error_agent_timeout'));
+      }
+    }
+  }, [threads, simulating, stopSimulating, t]);
+
+  useEffect(() => {
+    if (!Object.keys(simulating).length) return;
+    const timer = setInterval(() => router.refresh(), SIMULATION_POLL_MS);
+    return () => clearInterval(timer);
+  }, [simulating, router]);
 
   const runSync = () => {
     setBusy('sync');
@@ -189,7 +252,8 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
   const renderThread = (thread: InboxThread) => {
     const draft = thread.draft;
     const value = draft ? (edited[draft.id] ?? draft.body) : '';
-    const working = pending && busy === thread.id;
+    const simulatingThis = thread.id in simulating;
+    const working = (pending && busy === thread.id) || simulatingThis;
     const expanded = open.has(thread.id);
     const last = thread.messages[thread.messages.length - 1] ?? null;
 
@@ -323,12 +387,10 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
                     size="sm"
                     variant="outline"
                     disabled={working}
-                    onClick={() =>
-                      run(thread.id, () => simulateReply(thread.id), t('simulated_ok'))
-                    }
+                    onClick={() => runSimulate(thread.id)}
                   >
-                    <Sparkles className="h-4 w-4" />
-                    {t('regenerate')}
+                    <Sparkles className={cn('h-4 w-4', simulatingThis && 'animate-pulse')} />
+                    {simulatingThis ? t('simulating') : t('regenerate')}
                   </Button>
                   <Button
                     size="sm"
@@ -369,9 +431,9 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
                   size="sm"
                   variant="outline"
                   disabled={working}
-                  onClick={() => run(thread.id, () => simulateReply(thread.id), t('simulated_ok'))}
+                  onClick={() => runSimulate(thread.id)}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className={cn('h-4 w-4', simulatingThis && 'animate-pulse')} />
                   {working ? t('simulating') : t('simulate')}
                 </Button>
               </div>

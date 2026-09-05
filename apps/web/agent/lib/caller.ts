@@ -10,6 +10,7 @@ export interface Caller {
   propertyId: string | null;
   threadId: string | null;
   webSessionId: string | null;
+  simulation: boolean;
 }
 
 interface PrincipalLike {
@@ -34,5 +35,6 @@ export function readCaller(principal: PrincipalLike | null | undefined): Caller 
     propertyId: text(attributes.propertyId),
     threadId: text(attributes.threadId),
     webSessionId: text(attributes.webSessionId),
+    simulation: attributes.simulation === '1',
   };
 }

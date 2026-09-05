@@ -55,6 +55,7 @@
     "discard_handoff": "Descartar y pasar a una persona",
     "simulate": "Simular respuesta",
     "simulating": "Simulando…",
+    "simulate_started": "Lux está redactando. El borrador aparece aquí al terminar.",
     "regenerate": "Volver a generar",
     "sent_ok": "Enviado al huésped.",
     "discarded_ok": "Borrador descartado.",

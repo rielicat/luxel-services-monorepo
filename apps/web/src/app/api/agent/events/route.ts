@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
 import { createLead } from '@luxel/core/leads';
 import { capture } from '@luxel/core/analytics/server';
+import { recordSimulationOutcome } from '@luxel/core/messaging/drafts';
 import { EVENTS } from '@luxel/core/analytics/events';
 
 export const runtime = 'nodejs';
@@ -30,6 +31,13 @@ const Body = z.discriminatedUnion('kind', [
     distinctId: z.string().max(128),
     sessionId: z.string().max(128),
     tool: z.string().max(64),
+  }),
+  z.object({
+    kind: z.literal('simulated_reply'),
+    threadId: z.string().uuid(),
+    body: z.string().max(8000),
+    handoff: z.boolean(),
+    failed: z.boolean().optional(),
   }),
 ]);
 
@@ -74,6 +82,15 @@ export async function POST(req: Request) {
       metadata: { via: 'lux_concierge' },
     });
     return Response.json({ ok: true });
+  }
+
+  if (event.kind === 'simulated_reply') {
+    const written = await recordSimulationOutcome({
+      threadId: event.threadId,
+      body: event.failed ? '' : event.body,
+      handoff: event.failed ? true : event.handoff,
+    });
+    return Response.json({ ok: written }, { status: written ? 200 : 500 });
   }
 
   capture(EVENTS.AI_TOOL_CALLED, event.distinctId, {

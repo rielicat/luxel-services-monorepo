@@ -18,6 +18,7 @@ export interface InboxActionResult {
   ok: boolean;
   reason?: string;
   draft?: ReplyDraft;
+  pending?: boolean;
 }
 
 const IdSchema = z.string().uuid();

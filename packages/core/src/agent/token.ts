@@ -9,6 +9,7 @@ export interface AgentClaims {
   propertyId: string | null;
   threadId: string | null;
   webSessionId: string | null;
+  simulation?: boolean;
   exp: number;
 }
 

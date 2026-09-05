@@ -161,8 +161,15 @@ rules. Do not add code paths that break them.
   status `pending` and sends nothing. A Luxel operator reviews it at `/inbox` in
   `apps/admin`, edits it if needed, and approves it. Only then does the message
   reach the guest. An approved text that differs from the draft is stored as
-  `host`, not `ai`. `simulateThreadReply` drafts a reply for a thread already on
-  record without sending it. `ai_replies` and `ai_reviews` are operator-managed
+  `host`, not `ai`. `simulateThreadReply` never waits for the
+  turn. It starts one in a throwaway session of its own, seeded with the thread
+  transcript, and returns. The session is never the guest's, so a simulation
+  cannot rewrite the guest's history and two operators can simulate one thread
+  at the same time. The `simulation` claim tells the agent's `turn.completed`
+  hook to post the reply to `/api/agent/events`, which writes the draft. That
+  hook also skips the conversation digest, so a simulation never teaches the
+  playbook. A failed turn writes an empty draft marked handoff. The panel polls
+  until the draft lands. `ai_replies` and `ai_reviews` are operator-managed
   in `apps/admin` at `/ai`, one property at a time, over a checkbox selection,
   or over every property at once. There is no host-facing switch, and the web
   inbox only shows the mode. One pending draft per thread: a newer guest message

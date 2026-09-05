@@ -39,10 +39,33 @@ export default defineHook({
       if (reply) turnRecord.update((s) => ({ ...s, reply }));
     },
 
+    async 'turn.failed'(_event, ctx) {
+      const caller = readCaller(ctx.session.auth.current);
+      if (!caller?.simulation || !caller.threadId) return;
+      await emit({
+        kind: 'simulated_reply',
+        threadId: caller.threadId,
+        body: '',
+        handoff: false,
+        failed: true,
+      });
+    },
+
     async 'turn.completed'(event, ctx) {
       const caller = readCaller(ctx.session.auth.current);
       if (!caller) return;
       const state = turnRecord.get();
+
+      if (caller.simulation) {
+        if (!caller.threadId) return;
+        await emit({
+          kind: 'simulated_reply',
+          threadId: caller.threadId,
+          body: state.reply,
+          handoff: state.handoff,
+        });
+        return;
+      }
 
       if (
         (caller.surface === 'web' || caller.surface === 'guest') &&
