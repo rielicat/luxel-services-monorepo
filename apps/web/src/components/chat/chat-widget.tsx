@@ -50,6 +50,7 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState('ssr');
   const [humanMode, setHumanMode] = useState(false);
+  const [handoffChecked, setHandoffChecked] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cursorRef = useRef<string | null>(null);
@@ -72,17 +73,31 @@ export function ChatWidget() {
 
   useEffect(() => {
     setSessionId(getOrCreateSession());
-    if (typeof window !== 'undefined' && localStorage.getItem('luxel.chat.human') === '1') {
-      setHumanMode(true);
-    }
   }, []);
 
   useEffect(() => {
-    if (!open || humanMode || credentialsRef.current) return;
+    if (!open || handoffChecked || sessionId === 'ssr') return;
+    let stopped = false;
+    void fetch(`/api/chat/human?sessionId=${encodeURIComponent(sessionId)}`)
+      .then((res) => res.json() as Promise<{ ok: boolean; human?: boolean }>)
+      .then((data) => {
+        if (!stopped && data.ok && data.human) setHumanMode(true);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!stopped) setHandoffChecked(true);
+      });
+    return () => {
+      stopped = true;
+    };
+  }, [open, handoffChecked, sessionId]);
+
+  useEffect(() => {
+    if (!open || humanMode || !handoffChecked || credentialsRef.current) return;
     void openAgent(sessionId).then((credentials) => {
       if (credentials) credentialsRef.current = credentials;
     });
-  }, [open, humanMode, sessionId]);
+  }, [open, humanMode, handoffChecked, sessionId]);
 
   useEffect(() => {
     const text = isSignedIn ? t('bot_greeting_host') : t('bot_greeting');
@@ -91,11 +106,6 @@ export function ChatWidget() {
       return [{ id: 'greeting', role: 'bot', text, widgets: [] }];
     });
   }, [t, isSignedIn]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (humanMode) localStorage.setItem('luxel.chat.human', '1');
-  }, [humanMode]);
 
   useEffect(() => {
     if (!humanMode || sessionId === 'ssr') return;
