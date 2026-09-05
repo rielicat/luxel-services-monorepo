@@ -45,7 +45,7 @@ export async function simulateReply(threadId: string): Promise<InboxActionResult
   if (!IdSchema.safeParse(threadId).success) return { ok: false, reason: 'invalid' };
 
   const result = await simulateThreadReply(threadId);
-  if (result.ok) revalidatePath('/admin/inbox');
+  if (result.ok) revalidatePath('/inbox');
   return result;
 }
 
@@ -60,7 +60,7 @@ export async function approveDraft(input: {
   if (!parsed.success) return { ok: false, reason: 'invalid' };
 
   const result = await sendReplyDraft(parsed.data.draftId, parsed.data.body, admin.email);
-  if (result.ok) revalidatePath('/admin/inbox');
+  if (result.ok) revalidatePath('/inbox');
   return result;
 }
 
@@ -73,6 +73,6 @@ export async function rejectDraft(input: {
   if (!IdSchema.safeParse(input.draftId).success) return { ok: false, reason: 'invalid' };
 
   const result = await discardReplyDraft(input.draftId, admin.email, input.handoff);
-  if (result.ok) revalidatePath('/admin/inbox');
+  if (result.ok) revalidatePath('/inbox');
   return result;
 }
