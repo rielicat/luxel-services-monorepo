@@ -54,6 +54,16 @@ These are external accounts. The code cannot provision them:
    route authorises by source IP. See [`ENV.md`](./ENV.md) § Inbound webhook
    access. Author the time-based guest messages as message rules. See
    [`ENV.md`](./ENV.md) § Scheduled guest messages.
+
+   The Airbnb connection **invitation** has no API. A Cloud Agent creates it in
+   the Hospitable dashboard. It posts the URL to
+   `https://serviciosluxel.cl/api/onboarding/invites` with `INTERNAL_SEND_TOKEN`.
+   Create a dedicated Hospitable user for that agent. Give it the narrowest role
+   that can issue an invitation. Never give it the owner account. The session
+   stays with the agent. No Hospitable password enters this repository, the
+   database or an environment variable. Hospitable's OAuth2 vendor flow replaces
+   this step. Apply for it, and retire the agent once Hospitable approves it.
+
 4. **Model access** — one credential covers everything. On Vercel the project's
    OIDC authenticates the AI Gateway, so nothing to set. Off Vercel, set
    `AI_GATEWAY_API_KEY`. Every model call goes through the Gateway: the agent's

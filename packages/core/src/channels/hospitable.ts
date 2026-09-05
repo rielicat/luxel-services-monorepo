@@ -171,14 +171,16 @@ export function normalizeChannelUserId(value: string | null | undefined): string
 export interface AirbnbIdentity {
   email: string | null;
   userId: string | null;
+  name: string | null;
 }
 
 export function airbnbIdentities(rp: HospitableProperty): AirbnbIdentity[] {
   return (rp.listings ?? [])
-    .filter((l) => l.platform === 'airbnb')
+    .filter((l) => (l.platform ?? '').toLowerCase() === 'airbnb')
     .map((l) => ({
       email: normalizeChannelEmail(l.platform_email),
       userId: normalizeChannelUserId(l.platform_user_id),
+      name: (l.platform_name ?? '').trim() || null,
     }))
     .filter((i) => Boolean(i.email || i.userId));
 }

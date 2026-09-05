@@ -247,10 +247,6 @@ export async function sweepReviewRuns(
     .map((row) => ({ id: row.id, attempts: Number(row.attempts ?? 0) }));
 }
 
-export function reviewStartConfigured(): boolean {
-  return Boolean(workerOrigin() && process.env.INTERNAL_SEND_TOKEN);
-}
-
 export async function startCleaningReview(
   run: ReviewRun,
   client?: Supabase,

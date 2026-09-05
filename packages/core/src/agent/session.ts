@@ -41,11 +41,6 @@ export async function readSession(sessionId: string): Promise<AgentSessionRecord
   };
 }
 
-export async function ownsSession(sessionId: string, principalId: string): Promise<boolean> {
-  const record = await readSession(sessionId);
-  return record !== null && record.principalId === principalId;
-}
-
 export async function sessionForThread(threadId: string): Promise<string | null> {
   const { data } = await createSupabaseServiceRoleClient()
     .from('guest_threads')

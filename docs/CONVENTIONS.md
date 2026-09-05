@@ -44,6 +44,10 @@ Two registers apply that rule differently:
   and render through `apps/web/src/components/legal/legal-page.tsx`.
   `apps/web/test/privacy-copy.test.ts` and `terms-copy.test.ts` hold each trio
   in step.
+- Domain logic lives in `packages/core`. `apps/admin` and `apps/web` call it.
+  Neither app re-implements a Hospitable call, a connection state change, a phone
+  normaliser or an analytics write of its own. Add the function to `@luxel/core`
+  and import it.
 - Routes are English: `/calculator`, `/account`, `/properties`, `/privacy`,
   `/terms`, `/checkin/[id]`, `/cleaning/confirm/[token]`. Never a Spanish path
   segment.

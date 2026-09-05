@@ -135,6 +135,10 @@ supabase/        migrations + local config
   `NextIntlClientProvider` payload of every other page.
   `apps/web/test/privacy-copy.test.ts` and `terms-copy.test.ts` hold each trio
   in step.
+- **Domain logic lives in `packages/core`.** `apps/admin` and `apps/web` call it.
+  Neither app re-implements a Hospitable call, a connection state change, a phone
+  normaliser or an analytics write of its own. Add the function to `@luxel/core`
+  and import it.
 - **Routes are English.** `/calculator`, `/account`, `/properties`, `/privacy`,
   `/terms`, `/checkin/[id]`, `/cleaning/confirm/[token]`. Never a Spanish path
   segment.
@@ -147,18 +151,20 @@ supabase/        migrations + local config
 
 ## Data and security rules
 
-- The Airbnb connection **invitation** is created outside this repository. Hospitable
-  has no API for it, so a Cloud Agent holding its own Hospitable session creates the
-  invitation and hands the URL back through `POST /api/onboarding/invites`, authenticated
-  with `INTERNAL_SEND_TOKEN`. `{ op: 'pending' }` returns the hosts waiting longest with
-  no invitation yet; `{ op: 'deliver', customerId, inviteUrl, source }` records it and
+- A Cloud Agent creates the Airbnb connection **invitation** outside this
+  repository. Hospitable has no API for it. The agent holds its own Hospitable
+  session. It creates the invitation and hands the URL back through
+  `POST /api/onboarding/invites`. `INTERNAL_SEND_TOKEN` authenticates that call.
+  `{ op: 'pending' }` returns the hosts who wait longest with no invitation yet.
+  `{ op: 'deliver', customerId, inviteUrl, source }` records the invitation and
   moves the host to `invite_sent` in one write. Every delivery writes a
-  `host_invite_delivered` analytics event naming the actor, so an invitation can always be
-  traced to whoever produced it. **No Hospitable session or password ever enters this
-  repository, the database or an environment variable here** — the agent holds it, and it
-  must be a dedicated Hospitable user with the narrowest role that can issue invitations,
-  never the owner account. Hospitable's OAuth2 vendor flow would replace this entirely and
-  is the better answer once approved; see `docs/DEPLOY.md`.
+  `host_invite_delivered` analytics event that names the actor. That event traces
+  an invitation back to whoever produced it. **No Hospitable session or password
+  enters this repository, the database or an environment variable here.** The
+  agent keeps the session. It must use a dedicated Hospitable user with the
+  narrowest role that can issue an invitation. Never use the owner account.
+  Hospitable's OAuth2 vendor flow replaces this design. It is the better answer
+  once Hospitable approves it; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - Properties are an **import-only mirror** of Hospitable. There is no manual
   property create or edit path. Do not add one.
 - `property_contacts` (conserjes, cleaning crew) is an **import-only mirror** of

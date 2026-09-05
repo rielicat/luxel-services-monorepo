@@ -1,4 +1,6 @@
 import { Link2 } from 'lucide-react';
+import { normalizeChannelEmail } from '@luxel/core/channels/hospitable';
+import { hostConnectNudgeText } from '@luxel/core/whatsapp/nudge';
 import { createServiceClient } from '@/lib/supabase';
 import { fmtDateTime, relativeTime } from '@/lib/utils';
 import { Card, Pill } from '@/components/ui';
@@ -112,28 +114,9 @@ interface HostView {
   since: string;
 }
 
-function normalizeEmail(raw: string | null | undefined): string | null {
-  const value = (raw ?? '').trim().toLowerCase();
-  return value || null;
-}
-
 function daysSince(iso: string | null): number {
   if (!iso) return 0;
   return Math.floor((Date.now() - new Date(iso).getTime()) / DAY_MS);
-}
-
-function nudgeText(name: string, inviteUrl: string): string {
-  return [
-    'Tu Airbnb en Luxel',
-    `Hola ${name}, acá está el link para conectar tu cuenta y partir: ${inviteUrl}`,
-    'Lo abres, autorizas y de ahí seguimos nosotros.',
-  ].join('\n');
-}
-
-function firstName(fullName: string | null, email: string): string {
-  const first = (fullName ?? '').trim().split(/\s+/)[0] ?? '';
-  if (first) return first;
-  return email.split('@')[0]?.trim() || 'anfitrión';
 }
 
 function derivedState(stored: string, listings: number): string {
@@ -280,9 +263,10 @@ async function getConsole(): Promise<ConsoleData> {
     const row = connections.get(customer.id);
     const listings = listingsByOwner.get(customer.id)?.length ?? 0;
     const emails = new Set(
-      [normalizeEmail(customer.email), normalizeEmail(row?.claimed_airbnb_email)].filter(
-        (e): e is string => Boolean(e),
-      ),
+      [
+        normalizeChannelEmail(customer.email),
+        normalizeChannelEmail(row?.claimed_airbnb_email),
+      ].filter((e): e is string => Boolean(e)),
     );
     const candidates = orphans.filter((listing) =>
       listing.airbnbEmails.some((email) => emails.has(email)),
@@ -377,7 +361,12 @@ function HostCard({
   feedback: { error?: string; ok?: string };
 }) {
   const prepared = host.inviteUrl
-    ? nudgeText(firstName(host.name, host.email), host.inviteUrl)
+    ? hostConnectNudgeText({
+        fullName: host.name,
+        email: host.email,
+        phone: host.phone,
+        inviteUrl: host.inviteUrl,
+      })
     : null;
   const waLink =
     prepared && host.phone

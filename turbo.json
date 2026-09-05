@@ -42,7 +42,21 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_SECRET_KEY",
+        "LUXEL_PII_KEY",
+        "LUXEL_AGENT_TOKEN_SECRET",
+        "INTERNAL_SEND_TOKEN",
+        "PROVIDER_API_KEY",
+        "AI_GATEWAY_API_KEY",
+        "OPENAI_API_KEY",
+        "E2E_SKIP_AUTH"
+      ]
     },
     "clean": {
       "cache": false

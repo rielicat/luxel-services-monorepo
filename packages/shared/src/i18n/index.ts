@@ -7,7 +7,6 @@ export const messages = esCL;
 export type Messages = typeof esCL;
 
 export const adminMessages = adminEsCL;
-export type AdminMessages = typeof adminEsCL;
 
 export const GUEST_LOCALES = ['es', 'en', 'pt'] as const;
 export type GuestLocale = (typeof GUEST_LOCALES)[number];

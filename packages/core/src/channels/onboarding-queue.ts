@@ -1,73 +1,71 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
 import { recordEvent } from '../analytics/store';
-import { getHostConnection, recordInvite, type HostConnectionState } from './connection';
+import { getHostConnection, recordInvite } from './connection';
 
 export const INVITE_QUEUE_LIMIT = 25;
+
+const CANDIDATE_PAGE = 200;
 
 export interface AwaitingHost {
   customerId: string;
   email: string;
   fullName: string | null;
-  state: HostConnectionState | 'not_started';
   waitingSince: string;
 }
 
 type CustomerRow = { id: string; email: string; full_name: string | null; created_at: string };
 
-export async function hostsAwaitingInvite(limit = INVITE_QUEUE_LIMIT): Promise<AwaitingHost[]> {
-  const capped = Math.min(Math.max(limit, 1), INVITE_QUEUE_LIMIT);
+export async function hostsAwaitingInvite(limit: number): Promise<AwaitingHost[]> {
   const supabase = createSupabaseServiceRoleClient();
+  const oldest = await supabase
+    .from('customers')
+    .select('id, email, full_name, created_at')
+    .order('created_at', { ascending: true })
+    .limit(CANDIDATE_PAGE);
 
-  const [customersRes, connectionsRes, assignmentsRes] = await Promise.all([
-    supabase
-      .from('customers')
-      .select('id, email, full_name, created_at')
-      .order('created_at', { ascending: true })
-      .limit(300),
-    supabase.from('host_connection').select('customer_id, state').limit(500),
-    supabase.from('listing_assignments').select('customer_id').limit(1000),
-  ]);
-
-  if (customersRes.error || connectionsRes.error || assignmentsRes.error) {
-    console.error('onboarding.queue_read_failed', {
-      message:
-        customersRes.error?.message ??
-        connectionsRes.error?.message ??
-        assignmentsRes.error?.message,
-    });
+  const rows = (oldest.data ?? []) as CustomerRow[];
+  if (oldest.error || !rows.length) {
+    if (oldest.error) console.error('onboarding.queue_read_failed', oldest.error.message);
     return [];
   }
 
-  const state = new Map(
-    ((connectionsRes.data ?? []) as { customer_id: string; state: HostConnectionState }[]).map(
-      (row) => [row.customer_id, row.state],
+  const ids = rows.map((row) => row.id);
+  const [connections, assignments] = await Promise.all([
+    supabase
+      .from('host_connection')
+      .select('customer_id')
+      .in('customer_id', ids)
+      .neq('state', 'not_started'),
+    supabase.from('listing_assignments').select('customer_id').in('customer_id', ids),
+  ]);
+
+  const failure = connections.error ?? assignments.error;
+  if (failure) {
+    console.error('onboarding.queue_read_failed', failure.message);
+    return [];
+  }
+
+  const served = new Set(
+    [...(connections.data ?? []), ...(assignments.data ?? [])].map((row) =>
+      String((row as { customer_id: string }).customer_id),
     ),
   );
-  const assigned = new Set(
-    ((assignmentsRes.data ?? []) as { customer_id: string }[]).map((row) => row.customer_id),
-  );
 
-  const waiting: AwaitingHost[] = [];
-  for (const row of (customersRes.data ?? []) as CustomerRow[]) {
-    if (assigned.has(row.id)) continue;
-    const current = state.get(row.id) ?? 'not_started';
-    if (current !== 'not_started') continue;
-    waiting.push({
+  return rows
+    .filter((row) => !served.has(row.id))
+    .slice(0, limit)
+    .map((row) => ({
       customerId: row.id,
       email: row.email,
       fullName: row.full_name,
-      state: current,
       waitingSince: row.created_at,
-    });
-    if (waiting.length >= capped) break;
-  }
-  return waiting;
+    }));
 }
 
 export type InviteDelivery =
-  | { ok: true; state: HostConnectionState }
-  | { ok: false; error: 'unknown_customer' | 'invalid_url' | 'already_connected' | 'write_failed' };
+  | { ok: true; state: 'invite_sent' }
+  | { ok: false; error: 'unknown_customer' | 'already_connected' | 'write_failed' };
 
 export async function deliverInvite(
   customerId: string,
@@ -75,23 +73,16 @@ export async function deliverInvite(
   source: string,
 ): Promise<InviteDelivery> {
   const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('id', customerId)
-    .maybeSingle();
-  if (error || !data) return { ok: false, error: 'unknown_customer' };
+  const { data } = await supabase.from('customers').select('id').eq('id', customerId).maybeSingle();
+  if (!data) return { ok: false, error: 'unknown_customer' };
 
-  if (!/^https:\/\/\S+$/.test(inviteUrl.trim())) return { ok: false, error: 'invalid_url' };
-
-  const before = await getHostConnection(customerId);
-  if (before && ['connected', 'no_listings'].includes(before.state)) {
+  const current = await getHostConnection(customerId);
+  if (current && ['connected', 'no_listings'].includes(current.state)) {
     return { ok: false, error: 'already_connected' };
   }
 
   if (!(await recordInvite(customerId, inviteUrl))) return { ok: false, error: 'write_failed' };
 
-  const after = await getHostConnection(customerId);
   await recordEvent({
     event: 'host_invite_delivered',
     customerId,
@@ -99,5 +90,5 @@ export async function deliverInvite(
     properties: { actor: source },
     source: 'server',
   });
-  return { ok: true, state: after?.state ?? 'invite_sent' };
+  return { ok: true, state: 'invite_sent' };
 }

@@ -30,7 +30,6 @@ export const REVIEW_DIRECT_SWEEP_LIMIT = 5;
 
 export const CLEANING_REVIEW_START_PATH = '/cleaning-review/start';
 export const CLEANING_REVIEW_ATTEMPT_PATH = '/api/cleaning/review';
-export const CLEANING_REVIEW_WORKFLOW = 'cleaning-review';
 
 export interface ReviewFinding {
   source: ReviewSource;

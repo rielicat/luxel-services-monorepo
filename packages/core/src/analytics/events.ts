@@ -16,5 +16,3 @@ export const ACTORS = {
   HOST: 'host',
   OPERATOR: 'operator',
 } as const;
-
-export type Actor = (typeof ACTORS)[keyof typeof ACTORS];

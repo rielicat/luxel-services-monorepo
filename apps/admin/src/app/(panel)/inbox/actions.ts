@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import {
   discardReplyDraft,
-  listInboxThreads,
   sendReplyDraft,
   simulateThreadReply,
   type InboxThread,
@@ -26,11 +25,6 @@ const SendSchema = z.object({
   draftId: z.string().uuid(),
   body: z.string().trim().min(1).max(4000),
 });
-
-export async function loadInbox(): Promise<{ ok: boolean; threads?: InboxThread[] }> {
-  if (!(await requireAdmin())) return { ok: false };
-  return { ok: true, threads: await listInboxThreads() };
-}
 
 export async function syncInbox(): Promise<InboxActionResult & { sync?: SyncAllResult }> {
   if (!(await requireAdmin())) return { ok: false, reason: 'denied' };

@@ -74,28 +74,3 @@ export async function getPricelabsPrices(
   const rows = first?.data;
   return Array.isArray(rows) ? rows : null;
 }
-
-export async function updatePricelabsListing(
-  ref: PricelabsRef,
-  settings: { base?: number; min?: number; max?: number; pushEnabled?: boolean },
-): Promise<boolean> {
-  const json = await call<{ listings?: { errors?: unknown[] }[] }>('/listings', {
-    method: 'POST',
-    body: {
-      listings: [
-        {
-          id: ref.id,
-          pms: ref.pms,
-          ...(settings.base != null ? { base: settings.base } : {}),
-          ...(settings.min != null ? { min: settings.min } : {}),
-          ...(settings.max != null ? { max: settings.max } : {}),
-          ...(settings.pushEnabled != null ? { push_enabled: settings.pushEnabled } : {}),
-        },
-      ],
-    },
-  });
-  if (!json || typeof json !== 'object') return false;
-  const row = json.listings?.[0];
-  if (!row) return false;
-  return !Array.isArray(row.errors) || row.errors.length === 0;
-}

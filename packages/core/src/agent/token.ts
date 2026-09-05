@@ -1,4 +1,4 @@
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Surface } from './types';
 
 export interface AgentClaims {
@@ -24,10 +24,6 @@ function b64url(input: Buffer | string): string {
 
 function sign(payload: string, key: string): string {
   return createHmac('sha256', key).update(payload).digest('base64url');
-}
-
-export function newPrincipalId(): string {
-  return randomUUID();
 }
 
 export function mintAgentToken(
