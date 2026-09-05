@@ -7,6 +7,23 @@ process.env.LUXEL_AGENT_TOKEN_SECRET = 'dispatch-test-secret';
 process.env.EVE_AGENT_ORIGIN = ORIGIN;
 delete process.env.LUXEL_DEV_MOCK;
 
+function aborts(signal: AbortSignal | null | undefined): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+  });
+}
+
+function neverEnds(signal: AbortSignal | null | undefined): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('\n'));
+      signal?.addEventListener('abort', () =>
+        controller.error(new DOMException('Aborted', 'AbortError')),
+      );
+    },
+  });
+}
+
 function ndjson(events: Record<string, unknown>[]): ReadableStream<Uint8Array> {
   const body = events.map((e) => JSON.stringify(e)).join('\n') + '\n';
   return new ReadableStream({
@@ -127,6 +144,59 @@ describe('runAgentTurn on an existing session', () => {
 
     expect(result.ok).toBe(true);
     expect(result.text).toBe('Respuesta a la SEGUNDA');
+  });
+
+  it('gives up on its own budget when the turn never completes', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('includeTailIndex')) {
+        return new Response(null, { status: 200, headers: { 'x-eve-stream-tail-index': '3' } });
+      }
+      if (init?.method === 'POST') {
+        return Response.json({ ok: true, sessionId: 'wrun_existing', status: 'accepted' });
+      }
+      return new Response(neverEnds(init?.signal), { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const started = Date.now();
+    const result = await dispatch.runAgentTurn({
+      surface: 'guest',
+      principalId: 'guest:thread-1',
+      sessionId: 'wrun_existing',
+      message: 'Segunda pregunta, distinta',
+      propertyId: null,
+      threadId: 'thread-1',
+      budgetMs: 200,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('timeout');
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+
+  it('counts the tail probe against the budget, not only the stream', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('includeTailIndex')) return aborts(init?.signal);
+      throw new Error(`unexpected call to ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const started = Date.now();
+    const result = await dispatch.runAgentTurn({
+      surface: 'guest',
+      principalId: 'guest:thread-1',
+      sessionId: 'wrun_existing',
+      message: 'Segunda pregunta, distinta',
+      propertyId: null,
+      threadId: 'thread-1',
+      budgetMs: 200,
+    });
+
+    expect(result.reason).toBe('timeout');
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('reports no_token when the signing secret is absent', async () => {

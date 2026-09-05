@@ -61,7 +61,7 @@ const ERROR_KEY: Record<string, string> = {
   no_token: 'error_agent_unconfigured',
   create_failed: 'error_agent_unreachable',
   stream_failed: 'error_agent_unreachable',
-  timeout: 'error_agent_unreachable',
+  timeout: 'error_agent_timeout',
 };
 
 export function InboxReview({ threads }: { threads: InboxThread[] }) {

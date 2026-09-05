@@ -12,7 +12,7 @@ export interface TurnResult {
   handoff?: boolean;
 }
 
-const TURN_TIMEOUT_MS = 55_000;
+export const AGENT_TURN_BUDGET_MS = 240_000;
 
 const MOCK_HANDOFF_RE =
   /(molest|enoj|terrible|p[ée]sim|hablar con|una persona|humano|reclamo|urgente)/i;
@@ -41,6 +41,7 @@ interface DispatchInput {
   customerId?: string | null;
   signedIn?: boolean;
   webSessionId?: string | null;
+  budgetMs?: number;
 }
 
 function base(): string {
@@ -61,6 +62,7 @@ function tokenFor(input: DispatchInput): string | null {
 
 export async function createAgentSession(
   input: Omit<DispatchInput, 'message'> & { message: string },
+  signal?: AbortSignal,
 ): Promise<{ ok: boolean; sessionId?: string; reason?: TurnResult['reason'] }> {
   const token = tokenFor(input);
   if (!token) {
@@ -68,11 +70,21 @@ export async function createAgentSession(
     return { ok: false, reason: 'no_token' };
   }
 
-  const res = await fetch(`${base()}/eve/v1/session`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-    body: JSON.stringify({ message: input.message }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${base()}/eve/v1/session`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: input.message }),
+      signal,
+    });
+  } catch (err) {
+    console.error('agent.session_create_error', {
+      surface: input.surface,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false, reason: signal?.aborted ? 'timeout' : 'create_failed' };
+  }
   if (!res.ok) {
     console.error('agent.session_create_failed', { surface: input.surface, status: res.status });
     return { ok: false, reason: 'create_failed' };
@@ -100,21 +112,47 @@ export async function runAgentTurn(input: DispatchInput): Promise<TurnResult> {
     console.error('agent.no_token', { surface: input.surface });
     return { ok: false, reason: 'no_token' };
   }
-  const origin = base();
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), input.budgetMs ?? AGENT_TURN_BUDGET_MS);
+  try {
+    return await dispatchTurn(base(), token, input, controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function dispatchTurn(
+  origin: string,
+  token: string,
+  input: DispatchInput,
+  signal: AbortSignal,
+): Promise<TurnResult> {
   let sessionId = input.sessionId ?? null;
   let startIndex = 0;
 
   if (sessionId) {
-    const tail = await tailIndex(origin, token, sessionId);
-    if (tail === null) return { ok: false, reason: 'stream_failed', sessionId };
+    const tail = await tailIndex(origin, token, sessionId, signal);
+    if (tail === null) {
+      return { ok: false, reason: signal.aborted ? 'timeout' : 'stream_failed', sessionId };
+    }
     startIndex = tail + 1;
 
-    const sent = await fetch(`${origin}/eve/v1/session/${sessionId}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify({ message: input.message, turnPolicy: 'queue' }),
-    });
+    let sent: Response;
+    try {
+      sent = await fetch(`${origin}/eve/v1/session/${sessionId}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message: input.message, turnPolicy: 'queue' }),
+        signal,
+      });
+    } catch (err) {
+      console.error('agent.session_send_error', {
+        sessionId,
+        message: err instanceof Error ? err.message : String(err),
+      });
+      return { ok: false, reason: signal.aborted ? 'timeout' : 'send_failed', sessionId };
+    }
     if (!sent.ok) {
       if (sent.status !== 409) {
         console.error('agent.session_send_failed', { status: sent.status });
@@ -126,19 +164,24 @@ export async function runAgentTurn(input: DispatchInput): Promise<TurnResult> {
   }
 
   if (!sessionId) {
-    const created = await createAgentSession(input);
+    const created = await createAgentSession(input, signal);
     if (!created.ok || !created.sessionId) return { ok: false, reason: created.reason };
     sessionId = created.sessionId;
   }
 
-  return followTurn(origin, token, sessionId, startIndex);
+  return followTurn(origin, token, sessionId, startIndex, signal);
 }
 
-async function tailIndex(origin: string, token: string, sessionId: string): Promise<number | null> {
+async function tailIndex(
+  origin: string,
+  token: string,
+  sessionId: string,
+  signal: AbortSignal,
+): Promise<number | null> {
   try {
     const res = await fetch(
       `${origin}/eve/v1/session/${sessionId}/stream?startIndex=0&includeTailIndex=1`,
-      { headers: { authorization: `Bearer ${token}` } },
+      { headers: { authorization: `Bearer ${token}` }, signal },
     );
     const header = res.headers.get('x-eve-stream-tail-index');
     await res.body?.cancel();
@@ -170,16 +213,12 @@ async function followTurn(
   token: string,
   sessionId: string,
   startIndex: number,
+  signal: AbortSignal,
 ): Promise<TurnResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TURN_TIMEOUT_MS);
   try {
     const res = await fetch(
       `${origin}/eve/v1/session/${sessionId}/stream?startIndex=${startIndex}`,
-      {
-        headers: { authorization: `Bearer ${token}` },
-        signal: controller.signal,
-      },
+      { headers: { authorization: `Bearer ${token}` }, signal },
     );
     if (!res.ok || !res.body) {
       console.error('agent.stream_rejected', { sessionId, status: res.status });
@@ -230,8 +269,6 @@ async function followTurn(
       sessionId,
       message: err instanceof Error ? err.message : String(err),
     });
-    return { ok: false, reason: 'timeout', sessionId };
-  } finally {
-    clearTimeout(timer);
+    return { ok: false, reason: signal.aborted ? 'timeout' : 'stream_failed', sessionId };
   }
 }
