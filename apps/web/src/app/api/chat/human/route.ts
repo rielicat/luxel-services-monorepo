@@ -5,6 +5,7 @@ import { capture } from '@luxel/core/analytics/server';
 import { EVENTS } from '@luxel/core/analytics/events';
 import { workingHoursStatus } from '@luxel/core/working-hours';
 import { whatsappBridgeConfigured, sendWhatsAppViaWorker } from '@luxel/core/whatsapp/send';
+import { CHAT_HANDOFF_TTL_HOURS } from '@luxel/shared/constants';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,35 @@ const Body = z.object({
 });
 
 const MAX_MESSAGES_PER_MINUTE = 12;
+
+export async function GET(req: Request) {
+  const sessionId = new URL(req.url).searchParams.get('sessionId');
+  if (!sessionId || sessionId.length > 64) {
+    return Response.json({ ok: false, error: 'validation' }, { status: 400 });
+  }
+
+  const supabase = createSupabaseServiceRoleClient();
+  const [{ data: handoff }, { data: last }] = await Promise.all([
+    supabase
+      .from('messages')
+      .select('id')
+      .eq('session_id', sessionId)
+      .eq('metadata->>kind', 'handoff')
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('messages')
+      .select('created_at')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const cutoff = Date.now() - CHAT_HANDOFF_TTL_HOURS * 60 * 60 * 1000;
+  const fresh = last ? new Date(last.created_at as string).getTime() > cutoff : false;
+  return Response.json({ ok: true, human: Boolean(handoff) && fresh });
+}
 
 export async function POST(req: Request) {
   const json = await req.json().catch(() => null);

@@ -469,7 +469,11 @@ commit that deletes the gate.
   reads offers a `wa.me` link, a "message us on WhatsApp" button or WhatsApp as
   a way to reach us. That covers the landing page, the chat widget's human
   handoff and the connect panel. A human handoff continues in the chat it
-  started in. WhatsApp stays what it already is. Luxel uses it outbound to reach
+  started in. That mode is server state, never a browser flag. `GET
+/api/chat/human` answers it from the session's `handoff` message, and the
+  widget asks on every open. It expires `CHAT_HANDOFF_TTL_HOURS` after the last
+  message of the session, so a later visit starts with Lux again. WhatsApp
+  stays what it already is. Luxel uses it outbound to reach
   conserjes, the cleaning crew and a host an operator is chasing. It also
   carries the crew's own `/cleaning/confirm/[token]` link. It is an operations
   channel, never a published front door.

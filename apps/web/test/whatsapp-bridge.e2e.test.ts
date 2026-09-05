@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 import nodeCrypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { seedImportedProperty } from './helpers/seed';
+import { CHAT_HANDOFF_TTL_HOURS } from '@luxel/shared/constants';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
@@ -48,6 +49,7 @@ async function drain() {
 type Worker = { fetch: (req: Request, env: any, ctx: any) => Promise<Response> };
 let worker: Worker;
 let humanPOST: (req: Request) => Promise<Response>;
+let humanGET: (req: Request) => Promise<Response>;
 let pollGET: (req: Request) => Promise<Response>;
 let admin: ReturnType<typeof createClient>;
 let customerId: string | null = null;
@@ -165,14 +167,22 @@ async function seedAnchor(sessionId: string, createdAt?: string): Promise<string
   return wamid;
 }
 
-async function seedHandoff(sessionId: string): Promise<void> {
+async function seedHandoff(sessionId: string, createdAt?: string): Promise<void> {
   await admin.from('messages').insert({
     session_id: sessionId,
     direction: 'out',
     channel: 'web',
     body: 'Te comunico con una persona…',
     metadata: { kind: 'handoff' },
+    ...(createdAt ? { created_at: createdAt } : {}),
   });
+}
+
+async function humanStatus(sessionId: string): Promise<{ ok: boolean; human: boolean }> {
+  const res = await humanGET(
+    new Request(`http://localhost/api/chat/human?sessionId=${encodeURIComponent(sessionId)}`),
+  );
+  return res.json();
 }
 
 async function callHuman(sessionId: string, message: string): Promise<Response> {
@@ -208,6 +218,7 @@ beforeAll(async () => {
 
   worker = (await import('../../../workers/whatsapp/src/index')).default as unknown as Worker;
   humanPOST = (await import('../src/app/api/chat/human/route')).POST;
+  humanGET = (await import('../src/app/api/chat/human/route')).GET;
   pollGET = (await import('../src/app/api/chat/poll/route')).GET;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
   const { data: customer } = await admin
@@ -305,6 +316,20 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
     expect(pollJson.messages.map((m: { body: string }) => m.body)).toContain(
       'Hola, con gusto te ayudo',
     );
+  });
+
+  it('reports human mode only for a session whose handoff is still recent', async () => {
+    const never = `test-e2e-status-none-${nodeCrypto.randomUUID()}`;
+    expect((await humanStatus(never)).human).toBe(false);
+
+    const fresh = `test-e2e-status-fresh-${nodeCrypto.randomUUID()}`;
+    await seedHandoff(fresh);
+    expect((await humanStatus(fresh)).human).toBe(true);
+
+    const stale = `test-e2e-status-stale-${nodeCrypto.randomUUID()}`;
+    const past = new Date(Date.now() - (CHAT_HANDOFF_TTL_HOURS + 1) * 60 * 60 * 1000).toISOString();
+    await seedHandoff(stale, past);
+    expect((await humanStatus(stale)).human).toBe(false);
   });
 
   it('blocks /api/chat/human when the session never reached a handoff', async () => {
