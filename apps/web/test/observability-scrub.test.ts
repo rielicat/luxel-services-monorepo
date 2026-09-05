@@ -12,6 +12,27 @@ const TICKET = 'v2.abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXY
 const MEDIA_URL = `https://worker.test/cleaning-media/object?ticket=${TICKET}`;
 const CREW_URL = `https://serviciosluxel.cl/cleaning/confirm/${TOKEN}`;
 
+const CHECKIN_TOKEN = 'Ab3-_xY9zQ7mN2pL4kR8sT1vW5uJ6hG0';
+const CHECKIN_URL = `https://serviciosluxel.cl/checkin/${CHECKIN_TOKEN}`;
+
+describe('a page whose URL is its own credential', () => {
+  it('redacts the check-in token, which is not hex and not a uuid', () => {
+    const scrubbed = scrubUrl(CHECKIN_URL);
+    expect(scrubbed).not.toContain(CHECKIN_TOKEN);
+    expect(scrubbed).toContain('/checkin/[redacted]');
+  });
+
+  it('redacts the crew token by its route, not only by its shape', () => {
+    expect(scrubUrl(CREW_URL)).toContain('/cleaning/confirm/[redacted]');
+  });
+
+  it('leaves an ordinary marketing URL readable', () => {
+    expect(scrubUrl('https://serviciosluxel.cl/calculator?utm_source=google')).toBe(
+      'https://serviciosluxel.cl/calculator?utm_source=google',
+    );
+  });
+});
+
 describe('sentry scrubbing', () => {
   it('never lets a media URL or a ticket through', () => {
     expect(touchesMedia(MEDIA_URL)).toBe(true);

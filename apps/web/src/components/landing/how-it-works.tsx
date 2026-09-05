@@ -1,11 +1,11 @@
 import { useTranslations } from 'next-intl';
-import { Handshake, PhoneCall, Sparkles, Wallet } from 'lucide-react';
+import { Video, PhoneCall, Sparkles, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PLAN_COMMISSION_PCT } from '@luxel/core/plan-pricing';
 
-const STEPS = ['talk', 'connect', 'run', 'earn'] as const;
+const STEPS = ['video', 'connect', 'run', 'earn'] as const;
 const ICONS: Record<(typeof STEPS)[number], LucideIcon> = {
-  talk: Handshake,
+  video: Video,
   connect: PhoneCall,
   run: Sparkles,
   earn: Wallet,

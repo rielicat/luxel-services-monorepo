@@ -20,6 +20,7 @@ const SENSITIVE_HEADERS = new Set([
 
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const LONG_HEX = /[0-9a-f]{32,}/gi;
+const TOKEN_PATH = /\/(checkin|cleaning\/confirm)\/[^/?#]+/gi;
 
 const URL_KEYS = [
   'url',
@@ -40,7 +41,10 @@ export function touchesMedia(value: unknown): boolean {
 }
 
 function redactIdentifiers(value: string): string {
-  return value.replace(UUID, REDACTED).replace(LONG_HEX, REDACTED);
+  return value
+    .replace(TOKEN_PATH, (_match, route: string) => `/${route}/${REDACTED}`)
+    .replace(UUID, REDACTED)
+    .replace(LONG_HEX, REDACTED);
 }
 
 export function scrubUrl(value: string): string {

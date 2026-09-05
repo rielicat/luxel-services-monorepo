@@ -76,15 +76,15 @@
     },
     "how": {
       "title": "Cómo funciona",
-      "subtitle": "De la primera conversación a tus ingresos, en cuatro pasos.",
+      "subtitle": "Del primer video a tus ingresos, en cuatro pasos.",
       "steps": {
-        "talk": {
-          "title": "Conversamos y vemos tu propiedad",
-          "body": "Revisamos qué tienes y qué falta para publicar. Sin compromiso."
+        "video": {
+          "title": "Nos muestras tu propiedad en video",
+          "body": "Con ese video vemos dónde está y cuánto mide. Con eso calculamos tu precio por noche."
         },
         "connect": {
-          "title": "Conectamos tu Airbnb en una llamada",
-          "body": "Lo hacemos contigo, paso a paso. No instalas nada y nunca te pedimos tu clave."
+          "title": "Conectamos tu Airbnb",
+          "body": "Te guiamos en una llamada o con una guía paso a paso. Nunca te pedimos tu clave."
         },
         "run": {
           "title": "Operamos todos los días",
@@ -107,8 +107,8 @@
     },
     "meta_description": "Administramos tu Airbnb completo: precios, huéspedes, aseo, reparaciones e inventario.",
     "closing": {
-      "title": "Empecemos con una visita",
-      "body": "Revisamos tu propiedad, te contamos cómo trabajamos y qué falta para publicar.",
+      "title": "Empecemos con un video",
+      "body": "Nos muestras tu propiedad, te contamos cómo trabajamos y qué falta para publicar.",
       "primary": "Ver el precio",
       "secondary": "Conversemos"
     }
@@ -259,7 +259,7 @@
       "damage": "¿Qué pasa si un huésped daña algo?"
     },
     "a": {
-      "furnished": "No. Si hace falta, la amoblamos y preparamos nosotros. Lo conversamos en la visita.",
+      "furnished": "No. Si hace falta, la amoblamos y preparamos nosotros. Lo vemos en el video que nos mandas.",
       "cleaning": "El huésped, con la tarifa de limpieza del anuncio. Esa tarifa va completa al equipo de aseo: no te cobramos nada sobre ella.",
       "own_use": "Sí. Bloqueas las fechas que quieras y nosotros ajustamos el calendario.",
       "income": "Airbnb te paga directo a ti. A fin de mes te cobramos sobre lo que generaron tus reservas, con el detalle de cada una.",
@@ -348,8 +348,8 @@
     "intro_1": "Nos das acceso a tu cuenta de Airbnb y desde ahí nos hacemos cargo: precios, huéspedes, aseo entre estadías y el reporte de cada mes.",
     "intro_2": "No instalas nada y tu propiedad sigue siendo tuya. Airbnb te paga a ti, directo, como siempre.",
     "start_cta": "Conectar mi Airbnb",
-    "pending_title": "Te vamos a llamar",
-    "pending_body": "Una persona de Luxel te contacta para conectar tu Airbnb contigo.",
+    "pending_title": "Te contactamos",
+    "pending_body": "Una persona de Luxel te escribe. Lo conectamos en una llamada o te mandamos la guía.",
     "invite_title": "Tu invitación está lista",
     "invite_body": "Te enviamos la invitación para conectar tu Airbnb. Si no la ves, revisa el spam.",
     "invite_where": "Abres la invitación, inicias sesión en Airbnb y eliges tus propiedades. Nunca te pedimos tu clave de Airbnb.",
@@ -398,11 +398,11 @@
   },
   "onboarding": {
     "title": "Así lo dejamos andando",
-    "subtitle": "Una persona de Luxel lo conecta contigo. No instalas nada.",
-    "s1_title": "Te llamamos",
-    "s1_body": "Coordinamos una hora y te contactamos para conectar tu Airbnb.",
-    "s2_title": "Lo conectamos juntos",
-    "s2_body": "Lo hacemos en esa misma llamada. Nunca te pedimos tu clave de Airbnb.",
+    "subtitle": "Te guiamos en una llamada o con una guía paso a paso.",
+    "s1_title": "Nos muestras tu propiedad",
+    "s1_body": "Un video corto nos basta para ver dónde está y cuánto mide.",
+    "s2_title": "Conectamos tu Airbnb",
+    "s2_body": "En una llamada o siguiendo la guía. Nunca te pedimos tu clave de Airbnb.",
     "s3_title": "Llegan tus propiedades",
     "s3_body": "Aparecen tus reservas y tu calendario, y partimos a trabajar."
   },
