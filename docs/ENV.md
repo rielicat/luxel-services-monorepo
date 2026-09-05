@@ -101,14 +101,14 @@ Set in the Vercel dashboard:
 Shared with `luxel-web` — same values, best set once as **team-level shared
 variables** linked to both projects, so the two can never drift:
 
-| Variable                                           | Needed by                                                   | Absent behaviour                                              |
-| -------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
-| `LUXEL_PII_KEY`                                    | `/inbox` approve — decrypts the customer's Hospitable token | **approving a draft throws.** Must be byte-identical to web's |
-| `OPENAI_API_KEY`                                   | `/inbox` draft and simulate                                 | empty draft, no error                                         |
-| `PROVIDER_API_KEY`                                 | `/listings` and the `/debug` channel probe                  | listings cannot read the central account                      |
-| `PRICELABS_API_KEY`                                | `/debug` probe only                                         | probe reports unconfigured                                    |
-| `RESEND_API_KEY` + `RESEND_FROM`                   | `/debug` probe only                                         | probe reports email broken when it is not                     |
-| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | `/debug` probe only                                         | probe reports WhatsApp broken when it is not                  |
+| Variable                                           | Needed by                                                          | Absent behaviour                                                                                                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LUXEL_PII_KEY`                                    | `/inbox` approve — decrypts the customer's Hospitable token        | **approving a draft throws.** Must be byte-identical to web's                                                                                     |
+| `OPENAI_API_KEY`                                   | `/inbox` draft and simulate                                        | empty draft, no error                                                                                                                             |
+| `PROVIDER_API_KEY`                                 | `/listings` and the `/debug` channel probe                         | listings cannot read the central account                                                                                                          |
+| `PRICELABS_API_KEY`                                | `/debug` probe only                                                | probe reports unconfigured                                                                                                                        |
+| `RESEND_API_KEY` + `RESEND_FROM`                   | `/debug` probe only                                                | probe reports email broken when it is not                                                                                                         |
+| `WHATSAPP_WORKER_SEND_URL` + `INTERNAL_SEND_TOKEN` | `/debug` probe, and the handoff notice a sync from `/inbox` raises | probe reports WhatsApp broken when it is not; a handoff seen by this sync notifies nobody, and the next inbound message notifies from `luxel-web` |
 
 Managed as code in `infra/vercel/admin.ts` (non-secret; applied by
 `.github/workflows/infra-vercel.yml`):
