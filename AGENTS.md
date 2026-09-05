@@ -542,6 +542,13 @@ by pointing both at one instance.
   re-exports the Workflow class. `apps/web/vitest.config.ts` aliases the module
   to `test/stubs/cloudflare-workers.ts`. Without that alias
   `whatsapp-bridge.e2e.test.ts` fails to load the worker at all.
+- An eve turn is a Vercel Workflow, and it outlives a short function budget. A
+  turn that uses tools runs for tens of seconds, and the stream that follows it
+  reaches its own limit. `runAgentTurn` waits for that stream inside the caller's
+  request, so the caller's `maxDuration` must exceed `AGENT_TURN_BUDGET_MS` plus
+  the caller's own reads and writes. It was 55 seconds inside a 60 second page,
+  and the platform killed the action with a 504 before the dispatcher could
+  answer. Pass `budgetMs` when a route allows less than 300 seconds.
 - Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
   `E2E_SKIP_AUTH`.
 - Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then
