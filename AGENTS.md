@@ -147,6 +147,18 @@ supabase/        migrations + local config
 
 ## Data and security rules
 
+- The Airbnb connection **invitation** is created outside this repository. Hospitable
+  has no API for it, so a Cloud Agent holding its own Hospitable session creates the
+  invitation and hands the URL back through `POST /api/onboarding/invites`, authenticated
+  with `INTERNAL_SEND_TOKEN`. `{ op: 'pending' }` returns the hosts waiting longest with
+  no invitation yet; `{ op: 'deliver', customerId, inviteUrl, source }` records it and
+  moves the host to `invite_sent` in one write. Every delivery writes a
+  `host_invite_delivered` analytics event naming the actor, so an invitation can always be
+  traced to whoever produced it. **No Hospitable session or password ever enters this
+  repository, the database or an environment variable here** — the agent holds it, and it
+  must be a dedicated Hospitable user with the narrowest role that can issue invitations,
+  never the owner account. Hospitable's OAuth2 vendor flow would replace this entirely and
+  is the better answer once approved; see `docs/DEPLOY.md`.
 - Properties are an **import-only mirror** of Hospitable. There is no manual
   property create or edit path. Do not add one.
 - `property_contacts` (conserjes, cleaning crew) is an **import-only mirror** of

@@ -3,6 +3,13 @@
 Compacted from `AGENTS.md` section "Data and security rules". These are hard
 rules. Do not add code paths that break them.
 
+- The Airbnb connection invitation is created outside this repository. Hospitable has
+  no API for it, so a Cloud Agent holding its own Hospitable session creates the
+  invitation and hands the URL back through `POST /api/onboarding/invites`, authenticated
+  with `INTERNAL_SEND_TOKEN`. Every delivery writes a `host_invite_delivered` event naming
+  the actor. No Hospitable session or password ever enters this repository, the database or
+  an environment variable here; the agent holds it, on a dedicated Hospitable user with the
+  narrowest role that can issue invitations, never the owner account.
 - Properties are an import-only mirror of Hospitable. No manual property
   create or edit path. Do not add one.
 - `property_contacts` (conserjes, cleaning crew) is an import-only mirror of
