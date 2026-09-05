@@ -9,6 +9,7 @@ import {
   handleReadUrl,
   type MediaEnv,
 } from '../../../workers/whatsapp/src/media';
+import { fromBase64Url, toBase64Url } from '../../../workers/whatsapp/src/crypto';
 
 const KEY = 'walkthrough/11111111-2222-4333-8444-555555555500/0123456789abcdef0123456789abcdef.mp4';
 const ORIGIN = 'https://worker.test';
@@ -63,6 +64,14 @@ const objectRequest = (init: { ticket?: string; query?: string }) =>
   new Request(`${ORIGIN}${CLEANING_MEDIA_OBJECT_PATH}${init.query ?? ''}`, {
     headers: init.ticket ? { [CLEANING_MEDIA_TICKET_HEADER]: init.ticket } : {},
   });
+
+function mangle(ticket: string): string {
+  const dot = ticket.indexOf('.');
+  const bytes = fromBase64Url(ticket.slice(dot + 1));
+  if (!bytes) throw new Error('ticket body is not base64url');
+  bytes[bytes.length - 1] ^= 0xff;
+  return `${ticket.slice(0, dot + 1)}${toBase64Url(bytes)}`;
+}
 
 function decodeAll(ticket: string): string {
   const body = ticket.slice(ticket.indexOf('.') + 1);
@@ -124,7 +133,8 @@ describe('cleaning media tickets', () => {
   it('refuses a mangled ticket and lets the browser send the ticket header', async () => {
     const medium = env();
     const { ticket } = await mint(medium);
-    const mangled = `${ticket.slice(0, -2)}xy`;
+    const mangled = mangle(ticket);
+    expect(mangled).not.toBe(ticket);
     expect((await handleObjectGet(objectRequest({ ticket: mangled }), medium)).status).toBe(401);
 
     const cors = corsHeaders(
