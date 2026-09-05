@@ -203,6 +203,41 @@ describe.runIf(LIVE)('agent memory', () => {
   });
 });
 
+describe('memory recall isolation', () => {
+  it('never offers a web lead conversation to a guest', async () => {
+    if (!LIVE) return;
+    const marker = `zafiro-${nodeCrypto.randomUUID().slice(0, 8)}`;
+
+    await store.writeDigest({
+      sessionId: `web-${marker}`,
+      operationId: `web-${marker}`,
+      surface: 'web',
+      propertyId: null,
+      threadId: null,
+      summary: `El anfitrion de ${marker} recibe 2.400.000 al mes y Luxel cobra 288.000.`,
+      facts: [],
+      outcome: 'resuelto',
+    });
+    await store.writeDigest({
+      sessionId: `guest-${marker}`,
+      operationId: `guest-${marker}`,
+      surface: 'guest',
+      propertyId: propertyA,
+      threadId: null,
+      summary: `El huesped de ${marker} pregunto por el wifi y se le entrego la clave.`,
+      facts: [],
+      outcome: 'resuelto',
+    });
+
+    const guestOnly = await store.searchDigests(null, marker, 10, 'guest');
+    expect(guestOnly.some((d) => d.summary.includes('huesped'))).toBe(true);
+    expect(guestOnly.some((d) => d.summary.includes('anfitrion'))).toBe(false);
+
+    const unfiltered = await store.searchDigests(null, marker, 10);
+    expect(unfiltered.some((d) => d.summary.includes('anfitrion'))).toBe(true);
+  });
+});
+
 describe('agent token', () => {
   it('rejects a tampered or expired token', () => {
     process.env.LUXEL_AGENT_TOKEN_SECRET = 'test-secret';

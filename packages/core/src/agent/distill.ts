@@ -4,6 +4,8 @@ import { propertyScopeKey } from './scope';
 import { accessSecrets, markDistilled, pendingDigests, upsertNote } from './store';
 import { MAX_PLAYBOOK_NOTES, PLAYBOOK_SCOPE, type ConversationDigest } from './types';
 
+const MAX_PROPERTY_NOTE_WRITES = 40;
+
 const SYSTEM = `Eres el bibliotecario de Servicios Luxel. Lees resúmenes de conversaciones de muchas propiedades y destilas dos cosas.
 
 1. Reglas globales: cómo debe comportarse Lux, válidas para cualquier propiedad. Solo patrones que se repiten. Máximo ${MAX_PLAYBOOK_NOTES}.
@@ -60,7 +62,7 @@ export async function distillPending(): Promise<{
       model: modelId(AI_MODEL),
       reasoning_effort: 'none',
       response_format: { type: 'json_object' },
-      max_completion_tokens: 2000,
+      max_completion_tokens: 6000,
       messages: [
         { role: 'system', content: SYSTEM },
         { role: 'user', content: corpus(digests) },
@@ -107,7 +109,7 @@ export async function distillPending(): Promise<{
   }
 
   let propertyNotes = 0;
-  for (const note of parsed.property) {
+  for (const note of parsed.property.slice(0, MAX_PROPERTY_NOTE_WRITES)) {
     if (typeof note?.propertyId !== 'string' || typeof note?.note !== 'string') continue;
     if (!knownProperties.has(note.propertyId)) continue;
     const secrets = await accessSecrets(note.propertyId);
