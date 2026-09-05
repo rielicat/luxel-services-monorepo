@@ -45,7 +45,7 @@ function viewFor(state: ConnectState): ConnectView {
   if (state.stage === 'needs_operator') return 'operator';
   if (state.stage === 'connecting' || state.stage === 'connected') return 'waiting';
   if (state.stage === 'no_listings') return 'no_listings';
-  if (state.stage === 'invite_sent' && state.inviteUrl) return 'invite';
+  if (state.stage === 'invite_sent') return 'invite';
   return state.requestedAt ? 'pending' : 'start';
 }
 
@@ -221,35 +221,39 @@ export function ConnectPanel({
             </>
           )}
 
-          {view === 'invite' && state.inviteUrl && (
+          {view === 'invite' && (
             <>
               <StageHead icon={ExternalLink} title={t('invite_title')} />
               <p className="text-sm">
                 {signupEmail ? t('invite_body', { email: signupEmail }) : t('invite_body_generic')}
               </p>
-              <Button asChild size="lg" className="justify-self-start">
-                <a href={state.inviteUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                  {t('invite_cta')}
-                </a>
-              </Button>
               <p className="text-muted-foreground text-xs">{t('invite_where')}</p>
-              <div className="border-border grid gap-2 rounded-xl border p-4">
-                <p className="text-sm">{t('invite_fallback')}</p>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    readOnly
-                    value={state.inviteUrl}
-                    aria-label={t('invite_link_label')}
-                    onFocus={(e) => e.currentTarget.select()}
-                    className="font-mono text-xs"
-                  />
-                  <Button type="button" variant="outline" onClick={onCopy} className="shrink-0">
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied ? t('invite_copied') : t('invite_copy')}
+              {state.inviteUrl && (
+                <>
+                  <Button asChild size="lg" className="justify-self-start">
+                    <a href={state.inviteUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                      {t('invite_cta')}
+                    </a>
                   </Button>
-                </div>
-              </div>
+                  <div className="border-border grid gap-2 rounded-xl border p-4">
+                    <p className="text-sm">{t('invite_fallback')}</p>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        readOnly
+                        value={state.inviteUrl}
+                        aria-label={t('invite_link_label')}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className="font-mono text-xs"
+                      />
+                      <Button type="button" variant="outline" onClick={onCopy} className="shrink-0">
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {copied ? t('invite_copied') : t('invite_copy')}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="border-border grid gap-2 border-t pt-4">
                 <p className="text-sm font-semibold">{t('invite_done_pre')}</p>
                 {verifyBlock(t('invite_done'))}

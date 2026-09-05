@@ -1,7 +1,6 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
 import { recordEvent } from '../analytics/store';
-import { emailConfigured, sendEmail } from '../email/send';
 import { getHostConnection, recordInvite } from './connection';
 
 export const INVITE_QUEUE_LIMIT = 25;
@@ -104,54 +103,46 @@ export async function hostsAwaitingInvite(limit: number): Promise<AwaitingHost[]
 
 export type InviteDelivery =
   | { ok: true; state: 'invite_sent' }
-  | { ok: false; error: 'unknown_customer' | 'already_connected' | 'write_failed' };
+  | { ok: false; error: 'unknown_customer' | 'invalid_url' | 'already_connected' | 'write_failed' };
 
 export async function deliverInvite(
   customerId: string,
-  inviteUrl: string,
+  inviteUrl: string | null,
   source: string,
 ): Promise<InviteDelivery> {
   const supabase = createSupabaseServiceRoleClient();
   const { data } = await supabase.from('customers').select('id').eq('id', customerId).maybeSingle();
   if (!data) return { ok: false, error: 'unknown_customer' };
 
+  const url = inviteUrl?.trim() || null;
+  if (url && !/^https:\/\/\S+$/.test(url)) return { ok: false, error: 'invalid_url' };
+
   const current = await getHostConnection(customerId);
   if (current && ['connected', 'no_listings'].includes(current.state)) {
     return { ok: false, error: 'already_connected' };
   }
 
-  if (!(await recordInvite(customerId, inviteUrl))) return { ok: false, error: 'write_failed' };
+  const written = url ? await recordInvite(customerId, url) : await markInviteSent(customerId);
+  if (!written) return { ok: false, error: 'write_failed' };
 
-  const emailed = await mailInvite(customerId, inviteUrl);
   await recordEvent({
     event: 'host_invite_delivered',
     customerId,
     distinctId: customerId,
-    properties: { actor: source, emailed },
+    properties: { actor: source, link: Boolean(url) },
     source: 'server',
   });
   return { ok: true, state: 'invite_sent' };
 }
 
-const INVITE_SUBJECT = 'Conecta tu Airbnb con Luxel';
-
-function inviteHtml(url: string): string {
-  return [
-    '<p>Ya está lista tu invitación para conectar tu Airbnb.</p>',
-    `<p><a href="${url}">Abrir la invitación</a></p>`,
-    '<p>Abres el enlace, inicias sesión en Airbnb y eliges tus propiedades. Nada que instalar.</p>',
-    '<p>Nunca te pedimos tu clave de Airbnb.</p>',
-  ].join('');
-}
-
-async function mailInvite(customerId: string, inviteUrl: string): Promise<boolean> {
-  if (!emailConfigured()) return false;
-  const { data } = await createSupabaseServiceRoleClient()
-    .from('customers')
-    .select('email')
-    .eq('id', customerId)
-    .maybeSingle();
-  const to = (data?.email as string | null) ?? null;
-  if (!to) return false;
-  return Boolean(await sendEmail({ to, subject: INVITE_SUBJECT, html: inviteHtml(inviteUrl) }));
+async function markInviteSent(customerId: string): Promise<boolean> {
+  const now = new Date().toISOString();
+  const { error } = await createSupabaseServiceRoleClient()
+    .from('host_connection')
+    .upsert(
+      { customer_id: customerId, state: 'invite_sent', invite_sent_at: now, updated_at: now },
+      { onConflict: 'customer_id' },
+    );
+  if (error) console.error('onboarding.invite_write_failed', { message: error.message });
+  return !error;
 }

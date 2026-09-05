@@ -124,6 +124,23 @@ describe.skipIf(!LIVE)('the invitation queue the agent works from', () => {
     expect(data!.properties).toMatchObject({ actor: 'cloud-agent' });
   });
 
+  it('takes a delivery with no link, because Hospitable mails the host itself', async () => {
+    const id = await seedHost('mailed');
+    await askToConnect(id);
+    const res = await call({ op: 'deliver', customerId: id, source: 'cloud-agent' });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, state: 'invite_sent' });
+
+    const { data: row } = await admin!
+      .from('host_connection')
+      .select('state, invite_url, invite_sent_at')
+      .eq('customer_id', id)
+      .maybeSingle();
+    expect(row!.state).toBe('invite_sent');
+    expect(row!.invite_url).toBeNull();
+    expect(row!.invite_sent_at).not.toBeNull();
+  });
+
   it('refuses an unknown customer, a non-https link and a host already connected', async () => {
     const unknown = await call({
       op: 'deliver',

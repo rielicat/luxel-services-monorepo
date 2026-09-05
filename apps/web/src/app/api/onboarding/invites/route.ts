@@ -17,7 +17,7 @@ const Body = z.union([
   z.object({
     op: z.literal('deliver'),
     customerId: z.string().uuid(),
-    inviteUrl: z.string().trim().url().max(2048).startsWith('https://'),
+    inviteUrl: z.string().trim().url().max(2048).startsWith('https://').optional(),
     source: z.string().trim().min(1).max(40).optional(),
   }),
 ]);
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 
   const result = await deliverInvite(
     parsed.data.customerId,
-    parsed.data.inviteUrl,
+    parsed.data.inviteUrl ?? null,
     parsed.data.source ?? 'agent',
   );
   if (!result.ok) {
