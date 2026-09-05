@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SUPPORT_EMAIL } from '@luxel/shared/constants';
-import { checkConnection, type ConnectError } from './connect-actions';
+import { askForConnection, checkConnection, type ConnectError } from './connect-actions';
 
 export type ConnectStage =
   | 'not_started'
@@ -32,18 +32,21 @@ export type ConnectStage =
 
 export type ConnectState = {
   stage: ConnectStage;
+  requestedAt: string | null;
   airbnbEmail: string | null;
   inviteUrl: string | null;
 };
 
-type ConnectView = 'pending' | 'invite' | 'waiting' | 'no_listings' | 'operator';
+type ConnectView = 'start' | 'pending' | 'invite' | 'waiting' | 'no_listings' | 'operator';
+
+const POLL_MS = 20_000;
 
 function viewFor(state: ConnectState): ConnectView {
   if (state.stage === 'needs_operator') return 'operator';
   if (state.stage === 'connecting' || state.stage === 'connected') return 'waiting';
   if (state.stage === 'no_listings') return 'no_listings';
   if (state.stage === 'invite_sent' && state.inviteUrl) return 'invite';
-  return 'pending';
+  return state.requestedAt ? 'pending' : 'start';
 }
 
 function StageHead({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
@@ -108,6 +111,32 @@ export function ConnectPanel({
             ? t('error_generic')
             : null;
 
+  const polled = useRef(false);
+  useEffect(() => {
+    if (view !== 'invite' && view !== 'pending') return;
+    const tick = async () => {
+      if (polled.current || document.hidden) return;
+      polled.current = true;
+      try {
+        const r = await checkConnection();
+        if (r.ok && r.connected) router.refresh();
+      } finally {
+        polled.current = false;
+      }
+    };
+    const id = window.setInterval(tick, POLL_MS);
+    return () => window.clearInterval(id);
+  }, [view, router]);
+
+  const onAsk = () => {
+    setError(null);
+    start(async () => {
+      const r = await askForConnection();
+      if (!r.ok) setError(r.error ?? 'store');
+      router.refresh();
+    });
+  };
+
   const onVerify = () => {
     setNotYet(false);
     setError(null);
@@ -152,7 +181,7 @@ export function ConnectPanel({
     <div className="grid gap-4">
       <Card>
         <CardContent className="grid gap-5 p-6 sm:p-8">
-          {view === 'pending' && (
+          {(view === 'start' || view === 'pending') && (
             <>
               <StageHead icon={Plug} title={t('title')} />
               <div className="grid gap-1.5 text-sm">
@@ -160,13 +189,30 @@ export function ConnectPanel({
                 <p className="text-muted-foreground">{t('intro_2')}</p>
               </div>
               <HowItWorks />
-              <div className="border-border grid gap-1.5 rounded-xl border p-4">
-                <p className="flex items-center gap-2 text-sm font-semibold">
-                  <Clock className="h-4 w-4 shrink-0" />
-                  {t('pending_title')}
-                </p>
-                <p className="text-sm">{t('pending_body')}</p>
-              </div>
+              {view === 'start' ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={pending}
+                  onClick={onAsk}
+                  className="justify-self-start"
+                >
+                  {pending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plug className="h-4 w-4" />
+                  )}
+                  {t('start_cta')}
+                </Button>
+              ) : (
+                <div className="border-border grid gap-1.5 rounded-xl border p-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    {t('pending_title')}
+                  </p>
+                  <p className="text-sm">{t('pending_body')}</p>
+                </div>
+              )}
               {errorText && (
                 <p role="alert" className="text-destructive text-sm">
                   {errorText}

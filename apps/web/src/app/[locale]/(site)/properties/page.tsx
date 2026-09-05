@@ -9,6 +9,7 @@ import {
   reconcileHospitableProperties,
   syncHospitableAccount,
 } from '@luxel/core/channels/hospitable-sync';
+import { connectionRequestedAt } from '@luxel/core/channels/onboarding-queue';
 import { getHostConnection } from '@luxel/core/channels/connection';
 import { PropertiesClient, type PropertyRow } from './properties-client';
 import type { ConnectState } from './connect-panel';
@@ -32,7 +33,12 @@ export default async function PropertiesPage() {
   let connection: HostConnection | null = null;
   let syncFailed = false;
   let centralManaged = false;
-  let connectState: ConnectState = { stage: 'not_started', airbnbEmail: null, inviteUrl: null };
+  let connectState: ConnectState = {
+    stage: 'not_started',
+    requestedAt: null,
+    airbnbEmail: null,
+    inviteUrl: null,
+  };
   if (customer) {
     connection = await fetchConnection(customer.id);
     const access = await hospitableAccess(customer.id);
@@ -69,6 +75,7 @@ export default async function PropertiesPage() {
     if (host) {
       connectState = {
         stage: host.state,
+        requestedAt: await connectionRequestedAt(customer.id),
         airbnbEmail: host.claimedAirbnbEmail,
         inviteUrl: host.inviteUrl,
       };
