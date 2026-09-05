@@ -34,7 +34,7 @@ let sendReplyDraft: (
 ) => Promise<{ ok: boolean; reason?: string }>;
 let simulateThreadReply: (
   threadId: string,
-) => Promise<{ ok: boolean; reason?: string; draft?: { id: string; body: string } }>;
+) => Promise<{ ok: boolean; reason?: string; pending?: boolean }>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
 let updatePropertyContext: (i: unknown) => Promise<{ ok: boolean }>;
 let customerId: string;
@@ -167,7 +167,7 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
 
     const sim = await simulateThreadReply(r.threadId!);
     expect(sim.ok).toBe(true);
-    expect(sim.draft!.id).not.toBe(r.draftId);
+    expect(sim.pending).toBe(true);
 
     const { data: drafts } = await admin
       .from('guest_reply_drafts')
@@ -176,6 +176,8 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
     const pending = drafts!.filter((d) => d.status === 'pending');
     expect(pending).toHaveLength(1);
     expect(pending[0].origin).toBe('simulation');
+    expect(pending[0].id).not.toBe(r.draftId);
+    expect(drafts!.find((d) => d.id === r.draftId)!.status).toBe('discarded');
 
     const { data: msgs } = await admin
       .from('guest_messages')
