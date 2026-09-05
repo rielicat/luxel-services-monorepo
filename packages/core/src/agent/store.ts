@@ -74,6 +74,7 @@ export async function searchDigests(
   propertyId: string | null,
   query: string,
   limit = MAX_PROPERTY_DIGESTS,
+  surface: Surface | null = null,
 ): Promise<{ id: string; summary: string }[]> {
   const supabase = db();
   const embedding = await embed(query);
@@ -82,6 +83,7 @@ export async function searchDigests(
     p_query: query.slice(0, 400),
     p_embedding: embedding,
     p_limit: limit,
+    p_surface: surface,
   });
   if (error) return [];
   return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
@@ -183,7 +185,7 @@ export async function writeDigest(input: {
   return true;
 }
 
-export async function pendingDigests(limit = 60): Promise<ConversationDigest[]> {
+export async function pendingDigests(limit = 30): Promise<ConversationDigest[]> {
   const { data } = await db()
     .from(DIGESTS)
     .select('id, session_id, surface, property_id, thread_id, summary, facts, outcome, created_at')

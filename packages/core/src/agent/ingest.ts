@@ -12,6 +12,7 @@ import {
 } from './thread-store';
 
 const MAX_THREADS_PER_RUN = 20;
+const MIN_MESSAGES = 2;
 
 const SYSTEM = `Lees una conversación real entre un huésped y Servicios Luxel, y la resumes para la memoria interna de Lux.
 
@@ -42,7 +43,7 @@ async function digestThread(
   openai: NonNullable<ReturnType<typeof getAgentModelClient>>,
 ): Promise<boolean> {
   const messages = await threadMessages(head.threadId);
-  if (messages.length < 2) return false;
+  if (messages.length < MIN_MESSAGES) return false;
 
   let parsed: { summary: string; facts: string[]; outcome: string };
   try {
@@ -94,7 +95,7 @@ export async function ingestThreads(): Promise<{
   threads: number;
   digests: number;
 }> {
-  const heads = await threadHeads();
+  const heads = (await threadHeads()).filter((head) => head.messages >= MIN_MESSAGES);
   const pending = await undigestedThreads(heads);
   if (!pending.length) return { ok: true, pending: 0, threads: 0, digests: 0 };
 

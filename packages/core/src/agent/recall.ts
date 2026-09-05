@@ -21,7 +21,7 @@ export async function recallProperty(propertyId: string, query: string): Promise
   const scopeKey = propertyScopeKey(propertyId);
   const [notes, digests, digestCount] = await Promise.all([
     searchNotes(scopeKey, query, MAX_PROPERTY_NOTES),
-    searchDigests(propertyId, query, MAX_PROPERTY_DIGESTS),
+    searchDigests(propertyId, query, MAX_PROPERTY_DIGESTS, 'guest'),
     countDigests(propertyId),
   ]);
 
@@ -36,7 +36,7 @@ export async function recallProperty(propertyId: string, query: string): Promise
 
   if (digestCount > 0) return [];
 
-  const global = await searchDigests(null, query, MAX_PROPERTY_DIGESTS);
+  const global = await searchDigests(null, query, MAX_PROPERTY_DIGESTS, 'guest');
   if (!global.length) return [];
   const body = [GLOBAL_FALLBACK_HEADING, ...global.map((digest) => `- ${digest.summary}`)].join(
     '\n',
