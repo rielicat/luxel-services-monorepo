@@ -111,10 +111,20 @@ export async function createAgentSession(
   return { ok: true, sessionId: json.sessionId };
 }
 
-export async function startAgentTurn(
-  input: Omit<DispatchInput, 'sessionId'>,
-): Promise<{ ok: boolean; sessionId?: string; reason?: TurnResult['reason'] }> {
-  if (devMock()) return { ok: true, sessionId: `mock-${Date.now()}` };
+export async function startAgentTurn(input: Omit<DispatchInput, 'sessionId'>): Promise<{
+  ok: boolean;
+  sessionId?: string;
+  reason?: TurnResult['reason'];
+  mocked?: { text: string; handoff: boolean };
+}> {
+  if (devMock()) {
+    const turn = mockTurn({ ...input, sessionId: null });
+    return {
+      ok: true,
+      sessionId: `mock-${Date.now()}`,
+      mocked: { text: turn.text ?? '', handoff: Boolean(turn.handoff) },
+    };
+  }
   return createAgentSession(input);
 }
 

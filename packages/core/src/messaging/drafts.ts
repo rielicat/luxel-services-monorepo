@@ -146,6 +146,13 @@ export async function simulateThreadReply(
     simulation: true,
   });
   if (!started.ok) return { ok: false, reason: started.reason ?? 'error' };
+  if (started.mocked) {
+    await recordSimulationOutcome({
+      threadId,
+      body: started.mocked.text,
+      handoff: started.mocked.handoff,
+    });
+  }
   return { ok: true, pending: true };
 }
 
