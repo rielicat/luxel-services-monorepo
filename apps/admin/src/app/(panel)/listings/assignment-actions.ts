@@ -140,7 +140,7 @@ export async function assignListingToCustomer(
     imported = r?.properties ?? 0;
   }
   revalidatePath('/properties');
-  revalidatePath('/admin/listings');
+  revalidatePath('/listings');
   return { ok: true, imported, importOk };
 }
 
@@ -158,7 +158,7 @@ export async function unassignListingFromCustomer(
   const ok = await unassignListing(p.data.externalListingId, p.data.expectedCustomerId);
   if (ok) {
     revalidatePath('/properties');
-    revalidatePath('/admin/listings');
+    revalidatePath('/listings');
   }
   return ok ? { ok: true } : { ok: false, error: 'stale' };
 }

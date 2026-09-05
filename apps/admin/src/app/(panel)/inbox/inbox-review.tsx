@@ -81,13 +81,18 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
     setNote(null);
     setError(null);
     start(async () => {
-      const result = await fn();
-      setBusy(null);
-      if (result.ok) {
-        setNote(okNote);
-        router.refresh();
-      } else {
-        setError(errorText(result.reason));
+      try {
+        const result = await fn();
+        if (result.ok) {
+          setNote(okNote);
+          router.refresh();
+        } else {
+          setError(errorText(result.reason));
+        }
+      } catch {
+        setError(errorText('timeout'));
+      } finally {
+        setBusy(null);
       }
     });
   };
@@ -97,18 +102,23 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
     setNote(null);
     setError(null);
     start(async () => {
-      const result = await syncInbox();
-      setBusy(null);
-      const sync = result.sync;
-      if (result.ok && sync) {
-        setNote(
-          sync.failed
-            ? t('synced_partial', { accounts: sync.accounts, failed: sync.failed })
-            : t('synced_ok', { accounts: sync.accounts }),
-        );
-        router.refresh();
-      } else {
-        setError(errorText(result.reason));
+      try {
+        const result = await syncInbox();
+        const sync = result.sync;
+        if (result.ok && sync) {
+          setNote(
+            sync.failed
+              ? t('synced_partial', { accounts: sync.accounts, failed: sync.failed })
+              : t('synced_ok', { accounts: sync.accounts }),
+          );
+          router.refresh();
+        } else {
+          setError(errorText(result.reason));
+        }
+      } catch {
+        setError(errorText('timeout'));
+      } finally {
+        setBusy(null);
       }
     });
   };
