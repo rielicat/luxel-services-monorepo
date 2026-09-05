@@ -48,6 +48,16 @@ async function seedHost(label: string): Promise<string> {
   return data.id as string;
 }
 
+async function askToConnect(customerId: string, at = '2020-01-02T00:00:00Z'): Promise<void> {
+  const { error } = await admin!
+    .from('host_connection')
+    .upsert(
+      { customer_id: customerId, state: 'not_started', requested_at: at },
+      { onConflict: 'customer_id' },
+    );
+  if (error) throw new Error(error.message);
+}
+
 beforeAll(async () => {
   if (!LIVE) return;
   ({ POST } = await import('../src/app/api/onboarding/invites/route'));
@@ -59,16 +69,22 @@ describe.skipIf(!LIVE)('the invitation queue the agent works from', () => {
     expect((await call({ op: 'pending' }, 'wrong-token')).status).toBe(401);
   });
 
-  it('lists the host who has waited longest, and no one already served', async () => {
-    const id = await seedHost('waiting');
+  it('lists only the hosts who asked to connect', async () => {
+    const silent = await seedHost('silent');
+    const asked = await seedHost('asked');
+    await askToConnect(asked);
+
     const res = await call({ op: 'pending' });
     expect(res.status).toBe(200);
     const { hosts } = (await res.json()) as { hosts: { customerId: string }[] };
-    expect(hosts.map((h) => h.customerId)).toContain(id);
+    const ids = hosts.map((h) => h.customerId);
+    expect(ids).toContain(asked);
+    expect(ids).not.toContain(silent);
   });
 
   it('records the invitation, moves the host to invite_sent and leaves the queue', async () => {
     const id = await seedHost('delivered');
+    await askToConnect(id);
     const url = 'https://app.hospitable.com/invite/abc123';
 
     const res = await call({ op: 'deliver', customerId: id, inviteUrl: url });
@@ -92,6 +108,7 @@ describe.skipIf(!LIVE)('the invitation queue the agent works from', () => {
 
   it('writes an audit event naming who delivered it', async () => {
     const id = await seedHost('audited');
+    await askToConnect(id);
     await call({
       op: 'deliver',
       customerId: id,
