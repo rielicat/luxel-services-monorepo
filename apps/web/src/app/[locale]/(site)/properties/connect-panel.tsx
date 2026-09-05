@@ -81,13 +81,7 @@ function HowItWorks() {
   );
 }
 
-export function ConnectPanel({
-  state,
-  signupEmail,
-}: {
-  state: ConnectState;
-  signupEmail: string | null;
-}) {
+export function ConnectPanel({ state }: { state: ConnectState }) {
   const t = useTranslations('connect');
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -211,9 +205,7 @@ export function ConnectPanel({
           {view === 'invite' && (
             <>
               <StageHead icon={ExternalLink} title={t('invite_title')} />
-              <p className="text-sm">
-                {signupEmail ? t('invite_body', { email: signupEmail }) : t('invite_body_generic')}
-              </p>
+              <p className="text-sm">{t('invite_body')}</p>
               <p className="text-muted-foreground text-xs">{t('invite_where')}</p>
               <div className="border-border grid gap-2 border-t pt-4">
                 <p className="text-sm font-semibold">{t('invite_done_pre')}</p>

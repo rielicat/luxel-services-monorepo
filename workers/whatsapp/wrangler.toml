@@ -10,7 +10,6 @@ enabled = true
 [vars]
 CLEANING_MEDIA_ORIGINS = "https://serviciosluxel.cl,https://www.serviciosluxel.cl"
 LUXEL_APP_URL = "https://serviciosluxel.cl"
-HOSPITABLE_UI_URL = "https://my.hospitable.com/"
 
 [[r2_buckets]]
 binding = "CLEANING_MEDIA"
@@ -21,11 +20,6 @@ preview_bucket_name = "luxel-cleaning-media-preview"
 name = "cleaning-review"
 binding = "CLEANING_REVIEW"
 class_name = "CleaningReviewWorkflow"
-
-[[workflows]]
-name = "hospitable-invite"
-binding = "HOSPITABLE_INVITE"
-class_name = "HospitableInviteWorkflow"
 
 [triggers]
 crons = ["23 4 * * *"]

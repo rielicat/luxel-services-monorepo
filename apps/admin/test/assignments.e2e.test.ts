@@ -363,7 +363,7 @@ describe.skipIf(!LIVE)('host connection attribution', () => {
   });
 
   it('attributes a listing through the Airbnb email the host claims', async () => {
-    const { claimAirbnbEmail, getHostConnection, recordInvite } =
+    const { claimAirbnbEmail, getHostConnection, markInviteSent, saveInviteUrl } =
       await import('@luxel/core/channels/connection');
     const { autoAssignListings } = await import('@luxel/core/channels/auto-assign');
 
@@ -371,7 +371,8 @@ describe.skipIf(!LIVE)('host connection attribution', () => {
     const claim = await claimAirbnbEmail(claimant, '  Claim-Airbnb@Test.CL  ');
     expect(claim.ok).toBe(true);
     expect(claim.conflict).toBe(false);
-    expect(await recordInvite(claimant, 'https://my.hospitable.com/invite/abc')).toBe(true);
+    expect(await saveInviteUrl(claimant, 'https://my.hospitable.com/invite/abc')).toBe(true);
+    expect(await markInviteSent(claimant)).toBe(true);
 
     expect((await autoAssignListings()).ok).toBe(true);
 
@@ -393,15 +394,17 @@ describe.skipIf(!LIVE)('host connection attribution', () => {
     const { claimAirbnbEmail, getHostConnection } = await import('@luxel/core/channels/connection');
     const { autoAssignListings } = await import('@luxel/core/channels/auto-assign');
 
-    const { recordInvite } = await import('@luxel/core/channels/connection');
+    const { markInviteSent, saveInviteUrl } = await import('@luxel/core/channels/connection');
     const first = await makeCustomer('dupe-a@test.cl');
     const second = await makeCustomer('dupe-b@test.cl');
     expect((await claimAirbnbEmail(first, 'dupe-airbnb@test.cl')).conflict).toBe(false);
-    expect(await recordInvite(first, 'https://my.hospitable.com/invite/dupe-a')).toBe(true);
+    expect(await saveInviteUrl(first, 'https://my.hospitable.com/invite/dupe-a')).toBe(true);
+    expect(await markInviteSent(first)).toBe(true);
     const rival = await claimAirbnbEmail(second, 'DUPE-AIRBNB@test.cl');
     expect(rival.conflict).toBe(true);
     expect(rival.state).toBe('needs_operator');
-    expect(await recordInvite(second, 'https://my.hospitable.com/invite/dupe-b')).toBe(true);
+    expect(await saveInviteUrl(second, 'https://my.hospitable.com/invite/dupe-b')).toBe(true);
+    expect(await markInviteSent(second)).toBe(true);
 
     EXTRA_PROPERTIES.push(listingWith(LISTING_DUPE, 'dupe-airbnb@test.cl', 'u_dupe'));
     expect((await autoAssignListings()).ok).toBe(true);
@@ -436,9 +439,10 @@ describe.skipIf(!LIVE)('host connection attribution', () => {
 
   it('verify() tells a connection with no listings apart from nothing found', async () => {
     const { verifyConnection } = await import('@luxel/core/channels/connection');
-    const { recordInvite } = await import('@luxel/core/channels/connection');
+    const { markInviteSent, saveInviteUrl } = await import('@luxel/core/channels/connection');
     const lonely = await makeCustomer('lonely@test.cl');
-    expect(await recordInvite(lonely, 'https://my.hospitable.com/invite/lonely')).toBe(true);
+    expect(await saveInviteUrl(lonely, 'https://my.hospitable.com/invite/lonely')).toBe(true);
+    expect(await markInviteSent(lonely)).toBe(true);
 
     const nothing = await verifyConnection(lonely);
     expect(nothing.ok).toBe(true);

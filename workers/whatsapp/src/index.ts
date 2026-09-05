@@ -10,7 +10,6 @@ import {
   CLEANING_MEDIA_UPLOAD_URL_PATH,
 } from '@luxel/shared/cleaning-media';
 import { CLEANING_REVIEW_START_PATH } from '@luxel/shared/cleaning-review';
-import { HOSPITABLE_INVITE_START_PATH } from '@luxel/shared/hospitable-invite';
 import { timingSafeEqual } from './crypto';
 import {
   handleObjectGet,
@@ -22,10 +21,9 @@ import {
   type MediaEnv,
 } from './media';
 import { driveQueuedReviews, handleReviewStart, type ReviewEnv } from './review';
-import { handleInviteStart, inviteConfigured, startInviteInstance, type InviteEnv } from './invite';
 import { runNightlyDistill } from './distill';
 
-interface Env extends MediaEnv, ReviewEnv, InviteEnv {
+interface Env extends MediaEnv, ReviewEnv {
   WHATSAPP_VERIFY_TOKEN: string;
   WHATSAPP_APP_SECRET: string;
   WHATSAPP_ACCESS_TOKEN: string;
@@ -397,9 +395,6 @@ export default {
     if (url.pathname === CLEANING_REVIEW_START_PATH && req.method === 'POST') {
       return handleReviewStart(req, env);
     }
-    if (url.pathname === HOSPITABLE_INVITE_START_PATH && req.method === 'POST') {
-      return handleInviteStart(req, env);
-    }
     if (url.pathname === CLEANING_MEDIA_OBJECT_PATH) {
       if (req.method === 'OPTIONS') return handleObjectPreflight(env, req);
       if (req.method === 'PUT') return handleObjectPut(req, env);
@@ -459,15 +454,6 @@ export default {
         })
         .catch((err) => console.error('cleaning.review_sweep_failed', err)),
     );
-    if (inviteConfigured(env)) {
-      ctx.waitUntil(
-        startInviteInstance(env, 'cron')
-          .then((started) => {
-            if (started?.started) console.warn('onboarding.invite_swept', started);
-          })
-          .catch((err) => console.error('onboarding.invite_sweep_failed', err)),
-      );
-    }
     ctx.waitUntil(
       runNightlyDistill(env)
         .then((result) => {
@@ -479,4 +465,3 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 export { CleaningReviewWorkflow } from './review-workflow';
-export { HospitableInviteWorkflow } from './invite-workflow';

@@ -88,7 +88,6 @@ export default async function PropertiesPage() {
       initial={properties}
       connection={connection}
       connectState={connectState}
-      signupEmail={(customer?.email as string | null) ?? null}
       syncFailed={syncFailed}
       centralManaged={centralManaged}
     />

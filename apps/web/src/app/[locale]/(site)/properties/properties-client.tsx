@@ -58,14 +58,12 @@ export function PropertiesClient({
   initial,
   connection,
   connectState,
-  signupEmail = null,
   syncFailed,
   centralManaged = false,
 }: {
   initial: PropertyRow[];
   connection: HostConnection | null;
   connectState: ConnectState;
-  signupEmail?: string | null;
   syncFailed?: boolean;
   centralManaged?: boolean;
 }) {
@@ -94,7 +92,7 @@ export function PropertiesClient({
         )}
 
         {initial.length === 0 ? (
-          <ConnectPanel state={connectState} signupEmail={signupEmail} />
+          <ConnectPanel state={connectState} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {initial.map((p) => (

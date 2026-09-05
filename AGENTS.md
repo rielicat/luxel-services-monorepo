@@ -155,40 +155,26 @@ supabase/        migrations + local config
 
 ## Data and security rules
 
-- The Airbnb connection **invitation** has no API. An agent drives the
-  Hospitable web interface instead. That agent is the Cloudflare Workflow
-  `hospitable-invite` in `workers/whatsapp`, and Firecrawl runs the browser. A
-  host presses Connect. `requestConnection` stamps `requested_at` and calls
-  `POST /hospitable-invite/start` on the worker. The nightly cron starts the
-  same Workflow for anyone that call missed. The instance id is a five minute
-  bucket, so many clicks collapse into one run. The Workflow reads the queue
-  with `{ op: 'pending' }`, opens one Firecrawl session on the fixed profile
-  `luxel-hospitable`, signs in only when the profile came back signed out, sends
-  one invitation per host, **reads the invitation list back**, and only then
-  posts `{ op: 'deliver', customerId, source }`. Nothing is recorded as
-  delivered that was not seen in that list, so a silent no-op never marks a host
-  invited. `INTERNAL_SEND_TOKEN` authenticates both directions. Every delivery
-  writes a `host_invite_delivered` analytics event that names the actor. That
-  event traces an invitation back to whoever produced it.
-- The Hospitable interface credential lives in **Cloudflare secrets only**:
-  `HOSPITABLE_UI_EMAIL`, `HOSPITABLE_UI_PASSWORD` and `FIRECRAWL_API_KEY`, set
-  with `wrangler secret put`. It never enters the repository, the database, a
-  Vercel variable or a log. It must belong to a dedicated Hospitable user with
-  the narrowest role that can issue an invitation. Never the owner account.
-  Firecrawl keeps the signed-in state as a named profile, so a third party holds
-  a standing Hospitable session. Firecrawl documents no retention, no encryption
-  and no deletion for a profile. The password reaches Firecrawl only on a run
-  that has to sign in again. A second factor on that account stops the agent:
-  the Workflow answers `blocked` and invites nobody. Hospitable's OAuth2 vendor
-  flow replaces all of this and is the better answer once Hospitable approves
-  it; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
-- A host's name and email reach the browser agent inside a prompt. Flatten both
-  first with `inviteName` and `inviteEmail` from
-  `@luxel/shared/hospitable-invite`. A host writes their own name, so raw text
-  in a prompt is an instruction the agent could follow. Never pass raw customer
-  text to the agent. Never log a Firecrawl `cdpUrl`, `liveViewUrl` or
-  `interactiveLiveViewUrl`: each one is a live handle on a browser signed in to
-  Hospitable.
+- A Luxel operator arranges the Airbnb connection with the host **on a call**.
+  Hospitable has no API for the connection invitation. The operator creates the
+  invitation in the Hospitable dashboard during that call. The operator then
+  records the link at `/connections` in `apps/admin` (`saveInviteLink` →
+  `saveInviteUrl`) and marks it sent (`markInviteSent`). No code creates an
+  invitation. **Do not add an automated invitation path, a queue endpoint or a
+  browser agent.** That was tried and removed: the decision to co-host, the
+  payout split and the plan are agreed on the call, and a bot cannot hold that
+  conversation. **No Hospitable session or password enters this repository, the
+  database or an environment variable here.**
+- `host_connection.invite_url` is also the **vouch**. `claimedEmailOwners`
+  trusts a claimed Airbnb email only when that column is set
+  (`ownersByColumn`, `vouchedOnly`), so an operator must record the link before
+  a claimed email can attribute a listing. `matchableEmails` is the one place
+  that rule lives. `verifyConnection` and the operator console both call it, so
+  the panel can never show a match the verifier would refuse. Never widen the
+  vouch to `claimed_at`: `claimAirbnbEmail` writes that on every claim, which
+  would let a host claim any listing by typing an email. Hospitable's OAuth2
+  vendor flow replaces this whole design. It is the better answer once
+  Hospitable approves it; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - Properties are an **import-only mirror** of Hospitable. There is no manual
   property create or edit path. Do not add one.
 - `property_contacts` (conserjes, cleaning crew) is an **import-only mirror** of
@@ -551,6 +537,19 @@ by pointing both at one instance.
   about. A production instance also starts with an **empty user pool** and an
   empty organization list. Dev-instance accounts do not migrate. Recreate
   `LUXEL_ADMIN_ORG_ID`/`SLUG` there before `apps/admin` moves over.
+- Promoting Clerk to production **orphans every existing host**. `customers`
+  keys on `clerk_user_id`, which is unique. The same person signing in on the
+  production instance arrives with a new `user_...` id, so
+  `getOrCreateCustomer` inserts a **second** `customers` row with the same
+  email and a new uuid. `listing_assignments` and `properties.owner_id` still
+  point at the first row, so the host sees no properties and the connect panel
+  starts over. The duplicate also poisons `autoAssignListings`: two rows share
+  the email, `signupEmailOwners` returns two owners, the listing is ambiguous
+  and the host is sent to `needs_operator`. The fix is one write, never a code
+  change: move the **original** row onto the new `clerk_user_id` and delete the
+  duplicate. Keeping the original uuid keeps every assignment, property,
+  check-in and plan row valid. Never fall back to matching a customer by email:
+  `customers.email` is not unique and is not an identity.
 - Hospitable's calendar endpoint clamps `start_date` to the first day of the
   running month. A request for an earlier date silently returns the same
   window, so the previous month can only come from the mirrored

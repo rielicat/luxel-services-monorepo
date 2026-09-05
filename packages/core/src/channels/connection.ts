@@ -244,18 +244,6 @@ export async function markInviteSent(customerId: string): Promise<boolean> {
   return transition(customerId, 'invite_sent');
 }
 
-export async function recordInvite(customerId: string, inviteUrl: string): Promise<boolean> {
-  const url = inviteUrl.trim();
-  if (!/^https:\/\/\S+$/.test(url)) return false;
-  const current = await getHostConnection(customerId);
-  const state: HostConnectionState =
-    current && ['connected', 'no_listings'].includes(current.state) ? current.state : 'invite_sent';
-  return transition(customerId, state, {
-    invite_url: url,
-    invite_sent_at: new Date().toISOString(),
-  });
-}
-
 export async function setOperatorNote(customerId: string, note: string): Promise<boolean> {
   return write(customerId, { operator_note: note.trim() || null });
 }
@@ -299,11 +287,29 @@ export interface VerifyResult {
   channelUserId: string | null;
 }
 
+export interface MatchableEmailInput {
+  signupEmail: string | null;
+  claimedEmail: string | null;
+  inviteUrl: string | null;
+}
+
+export function matchableEmails(input: MatchableEmailInput): string[] {
+  const out: string[] = [];
+  const signup = normalizeChannelEmail(input.signupEmail);
+  if (signup) out.push(signup);
+  const claimed = input.inviteUrl ? normalizeChannelEmail(input.claimedEmail) : null;
+  if (claimed && claimed !== signup) out.push(claimed);
+  return out;
+}
+
 async function knownEmails(customerId: string, current: HostConnection): Promise<Set<string>> {
-  const candidates = new Set<string>();
-  const signup = await customerEmail(customerId);
-  if (signup) candidates.add(signup);
-  if (current.claimedAirbnbEmail && current.inviteUrl) candidates.add(current.claimedAirbnbEmail);
+  const candidates = new Set(
+    matchableEmails({
+      signupEmail: await customerEmail(customerId),
+      claimedEmail: current.claimedAirbnbEmail,
+      inviteUrl: current.inviteUrl,
+    }),
+  );
 
   const out = new Set<string>();
   for (const email of candidates) {

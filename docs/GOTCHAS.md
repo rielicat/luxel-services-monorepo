@@ -71,6 +71,13 @@ session. Do not point both at one instance.
   records are Pulumi's (`clerkMailHash` in `infra/cloudflare/Pulumi.prod.yaml`);
   never use Clerk's "Configure automatically" flow. A production instance also
   starts with an empty user pool and no organizations.
+- Promoting Clerk to production orphans every existing host. `customers` keys on
+  the unique `clerk_user_id`, so the same person signing in on the production
+  instance gets a second row with the same email and a new uuid. Assignments and
+  `properties.owner_id` still point at the first row, so the host sees nothing,
+  and the duplicate email makes `autoAssignListings` ambiguous. Fix it with one
+  write: move the original row onto the new `clerk_user_id` and delete the
+  duplicate. Never match a customer by email; it is not unique.
 - Keep Clerk Organizations optional on the instance. Admin gating is
   app-level.
 - Hospitable's calendar endpoint clamps `start_date` to the first day of the

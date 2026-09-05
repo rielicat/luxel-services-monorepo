@@ -1,5 +1,5 @@
 import { Link2 } from 'lucide-react';
-import { normalizeChannelEmail } from '@luxel/core/channels/hospitable';
+import { matchableEmails } from '@luxel/core/channels/connection';
 import { hostConnectNudgeText } from '@luxel/core/whatsapp/nudge';
 import { createServiceClient } from '@/lib/supabase';
 import { fmtDateTime, relativeTime } from '@/lib/utils';
@@ -12,7 +12,6 @@ import {
   saveClaimedEmail,
   saveConnectionNote,
   saveInviteLink,
-  sendConnectionNudge,
 } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -47,11 +46,6 @@ const ERROR_MESSAGE: Record<string, string> = {
     'Otro anfitrión ya usa ese correo de Airbnb. Lo dejamos en "necesita operador" para que lo revises.',
   write_failed: 'No pudimos guardar el cambio. Revisa los registros del servidor.',
   no_invite: 'Primero guarda el link de la invitación.',
-  no_phone: 'Este anfitrión no tiene teléfono guardado.',
-  bridge_off: 'El puente de WhatsApp no está configurado en el panel.',
-  template_not_approved:
-    'Falta aprobar la plantilla de WhatsApp para este recordatorio. Mándalo a mano con el texto de abajo.',
-  send_failed: 'No se pudo enviar el recordatorio por WhatsApp.',
   hospitable_off: 'Falta PROVIDER_API_KEY en el panel: no podemos preguntarle a Hospitable.',
   hospitable_failed: 'Hospitable no respondió. Prueba de nuevo en un momento.',
   assign_failed: 'No se pudo asignar el listing. Puede que ya tenga dueño.',
@@ -65,7 +59,6 @@ const OK_MESSAGE: Record<string, string> = {
   verified: 'Revisamos Hospitable con el token de Luxel.',
   assigned: 'Listing asignado al anfitrión.',
   note_saved: 'Nota guardada.',
-  nudged: 'Recordatorio enviado por WhatsApp.',
 };
 
 type CentralView = Awaited<ReturnType<typeof loadCentralView>>;
@@ -105,7 +98,6 @@ interface HostView {
   inviteSentAt: string | null;
   note: string | null;
   lastCheckedAt: string | null;
-  lastNudgeAt: string | null;
   planStatus: string | null;
   listings: number;
   candidates: CentralListing[];
@@ -184,7 +176,7 @@ async function getConsole(): Promise<ConsoleData> {
   const supabase = createServiceClient();
   const central = await loadCentralView();
 
-  const [customersRes, connectionsRes, assignmentsRes, plansRes, eventsRes] = await Promise.all([
+  const [customersRes, connectionsRes, assignmentsRes, plansRes] = await Promise.all([
     supabase
       .from('customers')
       .select('id, email, full_name, phone, created_at')
@@ -198,12 +190,6 @@ async function getConsole(): Promise<ConsoleData> {
       .limit(500),
     supabase.from('listing_assignments').select('external_listing_id, customer_id').limit(1000),
     supabase.from('plan_subscriptions').select('customer_id, status').limit(500),
-    supabase
-      .from('analytics_events')
-      .select('customer_id, event, created_at')
-      .eq('event', 'host_connect_nudge')
-      .order('created_at', { ascending: false })
-      .limit(500),
   ]);
 
   if (customersRes.error) {
@@ -247,26 +233,17 @@ async function getConsole(): Promise<ConsoleData> {
     if (!planByCustomer.has(row.customer_id)) planByCustomer.set(row.customer_id, row.status);
   }
 
-  const nudgeByCustomer = new Map<string, string>();
-  for (const row of (eventsRes.data ?? []) as unknown as {
-    customer_id: string | null;
-    created_at: string;
-  }[]) {
-    if (row.customer_id && !nudgeByCustomer.has(row.customer_id)) {
-      nudgeByCustomer.set(row.customer_id, row.created_at);
-    }
-  }
-
   const orphans = central.listings.filter((listing) => !owned.has(listing.id));
 
   const hosts: HostView[] = customers.map((customer) => {
     const row = connections.get(customer.id);
     const listings = listingsByOwner.get(customer.id)?.length ?? 0;
     const emails = new Set(
-      [
-        normalizeChannelEmail(customer.email),
-        normalizeChannelEmail(row?.claimed_airbnb_email),
-      ].filter((e): e is string => Boolean(e)),
+      matchableEmails({
+        signupEmail: customer.email,
+        claimedEmail: row?.claimed_airbnb_email ?? null,
+        inviteUrl: row?.invite_url ?? null,
+      }),
     );
     const candidates = orphans.filter((listing) =>
       listing.airbnbEmails.some((email) => emails.has(email)),
@@ -291,7 +268,6 @@ async function getConsole(): Promise<ConsoleData> {
       inviteSentAt: row?.invite_sent_at ?? null,
       note: row?.operator_note ?? null,
       lastCheckedAt: row?.last_checked_at ?? null,
-      lastNudgeAt: nudgeByCustomer.get(customer.id) ?? null,
       planStatus: planByCustomer.get(customer.id) ?? null,
       listings,
       candidates,
@@ -399,7 +375,6 @@ function HostCard({
             </div>
             <div className="text-muted-foreground">
               {host.lastCheckedAt ? `Revisado ${relativeTime(host.lastCheckedAt)}` : 'Sin revisar'}
-              {host.lastNudgeAt ? ` · recordado ${relativeTime(host.lastNudgeAt)}` : ''}
             </div>
           </div>
         </div>
@@ -468,10 +443,6 @@ function HostCard({
             <button className={ghostButton} disabled={!central.configured}>
               Re-verificar en Hospitable
             </button>
-          </form>
-          <form action={sendConnectionNudge}>
-            <input type="hidden" name="customerId" value={host.id} />
-            <button className={ghostButton}>Recordar por WhatsApp</button>
           </form>
           {waLink && (
             <a className={ghostButton} href={waLink} target="_blank" rel="noreferrer">

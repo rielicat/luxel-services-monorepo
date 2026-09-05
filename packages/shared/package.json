@@ -18,8 +18,7 @@
     "./constants": "./src/constants.ts",
     "./document": "./src/document.ts",
     "./plan-pricing": "./src/plan-pricing.ts",
-    "./hospitable-calendar": "./src/hospitable-calendar.ts",
-    "./hospitable-invite": "./src/hospitable-invite.ts"
+    "./hospitable-calendar": "./src/hospitable-calendar.ts"
   },
   "scripts": {
     "lint": "eslint .",

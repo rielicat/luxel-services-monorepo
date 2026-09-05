@@ -55,30 +55,12 @@ These are external accounts. The code cannot provision them:
    access. Author the time-based guest messages as message rules. See
    [`ENV.md`](./ENV.md) § Scheduled guest messages.
 
-   The Airbnb connection **invitation** has no API. The Cloudflare Workflow
-   `hospitable-invite` creates it in the Hospitable dashboard through Firecrawl,
-   then posts the delivery to
-   `https://serviciosluxel.cl/api/onboarding/invites` with `INTERNAL_SEND_TOKEN`.
-   Four operator steps:
-   - Create a dedicated Hospitable user for the agent. Give it the narrowest
-     role that can issue an invitation. Never give it the owner account.
-   - Turn two-factor authentication **off** on that user, or the agent cannot
-     sign in. The Workflow answers `blocked` and invites nobody. There is no
-     automated path through a second factor.
-   - `wrangler secret put HOSPITABLE_UI_EMAIL`, `HOSPITABLE_UI_PASSWORD` and
-     `FIRECRAWL_API_KEY` on `luxel-whatsapp-webhook`. Nowhere else. No Vercel
-     variable, no repository file, no database row.
-   - Confirm `HOSPITABLE_UI_URL` in `wrangler.toml` opens the dashboard for that
-     user. It is the page the agent starts from.
-
-   Firecrawl keeps the signed-in state in the named profile `luxel-hospitable`,
-   so the password only leaves the worker on a run that has to sign in again.
-   That also means Firecrawl holds a standing Hospitable session, and Firecrawl
-   documents no retention or deletion for a profile. Ask them before this runs
-   against real hosts. Hospitable's Subscription Agreement limits automation by
-   request rate, not by kind; get their written agreement as well. Hospitable's
-   OAuth2 vendor flow replaces this step. Apply for it, and retire the agent
-   once Hospitable approves it.
+   The Airbnb connection **invitation** has no API. A Luxel operator creates it
+   in the Hospitable dashboard, on a call with the host. The operator records the
+   link at `/connections` in `apps/admin` and marks it sent. No Hospitable
+   password enters this repository, the database or an environment variable.
+   Hospitable's OAuth2 vendor flow replaces this step. Apply for it, and retire
+   the manual step once Hospitable approves it.
 
 4. **Model access** — one credential covers everything. On Vercel the project's
    OIDC authenticates the AI Gateway, so nothing to set. Off Vercel, set

@@ -21,7 +21,6 @@ import {
   normalizeChannelEmail,
   normalizeChannelUserId,
 } from '@luxel/core/channels/hospitable';
-import { sendHostConnectNudge } from '@luxel/core/whatsapp/nudge';
 import { requireAdmin } from '@/lib/admin';
 import { createServiceClient } from '@/lib/supabase';
 
@@ -270,41 +269,4 @@ export async function reverifyConnection(formData: FormData): Promise<void> {
     listings: result.listings,
   });
   redirect(back(customerId, { ok: 'verified', state: result.state }));
-}
-
-export async function sendConnectionNudge(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
-  const customerId = String(formData.get('customerId') ?? '');
-  if (!admin) redirect(back(customerId, { error: 'denied' }));
-
-  const parsed = CustomerSchema.safeParse({ customerId });
-  if (!parsed.success) redirect(back(customerId, { error: 'invalid' }));
-
-  const supabase = createServiceClient();
-  const customerRes = await supabase
-    .from('customers')
-    .select('phone, full_name, email')
-    .eq('id', customerId)
-    .maybeSingle();
-  const connection = await getHostConnection(customerId);
-  if (customerRes.error || !connection) redirect(back(customerId, { error: 'write_failed' }));
-
-  const customer = (customerRes.data ?? null) as {
-    phone?: string | null;
-    full_name?: string | null;
-    email?: string | null;
-  } | null;
-
-  const result = await sendHostConnectNudge({
-    fullName: customer?.full_name ?? null,
-    email: customer?.email ?? null,
-    phone: customer?.phone ?? null,
-    inviteUrl: connection.inviteUrl ?? '',
-  });
-
-  await operatorEvent(customerId, 'host_connect_nudge', {
-    outcome: result.ok ? 'sent' : result.reason,
-  });
-  revalidatePath('/connections');
-  redirect(back(customerId, result.ok ? { ok: 'nudged' } : { error: result.reason }));
 }

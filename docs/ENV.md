@@ -133,13 +133,6 @@ Set with `wrangler secret put`, not in Vercel:
 templates below must exist and be approved on the same WhatsApp Business
 account.
 
-The same worker runs the Airbnb invitation agent, so it also takes
-`FIRECRAWL_API_KEY`, `HOSPITABLE_UI_EMAIL` and `HOSPITABLE_UI_PASSWORD`. Set
-all three with `wrangler secret put` and nowhere else. Leave any of them unset
-and the Workflow answers `unconfigured`, opens no browser session and costs
-nothing; a host then waits for an operator. The entry page is
-`HOSPITABLE_UI_URL` in `wrangler.toml`, which is configuration, not a secret.
-
 `INTERNAL_SEND_TOKEN` now runs in both directions. The web app authenticates to
 the worker with it, and the worker authenticates back to the web app with it on
 `POST /api/cleaning/review`. One value, set in both places.
