@@ -37,7 +37,6 @@ export default async function PropertiesPage() {
     stage: 'not_started',
     requestedAt: null,
     airbnbEmail: null,
-    inviteUrl: null,
   };
   if (customer) {
     connection = await fetchConnection(customer.id);
@@ -77,7 +76,6 @@ export default async function PropertiesPage() {
         stage: host.state,
         requestedAt: await connectionRequestedAt(customer.id),
         airbnbEmail: host.claimedAirbnbEmail,
-        inviteUrl: host.inviteUrl,
       };
     }
     if (properties.length && connectState.stage !== 'needs_operator') {

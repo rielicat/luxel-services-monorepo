@@ -85,9 +85,8 @@ describe.skipIf(!LIVE)('the invitation queue the agent works from', () => {
   it('records the invitation, moves the host to invite_sent and leaves the queue', async () => {
     const id = await seedHost('delivered');
     await askToConnect(id);
-    const url = 'https://app.hospitable.com/invite/abc123';
 
-    const res = await call({ op: 'deliver', customerId: id, inviteUrl: url });
+    const res = await call({ op: 'deliver', customerId: id });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, state: 'invite_sent' });
 
@@ -97,7 +96,7 @@ describe.skipIf(!LIVE)('the invitation queue the agent works from', () => {
       .eq('customer_id', id)
       .maybeSingle();
     expect(row!.state).toBe('invite_sent');
-    expect(row!.invite_url).toBe(url);
+    expect(row!.invite_url).toBeNull();
     expect(row!.invite_sent_at).not.toBeNull();
 
     const after = (await (await call({ op: 'pending' })).json()) as {
@@ -112,7 +111,6 @@ describe.skipIf(!LIVE)('the invitation queue the agent works from', () => {
     await call({
       op: 'deliver',
       customerId: id,
-      inviteUrl: 'https://app.hospitable.com/invite/xyz',
       source: 'cloud-agent',
     });
     const { data } = await admin!
@@ -124,50 +122,18 @@ describe.skipIf(!LIVE)('the invitation queue the agent works from', () => {
     expect(data!.properties).toMatchObject({ actor: 'cloud-agent' });
   });
 
-  it('takes a delivery with no link, because Hospitable mails the host itself', async () => {
-    const id = await seedHost('mailed');
-    await askToConnect(id);
-    const res = await call({ op: 'deliver', customerId: id, source: 'cloud-agent' });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, state: 'invite_sent' });
-
-    const { data: row } = await admin!
-      .from('host_connection')
-      .select('state, invite_url, invite_sent_at')
-      .eq('customer_id', id)
-      .maybeSingle();
-    expect(row!.state).toBe('invite_sent');
-    expect(row!.invite_url).toBeNull();
-    expect(row!.invite_sent_at).not.toBeNull();
-  });
-
-  it('refuses an unknown customer, a non-https link and a host already connected', async () => {
-    const unknown = await call({
-      op: 'deliver',
-      customerId: nodeCrypto.randomUUID(),
-      inviteUrl: 'https://app.hospitable.com/invite/nope',
-    });
+  it('refuses an unknown customer and a host already connected', async () => {
+    const unknown = await call({ op: 'deliver', customerId: nodeCrypto.randomUUID() });
     expect(unknown.status).toBe(404);
 
     const id = await seedHost('guarded');
-    const insecure = await call({
-      op: 'deliver',
-      customerId: id,
-      inviteUrl: 'http://app.hospitable.com/invite/plain',
-    });
-    expect(insecure.status).toBe(400);
-
     await admin!
       .from('host_connection')
       .upsert(
         { customer_id: id, state: 'connected', connected_at: new Date().toISOString() },
         { onConflict: 'customer_id' },
       );
-    const settled = await call({
-      op: 'deliver',
-      customerId: id,
-      inviteUrl: 'https://app.hospitable.com/invite/late',
-    });
+    const settled = await call({ op: 'deliver', customerId: id });
     expect(settled.status).toBe(409);
     expect(await settled.json()).toEqual({ ok: false, error: 'already_connected' });
   });

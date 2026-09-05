@@ -17,7 +17,6 @@ const Body = z.union([
   z.object({
     op: z.literal('deliver'),
     customerId: z.string().uuid(),
-    inviteUrl: z.string().trim().url().max(2048).startsWith('https://').optional(),
     source: z.string().trim().min(1).max(40).optional(),
   }),
 ]);
@@ -44,11 +43,7 @@ export async function POST(req: Request) {
     return Response.json({ hosts }, { headers: noStore });
   }
 
-  const result = await deliverInvite(
-    parsed.data.customerId,
-    parsed.data.inviteUrl ?? null,
-    parsed.data.source ?? 'agent',
-  );
+  const result = await deliverInvite(parsed.data.customerId, parsed.data.source ?? 'agent');
   if (!result.ok) {
     const status = result.error === 'unknown_customer' ? 404 : 409;
     return Response.json(result, { status, headers: noStore });

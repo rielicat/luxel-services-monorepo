@@ -1,7 +1,7 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
 import { recordEvent } from '../analytics/store';
-import { getHostConnection, recordInvite } from './connection';
+import { getHostConnection } from './connection';
 
 export const INVITE_QUEUE_LIMIT = 25;
 
@@ -103,33 +103,25 @@ export async function hostsAwaitingInvite(limit: number): Promise<AwaitingHost[]
 
 export type InviteDelivery =
   | { ok: true; state: 'invite_sent' }
-  | { ok: false; error: 'unknown_customer' | 'invalid_url' | 'already_connected' | 'write_failed' };
+  | { ok: false; error: 'unknown_customer' | 'already_connected' | 'write_failed' };
 
-export async function deliverInvite(
-  customerId: string,
-  inviteUrl: string | null,
-  source: string,
-): Promise<InviteDelivery> {
+export async function deliverInvite(customerId: string, source: string): Promise<InviteDelivery> {
   const supabase = createSupabaseServiceRoleClient();
   const { data } = await supabase.from('customers').select('id').eq('id', customerId).maybeSingle();
   if (!data) return { ok: false, error: 'unknown_customer' };
-
-  const url = inviteUrl?.trim() || null;
-  if (url && !/^https:\/\/\S+$/.test(url)) return { ok: false, error: 'invalid_url' };
 
   const current = await getHostConnection(customerId);
   if (current && ['connected', 'no_listings'].includes(current.state)) {
     return { ok: false, error: 'already_connected' };
   }
 
-  const written = url ? await recordInvite(customerId, url) : await markInviteSent(customerId);
-  if (!written) return { ok: false, error: 'write_failed' };
+  if (!(await markInviteSent(customerId))) return { ok: false, error: 'write_failed' };
 
   await recordEvent({
     event: 'host_invite_delivered',
     customerId,
     distinctId: customerId,
-    properties: { actor: source, link: Boolean(url) },
+    properties: { actor: source },
     source: 'server',
   });
   return { ok: true, state: 'invite_sent' };
