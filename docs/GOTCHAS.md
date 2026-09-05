@@ -99,6 +99,12 @@ session. Do not point both at one instance.
   the caller's own reads and writes. It was 55 seconds inside a 60 second page,
   and the platform killed the action with a 504 before the dispatcher could
   answer. Pass `budgetMs` when a route allows less than 300 seconds.
+- Vercel Hobby caps deployments at 100 a day, and PR previews count. Past the
+  cap Vercel creates no deployment row, so production silently stays behind while
+  CI is green. The tell is the GitHub commit status, not the Vercel dashboard:
+  `gh api repos/<owner>/<repo>/commits/<sha>/status` answers
+  `Deployment rate limited - retry in 24 hours`. Waiting or Pro clears it; a
+  manual redeploy is capped too.
 - Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
   `E2E_SKIP_AUTH`.
 - Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then
