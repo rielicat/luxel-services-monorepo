@@ -1,11 +1,14 @@
 import 'server-only';
+import { HOSPITABLE_INVITE_START_PATH } from '@luxel/shared/hospitable-invite';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
 import { recordEvent } from '../analytics/store';
+import { workerOrigin } from '../cleaning/media';
 import { getHostConnection } from './connection';
 
 export const INVITE_QUEUE_LIMIT = 25;
 
 const CANDIDATE_PAGE = 200;
+const AGENT_KICK_TIMEOUT_MS = 5_000;
 
 export interface AwaitingHost {
   customerId: string;
@@ -36,7 +39,27 @@ export async function requestConnection(customerId: string): Promise<boolean> {
     distinctId: customerId,
     source: 'web',
   });
+  await startInviteAgent();
   return true;
+}
+
+export async function startInviteAgent(): Promise<boolean> {
+  const origin = workerOrigin();
+  const token = process.env.INTERNAL_SEND_TOKEN;
+  if (!origin || !token) return false;
+  try {
+    const res = await fetch(`${origin}${HOSPITABLE_INVITE_START_PATH}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-luxel-internal-token': token },
+      body: '{}',
+      signal: AbortSignal.timeout(AGENT_KICK_TIMEOUT_MS),
+    });
+    if (res.ok) return true;
+    if (res.status !== 503) console.warn('onboarding.invite_agent_failed', { status: res.status });
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export async function connectionRequestedAt(customerId: string): Promise<string | null> {

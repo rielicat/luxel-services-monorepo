@@ -155,21 +155,40 @@ supabase/        migrations + local config
 
 ## Data and security rules
 
-- A Cloud Agent creates the Airbnb connection **invitation** outside this
-  repository. Hospitable has no API for it. The agent holds its own Hospitable
-  session. It creates the invitation and hands the URL back through `POST
-/api/onboarding/invites`. `INTERNAL_SEND_TOKEN` authenticates that call. `{
-op: 'pending' }` returns the hosts who wait longest with no invitation yet. `{
-op: 'deliver', customerId, inviteUrl, source }` records the invitation and
-  moves the host to `invite_sent` in one write. Every delivery writes a
-  `host_invite_delivered` analytics event that names the actor. That event
-  traces an invitation back to whoever produced it. **No Hospitable session or
-  password enters this repository, the database or an environment variable
-  here.** The agent keeps the session. It must use a dedicated Hospitable user
-  with the narrowest role that can issue an invitation. Never use the owner
-  account. Hospitable's OAuth2 vendor flow replaces this design. It is the
-  better answer once Hospitable approves it; see
-  [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- The Airbnb connection **invitation** has no API. An agent drives the
+  Hospitable web interface instead. That agent is the Cloudflare Workflow
+  `hospitable-invite` in `workers/whatsapp`, and Firecrawl runs the browser. A
+  host presses Connect. `requestConnection` stamps `requested_at` and calls
+  `POST /hospitable-invite/start` on the worker. The nightly cron starts the
+  same Workflow for anyone that call missed. The instance id is a five minute
+  bucket, so many clicks collapse into one run. The Workflow reads the queue
+  with `{ op: 'pending' }`, opens one Firecrawl session on the fixed profile
+  `luxel-hospitable`, signs in only when the profile came back signed out, sends
+  one invitation per host, **reads the invitation list back**, and only then
+  posts `{ op: 'deliver', customerId, source }`. Nothing is recorded as
+  delivered that was not seen in that list, so a silent no-op never marks a host
+  invited. `INTERNAL_SEND_TOKEN` authenticates both directions. Every delivery
+  writes a `host_invite_delivered` analytics event that names the actor. That
+  event traces an invitation back to whoever produced it.
+- The Hospitable interface credential lives in **Cloudflare secrets only**:
+  `HOSPITABLE_UI_EMAIL`, `HOSPITABLE_UI_PASSWORD` and `FIRECRAWL_API_KEY`, set
+  with `wrangler secret put`. It never enters the repository, the database, a
+  Vercel variable or a log. It must belong to a dedicated Hospitable user with
+  the narrowest role that can issue an invitation. Never the owner account.
+  Firecrawl keeps the signed-in state as a named profile, so a third party holds
+  a standing Hospitable session. Firecrawl documents no retention, no encryption
+  and no deletion for a profile. The password reaches Firecrawl only on a run
+  that has to sign in again. A second factor on that account stops the agent:
+  the Workflow answers `blocked` and invites nobody. Hospitable's OAuth2 vendor
+  flow replaces all of this and is the better answer once Hospitable approves
+  it; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- A host's name and email reach the browser agent inside a prompt. Flatten both
+  first with `inviteName` and `inviteEmail` from
+  `@luxel/shared/hospitable-invite`. A host writes their own name, so raw text
+  in a prompt is an instruction the agent could follow. Never pass raw customer
+  text to the agent. Never log a Firecrawl `cdpUrl`, `liveViewUrl` or
+  `interactiveLiveViewUrl`: each one is a live handle on a browser signed in to
+  Hospitable.
 - Properties are an **import-only mirror** of Hospitable. There is no manual
   property create or edit path. Do not add one.
 - `property_contacts` (conserjes, cleaning crew) is an **import-only mirror** of

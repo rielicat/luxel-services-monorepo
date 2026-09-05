@@ -3,14 +3,22 @@
 Compacted from `AGENTS.md` section "Data and security rules". These are hard
 rules. Do not add code paths that break them.
 
-- A Cloud Agent creates the Airbnb connection invitation outside this
-  repository. Hospitable has no API for it. The agent hands the URL back through
-  `POST /api/onboarding/invites`. `INTERNAL_SEND_TOKEN` authenticates that call.
-  Every delivery writes a `host_invite_delivered` event that names the actor. No
-  Hospitable session or password enters this repository, the database or an
-  environment variable here. The agent keeps the session. It runs as a dedicated
-  Hospitable user with the narrowest role that can issue an invitation. Never
-  use the owner account.
+- The Airbnb connection invitation has no API. The Cloudflare Workflow
+  `hospitable-invite` drives the Hospitable web interface through Firecrawl. It
+  reads the queue with `{ op: 'pending' }`, sends the invitation, reads the
+  invitation list back, and only then posts `{ op: 'deliver', customerId,
+source }`. Nothing is recorded as delivered that was not seen in that list.
+  `INTERNAL_SEND_TOKEN` authenticates both directions. Every delivery writes a
+  `host_invite_delivered` event that names the actor.
+- `HOSPITABLE_UI_EMAIL`, `HOSPITABLE_UI_PASSWORD` and `FIRECRAWL_API_KEY` are
+  Cloudflare secrets only. They never enter the repository, the database, a
+  Vercel variable or a log. The account is a dedicated Hospitable user with the
+  narrowest role that can issue an invitation. Never the owner account.
+  Firecrawl holds the signed-in session as a named profile, so a third party
+  holds a standing Hospitable session.
+- Flatten a host's name and email with `inviteName` and `inviteEmail` before
+  they reach a prompt. Never log a Firecrawl `cdpUrl`, `liveViewUrl` or
+  `interactiveLiveViewUrl`.
 - Properties are an import-only mirror of Hospitable. No manual property create
   or edit path. Do not add one.
 - `property_contacts` (conserjes, cleaning crew) is an import-only mirror of
