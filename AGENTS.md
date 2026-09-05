@@ -580,6 +580,13 @@ by pointing both at one instance.
   the caller's own reads and writes. It was 55 seconds inside a 60 second page,
   and the platform killed the action with a 504 before the dispatcher could
   answer. Pass `budgetMs` when a route allows less than 300 seconds.
+- Vercel **skips the build** when a commit changes nothing under the project's
+  root directory. A monorepo push that only touches `docs/`, `.env.example` or
+  `infra/` redeploys the previous output for `apps/web`, so a new environment
+  variable is not picked up and the commit status still reads success. An empty
+  commit does not force it either, because the tree is unchanged. A new
+  `NEXT_PUBLIC_*` therefore needs a real change **inside the app's root
+  directory**, not merely a second push.
 - Vercel Hobby caps deployments at 100 a day, and PR previews count. Past the
   cap Vercel creates no deployment row, so production silently stays behind while
   CI is green. The tell is the GitHub commit status, not the Vercel dashboard:
