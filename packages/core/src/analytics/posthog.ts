@@ -19,7 +19,10 @@ const clerkIdByCustomer = new Map<string, string | null>();
 
 function projectKey(): string | null {
   return (
-    process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() || process.env.POSTHOG_PROJECT_KEY?.trim() || null
+    process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim() ||
+    process.env.POSTHOG_PROJECT_KEY?.trim() ||
+    null
   );
 }
 
