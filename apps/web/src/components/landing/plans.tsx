@@ -15,6 +15,8 @@ const INCLUDED = [
   'inc_report',
 ] as const;
 
+const FLOW = ['flow_guest', 'flow_host', 'flow_fee', 'flow_cleaning'] as const;
+
 export function Plans() {
   const t = useTranslations('landing.plans');
   const tp = useTranslations('plans');
@@ -38,6 +40,18 @@ export function Plans() {
             <p className="text-muted-foreground mt-3 text-pretty text-sm leading-relaxed">
               {tp('billing', { pct })}
             </p>
+
+            <div className="border-border/60 mt-6 border-t pt-6">
+              <p className="text-sm font-semibold">{tp('flow_title')}</p>
+              <ol className="text-muted-foreground mt-3 grid gap-2 text-sm">
+                {FLOW.map((key) => (
+                  <li key={key} className="flex items-start gap-2">
+                    <ArrowRight className="text-primary mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{tp(key, { pct })}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
 
           <ul className="border-border/60 grid content-start gap-3 border-t pt-7 sm:grid-cols-2 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">

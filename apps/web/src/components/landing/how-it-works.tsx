@@ -1,16 +1,19 @@
 import { useTranslations } from 'next-intl';
-import { Handshake, Camera, Wallet } from 'lucide-react';
+import { Handshake, PhoneCall, Sparkles, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { PLAN_COMMISSION_PCT } from '@luxel/core/plan-pricing';
 
-const STEPS = ['visit', 'publish', 'earn'] as const;
+const STEPS = ['talk', 'connect', 'run', 'earn'] as const;
 const ICONS: Record<(typeof STEPS)[number], LucideIcon> = {
-  visit: Handshake,
-  publish: Camera,
+  talk: Handshake,
+  connect: PhoneCall,
+  run: Sparkles,
   earn: Wallet,
 };
 
 export function HowItWorks() {
   const t = useTranslations('landing.how');
+  const pct = Math.round(PLAN_COMMISSION_PCT * 100);
   return (
     <section id="como-funciona" className="container py-20 sm:py-24">
       <div className="mx-auto max-w-2xl text-center">
@@ -19,7 +22,7 @@ export function HowItWorks() {
         </h2>
         <p className="text-muted-foreground mt-4">{t('subtitle')}</p>
       </div>
-      <ol className="mx-auto mt-14 grid max-w-4xl gap-6 sm:grid-cols-3">
+      <ol className="mx-auto mt-14 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((step, i) => {
           const Icon = ICONS[step];
           return (
@@ -37,7 +40,7 @@ export function HowItWorks() {
                 {t(`steps.${step}.title`)}
               </h3>
               <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-                {t(`steps.${step}.body`)}
+                {t(`steps.${step}.body`, { pct })}
               </p>
             </li>
           );

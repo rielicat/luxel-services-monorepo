@@ -76,19 +76,23 @@
     },
     "how": {
       "title": "Cómo funciona",
-      "subtitle": "De la primera conversación a tus ingresos, en tres pasos.",
+      "subtitle": "De la primera conversación a tus ingresos, en cuatro pasos.",
       "steps": {
-        "visit": {
-          "title": "Conversamos y visitamos tu propiedad",
-          "body": "Revisamos tu propiedad y definimos qué falta para publicar."
+        "talk": {
+          "title": "Conversamos y vemos tu propiedad",
+          "body": "Revisamos qué tienes y qué falta para publicar. Sin compromiso."
         },
-        "publish": {
-          "title": "Preparamos y publicamos el anuncio",
-          "body": "Fotos, descripción, precios y reglas. Si ya está publicado en Airbnb, lo conectamos."
+        "connect": {
+          "title": "Conectamos tu Airbnb en una llamada",
+          "body": "Lo hacemos contigo, paso a paso. No instalas nada y nunca te pedimos tu clave."
+        },
+        "run": {
+          "title": "Operamos todos los días",
+          "body": "Precios, huéspedes, aseo entre estadías, inventario y reparaciones menores."
         },
         "earn": {
-          "title": "Tú recibes los ingresos",
-          "body": "Nosotros hacemos el resto: huéspedes, aseo y reparaciones. Tú ves el reporte cada mes."
+          "title": "Airbnb te paga a ti",
+          "body": "A fin de mes te cobramos el {pct}% de tus reservas y te mandamos el reporte."
         }
       }
     },
@@ -344,8 +348,8 @@
     "intro_1": "Nos das acceso a tu cuenta de Airbnb y desde ahí nos hacemos cargo: precios, huéspedes, aseo entre estadías y el reporte de cada mes.",
     "intro_2": "No instalas nada y tu propiedad sigue siendo tuya. Airbnb te paga a ti, directo, como siempre.",
     "start_cta": "Conectar mi Airbnb",
-    "pending_title": "Estamos preparando tu invitación",
-    "pending_body": "Preparamos tu invitación a mano y te avisamos apenas esté lista.",
+    "pending_title": "Te vamos a llamar",
+    "pending_body": "Una persona de Luxel te contacta para conectar tu Airbnb contigo.",
     "invite_title": "Tu invitación está lista",
     "invite_body": "Te enviamos la invitación para conectar tu Airbnb. Si no la ves, revisa el spam.",
     "invite_where": "Abres la invitación, inicias sesión en Airbnb y eliges tus propiedades. Nunca te pedimos tu clave de Airbnb.",
@@ -394,13 +398,13 @@
   },
   "onboarding": {
     "title": "Así lo dejamos andando",
-    "subtitle": "Traemos tus propiedades directo desde tu cuenta de Airbnb.",
-    "s1_title": "Te llega la invitación",
-    "s1_body": "La preparamos a mano y te avisamos apenas esté lista.",
-    "s2_title": "Aceptas en Airbnb",
-    "s2_body": "Abres el enlace, inicias sesión en Airbnb y nos das el acceso. Nada que instalar.",
-    "s3_title": "Nosotros seguimos",
-    "s3_body": "Llegan tus propiedades, tus reservas y tu calendario, y partimos a trabajar."
+    "subtitle": "Una persona de Luxel lo conecta contigo. No instalas nada.",
+    "s1_title": "Te llamamos",
+    "s1_body": "Coordinamos una hora y te contactamos para conectar tu Airbnb.",
+    "s2_title": "Lo conectamos juntos",
+    "s2_body": "Lo hacemos en esa misma llamada. Nunca te pedimos tu clave de Airbnb.",
+    "s3_title": "Llegan tus propiedades",
+    "s3_body": "Aparecen tus reservas y tu calendario, y partimos a trabajar."
   },
   "about": {
     "meta_title": "Nosotros",
@@ -556,7 +560,12 @@
     "inc_inventory": "Inventario y reposición",
     "inc_repairs": "Reparaciones menores",
     "inc_report": "Reporte mensual de tus ingresos",
-    "billing": "Airbnb te paga a ti como siempre. A fin de mes te cobramos el {pct}% de lo que generaron tus reservas. La tarifa de limpieza no entra: va completa al equipo de aseo."
+    "billing": "Airbnb te paga a ti como siempre. A fin de mes te cobramos el {pct}% de lo que generaron tus reservas. La tarifa de limpieza no entra: va completa al equipo de aseo.",
+    "flow_title": "Cómo se reparte la plata",
+    "flow_guest": "El huésped le paga a Airbnb.",
+    "flow_host": "Airbnb te paga a ti, directo a tu cuenta.",
+    "flow_fee": "A fin de mes te cobramos el {pct}% de lo que generaron tus reservas, IVA incluido.",
+    "flow_cleaning": "La tarifa de limpieza va completa al equipo de aseo. No cobramos nada sobre ella."
   },
   "ui": {
     "close": "Cerrar"
