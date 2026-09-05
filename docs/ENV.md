@@ -58,10 +58,25 @@ effect and fails silently:
 Plan billing is not in code. Luxel invoices the plans off-platform at the end
 of the month. There is no payment variable to set.
 
+`NEXT_PUBLIC_POSTHOG_KEY` is not an operator step on Vercel. `infra/vercel`
+sets it on the web project, because a PostHog project token ships in the browser
+bundle and is configuration rather than a secret. Pulumi applies it after the
+deployment that carries the change, so the value lands one build late; a later
+push picks it up. An empty commit does not, because Vercel reuses the build for
+an unchanged tree.
+
+The browser never calls PostHog directly. `next.config.mjs` rewrites `/ingest`
+to PostHog, so an ad blocker that knows the vendor host does not recognise the
+request. `NEXT_PUBLIC_POSTHOG_HOST` therefore only steers the server-side
+mirror in `packages/core/src/analytics/posthog.ts`, and a relative value is
+ignored there.
+
+Without the key nothing breaks: the provider never initialises, the server
+mirror is skipped, and `analytics_events` stays the system of record.
+
 ### Optional
 
 `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`,
-`NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`,
 `NEXT_PUBLIC_WHATSAPP_NUMBER`,
 `LUXEL_WORKING_DAYS`, `LUXEL_WORKING_OPEN`, `LUXEL_WORKING_CLOSE`,
 `NEXT_PUBLIC_CLERK_SIGN_IN_URL`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL`,
