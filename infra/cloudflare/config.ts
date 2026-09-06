@@ -29,6 +29,7 @@ export const vercelTarget = c.require('vercelTarget');
 export const adminTarget = c.get('adminTarget') ?? '';
 export const dmarcPolicy = c.get('dmarcPolicy') ?? 'none';
 export const clerkMailHash = c.get('clerkMailHash') ?? '';
+export const posthogProxyTarget = c.get('posthogProxyTarget') ?? '';
 export const emailRouting = c.requireObject<EmailRoutingConfig>('emailRouting');
 export const cleaningMediaBucket = c.get('cleaningMediaBucket') ?? 'luxel-cleaning-media';
 export const cleaningMediaLocation = c.get('cleaningMediaLocation') ?? 'wnam';

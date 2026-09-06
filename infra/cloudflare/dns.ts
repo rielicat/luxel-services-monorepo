@@ -6,6 +6,7 @@ import {
   adminTarget,
   dmarcPolicy,
   clerkMailHash,
+  posthogProxyTarget,
   slug,
 } from './config';
 import { importId } from './adopt';
@@ -64,6 +65,22 @@ export const adminRecord = adminTarget
         comment: 'Operator panel → Vercel — managed by Pulumi',
       },
       { import: importId('admin') },
+    )
+  : undefined;
+
+export const posthogRecord = posthogProxyTarget
+  ? new cloudflare.DnsRecord(
+      'posthog',
+      {
+        zoneId,
+        name: `t.${zoneName}`,
+        type: 'CNAME',
+        content: posthogProxyTarget,
+        ttl: 1,
+        proxied: false,
+        comment: 'PostHog managed reverse proxy — managed by Pulumi',
+      },
+      { import: importId('posthog') },
     )
   : undefined;
 

@@ -25,6 +25,8 @@ for (const r of records) {
     imports['www'] = `${ZONE_ID}/${r.id}`;
   } else if (r.type === 'TXT' && r.name === `_dmarc.${ZONE_NAME}`) {
     imports['dmarc'] = `${ZONE_ID}/${r.id}`;
+  } else if (r.type === 'CNAME' && r.name === `t.${ZONE_NAME}`) {
+    imports['posthog'] = `${ZONE_ID}/${r.id}`;
   }
 }
 

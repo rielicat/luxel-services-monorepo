@@ -119,6 +119,46 @@ adoption you can delete it.
 
 ---
 
+## 3b. The PostHog ingest record (`t`) — not adopted yet
+
+`t.serviciosluxel.cl` is PostHog's managed reverse proxy. The browser and the
+server mirror both send there, so an ad blocker that knows `us.i.posthog.com`
+does not recognise the request. An operator created the record in the
+Cloudflare dashboard, so Pulumi does not own it yet.
+
+`posthogProxyTarget` is therefore **unset** in `Pulumi.prod.yaml`, and `dns.ts`
+declares nothing while it is unset. Set it and `pulumi up` would try to
+**create** a record that already exists, and Cloudflare refuses a second `CNAME`
+on one name. Adopt it instead, in this order:
+
+1. In the Cloudflare dashboard, set the record comment to
+   `PostHog managed reverse proxy — managed by Pulumi`. Pulumi refuses an import
+   whose declared fields differ from live, and the comment is a field.
+2. Add the target to `Pulumi.prod.yaml`:
+
+   ```yaml
+   luxel-cloudflare:posthogProxyTarget: 23de114b75d332bdc947.cf-prod-us-proxy.proxyhog.com
+   ```
+
+3. Adopt it, exactly as section 3 does:
+
+   ```bash
+   CF_ZONE_ID=<zone id> CF_ACCOUNT_ID=<account id> CF_ZONE_NAME=serviciosluxel.cl \
+     pnpm --filter @luxel/infra-cloudflare import
+   LUXEL_CF_ADOPT=1 pulumi up
+   pulumi preview        # expect: no changes
+   ```
+
+`gen-imports` already maps the record, so step 3 imports it rather than creating
+it. Keep the record **DNS-only**: PostHog issues the certificate, and the orange
+cloud breaks it. Confirm the target first — PostHog gives each proxy its own
+`*.cf-prod-us-proxy.proxyhog.com` host.
+
+Until then the record keeps serving traffic. It is simply outside Pulumi, and
+`pulumi preview` says nothing about it.
+
+---
+
 ## 4. Day-to-day
 
 ```bash
@@ -153,13 +193,14 @@ Required repo secrets: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
 
 ## What is / isn't managed
 
-| Managed here                                           | Not managed here                                     |
-| ------------------------------------------------------ | ---------------------------------------------------- |
-| Apex `A` → Vercel, `www` `CNAME` → Vercel              | The WhatsApp Worker (`wrangler`, `workers/whatsapp`) |
-| `_dmarc` TXT                                           | MX / SPF / DKIM — auto-managed by Email Routing      |
-| Email Routing settings, destinations, rules, catch-all | Vercel project / domain config                       |
-| `luxel-cleaning-media` R2 bucket + lifecycle rule      | The worker's R2 binding (`wrangler.toml`)            |
-|                                                        | The `cleaning-review` Workflow (`wrangler.toml`)     |
+| Managed here                                           | Not managed here                                      |
+| ------------------------------------------------------ | ----------------------------------------------------- |
+| Apex `A` → Vercel, `www` `CNAME` → Vercel              | The WhatsApp Worker (`wrangler`, `workers/whatsapp`)  |
+| `_dmarc` TXT                                           | MX / SPF / DKIM — auto-managed by Email Routing       |
+| Email Routing settings, destinations, rules, catch-all | Vercel project / domain config                        |
+| `luxel-cleaning-media` R2 bucket + lifecycle rule      | The worker's R2 binding (`wrangler.toml`)             |
+|                                                        | The `cleaning-review` Workflow (`wrangler.toml`)      |
+|                                                        | `t` `CNAME` → PostHog proxy — declared, adopt per §3b |
 
 ## Cleaning media bucket
 
