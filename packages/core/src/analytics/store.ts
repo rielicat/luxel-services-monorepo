@@ -15,6 +15,7 @@ interface EventInput {
   userAgent?: string | null;
   country?: string | null;
   source?: 'web' | 'server' | 'whatsapp';
+  posthogCaptured?: boolean;
 }
 
 export async function recordEvent(e: EventInput): Promise<void> {
@@ -41,6 +42,8 @@ export async function recordEvent(e: EventInput): Promise<void> {
       message: err instanceof Error ? err.message : 'unknown',
     });
   }
+
+  if (e.posthogCaptured) return;
 
   try {
     await mirrorToPostHog(e);

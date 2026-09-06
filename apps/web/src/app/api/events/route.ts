@@ -14,6 +14,7 @@ const EventSchema = z.object({
   referrer: z.string().max(500).optional(),
   utm: z.record(z.string().max(200)).optional(),
   properties: z.record(z.unknown()).optional(),
+  posthogCaptured: z.boolean().optional(),
 });
 
 const Body = z.object({ events: z.array(EventSchema).min(1).max(20) });
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
         userAgent,
         country,
         source: 'web',
+        posthogCaptured: e.posthogCaptured,
       }),
     ),
   );

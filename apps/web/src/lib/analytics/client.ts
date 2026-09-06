@@ -64,8 +64,12 @@ export function track(event: string, properties: Record<string, unknown> = {}): 
     if (typeof safe[key] === 'string') safe[key] = scrubUrl(safe[key] as string);
   }
 
+  let posthogCaptured = false;
   try {
-    if (posthog.__loaded) posthog.capture(event, safe);
+    if (posthog.__loaded) {
+      posthog.capture(event, safe);
+      posthogCaptured = true;
+    }
   } catch {}
 
   try {
@@ -79,6 +83,7 @@ export function track(event: string, properties: Record<string, unknown> = {}): 
           referrer: document.referrer ? scrubUrl(document.referrer) : undefined,
           utm: captureUtm(),
           properties: safe,
+          posthogCaptured,
         },
       ],
     });

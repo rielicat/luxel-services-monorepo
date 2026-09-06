@@ -15,13 +15,24 @@ why it moved, it emits a typed event with consistent properties. Names live in
 same constants, so names never drift.
 
 The store is ours. `track()` (`lib/analytics/client.ts`) sends client events to
-`/api/events` with `sendBeacon`. `capture()` (`lib/analytics/server.ts`) writes
-server events. Both land in `analytics_events`. Both mirror to PostHog when
-`NEXT_PUBLIC_POSTHOG_KEY` is set. PostHog is initialized in
-`apps/web/src/lib/posthog/provider.tsx` with `person_profiles: 'identified_only'`,
-`capture_pageview: false`, `capture_pageleave: false` and `autocapture: false`.
-Page views are sent explicitly. Both legs reach PostHog through its managed
-reverse proxy at `https://t.serviciosluxel.cl`.
+`/api/events` with `sendBeacon`. `capture()` (`@luxel/core/analytics/server`)
+writes server events. Both land in `analytics_events`.
+
+Each event reaches PostHog once. The browser sends its own, because only the
+browser knows the session, the device and the referrer. It then tells
+`/api/events` that it did, with `posthogCaptured`, and `recordEvent` skips the
+mirror for that row. The mirror therefore carries the server events, and the
+client events the browser could not send: no key, an ad blocker, or a
+token-bearing path where PostHog never starts.
+
+PostHog starts in `apps/web/instrumentation-client.ts`, before hydration, with
+`person_profiles: 'identified_only'`, `capture_pageview: false`,
+`capture_pageleave: false` and `autocapture: false`. Page views are sent
+explicitly. The provider in `apps/web/src/lib/posthog/provider.tsx` only
+identifies the signed-in host. Starting in the provider was a bug: a child
+effect runs before its parent's, so the first page view of every load found
+PostHog unloaded. Both legs reach PostHog through its managed reverse proxy at
+`https://t.serviciosluxel.cl`.
 
 Two non-negotiables:
 
