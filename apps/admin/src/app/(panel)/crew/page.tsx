@@ -4,14 +4,17 @@ import { formatPhone } from '@/lib/phone';
 import {
   CREW_ROLES,
   PROPERTY_CONTACTS_TABLE,
+  TEAM_URL,
   asCrewRole,
   roleLabel,
   type CrewRole,
   type PropertyContactRow,
 } from '@/lib/crew';
 import { Alert, Card, PageHeader, Pill } from '@/components/ui';
+import { CrewToolbar } from './crew-toolbar';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 interface PropertyRow {
   id: string;
@@ -189,7 +192,7 @@ function RoleRow({ coverage }: { coverage: RoleCoverage }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold">{roleLabel(coverage.role)}</span>
         <Pill tone={reachable.length ? 'converted' : 'new'}>
-          {reachable.length ? `${reachable.length} en Hospitable` : 'Nadie'}
+          {reachable.length ? `${reachable.length} con aviso` : 'Nadie'}
         </Pill>
       </div>
 
@@ -207,8 +210,10 @@ function RoleRow({ coverage }: { coverage: RoleCoverage }) {
         </ul>
       ) : (
         <p className="text-destructive mt-2 text-xs font-semibold">
-          Nadie recibe el aviso de {roleLabel(coverage.role)} acá. Agrega un teammate en Hospitable
-          con ese servicio y espera la próxima sincronización.
+          Nadie recibe el aviso de {roleLabel(coverage.role)} acá.{' '}
+          <a className="underline" href={TEAM_URL} target="_blank" rel="noreferrer">
+            Agregar
+          </a>
         </p>
       )}
     </div>
@@ -221,22 +226,20 @@ export default async function CrewPage() {
 
   return (
     <div>
-      <PageHeader icon={HardHat} title="Equipo">
+      <PageHeader icon={HardHat} title="Equipo" actions={<CrewToolbar />}>
         <p>
           {people.length} {people.length === 1 ? 'persona' : 'personas'} · {properties.length}{' '}
           {properties.length === 1 ? 'propiedad' : 'propiedades'} · {gaps} con un rol sin nadie
         </p>
         <p className="mt-1">
-          El equipo es el de Hospitable. Se maneja allá, en Operations y luego Teammates. Acá solo
-          se ve, y un cambio llega en la próxima sincronización. Service Cleaning o Laundry entra
-          como Aseo. Concierge, Check-in o Check-out entra como Conserje.
+          Aseo cubre la limpieza y la lavandería. Conserje cubre la llegada y la salida.
         </p>
       </PageHeader>
 
       {failures.properties && <Alert tone="error">No pudimos leer las propiedades.</Alert>}
       {failures.contacts && (
         <Alert tone="error">
-          No pudimos leer el equipo de Hospitable. La cobertura de abajo está incompleta.
+          No pudimos leer el equipo. La cobertura de abajo está incompleta.
         </Alert>
       )}
       {failures.owners && (
@@ -261,7 +264,6 @@ export default async function CrewPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{person.name}</span>
-                    <Pill tone="contacted">Hospitable</Pill>
                     {!person.reachable && <Pill tone="new">Sin contacto</Pill>}
                   </div>
                   <div className="text-muted-foreground text-xs">{person.contact}</div>
@@ -287,9 +289,7 @@ export default async function CrewPage() {
           ))}
           {!people.length && (
             <Card className="text-muted-foreground p-6 text-center text-sm">
-              {failures.contacts
-                ? 'No pudimos leer el equipo.'
-                : 'Hospitable no espeja a nadie todavía. Agrega teammates allá, en Operations y luego Teammates.'}
+              {failures.contacts ? 'No pudimos leer el equipo.' : 'Todavía no hay nadie.'}
             </Card>
           )}
         </div>
@@ -326,7 +326,7 @@ export default async function CrewPage() {
           ))}
           {!properties.length && (
             <Card className="text-muted-foreground p-6 text-center text-sm">
-              Todavía no hay propiedades importadas de Hospitable.
+              Todavía no hay propiedades importadas.
             </Card>
           )}
         </div>

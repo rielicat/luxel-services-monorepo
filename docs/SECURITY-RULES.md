@@ -24,7 +24,8 @@ rules. Do not add code paths that break them.
   teammate on the role is notified, deduped by phone then email. Both notifiers
   call it. A row with neither a WhatsApp nor an email is skipped. Luxel
   operators manage the crew in Hospitable → Operations → Teammates. `/crew` in
-  `apps/admin` only shows the mirror and names the roles nobody covers. No
+  `apps/admin` shows that roster, names the roles nobody covers, links out to
+  that screen and can run the sync on demand. It writes nothing. No
   host-facing contacts UI. Do not add a manual contact form, a crew table of our
   own, or an operator override. `crew_member` and `crew_assignment` were exactly
   that and migration `0075` dropped them.

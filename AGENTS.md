@@ -186,8 +186,9 @@ supabase/        migrations + local config
   reads that table and nothing else, and every teammate on the role is notified,
   deduped by phone then email. Both notifiers call it. A row with neither a
   WhatsApp nor an email is skipped. Luxel operators manage the crew in
-  Hospitable → Operations → Teammates. `/crew` in `apps/admin` only shows the
-  mirror and names the roles nobody covers. There is no host-facing contacts UI.
+  Hospitable → Operations → Teammates. `/crew` in `apps/admin` shows that
+  roster, names the roles nobody covers, links out to that screen and can run
+  the sync on demand. It writes nothing. There is no host-facing contacts UI.
   Do not add a manual contact form, a crew table of our own or an operator
   override. `crew_member` and `crew_assignment` were exactly that and migration
   `0075` dropped them.
@@ -647,6 +648,12 @@ by pointing both at one instance.
   `ReferenceError: X is not defined`. `next build` passes, so CI never sees it.
   `apps/admin/(panel)/inbox` failed this way. Import the type straight from the
   module that declares it.
+- Hospitable's public API is **read-only for teammates**. `OPTIONS /v2/teammates`
+  and `OPTIONS /v2/teammates/{id}` both answer `allow: GET,HEAD`, while a route
+  we do write to answers `allow: GET,HEAD,POST`. So no code can create, edit or
+  delete a teammate. `/crew` links to `my.hospitable.com/operations/team` and
+  re-runs the sync instead. Do not build a write bridge, and do not drive that
+  dashboard with a browser agent.
 - Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
   `E2E_SKIP_AUTH`.
 - Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then

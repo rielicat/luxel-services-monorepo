@@ -1,5 +1,7 @@
 export const PROPERTY_CONTACTS_TABLE = 'property_contacts';
 
+export const TEAM_URL = 'https://my.hospitable.com/operations/team';
+
 export const CREW_ROLES = ['cleaning', 'concierge'] as const;
 
 export type CrewRole = (typeof CREW_ROLES)[number];
