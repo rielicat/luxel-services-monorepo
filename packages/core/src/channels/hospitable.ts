@@ -500,13 +500,21 @@ export async function sendHospitableInquiryMessage(
       body: JSON.stringify({ body }),
     });
     if (!res.ok) {
-      console.error('hospitable.inquiry_send_failed', { status: res.status });
+      console.error('hospitable.inquiry_send_failed', {
+        inquiryId,
+        status: res.status,
+        detail: (await res.text().catch(() => '')).slice(0, 300),
+      });
       return null;
     }
     const json = (await res.json().catch(() => ({}))) as { data?: { id?: string | number } };
     const id = json.data?.id;
     return id === undefined || id === null ? placeholderMessageId() : String(id);
-  } catch {
+  } catch (error) {
+    console.error('hospitable.inquiry_send_error', {
+      inquiryId,
+      message: error instanceof Error ? error.message : 'unknown',
+    });
     return null;
   }
 }
@@ -526,10 +534,21 @@ export async function sendHospitableMessage(
       },
       body: JSON.stringify({ body }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error('hospitable.send_failed', {
+        reservationId,
+        status: res.status,
+        detail: (await res.text().catch(() => '')).slice(0, 300),
+      });
+      return null;
+    }
     const json = (await res.json().catch(() => ({}))) as { data?: { id?: string } };
     return json.data?.id ?? placeholderMessageId();
-  } catch {
+  } catch (error) {
+    console.error('hospitable.send_error', {
+      reservationId,
+      message: error instanceof Error ? error.message : 'unknown',
+    });
     return null;
   }
 }
