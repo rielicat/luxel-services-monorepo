@@ -177,19 +177,20 @@ supabase/        migrations + local config
   Hospitable approves it; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - Properties are an **import-only mirror** of Hospitable. There is no manual
   property create or edit path. Do not add one.
-- `property_contacts` (conserjes, cleaning crew) is an **import-only mirror** of
-  Hospitable Teammates, rewritten on every sync pass (`mirrorTeammates`).
-  Service Cleaning or Laundry → role `cleaning`; Concierge, Check-in or
-  Check-out → role `concierge`; all services → both; Owner, Manager, Maintenance
-  → no row. There is no host-facing contacts UI. Luxel operators manage
-  teammates in Hospitable → Operations → Teammates. Do not add a manual contact
-  form.
-- Crew is **Luxel-owned**, not mirrored. `crew_member` (internal or external)
-  and `crew_assignment` (member, property, role) are operator-managed in
-  `apps/admin` at `/crew`. The sync never touches them. `recipients()` in
-  `packages/core/src/crew/index.ts` decides who is notified: assigned crew
-  first, the Hospitable teammate mirror only when the assignment reaches nobody.
-  Both notifiers call it; neither queries `property_contacts`.
+- **The Hospitable teammates are the crew.** They are not a backup for a crew
+  Luxel keeps of its own. `property_contacts` is an **import-only mirror** of
+  Hospitable Teammates, rewritten on every sync pass (`mirrorTeammates`), and it
+  is the only roster. Service Cleaning or Laundry → role `cleaning`; Concierge,
+  Check-in or Check-out → role `concierge`; all services → both; Owner, Manager,
+  Maintenance → no row. `recipients()` in `packages/core/src/crew/index.ts`
+  reads that table and nothing else, and every teammate on the role is notified,
+  deduped by phone then email. Both notifiers call it. A row with neither a
+  WhatsApp nor an email is skipped. Luxel operators manage the crew in
+  Hospitable → Operations → Teammates. `/crew` in `apps/admin` only shows the
+  mirror and names the roles nobody covers. There is no host-facing contacts UI.
+  Do not add a manual contact form, a crew table of our own or an operator
+  override. `crew_member` and `crew_assignment` were exactly that and migration
+  `0075` dropped them.
 - Cleanings are a **Luxel-run operation**. The sync pass creates one per
   imported checkout (`suggestCleaningsFromCheckouts`), schedules it
   (`autoConfirmSuggested`) and sends the `cleaning_confirm` template to the crew
