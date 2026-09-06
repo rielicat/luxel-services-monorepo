@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { Radio, Users, Activity, Eye, AlertTriangle } from 'lucide-react';
+import { Radio, Users, Activity, Eye, AlertTriangle, LayoutDashboard } from 'lucide-react';
 import { getDashboard } from '@/lib/stats';
 import { cn } from '@/lib/utils';
-import { Card, SectionTitle } from '@/components/ui';
+import { Alert, Card, PageHeader, SectionTitle } from '@/components/ui';
 import { BarChart } from '@/components/bar-chart';
 
 export const dynamic = 'force-dynamic';
@@ -29,45 +29,47 @@ export default async function DashboardPage({
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight">
-            Panel de operación
-          </h1>
-          <p className="text-muted-foreground text-sm">Últimos {d.days} días</p>
-        </div>
-        <DayRange active={days} basePath="/" />
-      </div>
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Panel de operación"
+        actions={<DayRange active={days} basePath="/" />}
+      >
+        Últimos {d.days} días
+      </PageHeader>
 
       {d.error && (
-        <div className="border-destructive/30 bg-destructive/10 text-destructive mb-6 flex items-start gap-3 rounded-xl border p-4 text-sm">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div>
-            <p className="font-semibold">No se pudo leer la base de datos.</p>
-            <p className="text-destructive/90 mt-0.5">
-              Suele deberse a que las migraciones de Supabase no están aplicadas en este entorno o a
-              que faltan las variables{' '}
-              <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code> /{' '}
-              <code className="font-mono text-xs">SUPABASE_SECRET_KEY</code>. Detalle:{' '}
-              <span className="font-mono text-xs">{d.error}</span>
-            </p>
+        <Alert tone="error">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-semibold">No se pudo leer la base de datos.</p>
+              <p className="text-destructive/90 mt-0.5">
+                Suele deberse a que las migraciones de Supabase no están aplicadas en este entorno o
+                a que faltan las variables{' '}
+                <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code> /{' '}
+                <code className="font-mono text-xs">SUPABASE_SECRET_KEY</code>. Detalle:{' '}
+                <span className="font-mono text-xs">{d.error}</span>
+              </p>
+            </div>
           </div>
-        </div>
+        </Alert>
       )}
 
       {!d.error && d.traffic.events === 0 && (
-        <div className="border-warning/30 bg-warning/10 text-warning mb-6 flex items-start gap-3 rounded-xl border p-4 text-sm">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div>
-            <p className="font-semibold">Conexión OK, pero sin eventos en este período.</p>
-            <p className="text-warning/90 mt-0.5">
-              Si el sitio ya recibe tráfico, verifica que la base de datos de producción tenga las
-              migraciones de <code className="font-mono text-xs">supabase/migrations/</code>{' '}
-              aplicadas y que el sitio web (no solo el panel) tenga sus variables de Supabase para
-              escribir eventos.
-            </p>
+        <Alert tone="warning">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-semibold">Conexión OK, pero sin eventos en este período.</p>
+              <p className="text-warning/90 mt-0.5">
+                Si el sitio ya recibe tráfico, verifica que la base de datos de producción tenga las
+                migraciones de <code className="font-mono text-xs">supabase/migrations/</code>{' '}
+                aplicadas y que el sitio web (no solo el panel) tenga sus variables de Supabase para
+                escribir eventos.
+              </p>
+            </div>
           </div>
-        </div>
+        </Alert>
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

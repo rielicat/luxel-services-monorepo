@@ -33,7 +33,7 @@ export function DebugBench({
   const [probes, setProbes] = useState(initialProbes);
   const [propertyId, setPropertyId] = useState(properties[0]?.id ?? '');
   const [link, setLink] = useState<{ label: string; url: string } | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   const selectCls =
     'border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-2 text-sm focus-visible:outline-none focus-visible:ring-2';
@@ -118,7 +118,9 @@ export function DebugBench({
                 start(async () => {
                   const r = await debugCheckinLink({ propertyId });
                   setLink(r.ok && r.url ? { label: 'Check-in del huésped', url: r.url } : null);
-                  setNote(r.ok ? null : 'No se pudo generar el enlace de check-in.');
+                  setNote(
+                    r.ok ? null : { ok: false, text: 'No se pudo generar el enlace de check-in.' },
+                  );
                 })
               }
             >
@@ -135,9 +137,13 @@ export function DebugBench({
                   setNote(
                     r.ok
                       ? null
-                      : r.error === 'no_cleaning'
-                        ? 'Esta propiedad no tiene aseos próximos.'
-                        : 'No se pudo generar el enlace de aseo.',
+                      : {
+                          ok: false,
+                          text:
+                            r.error === 'no_cleaning'
+                              ? 'Esta propiedad no tiene aseos próximos.'
+                              : 'No se pudo generar el enlace de aseo.',
+                        },
                   );
                 })
               }
@@ -146,7 +152,9 @@ export function DebugBench({
             </Button>
           </div>
 
-          {note && <p className="text-warning text-xs">{note}</p>}
+          {note && (
+            <p className={cn('text-xs', note.ok ? 'text-success' : 'text-warning')}>{note.text}</p>
+          )}
           {link && (
             <div className="bg-muted/50 grid gap-1.5 rounded-md p-2.5">
               <p className="text-xs font-medium">{link.label}</p>
@@ -192,8 +200,11 @@ export function DebugBench({
                 const r = await debugAutoAssign();
                 setNote(
                   r.ok
-                    ? `Asignadas ${r.assigned}; quedan ${r.ambiguous} para revisión manual.`
-                    : 'No se pudo ejecutar la atribución.',
+                    ? {
+                        ok: true,
+                        text: `Asignadas ${r.assigned}; quedan ${r.ambiguous} para revisión manual.`,
+                      }
+                    : { ok: false, text: 'No se pudo ejecutar la atribución.' },
                 );
               })
             }

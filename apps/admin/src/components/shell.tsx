@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import {
@@ -17,6 +17,7 @@ import {
   Wrench,
   CalendarPlus,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LuxelMark } from './ui';
@@ -36,6 +37,12 @@ const NAV = [
   { href: '/telemetry', label: 'Telemetría', Icon: Activity },
   { href: '/debug', label: 'Diagnóstico', Icon: Wrench },
 ] as const;
+
+function NavSpinner({ className }: { className?: string }) {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return <Loader2 className={cn('h-3.5 w-3.5 shrink-0 animate-spin', className)} />;
+}
 
 export function Shell({ email, children }: { email: string; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -57,6 +64,7 @@ export function Shell({ email, children }: { email: string; children: React.Reac
             <Link
               key={href}
               href={href}
+              aria-current={isActive(href) ? 'page' : undefined}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive(href)
@@ -64,8 +72,9 @@ export function Shell({ email, children }: { email: string; children: React.Reac
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
               )}
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">{label}</span>
+              <NavSpinner />
             </Link>
           ))}
         </nav>
@@ -84,17 +93,19 @@ export function Shell({ email, children }: { email: string; children: React.Reac
           </div>
           <UserButton afterSignOutUrl="/" />
         </header>
-        <nav className="border-border flex gap-1 overflow-x-auto border-b px-2 py-2 sm:hidden">
+        <nav className="border-border bg-card sticky top-0 z-10 flex gap-1 overflow-x-auto border-b px-2 py-2 sm:hidden">
           {NAV.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
+              aria-current={isActive(href) ? 'page' : undefined}
               className={cn(
-                'shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium',
+                'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium',
                 isActive(href) ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
               )}
             >
               {label}
+              <NavSpinner />
             </Link>
           ))}
         </nav>

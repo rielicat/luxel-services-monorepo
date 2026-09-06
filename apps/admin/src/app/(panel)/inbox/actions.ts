@@ -8,12 +8,9 @@ import {
   sendReplyDraft,
   sendThreadReply,
   simulateThreadReply,
-  type InboxThread,
   type ReplyDraft,
 } from '@luxel/core/messaging/drafts';
 import { syncAllConnectedAccounts, type SyncAllResult } from '@luxel/core/channels/sync-all';
-
-export type { InboxThread, ReplyDraft };
 
 export interface InboxActionResult {
   ok: boolean;

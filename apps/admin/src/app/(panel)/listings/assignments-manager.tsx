@@ -7,6 +7,7 @@ import { Check, TriangleAlert, Link2, Trash2, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { cn } from '@/lib/utils';
 import {
   assignListingToCustomer,
   unassignListingFromCustomer,
@@ -46,7 +47,7 @@ export function AssignmentsManager({
     customerId: string;
     label: string;
   } | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   const run = (fn: () => Promise<unknown>) =>
     start(async () => {
@@ -60,8 +61,19 @@ export function AssignmentsManager({
   return (
     <div className="grid gap-4">
       {note && (
-        <p className="text-success flex items-center gap-1.5 text-sm font-medium">
-          <Check className="h-4 w-4" /> {note}
+        <p
+          role="status"
+          className={cn(
+            'flex items-start gap-1.5 text-sm font-medium',
+            note.ok ? 'text-success' : 'text-destructive',
+          )}
+        >
+          {note.ok ? (
+            <Check className="mt-0.5 h-4 w-4 shrink-0" />
+          ) : (
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          )}
+          {note.text}
         </p>
       )}
 
@@ -123,12 +135,16 @@ export function AssignmentsManager({
                       });
                       setNote(
                         !r.ok
-                          ? r.error === 'stale'
-                            ? t('stale')
-                            : t('assigned_fail')
-                          : r.importOk
-                            ? t('assigned_ok', { name: l.name })
-                            : t('assigned_no_import', { name: l.name }),
+                          ? {
+                              ok: false,
+                              text: r.error === 'stale' ? t('stale') : t('assigned_fail'),
+                            }
+                          : {
+                              ok: true,
+                              text: r.importOk
+                                ? t('assigned_ok', { name: l.name })
+                                : t('assigned_no_import', { name: l.name }),
+                            },
                       );
                     })
                   }
@@ -238,7 +254,12 @@ export function AssignmentsManager({
                       expectedOwnerId: confirmMove.row.customerId,
                     });
                     setNote(
-                      r.ok ? t('moved_ok') : r.error === 'stale' ? t('stale') : t('assigned_fail'),
+                      r.ok
+                        ? { ok: true, text: t('moved_ok') }
+                        : {
+                            ok: false,
+                            text: r.error === 'stale' ? t('stale') : t('assigned_fail'),
+                          },
                     );
                     setConfirmMove(null);
                   })
@@ -280,10 +301,11 @@ export function AssignmentsManager({
                     });
                     setNote(
                       r.ok
-                        ? t('offboard_ok')
-                        : r.error === 'stale'
-                          ? t('stale')
-                          : t('assigned_fail'),
+                        ? { ok: true, text: t('offboard_ok') }
+                        : {
+                            ok: false,
+                            text: r.error === 'stale' ? t('stale') : t('assigned_fail'),
+                          },
                     );
                     setConfirmOff(null);
                   })

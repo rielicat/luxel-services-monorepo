@@ -21,7 +21,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         <ArrowLeft className="h-4 w-4" /> Sesiones
       </Link>
 
-      <h1 className="font-display text-xl font-extrabold tracking-tight">
+      <h1 className="font-display text-2xl font-extrabold tracking-tight">
         Sesión <span className="font-mono text-base">{id.slice(0, 12)}…</span>
       </h1>
       <p className="text-muted-foreground text-sm">

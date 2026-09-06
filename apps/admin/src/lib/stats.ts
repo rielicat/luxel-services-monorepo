@@ -48,6 +48,20 @@ interface EventRow {
 
 const since = (days: number) => new Date(Date.now() - days * 86400_000).toISOString();
 
+const SANTIAGO_DAY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Santiago',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+function recentDays(days: number, now = Date.now()): string[] {
+  const out: string[] = [];
+  for (let i = days - 1; i >= 0; i -= 1)
+    out.push(SANTIAGO_DAY.format(new Date(now - i * 86400_000)));
+  return out;
+}
+
 const EMPTY_DASHBOARD = (days: number, error: string | null): DashboardData => ({
   days,
   traffic: { pageviews: 0, visitors: 0, sessions: 0, events: 0 },
@@ -83,6 +97,10 @@ export async function getDashboard(days = 30): Promise<DashboardData> {
   const evc = (eventCounts.data ?? []) as { event: string; count: number }[];
   const leads = (leadsRes.data ?? []) as { status: string }[];
 
+  const countByDay = new Map(
+    ((daily.data ?? []) as { day: string; count: number }[]).map((d) => [d.day, Number(d.count)]),
+  );
+
   return {
     days,
     traffic: {
@@ -91,9 +109,9 @@ export async function getDashboard(days = 30): Promise<DashboardData> {
       sessions: Number(trafficRow.sessions ?? 0),
       events: Number(trafficRow.events ?? 0),
     },
-    daily: (daily.data ?? []).map((d: { day: string; count: number }) => ({
-      day: d.day,
-      count: Number(d.count),
+    daily: recentDays(Math.min(days, 30)).map((day) => ({
+      day,
+      count: countByDay.get(day) ?? 0,
     })),
     eventCounts: evc.map((e) => ({ event: e.event, count: Number(e.count) })),
     leads: { total: leads.length, new: leads.filter((l) => l.status === 'new').length },

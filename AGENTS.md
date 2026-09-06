@@ -628,6 +628,11 @@ by pointing both at one instance.
   route swallowed the error. It now logs `webhook.ingest_failed`, and it retries
   `ingestThread` at 0, 5 and 20 seconds. A pass that imports nothing logs
   `webhook.ingest_empty`. Never restore a bare `catch {}` there.
+- A `'use server'` module must not re-export a type. `export type { X }` there
+  survives the Turbopack dev transform, so the route answers 500 with
+  `ReferenceError: X is not defined`. `next build` passes, so CI never sees it.
+  `apps/admin/(panel)/inbox` failed this way. Import the type straight from the
+  module that declares it.
 - Playwright e2e (`apps/web/e2e`) runs against the dev server; CI needs
   `E2E_SKIP_AUTH`.
 - Cloudflare and Vercel IaC adoption is import-based. Run `gen-imports`, then

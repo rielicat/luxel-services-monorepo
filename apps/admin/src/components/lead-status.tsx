@@ -20,31 +20,44 @@ const TONE: Record<string, string> = {
 
 export function LeadStatus({ id, status }: { id: string; status: string }) {
   const [value, setValue] = useState(status);
+  const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
 
   return (
-    <select
-      value={value}
-      disabled={pending}
-      onChange={(e) => {
-        const s = e.target.value;
-        setValue(s);
-        startTransition(async () => {
-          const r = await updateLeadStatus({ id, status: s });
-          if (!r.ok) setValue(status);
-        });
-      }}
-      className={cn(
-        'cursor-pointer rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none',
-        TONE[value] ?? 'bg-muted',
-        pending && 'opacity-60',
+    <div className="grid gap-0.5">
+      <select
+        value={value}
+        disabled={pending}
+        onChange={(e) => {
+          const s = e.target.value;
+          setValue(s);
+          setFailed(false);
+          startTransition(async () => {
+            const r = await updateLeadStatus({ id, status: s });
+            if (!r.ok) {
+              setValue(status);
+              setFailed(true);
+            }
+          });
+        }}
+        className={cn(
+          'cursor-pointer rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none',
+          TONE[value] ?? 'bg-muted',
+          pending && 'opacity-60',
+          failed && 'ring-destructive ring-2',
+        )}
+      >
+        {STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {LABEL[s]}
+          </option>
+        ))}
+      </select>
+      {failed && (
+        <span role="alert" className="text-destructive text-[11px] font-semibold">
+          No se guardó
+        </span>
       )}
-    >
-      {STATUSES.map((s) => (
-        <option key={s} value={s}>
-          {LABEL[s]}
-        </option>
-      ))}
-    </select>
+    </div>
   );
 }

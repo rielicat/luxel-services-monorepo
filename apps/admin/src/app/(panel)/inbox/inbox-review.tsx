@@ -25,8 +25,8 @@ import {
   simulateReply,
   syncInbox,
   type InboxActionResult,
-  type InboxThread,
 } from './actions';
+import type { InboxThread } from '@luxel/core/messaging/drafts';
 
 const fmt = (iso: string) =>
   new Intl.DateTimeFormat('es-CL', {
@@ -469,7 +469,7 @@ export function InboxReview({ threads }: { threads: InboxThread[] }) {
                     onClick={() => runSimulate(thread.id)}
                   >
                     <Sparkles className={cn('h-4 w-4', simulatingThis && 'animate-pulse')} />
-                    {working ? t('simulating') : t('simulate')}
+                    {simulatingThis ? t('simulating') : t('simulate')}
                   </Button>
                 </div>
               </div>

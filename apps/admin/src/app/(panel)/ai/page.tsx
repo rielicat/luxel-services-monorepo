@@ -1,7 +1,16 @@
 import Link from 'next/link';
 import { Bot } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase';
-import { Card, Pill } from '@/components/ui';
+import {
+  Alert,
+  Card,
+  DataTable,
+  EmptyRow,
+  PageHeader,
+  Pill,
+  ghostButton,
+  primaryButton,
+} from '@/components/ui';
 import { readLuxelPolicy } from '@luxel/core/agent/policy';
 import {
   submitAiFlag,
@@ -144,15 +153,12 @@ export default async function AiPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <Bot className="text-primary h-5 w-5" /> Respuestas de Lux
-        </h1>
-        <p className="text-muted-foreground text-sm">
+      <PageHeader icon={Bot} title="Respuestas de Lux">
+        <p>
           {rows.length} propiedades · {answering} con Lux activo · {reviewing} esperando revisión
           {!threadsFailed && <> · {pendingTotal} borradores pendientes</>}
         </p>
-        <p className="text-muted-foreground mt-1 text-sm">
+        <p className="mt-1">
           Con revisión activa Lux redacta y no envía nada: un operador aprueba el texto en la{' '}
           <Link href="/inbox" className="text-primary hover:underline">
             bandeja de huéspedes
@@ -160,7 +166,7 @@ export default async function AiPage({
           . Sin revisión, Lux responde solo. Con Lux apagado, la conversación queda para una persona
           de Luxel.
         </p>
-      </div>
+      </PageHeader>
 
       <Card id="policy" className="mb-6 p-4">
         <h2 className="font-display text-lg font-semibold tracking-tight">Política de Luxel</h2>
@@ -191,40 +197,24 @@ export default async function AiPage({
       </Card>
 
       {readFailed && (
-        <div
-          role="alert"
-          className="border-destructive/40 bg-destructive/10 text-destructive mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
-        >
+        <Alert tone="error">
           No se pudieron cargar las propiedades. Recarga la página o revisa los registros del
           servidor.
-        </div>
+        </Alert>
       )}
 
       {!readFailed && threadsFailed && (
-        <div
-          role="alert"
-          className="border-warning/40 bg-warning/10 text-warning mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
-        >
+        <Alert tone="warning">
           No pudimos contar los borradores pendientes. Los interruptores siguen funcionando.
-        </div>
+        </Alert>
       )}
 
-      {failed && (
-        <div
-          role="alert"
-          className="border-destructive/40 bg-destructive/10 text-destructive mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
-        >
-          {ERROR_MESSAGE[failed] ?? ERROR_MESSAGE.write_failed}
-        </div>
-      )}
+      {failed && <Alert tone="error">{ERROR_MESSAGE[failed] ?? ERROR_MESSAGE.write_failed}</Alert>}
 
       {changed !== null && !Number.isNaN(changed) && (
-        <div
-          role="status"
-          className="border-success/40 bg-success/10 text-success mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
-        >
+        <Alert tone="ok">
           {changed === 1 ? 'Cambiamos 1 propiedad.' : `Cambiamos ${changed} propiedades.`}
-        </div>
+        </Alert>
       )}
 
       {rows.length > 0 && (
@@ -245,7 +235,7 @@ export default async function AiPage({
                     key={op.operation}
                     name="operation"
                     value={op.operation}
-                    className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                    className={ghostButton}
                   >
                     {op.label}
                   </button>
@@ -258,18 +248,10 @@ export default async function AiPage({
                 A todas
               </p>
               <div className="flex flex-wrap gap-2">
-                <button
-                  name="operation"
-                  value="ai_reviews:true"
-                  className="bg-primary text-primary-foreground rounded-lg px-3 py-1.5 text-xs font-semibold"
-                >
+                <button name="operation" value="ai_reviews:true" className={primaryButton}>
                   Pedir revisión en todas
                 </button>
-                <button
-                  name="operation"
-                  value="ai_reviews:false"
-                  className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold"
-                >
+                <button name="operation" value="ai_reviews:false" className={ghostButton}>
                   Enviar sin revisar en todas
                 </button>
               </div>
@@ -278,110 +260,91 @@ export default async function AiPage({
         </Card>
       )}
 
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-border text-muted-foreground border-b text-left text-xs uppercase">
-                <th className="px-4 py-3 font-medium">
-                  <span className="sr-only">Marcar</span>
-                </th>
-                <th className="px-4 py-3 font-medium">Propiedad</th>
-                <th className="px-4 py-3 font-medium">Anfitrión</th>
-                <th className="px-4 py-3 font-medium">Lux responde</th>
-                <th className="px-4 py-3 font-medium">Antes de enviar</th>
-                <th className="px-4 py-3 font-medium">Pendientes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr
-                  key={r.id}
-                  id={`p-${r.id}`}
-                  className="border-border/60 hover:bg-muted/40 border-b"
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      form={SELECTION_FORM}
-                      name="ids"
-                      value={r.id}
-                      aria-label={`Marcar ${r.nickname ?? 'propiedad'}`}
-                      className="accent-primary h-4 w-4"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{r.nickname ?? '—'}</div>
-                    {r.comuna && <div className="text-muted-foreground text-xs">{r.comuna}</div>}
-                  </td>
-                  <td className="text-muted-foreground px-4 py-3">{owners[r.owner_id] ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Pill tone={r.ai_replies ? 'converted' : 'lost'}>
-                        {r.ai_replies ? 'Activo' : 'Apagado'}
-                      </Pill>
-                      <form action={submitAiFlag}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="flag" value="ai_replies" />
-                        <input type="hidden" name="value" value={r.ai_replies ? 'false' : 'true'} />
-                        <button className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold">
-                          {r.ai_replies ? 'Apagar' : 'Activar'}
-                        </button>
-                      </form>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {r.ai_replies ? (
-                      <div className="flex items-center gap-2">
-                        <Pill tone={r.ai_reviews ? 'new' : 'contacted'}>
-                          {r.ai_reviews ? 'Revisamos' : 'Envío directo'}
-                        </Pill>
-                        <form action={submitAiFlag}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="flag" value="ai_reviews" />
-                          <input
-                            type="hidden"
-                            name="value"
-                            value={r.ai_reviews ? 'false' : 'true'}
-                          />
-                          <button className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold">
-                            {r.ai_reviews ? 'Enviar sin revisar' : 'Pedir revisión'}
-                          </button>
-                        </form>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Responde una persona</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {threadsFailed ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <span className="tabular-nums">{pending[r.id] ?? 0} borradores</span>
-                        {(needsHost[r.id] ?? 0) > 0 && (
-                          <span className="text-warning text-xs font-semibold">
-                            {needsHost[r.id]} para una persona
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {!rows.length && (
-                <tr>
-                  <td colSpan={6} className="text-muted-foreground px-4 py-10 text-center">
-                    {readFailed
-                      ? 'No se pudo leer la lista de propiedades.'
-                      : 'Todavía no hay propiedades importadas.'}
-                  </td>
-                </tr>
+      <DataTable
+        head={[
+          <span key="mark" className="sr-only">
+            Marcar
+          </span>,
+          'Propiedad',
+          'Anfitrión',
+          'Lux responde',
+          'Antes de enviar',
+          'Pendientes',
+        ]}
+      >
+        {rows.map((r) => (
+          <tr key={r.id} id={`p-${r.id}`} className="border-border/60 hover:bg-muted/40 border-b">
+            <td className="px-4 py-3">
+              <input
+                type="checkbox"
+                form={SELECTION_FORM}
+                name="ids"
+                value={r.id}
+                aria-label={`Marcar ${r.nickname ?? 'propiedad'}`}
+                className="accent-primary h-4 w-4"
+              />
+            </td>
+            <td className="px-4 py-3">
+              <div className="font-medium">{r.nickname ?? '—'}</div>
+              {r.comuna && <div className="text-muted-foreground text-xs">{r.comuna}</div>}
+            </td>
+            <td className="text-muted-foreground px-4 py-3">{owners[r.owner_id] ?? '—'}</td>
+            <td className="px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Pill tone={r.ai_replies ? 'converted' : 'lost'}>
+                  {r.ai_replies ? 'Activo' : 'Apagado'}
+                </Pill>
+                <form action={submitAiFlag}>
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="flag" value="ai_replies" />
+                  <input type="hidden" name="value" value={r.ai_replies ? 'false' : 'true'} />
+                  <button className={ghostButton}>{r.ai_replies ? 'Apagar' : 'Activar'}</button>
+                </form>
+              </div>
+            </td>
+            <td className="px-4 py-3">
+              {r.ai_replies ? (
+                <div className="flex items-center gap-2">
+                  <Pill tone={r.ai_reviews ? 'new' : 'contacted'}>
+                    {r.ai_reviews ? 'Revisamos' : 'Envío directo'}
+                  </Pill>
+                  <form action={submitAiFlag}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="hidden" name="flag" value="ai_reviews" />
+                    <input type="hidden" name="value" value={r.ai_reviews ? 'false' : 'true'} />
+                    <button className={ghostButton}>
+                      {r.ai_reviews ? 'Enviar sin revisar' : 'Pedir revisión'}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">Responde una persona</span>
               )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+            </td>
+            <td className="px-4 py-3">
+              {threadsFailed ? (
+                <span className="text-muted-foreground">—</span>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <span className="tabular-nums">{pending[r.id] ?? 0} borradores</span>
+                  {(needsHost[r.id] ?? 0) > 0 && (
+                    <span className="text-warning text-xs font-semibold">
+                      {needsHost[r.id]} para una persona
+                    </span>
+                  )}
+                </div>
+              )}
+            </td>
+          </tr>
+        ))}
+        {!rows.length && (
+          <EmptyRow span={6}>
+            {readFailed
+              ? 'No se pudo leer la lista de propiedades.'
+              : 'Todavía no hay propiedades importadas.'}
+          </EmptyRow>
+        )}
+      </DataTable>
     </div>
   );
 }

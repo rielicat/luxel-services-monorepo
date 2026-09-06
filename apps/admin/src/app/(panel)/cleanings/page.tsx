@@ -38,7 +38,7 @@ import {
   reviewStatusTone,
   reviewStuck,
 } from '@/lib/review';
-import { Card, Pill, SectionTitle } from '@/components/ui';
+import { Card, PageHeader, Pill } from '@/components/ui';
 import { WalkthroughPlayer } from './walkthrough-player';
 import { RetryReview } from './retry-review';
 
@@ -268,194 +268,199 @@ export default async function CleaningsPage() {
   const mediaReady = cleaningMediaConfigured();
 
   return (
-    <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <SectionTitle>
-            <Sparkles className="h-4 w-4" /> Aseos
-          </SectionTitle>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Los últimos {HISTORY_DAYS} días y lo que viene. Solo Luxel ve esto: el anfitrión nunca
-            ve el equipo ni el video.
-          </p>
-        </div>
-        {!mediaReady && (
-          <Pill tone="new">Falta LUXEL_WORKER_URL o INTERNAL_SEND_TOKEN: no hay video</Pill>
+    <div>
+      <PageHeader
+        icon={Sparkles}
+        title="Aseos"
+        actions={
+          !mediaReady ? (
+            <Pill tone="new">Falta LUXEL_WORKER_URL o INTERNAL_SEND_TOKEN: no hay video</Pill>
+          ) : null
+        }
+      >
+        Los últimos {HISTORY_DAYS} días y lo que viene. Solo Luxel ve esto: el anfitrión nunca ve el
+        equipo ni el video.
+      </PageHeader>
+
+      <div className="grid gap-5">
+        {views.length === 0 && (
+          <Card className="p-5">
+            <p className="text-muted-foreground text-sm">
+              Todavía no hay aseos en esta ventana. Se crean solos con cada salida importada.
+            </p>
+          </Card>
         )}
-      </div>
 
-      {views.length === 0 && (
-        <Card className="p-5">
-          <p className="text-muted-foreground text-sm">
-            Todavía no hay aseos en esta ventana. Se crean solos con cada salida importada.
-          </p>
-        </Card>
-      )}
+        {views.map((property) => (
+          <Card key={property.id} className="p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="font-display font-semibold">{property.nickname}</h3>
+              {property.comuna && (
+                <span className="text-muted-foreground text-xs">{property.comuna}</span>
+              )}
+            </div>
 
-      {views.map((property) => (
-        <Card key={property.id} className="p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="font-display font-semibold">{property.nickname}</h3>
-            {property.comuna && (
-              <span className="text-muted-foreground text-xs">{property.comuna}</span>
-            )}
-          </div>
-
-          <ul className="mt-3 grid gap-3">
-            {property.cleanings.map((cleaning) => (
-              <li key={cleaning.id} className="border-border rounded-lg border p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold capitalize">
-                    {dateText(cleaning.date)}
-                  </span>
-                  <Pill tone={statusTone(cleaning.status)}>{statusLabel(cleaning.status)}</Pill>
-                  <span className="text-muted-foreground text-xs">
-                    {cleaning.crew === 'confirmed'
-                      ? 'El equipo confirmó'
-                      : cleaning.crew === 'declined'
-                        ? 'El equipo dijo que no puede'
-                        : 'Sin respuesta del equipo'}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    Pasos: {cleaning.steps} de {CLEANING_CHECKLIST_STEPS.length}
-                  </span>
-                </div>
-
-                <p className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
-                  <Video className="h-3.5 w-3.5" />
-                  {cleaning.walkthrough
-                    ? [
-                        cleaning.walkthrough.status === 'purged'
-                          ? 'Video borrado por retención'
-                          : 'Video guardado',
-                        megabytes(cleaning.walkthrough.bytes),
-                        clock(cleaning.walkthrough.durationSeconds),
-                        cleaning.walkthrough.recordedByName,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')
-                    : 'Sin video'}
-                </p>
-                {cleaning.walkthrough?.playable && mediaReady && (
-                  <WalkthroughPlayer walkthroughId={cleaning.walkthrough.id} />
-                )}
-
-                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                  <PackageSearch className="h-3.5 w-3.5" />
-                  {cleaning.confirmedSource ? (
-                    <span className="text-success font-semibold">
-                      {INVENTORY_SOURCE_LABEL[cleaning.confirmedSource]} ·{' '}
-                      {cleaning.confirmedItems.length} cosas
+            <ul className="mt-3 grid gap-3">
+              {property.cleanings.map((cleaning) => (
+                <li key={cleaning.id} className="border-border rounded-lg border p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold capitalize">
+                      {dateText(cleaning.date)}
                     </span>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {cleaning.draftStatus
-                        ? (DRAFT_STATUS_LABEL[cleaning.draftStatus] ?? cleaning.draftStatus)
-                        : 'Sin inventario'}
+                    <Pill tone={statusTone(cleaning.status)}>{statusLabel(cleaning.status)}</Pill>
+                    <span className="text-muted-foreground text-xs">
+                      {cleaning.crew === 'confirmed'
+                        ? 'El equipo confirmó'
+                        : cleaning.crew === 'declined'
+                          ? 'El equipo dijo que no puede'
+                          : 'Sin respuesta del equipo'}
                     </span>
-                  )}
-                </p>
-
-                {cleaning.differences.length > 0 && (
-                  <ul className="text-warning mt-2 grid gap-0.5 text-xs">
-                    {cleaning.differences.map((difference, index) => (
-                      <li key={`${cleaning.id}-diff-${index}`} className="flex items-start gap-1.5">
-                        <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                        <span>
-                          {[difference.room, difference.name].filter(Boolean).join(' · ')}
-                          {difference.detail ? ` — ${difference.detail}` : ''}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {cleaning.review && (
-                  <div className="border-border mt-2 rounded-lg border border-dashed p-2">
-                    <p className="flex flex-wrap items-center gap-2 text-xs">
-                      <ScanSearch className="h-3.5 w-3.5" />
-                      <Pill tone={reviewStatusTone(cleaning.review.status)}>
-                        {reviewStatusLabel(cleaning.review.status)}
-                      </Pill>
-                      {cleaning.review.reason && (
-                        <span className="text-muted-foreground">
-                          {REVIEW_REASON_LABEL[cleaning.review.reason] ?? cleaning.review.reason}
-                        </span>
-                      )}
-                      {cleaning.review.attempts > 0 && (
-                        <span className="text-muted-foreground">
-                          Intentos: {cleaning.review.attempts}
-                        </span>
-                      )}
-                    </p>
-                    {cleaning.review.findings.length > 0 ? (
-                      <ul className="text-warning mt-2 grid gap-0.5 text-xs">
-                        {cleaning.review.findings.map((finding, index) => (
-                          <li
-                            key={`${cleaning.id}-finding-${index}`}
-                            className="flex items-start gap-1.5"
-                          >
-                            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                            <span>
-                              <strong>{FINDING_KIND_LABEL[finding.kind] ?? finding.kind}</strong>{' '}
-                              {[finding.room, finding.name].filter(Boolean).join(' · ')}
-                              {finding.detail ? ` — ${finding.detail}` : ''}
-                              <span className="text-muted-foreground">
-                                {' '}
-                                ({FINDING_SOURCE_LABEL[finding.source] ?? finding.source})
-                              </span>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      cleaning.review.status === 'done' && (
-                        <p className="text-muted-foreground mt-1 text-xs">
-                          Nada que reportar contra el aseo anterior.
-                        </p>
-                      )
-                    )}
-                    {cleaning.review.stuck && (
-                      <p className="text-warning mt-1 text-xs">
-                        Detenida: sin avance hace más de {REVIEW_STALE_MINUTES} minutos. La pasada
-                        de la noche la vuelve a tomar, o la reintentas aquí.
-                      </p>
-                    )}
-                    {(cleaning.review.status === 'failed' || cleaning.review.stuck) && (
-                      <RetryReview runId={cleaning.review.id} />
-                    )}
+                    <span className="text-muted-foreground text-xs">
+                      Pasos: {cleaning.steps} de {CLEANING_CHECKLIST_STEPS.length}
+                    </span>
                   </div>
-                )}
 
-                {cleaning.confirmedItems.length > 0 && (
-                  <details className="mt-2">
-                    <summary className="text-muted-foreground cursor-pointer text-xs font-semibold">
-                      Ver el inventario confirmado
-                      {cleaning.confirmedByName ? ` · ${cleaning.confirmedByName}` : ''}
-                    </summary>
-                    <ul className="mt-2 grid gap-1 text-xs">
-                      {cleaning.confirmedItems.map((item, index) => (
+                  <p className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <Video className="h-3.5 w-3.5" />
+                    {cleaning.walkthrough
+                      ? [
+                          cleaning.walkthrough.status === 'purged'
+                            ? 'Video borrado por retención'
+                            : 'Video guardado',
+                          megabytes(cleaning.walkthrough.bytes),
+                          clock(cleaning.walkthrough.durationSeconds),
+                          cleaning.walkthrough.recordedByName,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')
+                      : 'Sin video'}
+                  </p>
+                  {cleaning.walkthrough?.playable && mediaReady && (
+                    <WalkthroughPlayer walkthroughId={cleaning.walkthrough.id} />
+                  )}
+
+                  <p className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <PackageSearch className="h-3.5 w-3.5" />
+                    {cleaning.confirmedSource ? (
+                      <span className="text-success font-semibold">
+                        {INVENTORY_SOURCE_LABEL[cleaning.confirmedSource]} ·{' '}
+                        {cleaning.confirmedItems.length} cosas
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {cleaning.draftStatus
+                          ? (DRAFT_STATUS_LABEL[cleaning.draftStatus] ?? cleaning.draftStatus)
+                          : 'Sin inventario'}
+                      </span>
+                    )}
+                  </p>
+
+                  {cleaning.differences.length > 0 && (
+                    <ul className="text-warning mt-2 grid gap-0.5 text-xs">
+                      {cleaning.differences.map((difference, index) => (
                         <li
-                          key={`${cleaning.id}-item-${index}`}
-                          className="flex justify-between gap-3"
+                          key={`${cleaning.id}-diff-${index}`}
+                          className="flex items-start gap-1.5"
                         >
-                          <span>{[item.room, item.name].filter(Boolean).join(' · ')}</span>
-                          <span className="text-muted-foreground shrink-0">
-                            {item.observed} · {conditionLabel(item.condition)}
+                          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                          <span>
+                            {[difference.room, difference.name].filter(Boolean).join(' · ')}
+                            {difference.detail ? ` — ${difference.detail}` : ''}
                           </span>
                         </li>
                       ))}
                     </ul>
-                    {cleaning.confirmedNote && (
-                      <p className="text-muted-foreground mt-2 text-xs">{cleaning.confirmedNote}</p>
-                    )}
-                  </details>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ))}
+                  )}
+
+                  {cleaning.review && (
+                    <div className="border-border mt-2 rounded-lg border border-dashed p-2">
+                      <p className="flex flex-wrap items-center gap-2 text-xs">
+                        <ScanSearch className="h-3.5 w-3.5" />
+                        <Pill tone={reviewStatusTone(cleaning.review.status)}>
+                          {reviewStatusLabel(cleaning.review.status)}
+                        </Pill>
+                        {cleaning.review.reason && (
+                          <span className="text-muted-foreground">
+                            {REVIEW_REASON_LABEL[cleaning.review.reason] ?? cleaning.review.reason}
+                          </span>
+                        )}
+                        {cleaning.review.attempts > 0 && (
+                          <span className="text-muted-foreground">
+                            Intentos: {cleaning.review.attempts}
+                          </span>
+                        )}
+                      </p>
+                      {cleaning.review.findings.length > 0 ? (
+                        <ul className="text-warning mt-2 grid gap-0.5 text-xs">
+                          {cleaning.review.findings.map((finding, index) => (
+                            <li
+                              key={`${cleaning.id}-finding-${index}`}
+                              className="flex items-start gap-1.5"
+                            >
+                              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                              <span>
+                                <strong>{FINDING_KIND_LABEL[finding.kind] ?? finding.kind}</strong>{' '}
+                                {[finding.room, finding.name].filter(Boolean).join(' · ')}
+                                {finding.detail ? ` — ${finding.detail}` : ''}
+                                <span className="text-muted-foreground">
+                                  {' '}
+                                  ({FINDING_SOURCE_LABEL[finding.source] ?? finding.source})
+                                </span>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        cleaning.review.status === 'done' && (
+                          <p className="text-muted-foreground mt-1 text-xs">
+                            Nada que reportar contra el aseo anterior.
+                          </p>
+                        )
+                      )}
+                      {cleaning.review.stuck && (
+                        <p className="text-warning mt-1 text-xs">
+                          Detenida: sin avance hace más de {REVIEW_STALE_MINUTES} minutos. La pasada
+                          de la noche la vuelve a tomar, o la reintentas aquí.
+                        </p>
+                      )}
+                      {(cleaning.review.status === 'failed' || cleaning.review.stuck) && (
+                        <RetryReview runId={cleaning.review.id} />
+                      )}
+                    </div>
+                  )}
+
+                  {cleaning.confirmedItems.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="text-muted-foreground cursor-pointer text-xs font-semibold">
+                        Ver el inventario confirmado
+                        {cleaning.confirmedByName ? ` · ${cleaning.confirmedByName}` : ''}
+                      </summary>
+                      <ul className="mt-2 grid gap-1 text-xs">
+                        {cleaning.confirmedItems.map((item, index) => (
+                          <li
+                            key={`${cleaning.id}-item-${index}`}
+                            className="flex justify-between gap-3"
+                          >
+                            <span>{[item.room, item.name].filter(Boolean).join(' · ')}</span>
+                            <span className="text-muted-foreground shrink-0">
+                              {item.observed} · {conditionLabel(item.condition)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      {cleaning.confirmedNote && (
+                        <p className="text-muted-foreground mt-2 text-xs">
+                          {cleaning.confirmedNote}
+                        </p>
+                      )}
+                    </details>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

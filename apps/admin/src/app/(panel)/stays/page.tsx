@@ -1,4 +1,4 @@
-import { CalendarPlus } from 'lucide-react';
+import { CalendarPlus, ChevronRight } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase';
 import {
   MANUAL_ORIGIN,
@@ -10,7 +10,16 @@ import {
   type ManualStayRow,
 } from '@/lib/stays';
 import { providerApiKey } from '@/lib/hospitable';
-import { Card, Pill } from '@/components/ui';
+import {
+  Alert,
+  Card,
+  Field,
+  PageHeader,
+  Pill,
+  dangerButton,
+  inputClass,
+  primaryButton,
+} from '@/components/ui';
 import { submitCancelManualStay, submitCreateManualStay } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -210,44 +219,6 @@ async function getStaysConsole(today: string): Promise<StaysConsole> {
   return { properties, total, live, failures };
 }
 
-function Alert({
-  tone,
-  children,
-}: {
-  tone: 'error' | 'warning' | 'ok';
-  children: React.ReactNode;
-}) {
-  const styles = {
-    error: 'border-destructive/40 bg-destructive/10 text-destructive',
-    warning: 'border-warning/40 bg-warning/10 text-warning',
-    ok: 'border-success/40 bg-success/10 text-success',
-  } as const;
-  return (
-    <div
-      role="alert"
-      className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${styles[tone]}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="grid gap-1 text-xs">
-      <span className="text-muted-foreground font-medium uppercase">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const inputClass =
-  'border-input bg-background focus:ring-ring w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2';
-const primaryButton =
-  'bg-primary text-primary-foreground rounded-lg px-3 py-2 text-xs font-semibold';
-const dangerButton =
-  'border-destructive/40 text-destructive hover:bg-destructive/10 rounded-lg border px-3 py-2 text-xs font-semibold';
-
 function Feedback({ error, ok, detail }: { error?: string; ok?: string; detail?: string }) {
   if (!error && !ok) return null;
   return error ? (
@@ -387,39 +358,50 @@ function PropertyCard({
           </div>
         )}
 
-        <form action={submitCreateManualStay} className="mt-3 grid gap-2">
-          <input type="hidden" name="propertyId" value={property.id} />
-          <div className="grid gap-2 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <Field label="Nombre del huésped">
+        <details className="group mt-3" open={Boolean(feedback.error || feedback.ok)}>
+          <summary className="text-primary flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold">
+            <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
+            Agregar una estadía
+          </summary>
+          <form action={submitCreateManualStay} className="mt-3 grid gap-2">
+            <input type="hidden" name="propertyId" value={property.id} />
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <Field label="Nombre del huésped">
+                  <input
+                    className={inputClass}
+                    name="guestName"
+                    maxLength={120}
+                    placeholder="Nombre y apellido"
+                    aria-label={`Huésped en ${property.nickname}`}
+                  />
+                </Field>
+              </div>
+              <Field label="Llegada">
+                <input className={inputClass} type="date" name="arrival" min={today} />
+              </Field>
+              <Field label="Salida">
+                <input className={inputClass} type="date" name="departure" min={today} />
+              </Field>
+              <Field label="Hora de llegada">
+                <input className={inputClass} type="time" name="arrivalTime" defaultValue="15:00" />
+              </Field>
+              <Field label="Hora de salida">
                 <input
                   className={inputClass}
-                  name="guestName"
-                  maxLength={120}
-                  placeholder="Nombre y apellido"
-                  aria-label={`Huésped en ${property.nickname}`}
+                  type="time"
+                  name="departureTime"
+                  defaultValue="11:00"
                 />
               </Field>
             </div>
-            <Field label="Llegada">
-              <input className={inputClass} type="date" name="arrival" min={today} />
-            </Field>
-            <Field label="Salida">
-              <input className={inputClass} type="date" name="departure" min={today} />
-            </Field>
-            <Field label="Hora de llegada">
-              <input className={inputClass} type="time" name="arrivalTime" defaultValue="15:00" />
-            </Field>
-            <Field label="Hora de salida">
-              <input className={inputClass} type="time" name="departureTime" defaultValue="11:00" />
-            </Field>
-          </div>
-          <div>
-            <button className={primaryButton} disabled={!property.linked}>
-              Bloquear noches y crear el link
-            </button>
-          </div>
-        </form>
+            <div>
+              <button className={primaryButton} disabled={!property.linked}>
+                Bloquear noches y crear el link
+              </button>
+            </div>
+          </form>
+        </details>
       </div>
     </Card>
   );
@@ -446,14 +428,11 @@ export default async function StaysPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <CalendarPlus className="text-primary h-5 w-5" /> Estadías directas
-        </h1>
-        <p className="text-muted-foreground text-sm">
+      <PageHeader icon={CalendarPlus} title="Estadías directas">
+        <p>
           {total} registradas · {live} activas · {properties.length} propiedades
         </p>
-        <p className="text-muted-foreground mt-1 text-sm">
+        <p className="mt-1">
           Acá va la estadía que no llegó por Airbnb: una reserva directa, un invitado del anfitrión,
           una noche del propio dueño. Primero bloqueamos esas noches en Hospitable, así Airbnb ya no
           las puede vender, y recién después las guardamos acá con su link de check-in.
@@ -463,7 +442,7 @@ export default async function StaysPage({
           Hospitable y esta reserva no existe ahí. Copia el link y entrégaselo tú. El aseo del día
           de salida se programa solo, en la próxima sincronización.
         </p>
-      </div>
+      </PageHeader>
 
       {failures.missingColumn && (
         <Alert tone="error">

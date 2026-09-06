@@ -2,7 +2,15 @@ import { CreditCard } from 'lucide-react';
 import { PLAN_COMMISSION_PCT, planMonthlyCost } from '@luxel/shared/plan-pricing';
 import { createServiceClient } from '@/lib/supabase';
 import { formatCLP } from '@/lib/utils';
-import { Card, Pill } from '@/components/ui';
+import {
+  Alert,
+  DataTable,
+  EmptyRow,
+  PageHeader,
+  Pill,
+  ghostButton,
+  primaryButton,
+} from '@/components/ui';
 import { submitPlanStatus } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -186,149 +194,122 @@ export default async function PlansPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <CreditCard className="text-primary h-5 w-5" /> Planes
-        </h1>
-        <p className="text-muted-foreground text-sm">
+      <PageHeader icon={CreditCard} title="Planes">
+        <p>
           {rows.length} en total · {counts.requested ?? 0} por activar · {counts.active ?? 0}{' '}
           activos
           {!statsFailed && <> · {formatCLP(billable)} por facturar este mes</>}
         </p>
-        <p className="text-muted-foreground mt-1 text-sm">
+        <p className="mt-1">
           Plan único: {PCT_LABEL} de las reservas del anfitrión, sin la tarifa de limpieza, IVA
           incluido. Luxel cobra cada mes, fuera de la plataforma.
         </p>
-      </div>
+      </PageHeader>
 
       {failed && (
-        <div
-          role="alert"
-          className="border-destructive/40 bg-destructive/10 text-destructive mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
-        >
+        <Alert tone="error">
           No se pudieron cargar los planes. Recarga la página o revisa los registros del servidor.
-        </div>
+        </Alert>
       )}
 
       {!failed && statsFailed && (
-        <div
-          role="alert"
-          className="border-warning/40 bg-warning/10 text-warning mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
-        >
+        <Alert tone="warning">
           No se pudieron calcular los ingresos del mes. Los montos aparecen sin dato.
-        </div>
+        </Alert>
       )}
 
       {!failed && failedId && (
-        <div
-          role="alert"
-          className="border-destructive/40 bg-destructive/10 text-destructive mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
-        >
+        <Alert tone="error">
           No se pudo cambiar el estado del plan. El plan sigue como estaba.
-        </div>
+        </Alert>
       )}
 
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-border text-muted-foreground border-b text-left text-xs uppercase">
-                <th className="px-4 py-3 font-medium">Anfitrión</th>
-                <th className="px-4 py-3 font-medium">Propiedades</th>
-                <th className="px-4 py-3 font-medium">Base del mes</th>
-                <th className="px-4 py-3 font-medium">Cobro {PCT_LABEL}</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
-                <th className="px-4 py-3 font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const hostListings = listings[r.customer_id];
-                const commissionBase = revenue[r.customer_id];
-                const unknown = unknownCleaning[r.customer_id] ?? 0;
-                return (
-                  <tr key={r.id} className="border-border/60 hover:bg-muted/40 border-b">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{r.customers?.full_name ?? '—'}</div>
+      <DataTable
+        head={[
+          'Anfitrión',
+          'Propiedades',
+          'Base del mes',
+          `Cobro ${PCT_LABEL}`,
+          'Estado',
+          'Acciones',
+        ]}
+      >
+        {rows.map((r) => {
+          const hostListings = listings[r.customer_id];
+          const commissionBase = revenue[r.customer_id];
+          const unknown = unknownCleaning[r.customer_id] ?? 0;
+          return (
+            <tr key={r.id} className="border-border/60 hover:bg-muted/40 border-b">
+              <td className="px-4 py-3">
+                <div className="font-medium">{r.customers?.full_name ?? '—'}</div>
+                <div className="text-muted-foreground text-xs">
+                  {r.customers?.email ?? r.customer_id}
+                </div>
+              </td>
+              <td className="px-4 py-3">
+                {hostListings ? (
+                  <>
+                    <div className="tabular-nums">{hostListings.count}</div>
+                    {hostListings.nicknames.length > 0 && (
                       <div className="text-muted-foreground text-xs">
-                        {r.customers?.email ?? r.customer_id}
+                        {hostListings.nicknames.join(' · ')}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {hostListings ? (
-                        <>
-                          <div className="tabular-nums">{hostListings.count}</div>
-                          {hostListings.nicknames.length > 0 && (
-                            <div className="text-muted-foreground text-xs">
-                              {hostListings.nicknames.join(' · ')}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="text-muted-foreground px-4 py-3 tabular-nums">
-                      {commissionBase === undefined ? '—' : formatCLP(commissionBase)}
-                      {unknown > 0 && (
-                        <div className="text-warning text-xs font-medium">
-                          {unknown === 1
-                            ? '1 estadía sin tarifa de limpieza reconocida — revísala antes de cobrar'
-                            : `${unknown} estadías sin tarifa de limpieza reconocida — revísalas antes de cobrar`}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-medium tabular-nums">
-                      {commissionBase === undefined
-                        ? '—'
-                        : `${formatCLP(planMonthlyCost(commissionBase))}/mes`}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Pill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status] ?? r.status}</Pill>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        {r.status !== 'active' && (
-                          <form action={submitPlanStatus}>
-                            <input type="hidden" name="id" value={r.id} />
-                            <input type="hidden" name="status" value="active" />
-                            <button className="bg-primary text-primary-foreground rounded-lg px-3 py-1.5 text-xs font-semibold">
-                              Activar
-                            </button>
-                          </form>
-                        )}
-                        {r.status !== 'cancelled' && (
-                          <form action={submitPlanStatus}>
-                            <input type="hidden" name="id" value={r.id} />
-                            <input type="hidden" name="status" value="cancelled" />
-                            <button className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-semibold">
-                              Cancelar
-                            </button>
-                          </form>
-                        )}
-                      </div>
-                      {failedId === r.id && (
-                        <p className="text-destructive mt-1 text-xs font-semibold">
-                          No se pudo actualizar
-                        </p>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {!rows.length && (
-                <tr>
-                  <td colSpan={6} className="text-muted-foreground px-4 py-10 text-center">
-                    {failed
-                      ? 'No se pudo leer la lista de planes.'
-                      : 'Aún no hay planes solicitados.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </td>
+              <td className="text-muted-foreground px-4 py-3 tabular-nums">
+                {commissionBase === undefined ? '—' : formatCLP(commissionBase)}
+                {unknown > 0 && (
+                  <div className="text-warning text-xs font-medium">
+                    {unknown === 1
+                      ? '1 estadía sin tarifa de limpieza reconocida — revísala antes de cobrar'
+                      : `${unknown} estadías sin tarifa de limpieza reconocida — revísalas antes de cobrar`}
+                  </div>
+                )}
+              </td>
+              <td className="px-4 py-3 font-medium tabular-nums">
+                {commissionBase === undefined
+                  ? '—'
+                  : `${formatCLP(planMonthlyCost(commissionBase))}/mes`}
+              </td>
+              <td className="px-4 py-3">
+                <Pill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status] ?? r.status}</Pill>
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex gap-2">
+                  {r.status !== 'active' && (
+                    <form action={submitPlanStatus}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="status" value="active" />
+                      <button className={primaryButton}>Activar</button>
+                    </form>
+                  )}
+                  {r.status !== 'cancelled' && (
+                    <form action={submitPlanStatus}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="status" value="cancelled" />
+                      <button className={ghostButton}>Cancelar</button>
+                    </form>
+                  )}
+                </div>
+                {failedId === r.id && (
+                  <p className="text-destructive mt-1 text-xs font-semibold">
+                    No se pudo actualizar
+                  </p>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+        {!rows.length && (
+          <EmptyRow span={6}>
+            {failed ? 'No se pudo leer la lista de planes.' : 'Aún no hay planes solicitados.'}
+          </EmptyRow>
+        )}
+      </DataTable>
     </div>
   );
 }

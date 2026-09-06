@@ -26,7 +26,9 @@ export async function updateLeadStatus(input: {
     .update({ status: parsed.data.status })
     .eq('id', parsed.data.id);
 
+  if (error) return { ok: false };
+
   revalidatePath('/leads');
   revalidatePath('/');
-  return { ok: !error };
+  return { ok: true };
 }

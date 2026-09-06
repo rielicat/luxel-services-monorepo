@@ -1,13 +1,14 @@
 import { SignOutButton } from '@clerk/nextjs';
 import { ShieldAlert } from 'lucide-react';
-import { requireAdmin } from '@/lib/admin';
+import { adminGateConfigured, requireAdmin } from '@/lib/admin';
 import { Shell } from '@/components/shell';
-import { LuxelMark } from '@/components/ui';
+import { LuxelMark, ghostButton } from '@/components/ui';
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdmin();
 
   if (!admin) {
+    const configured = adminGateConfigured();
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <LuxelMark className="h-10 w-10" />
@@ -15,14 +16,13 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <div>
           <h1 className="font-display text-xl font-bold">Acceso restringido</h1>
           <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-            Tu cuenta no tiene permisos para el panel de operación. Contacta a un administrador o
-            inicia sesión con otra cuenta.
+            {configured
+              ? 'Tu cuenta no está en la organización de operación de Luxel. Entra con otra cuenta o pide que te agreguen.'
+              : 'Este proyecto no tiene LUXEL_ADMIN_ORG_SLUG ni LUXEL_ADMIN_ORG_ID. Sin una de esas variables el panel no deja entrar a nadie.'}
           </p>
         </div>
         <SignOutButton>
-          <button className="border-border hover:bg-accent rounded-lg border px-4 py-2 text-sm font-medium">
-            Cerrar sesión
-          </button>
+          <button className={ghostButton}>Cerrar sesión</button>
         </SignOutButton>
       </div>
     );

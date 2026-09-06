@@ -15,6 +15,7 @@ process.env.TEST_ADMIN_ROLE = 'member';
 process.env.LUXEL_ADMIN_ORG_SLUG = 'luxel-test-ops';
 
 vi.mock('@clerk/nextjs/server', () => ({
+  auth: async () => ({ userId: process.env.TEST_CLERK_ID }),
   currentUser: async () => ({
     id: process.env.TEST_CLERK_ID,
     primaryEmailAddress: { emailAddress: 'operator@test.cl' },

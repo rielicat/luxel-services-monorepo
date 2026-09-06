@@ -1,9 +1,20 @@
-import { Link2 } from 'lucide-react';
+import { ChevronRight, Link2 } from 'lucide-react';
 import { matchableEmails } from '@luxel/core/channels/connection';
 import { hostConnectNudgeText } from '@luxel/core/whatsapp/nudge';
 import { createServiceClient } from '@/lib/supabase';
 import { fmtDateTime, relativeTime } from '@/lib/utils';
-import { Card, Pill } from '@/components/ui';
+import {
+  Alert,
+  Card,
+  DataTable,
+  EmptyRow,
+  Field,
+  PageHeader,
+  Pill,
+  ghostButton,
+  inputClass,
+  primaryButton,
+} from '@/components/ui';
 import {
   assignListingToHost,
   loadCentralView,
@@ -289,44 +300,6 @@ async function getConsole(): Promise<ConsoleData> {
   };
 }
 
-function Alert({
-  tone,
-  children,
-}: {
-  tone: 'error' | 'warning' | 'ok';
-  children: React.ReactNode;
-}) {
-  const styles = {
-    error: 'border-destructive/40 bg-destructive/10 text-destructive',
-    warning: 'border-warning/40 bg-warning/10 text-warning',
-    ok: 'border-success/40 bg-success/10 text-success',
-  } as const;
-  return (
-    <div
-      role="alert"
-      className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${styles[tone]}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="grid gap-1 text-xs">
-      <span className="text-muted-foreground font-medium uppercase">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const inputClass =
-  'border-input bg-background focus:ring-ring w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2';
-const primaryButton =
-  'bg-primary text-primary-foreground rounded-lg px-3 py-2 text-xs font-semibold';
-const ghostButton =
-  'border-border hover:bg-accent rounded-lg border px-3 py-2 text-xs font-semibold';
-
 function HostCard({
   host,
   central,
@@ -344,6 +317,7 @@ function HostCard({
         inviteUrl: host.inviteUrl,
       })
     : null;
+  const expanded = Boolean(feedback.error || feedback.ok) || host.candidates.length > 0;
   const waLink =
     prepared && host.phone
       ? `https://wa.me/${host.phone.replace(/\D/g, '')}?text=${encodeURIComponent(prepared)}`
@@ -351,19 +325,20 @@ function HostCard({
 
   return (
     <Card className="p-4">
-      <div id={`c-${host.id}`} className="scroll-mt-24">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <details id={`c-${host.id}`} className="group scroll-mt-24" open={expanded}>
+        <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
+              <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-open:rotate-90" />
               <span className="font-medium">{host.name}</span>
               <Pill tone={STATE_TONE[host.state]}>{STATE_LABEL[host.state] ?? host.state}</Pill>
               {host.planStatus && <Pill>Plan {host.planStatus}</Pill>}
             </div>
-            <div className="text-muted-foreground text-xs">
+            <div className="text-muted-foreground ml-6 text-xs">
               {host.email}
               {host.phone ? ` · ${host.phone}` : ' · sin teléfono'}
             </div>
-            <div className="text-muted-foreground text-xs">
+            <div className="text-muted-foreground ml-6 text-xs">
               Airbnb: {host.claimedEmail ?? 'sin dato'} · {host.listings} propiedades
             </div>
           </div>
@@ -377,7 +352,7 @@ function HostCard({
               {host.lastCheckedAt ? `Revisado ${relativeTime(host.lastCheckedAt)}` : 'Sin revisar'}
             </div>
           </div>
-        </div>
+        </summary>
 
         {host.storedState !== host.state && (
           <p className="text-warning mt-2 text-xs font-semibold">
@@ -500,7 +475,7 @@ function HostCard({
             <button className={ghostButton}>Guardar nota</button>
           </div>
         </form>
-      </div>
+      </details>
     </Card>
   );
 }
@@ -525,19 +500,16 @@ export default async function ConnectionsPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <Link2 className="text-primary h-5 w-5" /> Conexiones
-        </h1>
-        <p className="text-muted-foreground text-sm">
+      <PageHeader icon={Link2} title="Conexiones">
+        <p>
           {waitingLuxel.length} esperan a Luxel · {waitingHost.length} esperan al anfitrión ·{' '}
           {connected.length} conectados · {orphans.length} listings sin dueño
         </p>
-        <p className="text-muted-foreground mt-1 text-sm">
+        <p className="mt-1">
           La invitación se crea en Hospitable a mano. Pega el link acá, márcalo como enviado y
           vuelve a verificar hasta que las publicaciones aparezcan.
         </p>
-      </div>
+      </PageHeader>
 
       {customersFailed && <Alert tone="error">No pudimos leer la lista de anfitriones.</Alert>}
       {connectionsFailed && (
@@ -641,44 +613,24 @@ export default async function ConnectionsPage({
 
       <section>
         <h2 className="font-display mb-2 text-sm font-bold">Conectados ({connected.length})</h2>
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-border text-muted-foreground border-b text-left text-xs uppercase">
-                  <th className="px-4 py-3 font-medium">Anfitrión</th>
-                  <th className="px-4 py-3 font-medium">Correo de Airbnb</th>
-                  <th className="px-4 py-3 font-medium">Propiedades</th>
-                  <th className="px-4 py-3 font-medium">Última revisión</th>
-                </tr>
-              </thead>
-              <tbody>
-                {connected.map((host) => (
-                  <tr key={host.id} className="border-border/60 border-b">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{host.name}</div>
-                      <div className="text-muted-foreground text-xs">{host.email}</div>
-                    </td>
-                    <td className="text-muted-foreground px-4 py-3 text-xs">
-                      {host.claimedEmail ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 tabular-nums">{host.listings}</td>
-                    <td className="text-muted-foreground px-4 py-3 text-xs">
-                      {host.lastCheckedAt ? fmtDateTime(host.lastCheckedAt) : '—'}
-                    </td>
-                  </tr>
-                ))}
-                {!connected.length && (
-                  <tr>
-                    <td colSpan={4} className="text-muted-foreground px-4 py-10 text-center">
-                      Aún no hay anfitriones conectados.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <DataTable head={['Anfitrión', 'Correo de Airbnb', 'Propiedades', 'Última revisión']}>
+          {connected.map((host) => (
+            <tr key={host.id} className="border-border/60 border-b">
+              <td className="px-4 py-3">
+                <div className="font-medium">{host.name}</div>
+                <div className="text-muted-foreground text-xs">{host.email}</div>
+              </td>
+              <td className="text-muted-foreground px-4 py-3 text-xs">
+                {host.claimedEmail ?? '—'}
+              </td>
+              <td className="px-4 py-3 tabular-nums">{host.listings}</td>
+              <td className="text-muted-foreground px-4 py-3 text-xs">
+                {host.lastCheckedAt ? fmtDateTime(host.lastCheckedAt) : '—'}
+              </td>
+            </tr>
+          ))}
+          {!connected.length && <EmptyRow span={4}>Aún no hay anfitriones conectados.</EmptyRow>}
+        </DataTable>
       </section>
     </div>
   );

@@ -13,7 +13,17 @@ import {
   type CrewMemberRow,
   type CrewRole,
 } from '@/lib/crew';
-import { Card, Pill } from '@/components/ui';
+import {
+  Alert,
+  Card,
+  Field,
+  PageHeader,
+  Pill,
+  dangerButton,
+  ghostButton,
+  inputClass,
+  primaryButton,
+} from '@/components/ui';
 import {
   submitAssignCrew,
   submitCreateCrewMember,
@@ -293,46 +303,6 @@ async function getCrewConsole(): Promise<CrewConsole> {
 
   return { members, properties, failures };
 }
-
-function Alert({
-  tone,
-  children,
-}: {
-  tone: 'error' | 'warning' | 'ok';
-  children: React.ReactNode;
-}) {
-  const styles = {
-    error: 'border-destructive/40 bg-destructive/10 text-destructive',
-    warning: 'border-warning/40 bg-warning/10 text-warning',
-    ok: 'border-success/40 bg-success/10 text-success',
-  } as const;
-  return (
-    <div
-      role="alert"
-      className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${styles[tone]}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="grid gap-1 text-xs">
-      <span className="text-muted-foreground font-medium uppercase">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const inputClass =
-  'border-input bg-background focus:ring-ring w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2';
-const primaryButton =
-  'bg-primary text-primary-foreground rounded-lg px-3 py-2 text-xs font-semibold';
-const ghostButton =
-  'border-border hover:bg-accent rounded-lg border px-3 py-2 text-xs font-semibold';
-const dangerButton =
-  'border-destructive/40 text-destructive hover:bg-destructive/10 rounded-lg border px-3 py-2 text-xs font-semibold';
 
 function Feedback({ error, ok }: { error?: string; ok?: string }) {
   if (!error && !ok) return null;
@@ -735,21 +705,18 @@ export default async function CrewPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <HardHat className="text-primary h-5 w-5" /> Equipo
-        </h1>
-        <p className="text-muted-foreground text-sm">
+      <PageHeader icon={HardHat} title="Equipo">
+        <p>
           {internal} internas · {external} externas · {inactive} inactivas · {properties.length}{' '}
           propiedades · {nobody + stale} sin nadie · {mirrored} solo con el espejo de Hospitable
         </p>
-        <p className="text-muted-foreground mt-1 text-sm">
+        <p className="mt-1">
           Hospitable manda quién existe como teammate y ese espejo no se edita acá. Esta página dice
           a quién avisamos: si una propiedad tiene alguna asignación en Luxel, el aviso va solo a la
           gente activa de esa lista. El espejo de Hospitable entra solo cuando la propiedad no tiene
           ninguna asignación.
         </p>
-      </div>
+      </PageHeader>
 
       {failures.missingTables && (
         <Alert tone="error">

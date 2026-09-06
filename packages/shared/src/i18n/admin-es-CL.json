@@ -1,4 +1,7 @@
 {
+  "ui": {
+    "close": "Cerrar"
+  },
   "assign": {
     "title": "Asignar propiedades",
     "subtitle": "Cada propiedad conectada pertenece a un solo cliente. Sin asignar, nadie la ve.",
