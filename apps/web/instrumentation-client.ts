@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { REPLAY_BLOCKED_PATHS, scrubBreadcrumb, scrubEvent } from '@/lib/observability/scrub';
+import { initPostHog } from '@/lib/posthog/init';
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
@@ -37,3 +38,5 @@ if (dsn) {
     },
   });
 }
+
+initPostHog();
