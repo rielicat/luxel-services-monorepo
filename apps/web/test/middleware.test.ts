@@ -98,25 +98,17 @@ describe('clerk auth status on every matched request', () => {
     expect(servedPath(api, '/api/cleaning/inventory')).toBe('/api/cleaning/inventory');
   });
 
-  it('keeps the legal pages reachable through the production stealth gate', async () => {
+  it('serves every marketing page in production, with no gate rewrite', async () => {
     vi.resetModules();
     vi.stubEnv('NODE_ENV', 'production');
     try {
-      const gated = ((await import('../src/middleware')) as MiddlewareModule).default;
+      const live = ((await import('../src/middleware')) as MiddlewareModule).default;
       const call = async (pathname: string) =>
-        (await gated(new NextRequest(`http://localhost:3000${pathname}`), event)) as Response;
+        (await live(new NextRequest(`http://localhost:3000${pathname}`), event)) as Response;
 
-      for (const path of [
-        '/privacy',
-        '/es/privacy',
-        '/privacy/',
-        '/terms',
-        '/es/terms',
-        '/terms/',
-      ]) {
+      for (const path of ['/', '/calculator', '/about', '/privacy', '/terms']) {
         expect(servedPath(await call(path), path)).not.toContain('/gate');
       }
-      expect(servedPath(await call('/calculator'), '/calculator')).toContain('/gate');
     } finally {
       vi.unstubAllEnvs();
       vi.resetModules();

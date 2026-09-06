@@ -9,7 +9,7 @@ Compacted per-section copies of this file live in `docs/`:
 - [`CONVENTIONS.md`](docs/CONVENTIONS.md) — Prose, Conventions.
 - [`SECURITY-RULES.md`](docs/SECURITY-RULES.md) — Data and security rules.
 - [`PRODUCT-CONSTRAINTS.md`](docs/PRODUCT-CONSTRAINTS.md) — Product constraints,
-  stealth gate.
+  launch.
 - [`GOTCHAS.md`](docs/GOTCHAS.md) — Toolchain, Commands, CI, Gotchas.
 
 This file stays the source of truth. Update both when a rule changes.
@@ -459,19 +459,28 @@ id>`, so a thread is digested once and again only when it gains a message.
 - Secrets never enter the repo. `.env*` files stay untracked. Operators set
   Vercel vars and `wrangler secret put`.
 
-## Temporary: remove before public launch
+## Launch
 
-Stealth gate: in production the middleware rewrites every page to
-`app/[locale]/gate` until the `luxel_gate` cookie exists. Typing `0612` unlocks.
-To lift it, delete `apps/web/src/app/[locale]/gate/` and the `withStealthGate`
-block in `apps/web/src/middleware.ts`.
+The site is public. The stealth gate is gone: there is no `luxel_gate` cookie,
+no gate page and no rewrite in `apps/web/src/middleware.ts`. Do not add one
+back.
 
-`/privacy` and `/terms` are exempt from the gate (`isPublicLegalRoute`). The
-check-in page collects identity documents and must link to the privacy policy,
-and the terms must be readable before a host requests the plan. For that reason
-both pages are `noindex` while the gate is up: they are the only publicly
-fetchable URLs of a site the operator hid. Make both indexable in the same
-commit that deletes the gate.
+`robots.ts` and `sitemap.ts` live in `apps/web/src/app`. The sitemap lists only
+the five marketing pages: `/`, `/calculator`, `/about`, `/terms`, `/privacy`.
+`robots.ts` disallows `/api/`, `/eve`, `/account`, `/properties`, `/checkin/`,
+`/cleaning/`, the auth routes and `/dev-preview`. A new host-facing route needs
+a line in one of those two files, never in both by accident.
+
+`/checkin/[id]` and `/cleaning/confirm/[token]` stay `noindex`. Their URL is
+their only credential, and `robots.ts` disallowing them is a hint, not a
+control.
+
+`POST /api/events` is unauthenticated by design, because the browser posts to it
+before anyone signs in. It is rate limited per caller
+(`apps/web/src/lib/rate-limit.ts`). The limiter is per instance, so it bounds
+one attacker against one instance rather than the fleet. Never remove it: an
+open, indexed endpoint that writes the conversion numbers is how those numbers
+stop meaning anything.
 
 ## Product constraints (user-set)
 
@@ -511,9 +520,13 @@ commit that deletes the gate.
   channel, never a published front door.
 - Copy never says "0% comisión", "tarifa plana", "14 días gratis", "prueba
   gratis" or "m²". Voice per [`docs/BRAND.md`](docs/BRAND.md).
-- **Copy never names a city.** No city appears in anything a person reads: page
-  copy, i18n catalogs, alt text, metadata, emails or WhatsApp templates. "Chile"
-  is allowed. A comuna is allowed only as real data about a real unit; for an
+- **Visible copy never names a city.** No city appears in page copy, i18n
+  catalogs a visitor reads, alt text, emails or WhatsApp templates. "Chile" is
+  allowed. **Search metadata is the one exception**, agreed deliberately: the
+  `seo` namespace, a `<title>`, a meta description and the JSON-LD `areaServed`
+  may name Santiago, because a service sold in one city cannot be found without
+  it. That exception stops at the page: nothing rendered in the body may carry a
+  city. A comuna is allowed only as real data about a real unit; for an
   example or a placeholder prefer Providencia, Las Condes or Ñuñoa. This rule
   covers copy only. Keep the timezone string `America/Santiago`, the identifiers
   that carry it (`santiagoToday`, `santiagoMonth`, `todaySantiago`) and the

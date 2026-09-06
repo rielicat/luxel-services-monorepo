@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
 import { recordEvent } from '@luxel/core/analytics/store';
 import { createSupabaseServiceRoleClient } from '@luxel/core/supabase/server';
+import { callerKey, rateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,13 @@ const EventSchema = z.object({
 
 const Body = z.object({ events: z.array(EventSchema).min(1).max(20) });
 
+const REQUESTS_PER_MINUTE = 60;
+
 export async function POST(req: Request) {
+  if (!rateLimit(callerKey(req.headers), REQUESTS_PER_MINUTE)) {
+    return Response.json({ ok: false }, { status: 429 });
+  }
+
   const json = await req.json().catch(() => null);
   const parsed = Body.safeParse(json);
   if (!parsed.success) return Response.json({ ok: false }, { status: 400 });

@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { SITE_URL } from '@luxel/shared/constants';
 import { PostHogProvider } from '@/lib/posthog/provider';
 import { PostHogPageview } from '@/components/analytics/track-view';
 import '../globals.css';
@@ -24,10 +25,26 @@ const fraunces = Fraunces({
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('landing');
+  const seo = await getTranslations('seo');
   return {
-    title: { default: 'Servicios Luxel', template: '%s · Servicios Luxel' },
+    title: { default: seo('site_name'), template: `%s · ${seo('site_name')}` },
     description: t('meta_description'),
-    metadataBase: new URL('https://serviciosluxel.cl'),
+    metadataBase: new URL(SITE_URL),
+    applicationName: seo('site_name'),
+    openGraph: {
+      type: 'website',
+      siteName: seo('site_name'),
+      locale: 'es_CL',
+      url: SITE_URL,
+      title: seo('site_name'),
+      description: t('meta_description'),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: seo('site_name'),
+      description: t('meta_description'),
+    },
+    robots: { index: true, follow: true },
   };
 }
 

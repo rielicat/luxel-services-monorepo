@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createIntlMiddleware from 'next-intl/middleware';
-import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createIntlMiddleware(routing);
@@ -19,28 +19,6 @@ const intlOnly = (req: NextRequest) => {
 };
 
 const skipAuth = process.env.E2E_SKIP_AUTH === '1';
-
-const GATE_COOKIE = 'luxel_gate';
-const gateActive = process.env.NODE_ENV === 'production';
-const isPublicTokenRoute = (pathname: string) => /^\/(checkin|cleaning\/confirm)\//.test(pathname);
-const isPublicLegalRoute = (pathname: string) =>
-  /^(\/(es|en|pt))?\/(privacy|terms)(\/|$)/.test(pathname);
-
-const withStealthGate =
-  (handler: (req: NextRequest, event: NextFetchEvent) => unknown) =>
-  (req: NextRequest, event: NextFetchEvent) => {
-    const { pathname } = req.nextUrl;
-    if (
-      gateActive &&
-      isPageRoute(pathname) &&
-      !isPublicTokenRoute(pathname) &&
-      !isPublicLegalRoute(pathname) &&
-      req.cookies.get(GATE_COOKIE)?.value !== '1'
-    ) {
-      return NextResponse.rewrite(new URL('/es/gate', req.url));
-    }
-    return handler(req, event);
-  };
 
 const inner = skipAuth
   ? intlOnly
@@ -61,7 +39,7 @@ const inner = skipAuth
       return intlMiddleware(req);
     });
 
-export default withStealthGate(inner);
+export default inner;
 
 export const config = {
   matcher: ['/((?!api/webhooks|eve|_next|_vercel|monitoring).*)'],

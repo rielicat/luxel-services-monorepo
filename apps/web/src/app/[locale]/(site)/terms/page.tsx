@@ -21,8 +21,10 @@ export async function generateMetadata({
   return {
     title: doc.meta_title,
     description: doc.meta_description,
-    robots: { index: false, follow: false },
-    alternates: { languages: legalLanguageAlternates(BASE_PATH) },
+    alternates: {
+      canonical: '/terms',
+      languages: legalLanguageAlternates(BASE_PATH),
+    },
   };
 }
 

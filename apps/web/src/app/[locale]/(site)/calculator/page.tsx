@@ -4,7 +4,12 @@ import { FeeEstimator } from './fee-estimator';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('calculator');
-  return { title: t('meta_title') };
+  return {
+    title: t('meta_title'),
+    description: t('subtitle'),
+    alternates: { canonical: '/calculator' },
+    openGraph: { title: t('meta_title'), description: t('subtitle'), url: '/calculator' },
+  };
 }
 
 export default function CalculatorPage() {

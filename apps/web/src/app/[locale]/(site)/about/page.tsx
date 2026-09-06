@@ -10,7 +10,12 @@ import { PhotoFrame } from '@/components/sections/photo-frame';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('about');
-  return { title: t('meta_title') };
+  return {
+    title: t('meta_title'),
+    description: t('lead'),
+    alternates: { canonical: '/about' },
+    openGraph: { title: t('meta_title'), description: t('lead'), url: '/about' },
+  };
 }
 
 const VALUES = [

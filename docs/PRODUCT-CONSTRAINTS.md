@@ -1,7 +1,7 @@
 # Product constraints
 
 Compacted from `AGENTS.md` sections "Product constraints (user-set)" and
-"Temporary: remove before public launch".
+"Launch".
 
 - Airbnb full management is the only service. No service picker, no
   cleaning-only offer, no "primary" badge.
@@ -50,15 +50,11 @@ Compacted from `AGENTS.md` sections "Product constraints (user-set)" and
 - Competitor reference: `airhost.cl`, `airhostchile.com`. Our angle: full
   management, one transparent fee on the booking revenue, monthly report.
 
-## Temporary: stealth gate
+## Launch
 
-In production the middleware rewrites every page to `app/[locale]/gate` until
-the `luxel_gate` cookie exists. Typing `0612` unlocks it. To lift it, delete
-`apps/web/src/app/[locale]/gate/` and the `withStealthGate` block in
-`apps/web/src/middleware.ts`. Remove before public launch.
-
-`/privacy` and `/terms` are exempt from the gate (`isPublicLegalRoute`). The
-check-in page collects identity documents and must link to the privacy policy,
-and the terms must be readable before a host requests the plan. Both pages are
-`noindex` while the gate is up. Make both indexable in the same commit that
-deletes the gate.
+The site is public. The stealth gate is gone: no `luxel_gate` cookie, no gate
+page, no rewrite in `apps/web/src/middleware.ts`. Do not add one back.
+`robots.ts` and `sitemap.ts` live in `apps/web/src/app`. `/checkin/[id]` and
+`/cleaning/confirm/[token]` stay `noindex`, because their URL is their only
+credential. `POST /api/events` is unauthenticated on purpose and rate limited
+per caller; never remove that limit.

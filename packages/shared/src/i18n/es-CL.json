@@ -609,5 +609,14 @@
     "saved": "Listo, lo guardamos.",
     "failed": "No pudimos guardar. Inténtalo de nuevo.",
     "summary_count": "Respondiste {i} de {n} preguntas."
+  },
+  "seo": {
+    "site_name": "Servicios Luxel",
+    "home_title": "Administración de Airbnb en Santiago",
+    "home_description": "Administramos tu Airbnb completo: precios, huéspedes, aseo entre estadías, reparaciones e inventario. Un solo cobro sobre tus reservas, sin costo fijo.",
+    "service_name": "Administración completa de Airbnb",
+    "area_served": "Santiago",
+    "country": "Chile",
+    "og_alt": "Servicios Luxel, administración de Airbnb"
   }
 }
