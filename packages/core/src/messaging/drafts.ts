@@ -182,6 +182,14 @@ export async function recordSimulationOutcome(input: {
   return draft !== null;
 }
 
+function refuse(
+  reason: string,
+  context: Record<string, string | null>,
+): { ok: false; reason: string } {
+  console.warn('drafts.send_refused', { ...context, reason });
+  return { ok: false, reason };
+}
+
 async function deliverToThread(
   supabase: Supabase,
   threadId: string,
@@ -245,7 +253,7 @@ export async function sendReplyDraft(
   actor: string,
 ): Promise<{ ok: boolean; reason?: string }> {
   const text = body.trim();
-  if (!text) return { ok: false, reason: 'empty' };
+  if (!text) return refuse('empty', { draftId });
 
   const supabase = createSupabaseServiceRoleClient();
   const { data: draft } = await supabase
@@ -253,8 +261,10 @@ export async function sendReplyDraft(
     .select('id, thread_id, status, body')
     .eq('id', draftId)
     .maybeSingle();
-  if (!draft) return { ok: false, reason: 'unknown_draft' };
-  if (draft.status !== 'pending') return { ok: false, reason: 'already_decided' };
+  if (!draft) return refuse('unknown_draft', { draftId });
+  if (draft.status !== 'pending') {
+    return refuse('already_decided', { draftId, status: draft.status as string });
+  }
 
   const sent = await deliverToThread(
     supabase,
@@ -262,7 +272,7 @@ export async function sendReplyDraft(
     text,
     text === ((draft.body as string) ?? '').trim() ? 'ai' : 'host',
   );
-  if (!sent.ok) return sent;
+  if (!sent.ok) return refuse(sent.reason ?? 'send_failed', { draftId });
 
   await supabase
     .from(DRAFTS)
@@ -284,11 +294,11 @@ export async function sendThreadReply(
   actor: string,
 ): Promise<{ ok: boolean; reason?: string }> {
   const text = body.trim();
-  if (!text) return { ok: false, reason: 'empty' };
+  if (!text) return refuse('empty', { threadId });
 
   const supabase = createSupabaseServiceRoleClient();
   const sent = await deliverToThread(supabase, threadId, text, 'host');
-  if (!sent.ok) return sent;
+  if (!sent.ok) return refuse(sent.reason ?? 'send_failed', { threadId });
 
   await supabase
     .from(DRAFTS)
