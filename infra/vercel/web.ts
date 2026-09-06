@@ -39,6 +39,7 @@ export const webWww = new vercel.ProjectDomain(
 const TARGETS = ['production', 'preview'];
 const PLAIN_ENV: Record<string, string> = {
   NEXT_PUBLIC_POSTHOG_KEY: 'phc_n66z3Aoe9DdbqqSv9V3U3nkVK4WWAiHoZQ9Q4kYTSKfy',
+  NEXT_PUBLIC_POSTHOG_HOST: 'https://t.serviciosluxel.cl',
 };
 
 export const webEnv = Object.entries(PLAIN_ENV).map(

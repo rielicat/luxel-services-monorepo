@@ -1,4 +1,5 @@
 import 'server-only';
+import { posthogHost } from '@luxel/shared/posthog';
 import type { EventName } from './events';
 import { recordEvent } from './store';
 
@@ -18,7 +19,7 @@ export async function capture(
 
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   if (!key) return;
-  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com';
+  const host = posthogHost();
   try {
     await fetch(`${host}/i/v0/e/`, {
       method: 'POST',

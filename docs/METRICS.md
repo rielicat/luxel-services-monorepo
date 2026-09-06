@@ -19,8 +19,9 @@ The store is ours. `track()` (`lib/analytics/client.ts`) sends client events to
 server events. Both land in `analytics_events`. Both mirror to PostHog when
 `NEXT_PUBLIC_POSTHOG_KEY` is set. PostHog is initialized in
 `apps/web/src/lib/posthog/provider.tsx` with `person_profiles: 'identified_only'`,
-`capture_pageview: false` and `capture_pageleave: true`. Page views are sent
-explicitly.
+`capture_pageview: false`, `capture_pageleave: false` and `autocapture: false`.
+Page views are sent explicitly. Both legs reach PostHog through its managed
+reverse proxy at `https://t.serviciosluxel.cl`.
 
 Two non-negotiables:
 

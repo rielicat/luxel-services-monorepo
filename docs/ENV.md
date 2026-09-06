@@ -58,18 +58,20 @@ effect and fails silently:
 Plan billing is not in code. Luxel invoices the plans off-platform at the end
 of the month. There is no payment variable to set.
 
-`NEXT_PUBLIC_POSTHOG_KEY` is not an operator step on Vercel. `infra/vercel`
-sets it on the web project, because a PostHog project token ships in the browser
-bundle and is configuration rather than a secret. Pulumi applies it after the
-deployment that carries the change, so the value lands one build late; a later
-push picks it up. An empty commit does not, because Vercel reuses the build for
-an unchanged tree.
+`NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` are not operator steps
+on Vercel. `infra/vercel` sets both on the web project, because a PostHog
+project token ships in the browser bundle and is configuration rather than a
+secret. Pulumi applies them after the deployment that carries the change, so a
+value lands one build late; a later push picks it up. An empty commit does not,
+because Vercel reuses the build for an unchanged tree.
 
-The browser never calls PostHog directly. `next.config.mjs` rewrites `/ingest`
-to PostHog, so an ad blocker that knows the vendor host does not recognise the
-request. `NEXT_PUBLIC_POSTHOG_HOST` therefore only steers the server-side
-mirror in `packages/core/src/analytics/posthog.ts`, and a relative value is
-ignored there.
+The browser never calls the PostHog vendor host. Both the browser and the server
+mirror send to `https://t.serviciosluxel.cl`, PostHog's managed reverse proxy on
+our own domain, so an ad blocker that knows `us.i.posthog.com` does not
+recognise the request. The `t` record is a DNS-only `CNAME` in
+`infra/cloudflare`, and PostHog owns the certificate behind it. The default
+lives in `packages/shared/src/posthog.ts`. A relative value is ignored: the code
+falls back to that default.
 
 Without the key nothing breaks: the provider never initialises, the server
 mirror is skipped, and `analytics_events` stays the system of record.

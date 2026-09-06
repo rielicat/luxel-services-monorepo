@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect } from 'react';
 import { REPLAY_BLOCKED_PATHS, scrubUrl } from '@/lib/observability/scrub';
+import { posthogHost } from '@luxel/shared/posthog';
 import { posthogKey } from '@/lib/posthog/key';
 
 const URL_PROPERTIES = [
@@ -41,7 +42,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     });
     if (!key || blocked || posthog.__loaded) return;
     posthog.init(key, {
-      api_host: '/ingest',
+      api_host: posthogHost({ NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST }),
       ui_host: 'https://us.posthog.com',
       person_profiles: 'identified_only',
       capture_pageview: false,

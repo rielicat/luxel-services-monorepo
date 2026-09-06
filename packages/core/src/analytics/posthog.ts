@@ -1,4 +1,5 @@
 import 'server-only';
+import { posthogHost } from '@luxel/shared/posthog';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
 
 interface Capture {
@@ -11,7 +12,6 @@ interface PostHogLike {
   capture(payload: Capture): void;
 }
 
-const HOST = 'https://us.i.posthog.com';
 const CLERK_ID_CACHE_MAX = 500;
 
 let pending: Promise<PostHogLike | null> | null = null;
@@ -30,11 +30,6 @@ export function posthogConfigured(): boolean {
   return projectKey() !== null;
 }
 
-function absoluteHost(): string | null {
-  const raw = process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim();
-  return raw?.startsWith('http') ? raw : null;
-}
-
 function posthogClient(): Promise<PostHogLike | null> {
   const key = projectKey();
   if (!key) return Promise.resolve(null);
@@ -42,7 +37,7 @@ function posthogClient(): Promise<PostHogLike | null> {
     .then(
       ({ PostHog }) =>
         new PostHog(key, {
-          host: absoluteHost() ?? HOST,
+          host: posthogHost(),
           flushAt: 1,
           flushInterval: 0,
         }) as PostHogLike,
