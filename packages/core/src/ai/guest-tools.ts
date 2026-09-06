@@ -1,6 +1,8 @@
 import 'server-only';
 import { createSupabaseServiceRoleClient } from '../supabase/server';
 import { amenityLabel } from '../host/listing-labels';
+import { encodeRef } from '../channels/types';
+import { getHospitableReservation, hospitableTokenForCustomer } from '../channels/hospitable';
 
 export interface GuestToolContext {
   propertyId: string | null;
@@ -149,6 +151,91 @@ export async function reservationStatus(ctx: GuestToolContext): Promise<GuestToo
       : 'No hay una estadía próxima registrada.',
   ].filter(Boolean);
 
+  return { content: lines.join('\n') };
+}
+
+async function guestLocation(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  propertyId: string,
+  reservationId: string,
+): Promise<string | null> {
+  const { data: property } = await supabase
+    .from('properties')
+    .select('owner_id')
+    .eq('id', propertyId)
+    .maybeSingle();
+  const token = await hospitableTokenForCustomer(
+    (property?.owner_id as string | undefined) ?? null,
+  );
+  if (!token) return null;
+  try {
+    const reservation = await getHospitableReservation(token, reservationId);
+    const location = reservation?.guest?.location;
+    return typeof location === 'string' && location.trim() ? location.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function guestProfile(ctx: GuestToolContext): Promise<GuestToolResult> {
+  if (!ctx.threadId) return { content: 'No hay conversación asociada a este huésped.' };
+  const supabase = createSupabaseServiceRoleClient();
+
+  const { data: thread } = await supabase
+    .from('guest_threads')
+    .select('guest_name, guest_external_id, external_thread_id, channel, property_id')
+    .eq('id', ctx.threadId)
+    .maybeSingle();
+  if (!thread) return { content: 'No encontramos la conversación de este huésped.' };
+
+  const lines: string[] = [];
+  const name = thread.guest_name as string | null;
+  if (name) lines.push(`Nombre: ${name}.`);
+
+  const reservationId = thread.external_thread_id as string | null;
+  if (reservationId) {
+    const { data: checkin } = await supabase
+      .from('checkins')
+      .select('guest_language')
+      .eq('reservation_uid', encodeRef({ provider: 'hospitable', id: reservationId }))
+      .maybeSingle();
+    const language = checkin?.guest_language as string | null;
+    if (language) {
+      lines.push(
+        `Su perfil está en "${language}". Si te escribe en ese idioma, respóndele en ese idioma.`,
+      );
+    }
+  }
+
+  const guestId = thread.guest_external_id as string | null;
+  if (guestId) {
+    const { count } = await supabase
+      .from('guest_threads')
+      .select('id', { count: 'exact', head: true })
+      .eq('guest_external_id', guestId)
+      .neq('id', ctx.threadId);
+    lines.push(
+      count
+        ? `Ya se alojó ${count} vez(veces) antes en un alojamiento que administra Luxel. Trátalo como quien vuelve.`
+        : 'Es su primera estadía en un alojamiento que administra Luxel.',
+    );
+  }
+
+  if (thread.channel === 'hospitable' && reservationId) {
+    const location = await guestLocation(supabase, thread.property_id as string, reservationId);
+    if (location) lines.push(`Su perfil dice que vive en: ${location}.`);
+  }
+
+  if (!lines.length) {
+    return {
+      content:
+        'No tenemos datos del perfil de este huésped. No supongas de dónde viene, ni su idioma, ni si ya se alojó antes.',
+    };
+  }
+
+  lines.push(
+    'Estos datos son contexto para ti. No se los recites al huésped ni le digas que revisaste su perfil.',
+  );
   return { content: lines.join('\n') };
 }
 

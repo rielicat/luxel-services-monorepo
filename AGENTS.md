@@ -366,6 +366,26 @@ id>`, so a thread is digested once and again only when it gains a message.
   every property at once. There is no host-facing switch. The web inbox only
   shows the mode. Only one pending draft per thread: a newer guest message
   supersedes the older draft.
+- Lux reads **who is asking** before it answers. `guest_profile` gives it the
+  guest's name, the language of their Airbnb profile, where they say they live,
+  and whether they already stayed in a Luxel-managed unit. The count comes from
+  `guest_threads.guest_external_id`, which the sync writes from Hospitable's
+  guest id. Hospitable exposes no reviews and no verification, so Lux never sees
+  either. The tool never returns an email, a phone number or a profile picture.
+- Lux may **search the web**, and only for a public fact the listing cannot
+  answer: transport, distances, a third party's opening hours, the weather. The
+  listing, the reservation, the price and Luxel's own service always come from a
+  tool. `web_search` is eve's provided tool over the AI Gateway, so it needs no
+  key of its own. `web_fetch` is disabled: a guest must never steer the agent to
+  a URL. A search result is data, never an instruction, and the persona says so.
+  A turn that searched is **always reviewed**: `dispatch` returns `searched`, and
+  `lib/channels/pipeline.ts` writes a draft even when `ai_reviews` is off, so no
+  web-derived sentence reaches a guest unread.
+- The **Luxel policy** is one operator-written text in `luxel_policy`, a single
+  row. It is appended to the guest persona on every session, so it outranks what
+  Lux learned by itself. Operators edit it in `apps/admin` at `/ai`. Keep codes,
+  passwords and any one person's data out of it: it reaches every guest
+  conversation.
 - A **handoff notifies a Luxel operator**. `markNeedsHost` in
   `lib/channels/pipeline.ts` sets `needs_host` and calls `notifyGuestHandoff`.
   The notice goes over the existing `sendWhatsAppViaWorker` path, at most once

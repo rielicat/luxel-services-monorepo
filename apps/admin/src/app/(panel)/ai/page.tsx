@@ -2,7 +2,13 @@ import Link from 'next/link';
 import { Bot } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase';
 import { Card, Pill } from '@/components/ui';
-import { submitAiFlag, submitAiFlagForAll, submitAiFlagForSelection } from './actions';
+import { readLuxelPolicy } from '@luxel/core/agent/policy';
+import {
+  submitAiFlag,
+  submitAiFlagForAll,
+  submitAiFlagForSelection,
+  submitLuxelPolicy,
+} from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -130,6 +136,7 @@ export default async function AiPage({
     failed: readFailed,
     threadsFailed,
   } = await getAiSettings();
+  const policy = await readLuxelPolicy();
   const answering = rows.filter((r) => r.ai_replies).length;
   const reviewing = rows.filter((r) => r.ai_replies && r.ai_reviews).length;
   const pendingTotal = Object.values(pending).reduce((sum, n) => sum + n, 0);
@@ -154,6 +161,34 @@ export default async function AiPage({
           de Luxel.
         </p>
       </div>
+
+      <Card id="policy" className="mb-6 p-4">
+        <h2 className="font-display text-lg font-semibold tracking-tight">Política de Luxel</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Lo que Lux debe saber para responder a cualquier huésped, en todas las propiedades: cuándo
+          aceptamos un check-in temprano, qué hacemos ante una cancelación, hasta dónde llega un
+          descuento. Va en cada conversación y manda sobre lo que Lux aprendió solo. Deja fuera
+          códigos, contraseñas y datos de una persona.
+        </p>
+        <form action={submitLuxelPolicy} className="mt-3 grid gap-2">
+          <textarea
+            name="policy"
+            defaultValue={policy}
+            rows={8}
+            maxLength={4000}
+            placeholder="Una regla por línea."
+            className="border-input bg-background focus-visible:ring-ring w-full rounded-md border p-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+          />
+          <div>
+            <button
+              type="submit"
+              className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm font-semibold"
+            >
+              Guardar política
+            </button>
+          </div>
+        </form>
+      </Card>
 
       {readFailed && (
         <div

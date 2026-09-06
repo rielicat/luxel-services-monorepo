@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { runTool, type ToolContext } from '@luxel/core/ai/tools';
 import {
   escalateToLuxel,
+  guestProfile,
   propertyFacts,
   reservationStatus,
   type GuestToolContext,
@@ -24,7 +25,12 @@ const Body = z.object({
   threadId: z.string().uuid().nullable().optional(),
 });
 
-const GUEST_TOOLS = new Set(['property_facts', 'reservation_status', 'escalate_to_luxel']);
+const GUEST_TOOLS = new Set([
+  'property_facts',
+  'reservation_status',
+  'guest_profile',
+  'escalate_to_luxel',
+]);
 
 const ANALYST_TOOLS = new Set(['pricing_reference', 'property_calendar']);
 
@@ -86,7 +92,9 @@ export async function POST(req: Request) {
         ? await propertyFacts(ctx)
         : body.tool === 'reservation_status'
           ? await reservationStatus(ctx)
-          : await escalateToLuxel(ctx, String(body.input.reason ?? ''));
+          : body.tool === 'guest_profile'
+            ? await guestProfile(ctx)
+            : await escalateToLuxel(ctx, String(body.input.reason ?? ''));
     return Response.json(result, { headers: { 'cache-control': 'no-store' } });
   }
 

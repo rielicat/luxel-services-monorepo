@@ -169,7 +169,7 @@ async function runOneTurn(
     return { ok: true, action: 'handoff', draft: reply || undefined, threadId };
   }
 
-  if (input.aiReviews) {
+  if (input.aiReviews || turn.searched) {
     const pending = await recordReplyDraft(supabase, {
       threadId,
       inboundMessageId: input.inboundMessageId,

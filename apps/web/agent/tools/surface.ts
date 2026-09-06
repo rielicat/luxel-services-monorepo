@@ -34,6 +34,13 @@ export default defineDynamic({
             execute: () => callTool('reservation_status', {}, caller),
             toModelOutput: (output) => ({ type: 'text', value: output.content }),
           }),
+          guest_profile: defineTool({
+            description:
+              'Perfil del huésped que escribe: nombre, idioma de su perfil, de dónde viene y si ya se alojó antes en un alojamiento que administra Luxel. Úsala al empezar a responderle, antes de decidir el tono y el idioma.',
+            inputSchema: z.object({}),
+            execute: () => callTool('guest_profile', {}, caller),
+            toModelOutput: (output) => ({ type: 'text', value: output.content }),
+          }),
           escalate_to_luxel: defineTool({
             description:
               'Deriva la conversación a una persona del equipo Luxel. Úsala ante una queja seria, frustración, una emergencia, o cuando el huésped pide hablar con alguien.',

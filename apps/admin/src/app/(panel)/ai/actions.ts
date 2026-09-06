@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { createServiceClient } from '@/lib/supabase';
+import { saveLuxelPolicy } from '@luxel/core/agent/policy';
 
 const FLAGS = ['ai_replies', 'ai_reviews'] as const;
 
@@ -185,6 +186,32 @@ function resultUrl(result: AiFlagResult, hash = ''): string {
     result.ok ? { ok: String(result.changed ?? 0) } : { failed: result.error ?? 'write_failed' },
   );
   return `/ai?${params.toString()}${hash}`;
+}
+
+const PolicySchema = z.string().trim().max(4000);
+
+export async function setLuxelPolicy(body: string): Promise<AiFlagResult> {
+  const admin = await requireAdmin();
+  if (!admin) {
+    console.warn('admin.policy_denied');
+    return { ok: false, error: 'denied' };
+  }
+
+  const parsed = PolicySchema.safeParse(body);
+  if (!parsed.success) return { ok: false, error: 'invalid' };
+
+  const saved = await saveLuxelPolicy(parsed.data, admin.email);
+  if (!saved) {
+    console.error('admin.policy_write_failed');
+    return { ok: false, error: 'write_failed' };
+  }
+  revalidatePath('/ai');
+  return { ok: true };
+}
+
+export async function submitLuxelPolicy(formData: FormData): Promise<void> {
+  const result = await setLuxelPolicy(String(formData.get('policy') ?? ''));
+  redirect(resultUrl(result, '#policy'));
 }
 
 export async function submitAiFlag(formData: FormData): Promise<void> {

@@ -37,6 +37,10 @@ let sendThreadReply: (
   body: string,
   actor: string,
 ) => Promise<{ ok: boolean; reason?: string }>;
+let guestProfile: (ctx: {
+  propertyId: string | null;
+  threadId: string | null;
+}) => Promise<{ content: string }>;
 let simulateThreadReply: (
   threadId: string,
 ) => Promise<{ ok: boolean; reason?: string; pending?: boolean }>;
@@ -50,6 +54,7 @@ beforeAll(async () => {
   const drafts = await import('@luxel/core/messaging/drafts');
   sendReplyDraft = drafts.sendReplyDraft;
   sendThreadReply = drafts.sendThreadReply;
+  guestProfile = (await import('@luxel/core/ai/guest-tools')).guestProfile;
   simulateThreadReply = drafts.simulateThreadReply;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   updatePropertyContext = (await import('../src/app/[locale]/(site)/properties/copilot-actions'))
@@ -296,5 +301,56 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
     expect(msgs).toHaveLength(2);
     expect(msgs![1].source).toBe('host');
     expect(msgs![1].direction).toBe('out');
+  });
+
+  it('reports a first-time guest and never leaks contact data', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Perfil' });
+    await admin.from('properties').update({ ai_replies: false }).eq('id', prop.id!);
+
+    const r = await handleInboundMessage({
+      propertyId: prop.id!,
+      externalThreadId: 't-profile',
+      guestName: 'Marcela',
+      body: '¿Cómo llego desde el aeropuerto?',
+    });
+
+    await admin
+      .from('guest_threads')
+      .update({ guest_external_id: 'hosp-guest-1' })
+      .eq('id', r.threadId!);
+
+    const profile = await guestProfile({ propertyId: prop.id!, threadId: r.threadId! });
+    expect(profile.content).toContain('Marcela');
+    expect(profile.content).toContain('primera estadía');
+    expect(profile.content).not.toMatch(/@|\+56/);
+  });
+
+  it('counts a returning guest across properties', async () => {
+    const first = await seedImportedProperty({ nickname: 'Depto Vuelve 1' });
+    const second = await seedImportedProperty({ nickname: 'Depto Vuelve 2' });
+    for (const p of [first, second]) {
+      await admin.from('properties').update({ ai_replies: false }).eq('id', p.id!);
+    }
+
+    const older = await handleInboundMessage({
+      propertyId: first.id!,
+      externalThreadId: 't-back-1',
+      guestName: 'Ana',
+      body: 'Hola',
+    });
+    const current = await handleInboundMessage({
+      propertyId: second.id!,
+      externalThreadId: 't-back-2',
+      guestName: 'Ana',
+      body: 'Hola de nuevo',
+    });
+    await admin
+      .from('guest_threads')
+      .update({ guest_external_id: 'hosp-guest-2' })
+      .in('id', [older.threadId!, current.threadId!]);
+
+    const profile = await guestProfile({ propertyId: second.id!, threadId: current.threadId! });
+    expect(profile.content).toContain('1 vez');
+    expect(profile.content).toContain('quien vuelve');
   });
 });

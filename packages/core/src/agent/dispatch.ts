@@ -1,6 +1,6 @@
 import { webUrl } from '../urls';
 import { claimSession } from './session';
-import { finalMessage, requestedHandoff } from './stream';
+import { finalMessage, requestedHandoff, usedWebSearch } from './stream';
 import { mintAgentToken } from './token';
 import type { Surface } from './types';
 
@@ -10,6 +10,7 @@ export interface TurnResult {
   sessionId?: string;
   text?: string;
   handoff?: boolean;
+  searched?: boolean;
 }
 
 export const AGENT_TURN_BUDGET_MS = 240_000;
@@ -253,6 +254,7 @@ async function followTurn(
     let buffer = '';
     let text = '';
     let handoff = false;
+    let searched = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -271,13 +273,16 @@ async function followTurn(
           continue;
         }
 
-        if (event.type === 'actions.requested' && requestedHandoff(event.data)) handoff = true;
+        if (event.type === 'actions.requested') {
+          if (requestedHandoff(event.data)) handoff = true;
+          if (usedWebSearch(event.data)) searched = true;
+        }
         if (event.type === 'message.completed') {
           text = (finalMessage(event.data) ?? text).trim();
         }
         if (event.type === 'turn.completed') {
           await reader.cancel();
-          return { ok: true, sessionId, text, handoff };
+          return { ok: true, sessionId, text, handoff, searched };
         }
         if (event.type === 'turn.failed' || event.type === 'session.failed') {
           await reader.cancel();

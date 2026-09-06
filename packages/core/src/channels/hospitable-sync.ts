@@ -686,10 +686,20 @@ export async function ingestThread(
   reservationId: string,
   watermark: string | null,
   category: ReservationCategory | null = null,
+  guestExternalId: string | null = null,
 ): Promise<{ imported: number; replies: number; drafts: number }> {
   const messages = await listHospitableMessages(token, reservationId);
   if (!messages?.length) return { imported: 0, replies: 0, drafts: 0 };
-  return ingestMessages(supabase, propertyId, reservationId, messages, watermark, category, null);
+  return ingestMessages(
+    supabase,
+    propertyId,
+    reservationId,
+    messages,
+    watermark,
+    category,
+    null,
+    guestExternalId,
+  );
 }
 
 export async function ingestInquiry(
@@ -709,6 +719,7 @@ export async function ingestInquiry(
     watermark,
     'inquiry',
     detail.guestName,
+    null,
   );
 }
 
@@ -720,6 +731,7 @@ async function ingestMessages(
   watermark: string | null,
   category: ReservationCategory | 'inquiry' | null,
   guestNameOverride: string | null,
+  guestExternalId: string | null,
 ): Promise<{ imported: number; replies: number; drafts: number }> {
   let imported = 0;
   let replies = 0;
@@ -739,6 +751,7 @@ async function ingestMessages(
         external_thread_id: threadKey,
         guest_name: guestName,
         ...(category ? { reservation_category: category } : {}),
+        ...(guestExternalId ? { guest_external_id: guestExternalId } : {}),
       },
       { onConflict: 'property_id,channel,external_thread_id' },
     )
@@ -858,6 +871,7 @@ async function syncConversations(
       r.id,
       watermark,
       reservationCategory(r),
+      r.guest?.id ? String(r.guest.id) : null,
     );
     imported += one.imported;
     replies += one.replies;

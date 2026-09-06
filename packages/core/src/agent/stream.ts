@@ -15,6 +15,12 @@ export function requestedHandoff(data: unknown): boolean {
   return calledTools(data).some((name) => HANDOFF_TOOLS.has(name));
 }
 
+export const SEARCH_TOOLS = new Set(['web_search', 'web_fetch']);
+
+export function usedWebSearch(data: unknown): boolean {
+  return calledTools(data).some((name) => SEARCH_TOOLS.has(name));
+}
+
 export function resultWidget(data: unknown): Record<string, unknown> | null {
   const output = (data as { result?: { output?: unknown } } | null)?.result?.output;
   const widget = (output as { widget?: unknown } | null)?.widget;

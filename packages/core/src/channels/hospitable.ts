@@ -88,6 +88,7 @@ export interface HospitableReservation {
     last_name?: string | null;
     email?: string | null;
     language?: string | null;
+    location?: string | null;
     phone_numbers?: string[] | null;
   } | null;
 }
