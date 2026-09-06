@@ -41,6 +41,11 @@ let guestProfile: (ctx: {
   propertyId: string | null;
   threadId: string | null;
 }) => Promise<{ content: string }>;
+let recordSimulationOutcome: (input: {
+  threadId: string;
+  body: string;
+  handoff: boolean;
+}) => Promise<boolean>;
 let simulateThreadReply: (
   threadId: string,
 ) => Promise<{ ok: boolean; reason?: string; pending?: boolean }>;
@@ -56,6 +61,7 @@ beforeAll(async () => {
   sendThreadReply = drafts.sendThreadReply;
   guestProfile = (await import('@luxel/core/ai/guest-tools')).guestProfile;
   simulateThreadReply = drafts.simulateThreadReply;
+  recordSimulationOutcome = drafts.recordSimulationOutcome;
   seedImportedProperty = (await import('./helpers/seed')).seedImportedProperty;
   updatePropertyContext = (await import('../src/app/[locale]/(site)/properties/copilot-actions'))
     .updatePropertyContext;
@@ -352,5 +358,88 @@ describe.skipIf(!LIVE)('AI guest messaging loop (end to end)', () => {
     const profile = await guestProfile({ propertyId: second.id!, threadId: current.threadId! });
     expect(profile.content).toContain('1 vez');
     expect(profile.content).toContain('quien vuelve');
+  });
+
+  it('still sends a draft that a newer one superseded', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Reemplazo' });
+    await admin.from('properties').update({ ai_replies: false }).eq('id', prop.id!);
+
+    const r = await handleInboundMessage({
+      propertyId: prop.id!,
+      externalThreadId: 't-superseded',
+      body: '¿Hay estacionamiento?',
+    });
+
+    await recordSimulationOutcome({
+      threadId: r.threadId!,
+      body: 'Sí, hay estacionamiento.',
+      handoff: false,
+    });
+    const { data: first } = await admin
+      .from('guest_reply_drafts')
+      .select('id')
+      .eq('thread_id', r.threadId!)
+      .eq('status', 'pending')
+      .single();
+
+    await recordSimulationOutcome({
+      threadId: r.threadId!,
+      body: 'Sí, hay un estacionamiento incluido.',
+      handoff: false,
+    });
+
+    const { data: superseded } = await admin
+      .from('guest_reply_drafts')
+      .select('status, decided_by')
+      .eq('id', first!.id as string)
+      .single();
+    expect(superseded!.status).toBe('discarded');
+    expect(superseded!.decided_by).toBe('superseded');
+
+    const sent = await sendReplyDraft(
+      first!.id as string,
+      'Sí, hay estacionamiento.',
+      'op@luxel.cl',
+    );
+    expect(sent.ok).toBe(true);
+
+    const { data: msgs } = await admin
+      .from('guest_messages')
+      .select('body, direction')
+      .eq('thread_id', r.threadId!)
+      .eq('direction', 'out');
+    expect(msgs).toHaveLength(1);
+    expect(msgs![0].body).toBe('Sí, hay estacionamiento.');
+  });
+
+  it('refuses a draft a person discarded on purpose', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Descartado' });
+    await admin.from('properties').update({ ai_replies: false }).eq('id', prop.id!);
+
+    const r = await handleInboundMessage({
+      propertyId: prop.id!,
+      externalThreadId: 't-discarded',
+      body: '¿Se puede fumar?',
+    });
+    await recordSimulationOutcome({
+      threadId: r.threadId!,
+      body: 'No se puede fumar.',
+      handoff: false,
+    });
+    const { data: draft } = await admin
+      .from('guest_reply_drafts')
+      .select('id')
+      .eq('thread_id', r.threadId!)
+      .eq('status', 'pending')
+      .single();
+
+    await admin
+      .from('guest_reply_drafts')
+      .update({ status: 'discarded', decided_by: 'op@luxel.cl' })
+      .eq('id', draft!.id as string);
+
+    const sent = await sendReplyDraft(draft!.id as string, 'No se puede fumar.', 'op@luxel.cl');
+    expect(sent.ok).toBe(false);
+    expect(sent.reason).toBe('already_decided');
   });
 });

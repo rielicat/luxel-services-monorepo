@@ -182,6 +182,12 @@ export async function recordSimulationOutcome(input: {
   return draft !== null;
 }
 
+const SUPERSEDED_BY = 'superseded';
+
+function wasSuperseded(draft: Record<string, unknown>): boolean {
+  return draft.status === 'discarded' && draft.decided_by === SUPERSEDED_BY;
+}
+
 function refuse(
   reason: string,
   context: Record<string, string | null>,
@@ -258,11 +264,11 @@ export async function sendReplyDraft(
   const supabase = createSupabaseServiceRoleClient();
   const { data: draft } = await supabase
     .from(DRAFTS)
-    .select('id, thread_id, status, body')
+    .select('id, thread_id, status, body, decided_by')
     .eq('id', draftId)
     .maybeSingle();
   if (!draft) return refuse('unknown_draft', { draftId });
-  if (draft.status !== 'pending') {
+  if (draft.status !== 'pending' && !wasSuperseded(draft)) {
     return refuse('already_decided', { draftId, status: draft.status as string });
   }
 
