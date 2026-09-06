@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { pageOpenGraph } from '@/lib/seo/open-graph';
 import { Hero } from '@/components/landing/hero';
 import { Scope } from '@/components/landing/scope';
 import { Gallery } from '@/components/landing/gallery';
@@ -15,7 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
     title: seo('home_title'),
     description: seo('home_description'),
     alternates: { canonical: '/' },
-    openGraph: { title: seo('home_title'), description: seo('home_description'), url: '/' },
+    openGraph: pageOpenGraph({
+      title: seo('home_title'),
+      description: seo('home_description'),
+      path: '',
+      siteName: seo('site_name'),
+      imageAlt: seo('og_alt'),
+    }),
   };
 }
 

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
+import { pageOpenGraph } from '@/lib/seo/open-graph';
 import { Target, Compass, HandHeart, Wallet, Cpu, MapPin, Sprout, ChevronDown } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
@@ -10,11 +11,18 @@ import { PhotoFrame } from '@/components/sections/photo-frame';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('about');
+  const seo = await getTranslations('seo');
   return {
     title: t('meta_title'),
     description: t('lead'),
     alternates: { canonical: '/about' },
-    openGraph: { title: t('meta_title'), description: t('lead'), url: '/about' },
+    openGraph: pageOpenGraph({
+      title: t('meta_title'),
+      description: t('lead'),
+      path: '/about',
+      siteName: seo('site_name'),
+      imageAlt: seo('og_alt'),
+    }),
   };
 }
 
