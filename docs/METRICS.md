@@ -28,7 +28,16 @@ token-bearing path where PostHog never starts.
 PostHog starts in `apps/web/instrumentation-client.ts`, before hydration, with
 `person_profiles: 'identified_only'`, `capture_pageview: false`,
 `capture_pageleave: false` and `autocapture: false`. Page views are sent
-explicitly. The provider in `apps/web/src/lib/posthog/provider.tsx` only
+explicitly.
+
+Session replay is on. It never starts on a token-bearing path, because
+`tokenBearing` stops the whole SDK there, and the provider stops the recorder
+when a client-side navigation enters one. Every input is masked. Anything
+inside `[data-ph-mask]` is masked too, which is how the chat transcript stays
+out; `[data-ph-block]` blocks an element outright. A signed-in host is
+identified by their Clerk id, with their email as a person property, so a
+replay carries a name an operator recognises. The privacy policy states both,
+in all three languages. The provider in `apps/web/src/lib/posthog/provider.tsx` only
 identifies the signed-in host. Starting in the provider was a bug: a child
 effect runs before its parent's, so the first page view of every load found
 PostHog unloaded. Both legs reach PostHog through its managed reverse proxy at

@@ -197,7 +197,7 @@
         },
         {
           "name": "Your account identifier",
-          "detail": "If you are signed in, the event is tied to your host account."
+          "detail": "If you are signed in, the event is tied to your host account. We also send your email address, so the analytics tool can recognise you."
         },
         {
           "name": "Contact form",
@@ -206,6 +206,10 @@
         {
           "name": "Site chat",
           "detail": "The whole conversation with you and with the assistant. If you ask for a person, your message and your name reach a Luxel person's WhatsApp."
+        },
+        {
+          "name": "Session recording",
+          "detail": "We record how the site looks while you use it: the pages, the clicks and the scrolling. What you type in a field is hidden. So is the chat conversation. The recording never runs on the guest registration page or on the cleaning team's page."
         },
         {
           "name": "Technical errors",
@@ -309,7 +313,7 @@
         },
         {
           "name": "PostHog",
-          "detail": "Receives the site's navigation events with the anonymous identifier or, if you are signed in, with your account's."
+          "detail": "Receives the site's navigation events and the session recording, with the anonymous identifier or, if you are signed in, with your account's and your email address."
         },
         {
           "name": "Sentry",
@@ -487,7 +491,7 @@
         },
         {
           "name": "Error monitoring",
-          "detail": "Sensitive parameters are masked. Session recording is off by default and switched off entirely on the guest registration page and on the cleaning team's page."
+          "detail": "Sensitive parameters are masked. When an error happens, a replay of that session reaches our monitor with the text, the fields and the images hidden. The analytics recording is a different one: it runs all the time, hides what you type and shows the rest. Neither runs on the guest registration page or on the cleaning team's page."
         }
       ]
     },

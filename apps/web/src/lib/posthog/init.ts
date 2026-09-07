@@ -40,7 +40,12 @@ export function initPostHog(): void {
     capture_pageview: false,
     capture_pageleave: false,
     autocapture: false,
-    disable_session_recording: true,
+    disable_session_recording: false,
+    session_recording: {
+      maskAllInputs: true,
+      maskTextSelector: '[data-ph-mask], [data-ph-mask] *',
+      blockSelector: '[data-ph-block]',
+    },
     sanitize_properties: sanitize,
     loaded: (instance) => {
       if (process.env.NODE_ENV === 'development') instance.debug();

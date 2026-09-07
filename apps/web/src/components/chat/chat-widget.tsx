@@ -325,7 +325,11 @@ export function ChatWidget() {
               </div>
             )}
 
-            <div ref={scrollRef} className="max-h-[56vh] space-y-5 overflow-y-auto px-4 py-4">
+            <div
+              ref={scrollRef}
+              data-ph-mask
+              className="max-h-[56vh] space-y-5 overflow-y-auto px-4 py-4"
+            >
               {messages.map((m) =>
                 m.role === 'user' ? (
                   <div key={m.id}>

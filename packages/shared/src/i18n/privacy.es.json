@@ -197,7 +197,7 @@
         },
         {
           "name": "Tu identificador de cuenta",
-          "detail": "Si iniciaste sesión, el evento queda asociado a tu cuenta de anfitrión."
+          "detail": "Si iniciaste sesión, el evento queda asociado a tu cuenta de anfitrión. Enviamos también tu correo, para reconocerte en la herramienta de analítica."
         },
         {
           "name": "Formulario de contacto",
@@ -206,6 +206,10 @@
         {
           "name": "Chat del sitio",
           "detail": "La conversación completa contigo y con el asistente. Si pides hablar con una persona, tu mensaje y tu nombre llegan al WhatsApp de alguien de Luxel."
+        },
+        {
+          "name": "Grabación de la sesión",
+          "detail": "Grabamos cómo se ve el sitio mientras lo usas: las páginas, los clics y el desplazamiento. Lo que escribes en un campo aparece oculto. La conversación del chat también. La grabación no corre en el registro del huésped ni en la página del equipo de aseo."
         },
         {
           "name": "Errores técnicos",
@@ -309,7 +313,7 @@
         },
         {
           "name": "PostHog",
-          "detail": "Recibe los eventos de navegación del sitio con el identificador anónimo o, si iniciaste sesión, con el de tu cuenta."
+          "detail": "Recibe los eventos de navegación del sitio y la grabación de la sesión, con el identificador anónimo o, si iniciaste sesión, con el de tu cuenta y tu correo."
         },
         {
           "name": "Sentry",
@@ -487,7 +491,7 @@
         },
         {
           "name": "Monitoreo de errores",
-          "detail": "Los parámetros sensibles se enmascaran. No grabamos sesiones de forma continua. Cuando ocurre un error en una página distinta del registro del huésped y de la del equipo de aseo, se envía a nuestro monitor una repetición de esa sesión con el texto, los campos y las imágenes ocultos. En esas dos páginas no se envía ninguna repetición."
+          "detail": "Los parámetros sensibles se enmascaran. Cuando ocurre un error, se envía a nuestro monitor una repetición de esa sesión con el texto, los campos y las imágenes ocultos. La grabación de la analítica es distinta: corre siempre, oculta lo que escribes y muestra el resto. Ninguna de las dos corre en el registro del huésped ni en la página del equipo de aseo."
         }
       ]
     },

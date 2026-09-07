@@ -197,7 +197,7 @@
         },
         {
           "name": "O seu identificador de conta",
-          "detail": "Se você entrou na conta, o evento fica ligado à sua conta de anfitrião."
+          "detail": "Se você entrou na conta, o evento fica associado à sua conta de anfitrião. Enviamos também o seu e-mail, para reconhecer você na ferramenta de analítica."
         },
         {
           "name": "Formulário de contato",
@@ -206,6 +206,10 @@
         {
           "name": "Chat do site",
           "detail": "A conversa inteira com você e com o assistente. Se você pedir para falar com uma pessoa, a sua mensagem e o seu nome chegam ao WhatsApp de alguém da Luxel."
+        },
+        {
+          "name": "Gravação da sessão",
+          "detail": "Gravamos como o site aparece enquanto você o usa: as páginas, os cliques e a rolagem. O que você digita em um campo fica oculto. A conversa do chat também. A gravação não roda na página de registro do hóspede nem na página da equipe de limpeza."
         },
         {
           "name": "Erros técnicos",
@@ -309,7 +313,7 @@
         },
         {
           "name": "PostHog",
-          "detail": "Recebe os eventos de navegação do site com o identificador anônimo ou, se você entrou na conta, com o da sua conta."
+          "detail": "Recebe os eventos de navegação do site e a gravação da sessão, com o identificador anônimo ou, se você entrou na conta, com o da sua conta e o seu e-mail."
         },
         {
           "name": "Sentry",
@@ -487,7 +491,7 @@
         },
         {
           "name": "Monitoramento de erros",
-          "detail": "Os parâmetros sensíveis são mascarados. A gravação de sessão está desligada por padrão e totalmente desativada na página de registro do hóspede e na página da equipe de limpeza."
+          "detail": "Os parâmetros sensíveis são mascarados. Quando ocorre um erro, enviamos ao nosso monitor uma repetição dessa sessão com o texto, os campos e as imagens ocultos. A gravação da analítica é diferente: roda sempre, oculta o que você digita e mostra o resto. Nenhuma das duas roda na página de registro do hóspede nem na página da equipe de limpeza."
         }
       ]
     },
