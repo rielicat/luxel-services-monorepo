@@ -136,6 +136,16 @@ function operatorPlaceholder(type: string): string {
 const CREW_REPLY =
   /^clean:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):(yes|no)$/i;
 
+function crewConfirmUrl(env: Env, token: string): string | null {
+  const raw = env.LUXEL_APP_URL?.trim();
+  if (!raw) return null;
+  try {
+    return `${new URL(raw).origin}/cleaning/confirm/${token}`;
+  } catch {
+    return null;
+  }
+}
+
 function buttonPayload(msg: InboundMessage): string | null {
   if (msg.type === 'button') return msg.button?.payload ?? null;
   if (msg.type === 'interactive') return msg.interactive?.button_reply?.id ?? null;
@@ -165,7 +175,14 @@ async function handleCrewReply(
     if (!cleaning.crew_confirmed_at) {
       await supabase.from('cleanings').update({ crew_confirmed_at: now }).eq('id', cleaning.id);
     }
-    await sendText(env, from, '¡Gracias! Aseo confirmado ✅');
+    const url = crewConfirmUrl(env, token);
+    await sendText(
+      env,
+      from,
+      url
+        ? `¡Gracias! Aseo confirmado ✅\n\nAcá va el checklist, el video del recorrido y el inventario:\n${url}`
+        : '¡Gracias! Aseo confirmado ✅',
+    );
     return;
   }
 

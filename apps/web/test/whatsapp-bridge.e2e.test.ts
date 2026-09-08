@@ -682,14 +682,15 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
     expect(metaSends).toHaveLength(1);
   });
 
-  it('records attendance from the Confirmo button, thanks the sender, stores no chat', async () => {
+  it('records attendance from the Confirmo button, hands over the crew link, stores no chat', async () => {
     const c = await seedScheduledCleaning('Depto Botón Sí');
+    const crewEnv = { ...workerEnv, LUXEL_APP_URL: 'https://luxel.test' };
     const deliver = async () => {
       const id = `wamid.btn-${nodeCrypto.randomBytes(5).toString('hex')}`;
       createdWamids.push(id);
       const res = await worker.fetch(
         signedWebhook(buttonInbound({ from: CREW_DIGITS, id, payload: `clean:${c.token}:yes` })),
-        workerEnv,
+        crewEnv,
         ctx,
       );
       expect(res.status).toBe(200);
@@ -706,7 +707,9 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
     expect(after!.crew_confirmed_at).toBeTruthy();
     expect(after!.crew_declined_at).toBeNull();
     expect(metaSends).toHaveLength(1);
-    expect(metaSends[0]).toMatchObject({ to: CREW_DIGITS, body: '¡Gracias! Aseo confirmado ✅' });
+    expect(metaSends[0]!.to).toBe(CREW_DIGITS);
+    expect(metaSends[0]!.body).toContain('¡Gracias! Aseo confirmado ✅');
+    expect(metaSends[0]!.body).toContain(`https://luxel.test/cleaning/confirm/${c.token}`);
 
     const { count } = await admin
       .from('messages')
@@ -722,7 +725,7 @@ describe.skipIf(!LIVE)('web ↔ WhatsApp human bridge (end to end)', () => {
       .single();
     expect(again!.crew_confirmed_at).toBe(after!.crew_confirmed_at);
     expect(metaSends).toHaveLength(2);
-    expect(metaSends[1]!.body).toBe('¡Gracias! Aseo confirmado ✅');
+    expect(metaSends[1]!.body).toContain(`https://luxel.test/cleaning/confirm/${c.token}`);
   });
 
   it('records a decline from the No puedo button and warns the operator', async () => {
