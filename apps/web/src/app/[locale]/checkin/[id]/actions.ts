@@ -110,8 +110,38 @@ export async function submitCheckin(input: unknown): Promise<Result> {
   const now = new Date();
   const { data: claimed, error: e1 } = await supabase
     .from('checkins')
+    .update({ status: 'submitted', submitted_at: now.toISOString() })
+    .eq('id', checkin.id)
+    .eq('status', 'pending')
+    .select('id');
+  if (e1) return { ok: false, error: 'store' };
+  if (!claimed?.length) return { ok: false, error: 'already_submitted' };
+
+  const releaseClaim = async () => {
+    const { error } = await supabase
+      .from('checkins')
+      .update({ status: 'pending', submitted_at: null })
+      .eq('id', checkin.id as string)
+      .eq('status', 'submitted');
+    if (error) {
+      console.error('checkin.claim_stuck', { checkinId: checkin.id, message: error.message });
+    }
+  };
+
+  await supabase
+    .from('checkin_guests')
+    .delete()
+    .eq('checkin_id', checkin.id as string);
+  const { error: e3 } = await supabase.from('checkin_guests').insert(rows);
+  if (e3) {
+    console.error('checkin.guests_insert_failed', { checkinId: checkin.id, message: e3.message });
+    await releaseClaim();
+    return { ok: false, error: 'store_guests' };
+  }
+
+  const { error: e4 } = await supabase
+    .from('checkins')
     .update({
-      status: 'submitted',
       guest_name: lead.fullName,
       party_size: d.guests.length,
       arrival_time: d.arrivalTime,
@@ -119,20 +149,11 @@ export async function submitCheckin(input: unknown): Promise<Result> {
       parking: d.parking ?? null,
       vehicle_plate:
         d.parking && d.vehiclePlate?.trim() ? d.vehiclePlate.trim().toUpperCase() : null,
-      submitted_at: now.toISOString(),
     })
-    .eq('id', checkin.id)
-    .eq('status', 'pending')
-    .select('id');
-  if (e1) return { ok: false, error: 'store' };
-  if (!claimed?.length) return { ok: false, error: 'already_submitted' };
-
-  await supabase
-    .from('checkin_guests')
-    .delete()
-    .eq('checkin_id', checkin.id as string);
-  const { error: e3 } = await supabase.from('checkin_guests').insert(rows);
-  if (e3) return { ok: false, error: 'store_guests' };
+    .eq('id', checkin.id as string);
+  if (e4) {
+    console.error('checkin.details_write_failed', { checkinId: checkin.id, message: e4.message });
+  }
 
   await clearCheckinDrafts(supabase, [checkin.id as string]);
   await notifyCheckin(checkin.id as string);
