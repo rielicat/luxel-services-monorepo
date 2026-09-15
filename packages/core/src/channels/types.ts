@@ -69,6 +69,12 @@ export interface ChannelSyncOutcome {
   relinked: number;
 }
 
+export interface ChannelCheckinReconcile {
+  ok: boolean;
+  properties: number;
+  created: number;
+}
+
 export interface ChannelPlugin {
   readonly id: ProviderId;
   readonly capabilities: ChannelCapabilities;
@@ -76,6 +82,12 @@ export interface ChannelPlugin {
   access(customerId: string): Promise<ChannelAccess | null>;
 
   sync(customerId: string, access: ChannelAccess, now: Date): Promise<ChannelSyncOutcome>;
+
+  reconcileCheckins?(
+    customerId: string,
+    access: ChannelAccess,
+    now: Date,
+  ): Promise<ChannelCheckinReconcile>;
 
   autoAssign?(): Promise<{ assigned: number } | null>;
 }

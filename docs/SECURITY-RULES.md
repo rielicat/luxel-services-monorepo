@@ -221,8 +221,16 @@ rules. Do not add code paths that break them.
   link on "New reservation", the reminder, the check-in details at T-3, the
   check-out message and the review request. Our code only mirrors reservations
   into `checkins` rows, and the `reservation.created` webhook writes the row at
-  once so the link never lands before it. There is no cron either; code handles
-  events only.
+  once so the link never lands before it.
+- The webhook must identify the listing on its own. Hospitable's
+  `reservation.created` payload names no property, and a new booking has no
+  thread and no calendar block. `resolveListingId` therefore falls back to
+  `listingIdFromReservation`. Every branch that gives up logs; never return
+  from one in silence.
+- A missed webhook is repaired by the check-in reconcile. `reconcileChannels`
+  inserts only the missing `checkins` rows and writes nothing else. The
+  Cloudflare Worker cron posts `/api/channels/reconcile` every 15 minutes with
+  `INTERNAL_SEND_TOKEN`. It is never a Vercel cron.
 - Door codes are secret; wifi passwords are not. `accessSecrets` in
   `lib/agent/store.ts` feeds only `property_access.keyless_code` to
   `redactSecrets`, so Lux may give a guest the wifi password and never the door

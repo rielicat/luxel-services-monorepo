@@ -96,14 +96,17 @@ async function resolveListingId(
 ): Promise<string | null> {
   if (propertyExternalId) return propertyExternalId;
   const propertyId = await resolveProperty(reservationId, null);
-  if (!propertyId) return null;
-  const supabase = createSupabaseServiceRoleClient();
-  const { data } = await supabase
-    .from('properties')
-    .select('external_listing_id')
-    .eq('id', propertyId)
-    .maybeSingle();
-  return (data?.external_listing_id as string | undefined) ?? null;
+  if (propertyId) {
+    const supabase = createSupabaseServiceRoleClient();
+    const { data } = await supabase
+      .from('properties')
+      .select('external_listing_id')
+      .eq('id', propertyId)
+      .maybeSingle();
+    const stored = (data?.external_listing_id as string | undefined) ?? null;
+    if (stored) return stored;
+  }
+  return reservationId ? await listingIdFromReservation(reservationId) : null;
 }
 
 async function listingIdFromReservation(reservationId: string): Promise<string | null> {
@@ -154,14 +157,20 @@ async function resyncForEvent(
   propertyExternalId: string | null,
 ): Promise<{ ok: boolean; reason?: string; mirrored?: boolean }> {
   const listingId = await resolveListingId(reservationId, propertyExternalId);
-  if (!listingId) return { ok: true, reason: 'unidentified' };
+  if (!listingId) {
+    console.error('webhook.listing_unidentified', { action, reservationId });
+    return { ok: true, reason: 'unidentified' };
+  }
 
   let customerId = await customerForListing(listingId);
   if (!customerId && plugin.capabilities.hasHostIdentity && plugin.autoAssign) {
     await plugin.autoAssign().catch(() => null);
     customerId = await customerForListing(listingId);
   }
-  if (!customerId) return { ok: true, reason: 'unassigned' };
+  if (!customerId) {
+    console.error('webhook.listing_unassigned', { action, listingId });
+    return { ok: true, reason: 'unassigned' };
+  }
 
   if (action === 'property.created') {
     const owner = customerId;
@@ -175,7 +184,10 @@ async function resyncForEvent(
   }
 
   const access = await plugin.access(customerId);
-  if (!access) return { ok: true, reason: 'no_access' };
+  if (!access) {
+    console.error('webhook.listing_no_access', { action, customerId });
+    return { ok: true, reason: 'no_access' };
+  }
 
   const mirrored =
     reservationId && RESERVATION_ACTIONS.has(action)

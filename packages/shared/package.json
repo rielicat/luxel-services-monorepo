@@ -19,7 +19,8 @@
     "./document": "./src/document.ts",
     "./plan-pricing": "./src/plan-pricing.ts",
     "./posthog": "./src/posthog.ts",
-    "./hospitable-calendar": "./src/hospitable-calendar.ts"
+    "./hospitable-calendar": "./src/hospitable-calendar.ts",
+    "./channel-reconcile": "./src/channel-reconcile.ts"
   },
   "scripts": {
     "lint": "eslint .",

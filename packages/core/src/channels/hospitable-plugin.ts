@@ -1,7 +1,12 @@
 import 'server-only';
-import type { ChannelAccess, ChannelPlugin, ChannelSyncOutcome } from './types';
+import type {
+  ChannelAccess,
+  ChannelCheckinReconcile,
+  ChannelPlugin,
+  ChannelSyncOutcome,
+} from './types';
 import { hospitableAccess } from './scope';
-import { syncHospitableAccount } from './hospitable-sync';
+import { reconcileHospitableCheckins, syncHospitableAccount } from './hospitable-sync';
 import { autoAssignListings } from './auto-assign';
 
 export const hospitablePlugin: ChannelPlugin = {
@@ -27,6 +32,14 @@ export const hospitablePlugin: ChannelPlugin = {
       replies: r.aiReplies,
       relinked: r.relinked,
     };
+  },
+
+  async reconcileCheckins(
+    customerId: string,
+    access: ChannelAccess,
+    now: Date,
+  ): Promise<ChannelCheckinReconcile> {
+    return reconcileHospitableCheckins(customerId, access.token, now);
   },
 
   async autoAssign() {

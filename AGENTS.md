@@ -414,8 +414,29 @@ id>`, so a thread is digested once and again only when it gains a message.
   check-out message and the review request. Our code only mirrors reservations
   into `checkins` rows. The `reservation.created` webhook writes the row at
   once, before the debounced resync. The Hospitable rule sends the link the
-  moment the booking is accepted. There is no cron either; code handles events
-  only.
+  moment the booking is accepted, so a row that never lands is a link that
+  404s for the guest.
+- The webhook **must identify the listing on its own**. Hospitable's
+  `reservation.created` payload carries the reservation and nothing else: no
+  `property_id`, and a brand new booking has no thread and no calendar block to
+  look it up by. So `resolveListingId` falls back to
+  `listingIdFromReservation`, which reads the listing off
+  `GET /reservations/{id}?include=properties`. Without that fallback the route
+  answers a silent 200 and writes nothing. It did, for months. Every branch
+  that gives up now logs (`webhook.listing_unidentified`,
+  `webhook.listing_unassigned`, `webhook.listing_no_access`); never return from
+  one of them in silence again.
+- A missed webhook is repaired by the **check-in reconcile**, not by a full
+  sync. `reconcileChannels` runs `reconcileHospitableCheckins` for every
+  connected account: it reads the already mirrored properties, lists the
+  accepted reservations from today forward, and inserts the `checkins` rows
+  that are missing. It writes nothing else — no revoke, no delete, no calendar,
+  no message, no revenue, no AI — so it is safe to run often. The Cloudflare
+  Worker cron drives it every 15 minutes
+  (`CHECKIN_RECONCILE_CRON`) by posting `/api/channels/reconcile` with
+  `INTERNAL_SEND_TOKEN`. The nightly schedule still runs the whole set; the
+  15 minute one runs the reconcile alone and returns. It is never a Vercel
+  cron. A new property still needs the full sync, which is the nightly pass.
 - Door codes are secret; wifi passwords are not. `accessSecrets` in
   `lib/agent/store.ts` feeds only `property_access.keyless_code` to
   `redactSecrets`, so Lux may give a guest the wifi password and never the door

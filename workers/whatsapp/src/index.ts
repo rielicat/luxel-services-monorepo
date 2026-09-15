@@ -22,6 +22,7 @@ import {
 } from './media';
 import { driveQueuedReviews, handleReviewStart, type ReviewEnv } from './review';
 import { runNightlyDistill } from './distill';
+import { CHECKIN_RECONCILE_CRON, runCheckinReconcile } from './reconcile';
 
 interface Env extends MediaEnv, ReviewEnv {
   WHATSAPP_VERIFY_TOKEN: string;
@@ -456,7 +457,15 @@ export default {
     return new Response('Method not allowed', { status: 405 });
   },
 
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(
+      runCheckinReconcile(env)
+        .then((result) => {
+          if (result?.created) console.warn('channels.reconciled', result);
+        })
+        .catch((err) => console.error('channels.reconcile_failed', err)),
+    );
+    if (event.cron === CHECKIN_RECONCILE_CRON) return;
     ctx.waitUntil(
       purgeExpiredWalkthroughs(env)
         .then((purged) => {

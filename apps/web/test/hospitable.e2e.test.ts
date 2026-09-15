@@ -350,7 +350,7 @@ beforeAll(async () => {
         const id = oneMatch[1]!;
         const found = RESERVATIONS_PAYLOAD.data.find((r) => r.id + RES_ID_SUFFIX === id);
         if (!found) return new Response('Not found', { status: 404 });
-        return Response.json({ data: { ...found, id } });
+        return Response.json({ data: { ...found, id, properties: [{ id: HOSP_PROPERTY_ID }] } });
       }
       if (url.includes('/reservations')) {
         return Response.json({
@@ -1315,6 +1315,93 @@ describe.skipIf(!LIVE)('Hospitable SaaS connection (end to end)', () => {
       expected_guests: 3,
     });
     expect(SENT.filter((s) => s.body.includes('/checkin/'))).toHaveLength(0);
+  });
+
+  it('mirrors a booking whose webhook names no property, the way Hospitable sends it', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    SENT.length = 0;
+    await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
+    await admin.from('calendar_blocks').delete().eq('external_uid', 'hosp:res-2');
+    await admin.from('guest_threads').delete().eq('external_thread_id', 'res-2');
+    await admin
+      .from('channel_connections')
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq('customer_id', customerId);
+
+    const { POST } = await import('../src/app/api/channels/[provider]/route');
+    const res = await POST(
+      new Request('http://localhost/api/channels/hospitable', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'reservation.created', data: { id: 'res-2' } }),
+      }),
+      { params: Promise.resolve({ provider: 'hospitable' }) },
+    );
+    const json = (await res.json()) as { resync: string; mirrored: boolean };
+    expect(json.resync).not.toBe('unidentified');
+    expect(json.mirrored).toBe(true);
+
+    const { data: row } = await admin
+      .from('checkins')
+      .select('confirmation_code, expected_guests')
+      .eq('reservation_uid', 'hosp:res-2')
+      .single();
+    expect(row).toMatchObject({ confirmation_code: 'HM8TX2H8CD', expected_guests: 3 });
+    expect(SENT.filter((s) => s.body.includes('/checkin/'))).toHaveLength(0);
+  });
+
+  it('the reconcile pass restores a check-in row the webhook never delivered', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    SENT.length = 0;
+    await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-2');
+
+    const { reconcileChannels } = await import('@luxel/core/channels/reconcile');
+    const result = await reconcileChannels();
+    expect(result.ok).toBe(true);
+    expect(result.created).toBeGreaterThan(0);
+
+    const { data: row } = await admin
+      .from('checkins')
+      .select('confirmation_code, status, revoked_at')
+      .eq('reservation_uid', 'hosp:res-2')
+      .single();
+    expect(row).toMatchObject({ confirmation_code: 'HM8TX2H8CD', status: 'pending' });
+    expect(row!.revoked_at).toBeNull();
+    expect(SENT.filter((s) => s.body.includes('/checkin/'))).toHaveLength(0);
+
+    const again = await reconcileChannels();
+    expect(again.created).toBe(0);
+  });
+
+  it('the reconcile pass never revives a stay Hospitable no longer accepts', async () => {
+    await connectHospitable({ token: FAKE_TOKEN });
+    const { data: prop } = await admin
+      .from('properties')
+      .select('id')
+      .eq('external_listing_id', HOSP_PROPERTY_ID)
+      .single();
+    await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-gone');
+    await admin.from('checkins').insert({
+      property_id: prop!.id,
+      token: nodeCrypto.randomBytes(24).toString('base64url'),
+      status: 'pending',
+      reservation_uid: 'hosp:res-gone',
+      confirmation_code: 'HMGONE0001',
+      arrival_date: '2027-04-01',
+      departure_date: '2027-04-04',
+      revoked_at: new Date().toISOString(),
+    });
+
+    const { reconcileChannels } = await import('@luxel/core/channels/reconcile');
+    await reconcileChannels();
+
+    const { data: row } = await admin
+      .from('checkins')
+      .select('revoked_at')
+      .eq('reservation_uid', 'hosp:res-gone')
+      .single();
+    expect(row!.revoked_at).not.toBeNull();
+    await admin.from('checkins').delete().eq('reservation_uid', 'hosp:res-gone');
   });
 
   it('a reconnect that re-issues reservation ids never resends the booking link', async () => {

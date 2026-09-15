@@ -199,6 +199,61 @@ async function upsertCheckinRow(
   return true;
 }
 
+export interface HospitableCheckinReconcile {
+  ok: boolean;
+  properties: number;
+  created: number;
+}
+
+export async function reconcileHospitableCheckins(
+  customerId: string,
+  token: string,
+  now: Date = new Date(),
+): Promise<HospitableCheckinReconcile> {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data: props, error } = await supabase
+    .from('properties')
+    .select('id, external_listing_id')
+    .eq('owner_id', customerId)
+    .not('external_listing_id', 'is', null);
+  if (error) {
+    console.error('sync.reconcile_properties_failed', { customerId, message: error.message });
+    return { ok: false, properties: 0, created: 0 };
+  }
+
+  const today = santiagoToday(now);
+  const startDate = iso(now);
+  const endDate = iso(new Date(now.getTime() + 400 * DAY));
+  const rows = props ?? [];
+  let created = 0;
+
+  for (const prop of rows) {
+    const listingId = prop.external_listing_id as string;
+    const propertyId = prop.id as string;
+    const reservations = await listHospitableReservations(token, listingId, startDate, endDate);
+    if (!reservations) {
+      console.error('sync.reconcile_reservations_failed', { propertyId });
+      return { ok: false, properties: rows.length, created };
+    }
+    for (const r of reservations) {
+      if (!isAcceptedReservation(r)) continue;
+      if (r.arrival_date.slice(0, 10) < today) continue;
+      const { data: existing } = await supabase
+        .from('checkins')
+        .select('id')
+        .eq('reservation_uid', ref(r.id))
+        .maybeSingle();
+      if (existing) continue;
+      if (await upsertCheckinRow(supabase, propertyId, r, today)) {
+        created++;
+        console.warn('sync.checkin_backfilled', { propertyId, code: r.code || null });
+      }
+    }
+  }
+
+  return { ok: true, properties: rows.length, created };
+}
+
 export function isAcceptedReservation(r: HospitableReservation): boolean {
   const cat = r.reservation_status?.current?.category ?? r.status ?? '';
   return ['accepted', 'active', 'confirmed'].includes(String(cat).toLowerCase());
