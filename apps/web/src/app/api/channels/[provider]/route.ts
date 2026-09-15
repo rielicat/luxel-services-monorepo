@@ -133,10 +133,18 @@ async function mirrorReservationNow(
     .select('id')
     .eq('external_listing_id', listingId)
     .maybeSingle();
-  if (!prop) return false;
+  if (!prop) {
+    console.error('webhook.reservation_property_unknown', { listingId });
+    return false;
+  }
   const reservation = await getHospitableReservation(token, reservationId);
-  if (!reservation) return false;
-  return mirrorCheckinForReservation(prop.id as string, reservation);
+  if (!reservation) {
+    console.error('webhook.reservation_fetch_failed', { reservationId });
+    return false;
+  }
+  const mirrored = await mirrorCheckinForReservation(prop.id as string, reservation);
+  if (!mirrored) console.error('webhook.checkin_not_mirrored', { reservationId });
+  return mirrored;
 }
 
 async function resyncForEvent(

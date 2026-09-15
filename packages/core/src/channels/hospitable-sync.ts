@@ -169,7 +169,15 @@ async function upsertCheckinRow(
     .select('arrival_date, departure_date, confirmation_code, guest_language, revoked_at')
     .eq('reservation_uid', uid)
     .maybeSingle();
-  if (!existing) return false;
+  if (!existing) {
+    console.error('sync.checkin_insert_failed', {
+      propertyId,
+      code: r.code ?? null,
+      arrival,
+      message: error.message,
+    });
+    return false;
+  }
   if (
     existing.arrival_date !== arrival ||
     existing.departure_date !== departure ||
@@ -205,7 +213,12 @@ export async function mirrorCheckinForReservation(
   const supabase = createSupabaseServiceRoleClient();
   try {
     return await upsertCheckinRow(supabase, propertyId, r, santiagoToday(now));
-  } catch {
+  } catch (err) {
+    console.error('sync.checkin_mirror_threw', {
+      propertyId,
+      code: r.code ?? null,
+      message: err instanceof Error ? err.message : 'unknown',
+    });
     return false;
   }
 }
