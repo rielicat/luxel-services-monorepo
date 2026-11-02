@@ -35,4 +35,4 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: supabase db push --db-url "$DB_URL"
+        run: supabase db push --yes --db-url "$DB_URL"

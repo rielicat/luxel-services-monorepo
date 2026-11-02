@@ -54,6 +54,11 @@ session. Do not point both at one instance.
 
 - Supabase local image pulls can 403 from `public.ecr.aws`; mirror from
   Docker Hub.
+- `supabase db push` asks to confirm, and a CI shell is not a terminal. Without
+  `--yes` it exits 1 with "Confirmation required" and changes nothing, so
+  `db-migrate.yml` goes red while every other check stays green and the new
+  columns are simply absent. The web app deploys regardless, so the first sign
+  is a PostgREST error on a column the repository clearly declares.
 - PostgREST refuses an `or=` filter on an **UPDATE**: it answers a bare
   `42703` "column does not exist" even when the column is there. The same
   filter is fine on a `select`. `claimDraft` in `lib/cleaning/inventory.ts`
