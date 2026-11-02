@@ -54,6 +54,12 @@ session. Do not point both at one instance.
 
 - Supabase local image pulls can 403 from `public.ecr.aws`; mirror from
   Docker Hub.
+- Port 54321, the Supabase default, is taken on this machine: a CleanMyMac
+  helper holds `127.0.0.1:54321`, so Docker never binds it and Kong is
+  unreachable while every container reports healthy. `curl` answers "Empty
+  reply from server" and the live suites all skip or fail on a null insert.
+  `supabase/config.toml` therefore serves the local API on **54391**. Check
+  with `lsof -nP -iTCP:54321 -sTCP:LISTEN` before believing Docker is broken.
 - `supabase db push` asks to confirm, and a CI shell is not a terminal. Without
   `--yes` it exits 1 with "Confirmation required" and changes nothing, so
   `db-migrate.yml` goes red while every other check stays green and the new

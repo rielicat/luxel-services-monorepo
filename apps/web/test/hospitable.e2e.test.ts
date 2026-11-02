@@ -15,6 +15,7 @@ process.env.WHATSAPP_WORKER_SEND_URL = 'http://worker.test/send';
 process.env.INTERNAL_SEND_TOKEN = 'test-internal-token';
 
 const FAKE_TOKEN = `tok_${nodeCrypto.randomBytes(24).toString('hex')}`;
+process.env.PROVIDER_API_KEY = FAKE_TOKEN;
 const HOSP_PROPERTY_ID = 'a6eb2c65-1e45-43a8-9cde-000000000001';
 
 const PROPERTIES_PAYLOAD = {
