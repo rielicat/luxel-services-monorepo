@@ -57,8 +57,17 @@ vi.mock('@luxel/core/email/send', () => ({
 
 let admin: ReturnType<typeof createClient>;
 let seedImportedProperty: (i: unknown) => Promise<{ ok: boolean; id?: string }>;
-let suggestCleaningsFromCheckouts: (id: string) => Promise<{ suggested: number; skipped: number }>;
+let suggestCleaningsFromCheckouts: (
+  id: string,
+) => Promise<{ suggested: number; skipped: number; revived: number }>;
 let autoConfirmSuggested: (id: string, today: string) => Promise<number>;
+let remindCleanings: (today?: string) => Promise<{
+  ok: boolean;
+  date: string;
+  due: number;
+  reminded: number;
+  failed: number;
+}>;
 let santiagoToday: () => string;
 let customerId: string;
 
@@ -77,6 +86,7 @@ beforeAll(async () => {
   suggestCleaningsFromCheckouts = (await import('@luxel/core/cleaning/schedule'))
     .suggestCleaningsFromCheckouts;
   autoConfirmSuggested = (await import('@luxel/core/cleaning/notify')).autoConfirmSuggested;
+  remindCleanings = (await import('@luxel/core/cleaning/remind')).remindCleanings;
   santiagoToday = (await import('@luxel/core/checkin/window')).santiagoToday;
   admin = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
 
@@ -299,6 +309,60 @@ describe.skipIf(!LIVE)('Luxel-run cleaning coordination (end to end)', () => {
     expect(fyi).toHaveLength(1);
     expect(fyi[0]!.text).toContain('Aseo cancelado — Depto Horizonte');
     expect(await autoConfirmSuggested(propertyId, santiagoToday())).toBe(0);
+
+    WA_SENDS.length = 0;
+    await admin.from('calendar_blocks').insert({
+      property_id: propertyId,
+      starts_on: plusDays(3),
+      ends_on: CHECKOUT,
+      source: 'import',
+      external_uid: 'feed:again',
+      summary: 'Reserved',
+    });
+    const again = await suggestCleaningsFromCheckouts(propertyId);
+    expect(again.revived).toBe(1);
+    expect(again.suggested).toBe(0);
+    expect(await rows()).toEqual([
+      { cleaning_date: CHECKOUT, status: 'suggested' },
+      { cleaning_date: FAR_CHECKOUT, status: 'suggested' },
+    ]);
+    expect(await autoConfirmSuggested(propertyId, santiagoToday())).toBe(1);
+    expect(WA_SENDS.filter((s) => s.template)).toHaveLength(1);
+  });
+
+  it('reminds the crew the day before, once, and never for a declined cleaning', async () => {
+    const prop = await seedImportedProperty({ nickname: 'Depto Recordatorio' });
+    const propertyId = prop.id!;
+    await admin.from('property_contacts').insert({
+      property_id: propertyId,
+      role: 'cleaning',
+      name: 'Lucy',
+      whatsapp: '+56990000111',
+    });
+    const tomorrow = plusDays(1);
+    await admin.from('cleanings').insert([
+      { property_id: propertyId, cleaning_date: tomorrow, status: 'scheduled' },
+      { property_id: propertyId, cleaning_date: plusDays(4), status: 'scheduled' },
+    ]);
+
+    const first = await remindCleanings(santiagoToday());
+    expect(first).toMatchObject({ ok: true, date: tomorrow, due: 1, reminded: 1, failed: 0 });
+    const templates = WA_SENDS.filter((s) => s.template);
+    expect(templates).toHaveLength(1);
+    expect(templates[0]!.template!.kind).toBe('cleaning_confirm');
+    expect(WA_SENDS.find((s) => s.text)!.text).toContain('Recordatorio de aseo');
+
+    WA_SENDS.length = 0;
+    expect(await remindCleanings(santiagoToday())).toMatchObject({ due: 0, reminded: 0 });
+    expect(WA_SENDS.filter((s) => s.template)).toHaveLength(0);
+
+    await admin
+      .from('cleanings')
+      .update({ reminded_at: null, crew_declined_at: new Date().toISOString() })
+      .eq('property_id', propertyId)
+      .eq('cleaning_date', tomorrow);
+    expect(await remindCleanings(santiagoToday())).toMatchObject({ due: 0, reminded: 0 });
+    expect(WA_SENDS.filter((s) => s.template)).toHaveLength(0);
   });
 
   it('lets the crew confirm attendance via the tokenized link — once', async () => {

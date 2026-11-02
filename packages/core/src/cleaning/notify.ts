@@ -28,11 +28,15 @@ function cleaningDateText(isoDate: string, checkout: string | null): string {
   return `${weekday} ${longDateEs(isoDate)}${checkout ? `, ${checkout}` : ''}`;
 }
 
+export type CleaningNoticeKind = 'scheduled' | 'reminder';
+
 export async function notifyCleaningScheduled(
   supabase: Supabase,
   propertyId: string,
   cleaningId: string,
-): Promise<void> {
+  kind: CleaningNoticeKind = 'scheduled',
+): Promise<boolean> {
+  const reminder = kind === 'reminder';
   try {
     const [{ data: prop }, { data: cleaning }, crew, { data: access }] = await Promise.all([
       supabase
@@ -48,25 +52,34 @@ export async function notifyCleaningScheduled(
       recipients(propertyId, 'cleaning', supabase),
       supabase.from('property_access').select('unit').eq('property_id', propertyId).maybeSingle(),
     ]);
-    if (!prop || !cleaning) return;
+    if (!prop || !cleaning) return false;
     const where = [prop.address, prop.comuna].filter(Boolean).join(', ');
     const token = cleaning.confirm_token as string;
     const confirmUrl = `${appUrl()}/cleaning/confirm/${token}`;
     const win = windowText(prop.checkout_time as string | null, prop.checkin_time as string | null);
-    const summary = `Aseo agendado — ${prop.nickname}${where ? ` (${where})` : ''} el ${cleaning.cleaning_date}.${win}`;
+    const lead = reminder ? 'Aseo mañana' : 'Aseo agendado';
+    const summary = `${lead} — ${prop.nickname}${where ? ` (${where})` : ''} el ${cleaning.cleaning_date}.${win}`;
     const params = [
       cleaningDateText(cleaning.cleaning_date as string, prop.checkout_time as string | null),
       `${prop.nickname}${access?.unit ? ` · Depto. ${access.unit}` : ''}`,
     ];
     const buttons = [`clean:${token}:yes`, `clean:${token}:no`];
+    let delivered = 0;
     for (const c of crew) {
       const wamid = c.phone
         ? await sendWhatsAppTemplate(c.phone, 'cleaning_confirm', params, buttons)
         : null;
-      if (wamid || !c.email) continue;
-      await sendEmail({
+      if (wamid) {
+        delivered++;
+        continue;
+      }
+      if (!c.email) {
+        console.warn('cleaning.notice_unreachable', { cleaningId, kind, contactId: c.contactId });
+        continue;
+      }
+      const sent = await sendEmail({
         to: c.email,
-        subject: `Aseo · ${prop.nickname} · ${cleaning.cleaning_date} — confirma tu asistencia`,
+        subject: `${reminder ? 'Recordatorio' : 'Aseo'} · ${prop.nickname} · ${cleaning.cleaning_date} — confirma tu asistencia`,
         html: [
           `<p>Hola${c.name ? ` ${esc(c.name)}` : ''},</p>`,
           `<p>${esc(summary)}</p>`,
@@ -75,11 +88,28 @@ export async function notifyCleaningScheduled(
           `<p>— Luxel</p>`,
         ].join(''),
       });
+      if (sent) delivered++;
+      else console.warn('cleaning.notice_failed', { cleaningId, kind, contactId: c.contactId });
     }
     await sendWhatsAppViaWorker(
-      `Nuevo aseo para el equipo: ${summary} Confirmar asistencia: ${confirmUrl}`,
+      `${reminder ? 'Recordatorio de aseo' : 'Nuevo aseo para el equipo'}: ${summary} Confirmar asistencia: ${confirmUrl}`,
     );
-  } catch {}
+    if (!crew.length) console.warn('cleaning.notice_no_crew', { propertyId, cleaningId, kind });
+    if (!reminder) {
+      await supabase
+        .from('cleanings')
+        .update({ notified_at: new Date().toISOString() })
+        .eq('id', cleaningId);
+    }
+    return delivered > 0;
+  } catch (err) {
+    console.error('cleaning.notice_threw', {
+      cleaningId,
+      kind,
+      message: err instanceof Error ? err.message : 'unknown',
+    });
+    return false;
+  }
 }
 
 export async function notifyCleaningCancelled(

@@ -23,6 +23,7 @@ import {
 import { driveQueuedReviews, handleReviewStart, type ReviewEnv } from './review';
 import { runNightlyDistill } from './distill';
 import { CHECKIN_RECONCILE_CRON, runCheckinReconcile } from './reconcile';
+import { CLEANING_REMIND_CRON, runCleaningReminder } from './remind';
 
 interface Env extends MediaEnv, ReviewEnv {
   WHATSAPP_VERIFY_TOKEN: string;
@@ -466,6 +467,16 @@ export default {
         .catch((err) => console.error('channels.reconcile_failed', err)),
     );
     if (event.cron === CHECKIN_RECONCILE_CRON) return;
+    if (event.cron === CLEANING_REMIND_CRON) {
+      ctx.waitUntil(
+        runCleaningReminder(env)
+          .then((result) => {
+            if (result) console.warn('cleaning.reminded', result);
+          })
+          .catch((err) => console.error('cleaning.remind_failed', err)),
+      );
+      return;
+    }
     ctx.waitUntil(
       purgeExpiredWalkthroughs(env)
         .then((purged) => {

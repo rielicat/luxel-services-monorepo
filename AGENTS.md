@@ -198,6 +198,28 @@ supabase/        migrations + local config
   (`lib/cleaning/notify.ts`). Hosts have no cleaning controls and no guest
   inbox. `guest_threads` status `needs_host` means "needs a Luxel human". Do not
   add host-facing crew or inbox surfaces.
+- A cancelled checkout marks its cleaning `skipped`, and a re-booked date must
+  bring it back. The insert is `ignoreDuplicates: true`, so it never revives a
+  row on its own and the date stayed `skipped` for good. That is what
+  `reviveSkippedCleanings` is for: it moves a `skipped` row on a live checkout
+  date back to `suggested` and clears `crew_confirmed_at`, `crew_declined_at`,
+  `notified_at` and `reminded_at`, because the new booking is a new job. Never
+  widen the insert to overwrite instead: that would stomp a `done` row and the
+  crew's own confirmation. `skipOrphanCleanings` and the revive pass act on
+  disjoint sets, so their order does not matter.
+- The crew is told twice. `autoConfirmSuggested` sends the notice up to 14 days
+  ahead (`notified_at`), which is too early to act on, so `remindCleanings`
+  sends the same `cleaning_confirm` template again the day before. The
+  Cloudflare Worker cron drives it daily (`CLEANING_REMIND_CRON`) by posting
+  `/api/cleaning/remind` with `INTERNAL_SEND_TOKEN`; it is never a Vercel cron.
+  `reminded_at` is a compare-and-swap claimed before the send and cleared when
+  nothing was delivered, so a reminder goes out at most once and a failed one
+  retries the next day. A cleaning the crew declined is never reminded. Both
+  notices log when a contact is unreachable, when a send fails and when the
+  property has no cleaning crew at all: a notice nobody received must never be
+  silent again. `cleaning_confirm` is the only approved template for this, so
+  the reminder reuses it rather than adding a second one; a new template needs
+  Meta approval and is operator work, not code.
 - A cleaning **walkthrough video** is Luxel-owned and short-lived. The crew
   records it in the browser; the browser sends it straight to the Cloudflare
   Worker, which puts it in the R2 bucket `luxel-cleaning-media`. It never passes

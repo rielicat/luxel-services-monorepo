@@ -35,6 +35,19 @@ rules. Do not add code paths that break them.
   crew (`lib/cleaning/notify.ts`). Hosts have no cleaning controls and no guest
   inbox. `guest_threads` status `needs_host` means "needs a Luxel human". Do not
   add host-facing crew or inbox surfaces.
+- A cancelled checkout marks its cleaning `skipped`, and a re-booked date must
+  bring it back. The insert is `ignoreDuplicates: true` and never revives a row
+  on its own, so `reviveSkippedCleanings` moves a `skipped` row on a live
+  checkout date back to `suggested` and clears the crew's confirmation and both
+  notice stamps. Never widen the insert to overwrite instead: it would stomp a
+  `done` row.
+- The crew is told twice. `autoConfirmSuggested` sends the notice up to 14 days
+  ahead (`notified_at`); `remindCleanings` sends the same `cleaning_confirm`
+  template again the day before, driven by the Worker cron
+  (`CLEANING_REMIND_CRON`) through `/api/cleaning/remind`, never a Vercel cron.
+  `reminded_at` is a compare-and-swap, so a reminder goes out at most once and a
+  failed one retries the next day. A declined cleaning is never reminded. Both
+  notices log an unreachable contact, a failed send and an empty crew.
 - A cleaning **walkthrough video** is Luxel-owned and short-lived. The crew
   records it in the browser; the browser sends it straight to the Cloudflare
   Worker, which puts it in the R2 bucket `luxel-cleaning-media`. It never passes

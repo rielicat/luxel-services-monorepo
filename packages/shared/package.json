@@ -20,7 +20,8 @@
     "./plan-pricing": "./src/plan-pricing.ts",
     "./posthog": "./src/posthog.ts",
     "./hospitable-calendar": "./src/hospitable-calendar.ts",
-    "./channel-reconcile": "./src/channel-reconcile.ts"
+    "./channel-reconcile": "./src/channel-reconcile.ts",
+    "./cleaning-remind": "./src/cleaning-remind.ts"
   },
   "scripts": {
     "lint": "eslint .",
